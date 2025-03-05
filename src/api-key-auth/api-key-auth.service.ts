@@ -9,7 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 export interface ApiKeyAuthJwtPayload {
   clientId: string;
   fingerprint: string;
-  token_type: 'access' | 'refresh';
+  typ: 'access' | 'refresh';
+  jti: string;
 }
 
 @Injectable()
@@ -46,12 +47,12 @@ export class ApiKeyAuthService {
 
     try {
       const access_token = this.jwtService.sign(
-        { clientId, fingerprint, token_type: 'access' },
+        { clientId, fingerprint, typ: 'access', jti: uuidv4() },
         { secret: secretKey, algorithm: 'HS256', expiresIn: '1m' },
       );
 
       const refresh_token = this.jwtService.sign(
-        { clientId, fingerprint, token_type: 'refresh' },
+        { clientId, fingerprint, typ: 'refresh', jti: uuidv4() },
         { secret: secretKey, algorithm: 'HS256', expiresIn: '7d' },
       );
 
@@ -75,7 +76,7 @@ export class ApiKeyAuthService {
       throw new UnauthorizedException('Token inválido');
     }
 
-    if (!decoded || !decoded.clientId || decoded.token_type !== 'refresh') {
+    if (!decoded || !decoded.clientId || decoded.typ !== 'refresh') {
       throw new UnauthorizedException('Token inválido');
     }
 
@@ -96,7 +97,8 @@ export class ApiKeyAuthService {
         {
           clientId: decoded.clientId,
           fingerprint: decoded.fingerprint,
-          token_type: 'access',
+          typ: 'access',
+          jti: uuidv4(),
         },
         { secret: secretKey, algorithm: 'HS256', expiresIn: '1m' },
       );

@@ -39,7 +39,7 @@ export class GuidersClientWebsocketGateway {
 
       // 2️⃣ Decodificar el token para obtener el clientId
       const decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(token);
-      if (!decoded || !decoded.clientId || decoded.token_type !== 'access')
+      if (!decoded || !decoded.clientId || decoded.typ !== 'access')
         throw new Error('Token inválido');
       const clientId = decoded.clientId;
 

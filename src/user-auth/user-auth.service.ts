@@ -6,6 +6,7 @@ import { EntityManager, In, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { ApiKeyEntity } from 'src/api-key-auth/api-key.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserAuthService {
@@ -42,7 +43,8 @@ export class UserAuthService {
     const payload_access_token = {
       sub: user.id,
       email: user.email,
-      token_type: 'access',
+      typ: 'access',
+      jti: uuidv4(),
     };
     const access_token = this.jwtService.sign(payload_access_token, {
       secret,
@@ -52,7 +54,8 @@ export class UserAuthService {
     const payload_refresh_token = {
       sub: user.id,
       email: user.email,
-      token_type: 'refresh',
+      typ: 'refresh',
+      jti: uuidv4(),
     };
 
     const refresh_token = this.jwtService.sign(payload_refresh_token, {
@@ -101,9 +104,10 @@ export class UserAuthService {
     const decoded = this.jwtService.decode<{
       sub: string;
       email: string;
-      token_type: string;
+      typ: string;
+      jti: string;
     }>(refreshToken);
-    if (!decoded || decoded.token_type !== 'refresh') {
+    if (!decoded || decoded.typ !== 'refresh') {
       throw new UnauthorizedException('Token inválido');
     }
 
@@ -127,7 +131,8 @@ export class UserAuthService {
     const payload_access_token = {
       sub: user.id,
       email: user.email,
-      token_type: 'access',
+      typ: 'access',
+      jti: uuidv4(),
     };
     const access_token = this.jwtService.sign(payload_access_token, {
       secret,
