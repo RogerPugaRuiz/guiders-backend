@@ -12,9 +12,6 @@ export class DeviceFingerprintsEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  socketId: string;
-
   @Column({ unique: true })
   fingerprint: string;
 
@@ -26,6 +23,18 @@ export class DeviceFingerprintsEntity {
     default: () => 'CURRENT_TIMESTAMP',
   })
   createdAt: Date;
+
+  @Column({
+    type: 'boolean',
+    default: true,
+  })
+  isActive: boolean;
+
+  @Column({
+    type: 'int',
+    default: 0,
+  })
+  timeConnectedInSeconds: number;
 
   // Relación ManyToOne hacia ApiKeyEntity
   @ManyToOne(() => ApiKeyEntity, (apiKey) => apiKey.devices)

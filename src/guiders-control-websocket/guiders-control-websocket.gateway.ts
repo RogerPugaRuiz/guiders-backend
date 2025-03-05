@@ -4,7 +4,6 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Client } from 'src/shared/types/client-type';
 import { Server, Socket } from 'socket.io';
 // Cambiar la ruta de importación de ClientsService a la ruta relativa correcta
 import { ClientsService } from '../shared/service/client.service';
@@ -23,12 +22,14 @@ export class GuidersControlWebsocketGateway {
     private readonly jwtService: JwtService,
   ) {}
 
-  @SubscribeMessage('message')
-  handleConnection(client: Socket) {}
+  @OnEvent('device::connected')
+  handleDeviceConnectedEvent(device: { fingerprint: string }): void {
+    this.server.emit('deviceConnected', device);
+  }
 
-  @OnEvent('clients::update')
-  handleClientsUpdate(payload: Client[]) {
-    this.server.emit('clientsUpdate', Array.from(payload));
+  @OnEvent('device::disconnected')
+  handleDeviceDisconnectedEvent(device: { fingerprint: string }): void {
+    this.server.emit('deviceDisconnected', device);
   }
 
   // Permite al cliente solicitar la lista de clientes cuando inicia

@@ -63,7 +63,22 @@ export class GuidersClientWebsocketGateway {
     }
   }
 
-  async handleDisconnect(client: Socket) {}
+  async handleDisconnect(client: Socket) {
+    const token = client.handshake.auth?.token as string;
+    const decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(token);
+    const clientId = decoded.clientId;
+    const device = await this.deviceFingerprintsRepository.findOne({
+      where: { apiKey: { clientId } },
+    });
+
+    if (device) {
+      device.isActive = false;
+      await this.deviceFingerprintsRepository.save(device);
+      this.disconnectedDevice({
+        fingerprint: device.fingerprint,
+      });
+    }
+  }
 
   @SubscribeMessage('registerBrowser')
   async handleRegisterBrowser(
@@ -76,7 +91,6 @@ export class GuidersClientWebsocketGateway {
     const token = client.handshake.auth?.token as string;
     const decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(token);
     const clientId = decoded.clientId;
-    const socketId = client.id;
     const userAgent = payload.userAgent;
     const fingerprint = payload.fingerprint;
     const apiKey = await this.apiKeyRepository.findOne({ where: { clientId } });
@@ -88,7 +102,11 @@ export class GuidersClientWebsocketGateway {
       where: { fingerprint },
     });
     if (existingDevice) {
-      console.error('❌ Dispositivo ya registrado');
+      existingDevice.isActive = true;
+      await this.deviceFingerprintsRepository.save(existingDevice);
+      this.connectedDevice({
+        fingerprint: existingDevice.fingerprint,
+      });
       // client.disconnect();
       return;
     }
@@ -96,7 +114,6 @@ export class GuidersClientWebsocketGateway {
       const newDevice = this.deviceFingerprintsRepository.create({
         userAgent,
         fingerprint,
-        socketId,
         apiKey,
       });
       await this.deviceFingerprintsRepository.save(newDevice);
@@ -104,10 +121,17 @@ export class GuidersClientWebsocketGateway {
       console.error(`❌ Error al registrar el dispositivo: ${error}`);
       // client.disconnect();
     }
-    this.emitBrowsers();
   }
 
   private emitBrowsers(): void {
     // this.eventEmitter.emit('clients::update', browsersList);
+  }
+
+  private connectedDevice(device: { fingerprint: string }): void {
+    this.eventEmitter.emit('device::connected', device);
+  }
+
+  private disconnectedDevice(device: { fingerprint: string }): void {
+    this.eventEmitter.emit('device::disconnected', device);
   }
 }

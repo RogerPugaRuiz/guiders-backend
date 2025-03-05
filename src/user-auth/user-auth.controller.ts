@@ -12,4 +12,19 @@ export class UserAuthController {
   ) {
     return this.userAuthService.login(username, password);
   }
+
+  @Post('register')
+  register(
+    @Body('username') username: string,
+    @Body('password') password: string,
+    @Body('apiKeyIds') apiKeyIds: string[],
+  ) {
+    console.log(`username: ${username}, password: ${password}`);
+    return this.userAuthService.register(username, password, apiKeyIds);
+  }
+
+  @Post('refresh')
+  refresh(@Body('refresh_token') refreshToken: string) {
+    return this.userAuthService.refresh(refreshToken);
+  }
 }

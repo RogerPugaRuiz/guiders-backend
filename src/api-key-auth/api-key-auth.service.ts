@@ -52,7 +52,7 @@ export class ApiKeyAuthService {
 
       const refresh_token = this.jwtService.sign(
         { clientId, fingerprint, token_type: 'refresh' },
-        { secret: secretKey, algorithm: 'HS256', expiresIn: '1h' },
+        { secret: secretKey, algorithm: 'HS256', expiresIn: '7d' },
       );
 
       return { access_token, refresh_token };

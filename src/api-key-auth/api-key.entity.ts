@@ -1,5 +1,13 @@
 import { DeviceFingerprintsEntity } from 'src/device/device-fingerprints.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { UserAuthEntity } from 'src/user-auth/user-auth.entity';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 
 @Entity()
 export class ApiKeyEntity {
@@ -19,4 +27,7 @@ export class ApiKeyEntity {
   // Relación OneToMany con DeviceFingerprintsEntity
   @OneToMany(() => DeviceFingerprintsEntity, (device) => device.apiKey)
   devices: DeviceFingerprintsEntity[];
+
+  @ManyToMany(() => UserAuthEntity, (user) => user.apiKeys)
+  commercialUsers: UserAuthEntity[];
 }

@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { ApiKeyEntity } from 'src/api-key-auth/api-key.entity';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToMany,
+  JoinTable,
+} from 'typeorm';
 
 @Entity()
 export class UserAuthEntity {
@@ -10,4 +17,21 @@ export class UserAuthEntity {
 
   @Column()
   password: string;
+
+  @ManyToMany(() => ApiKeyEntity, (apiKey) => apiKey.commercialUsers, {
+    cascade: true,
+    eager: true,
+  })
+  @JoinTable({
+    name: 'user_api_keys',
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'api_key_id',
+      referencedColumnName: 'id',
+    },
+  })
+  apiKeys: ApiKeyEntity[];
 }
