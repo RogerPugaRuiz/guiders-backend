@@ -1,0 +1,23 @@
+Sigue el formato de commits convencionales:
+	•	Usa el tiempo verbal imperativo y presente: "change" en lugar de "changed" o "changes".
+	•	Mantén el asunto breve: máx. 50 caracteres, cuerpo opcional de hasta 72 caracteres.
+	•	Separa el asunto del cuerpo con una línea en blanco.
+	•	No termines la línea del asunto con un punto.
+	•	Explica el qué y el por qué en el cuerpo del mensaje, si es necesario.
+Formato del mensaje de commit
+<tipo>(<ámbito opcional>): <asunto>
+<BLANK LINE>
+<cuerpo opcional>
+<BLANK LINE>
+<pie de página opcional>
+
+Tipos de commit
+	•	feat: Nueva funcionalidad para el usuario.
+	•	fix: Corrección de errores.
+	•	docs: Cambios en la documentación.
+	•	style: Cambios de formato (espacios, comas, etc.).
+	•	refactor: Refactorización sin cambios en funcionalidad.
+	•	test: Agregar o refactorizar pruebas.
+	•	chore: Mantenimiento sin impacto en el código de producción.
+	•	build: Cambios en herramientas de compilación o dependencias.
+	•	perf: Mejoras de rendimiento.

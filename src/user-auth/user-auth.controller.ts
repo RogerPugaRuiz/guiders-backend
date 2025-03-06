@@ -6,25 +6,27 @@ export class UserAuthController {
   constructor(private readonly userAuthService: UserAuthService) {}
 
   @Post('login')
-  login(
+  async login(
     @Body('username') username: string,
     @Body('password') password: string,
   ) {
-    return this.userAuthService.login(username, password);
+    return await this.userAuthService.login(username, password);
   }
 
   @Post('register')
-  register(
+  async register(
     @Body('username') username: string,
     @Body('password') password: string,
     @Body('apiKeyIds') apiKeyIds: string[],
   ) {
     console.log(`username: ${username}, password: ${password}`);
-    return this.userAuthService.register(username, password, apiKeyIds);
+    return await this.userAuthService.register(username, password, apiKeyIds);
   }
 
   @Post('refresh')
-  refresh(@Body('refresh_token') refreshToken: string) {
-    return this.userAuthService.refresh(refreshToken);
+  async refresh(
+    @Body('refresh_token') refreshToken: string,
+  ): Promise<{ access_token: string }> {
+    return await this.userAuthService.refresh(refreshToken);
   }
 }

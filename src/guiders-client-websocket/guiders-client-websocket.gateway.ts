@@ -9,7 +9,6 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ApiKeyEntity } from '../api-key-auth/api-key.entity';
-import { ApiKeyAuthJwtPayload } from 'src/api-key-auth/api-key-auth.service';
 import { EncryptionService } from 'src/shared/service/encryption.service';
 import { DeviceFingerprintsEntity } from 'src/device/device-fingerprints.entity';
 
@@ -38,10 +37,14 @@ export class GuidersClientWebsocketGateway {
       if (!token) throw new Error('Token no proporcionado');
 
       // 2️⃣ Decodificar el token para obtener el clientId
-      const decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(token);
-      if (!decoded || !decoded.clientId || decoded.typ !== 'access')
+      const decoded = this.jwtService.decode<{
+        sub: string;
+        typ: string;
+        jti: string;
+      }>(token);
+      if (!decoded || !decoded.sub || decoded.typ !== 'access')
         throw new Error('Token inválido');
-      const clientId = decoded.clientId;
+      const clientId = decoded.sub;
 
       // 3️⃣ Buscar en la DB la API Key correspondiente al clientId
       const apiKeyEntity = await this.apiKeyRepository.findOne({
@@ -65,8 +68,12 @@ export class GuidersClientWebsocketGateway {
 
   async handleDisconnect(client: Socket) {
     const token = client.handshake.auth?.token as string;
-    const decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(token);
-    const clientId = decoded.clientId;
+    const decoded = this.jwtService.decode<{
+      sub: string;
+      typ: string;
+      jti: string;
+    }>(token);
+    const clientId = decoded.sub;
     const device = await this.deviceFingerprintsRepository.findOne({
       where: { apiKey: { clientId } },
     });
@@ -89,8 +96,12 @@ export class GuidersClientWebsocketGateway {
     },
   ): Promise<void> {
     const token = client.handshake.auth?.token as string;
-    const decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(token);
-    const clientId = decoded.clientId;
+    const decoded = this.jwtService.decode<{
+      sub: string;
+      typ: string;
+      jti: string;
+    }>(token);
+    const clientId = decoded.sub;
     const userAgent = payload.userAgent;
     const fingerprint = payload.fingerprint;
     const apiKey = await this.apiKeyRepository.findOne({ where: { clientId } });

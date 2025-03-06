@@ -36,7 +36,6 @@ export class ApiKeyAuthService {
 
   async createTokens(
     clientId: string,
-    fingerprint: string,
   ): Promise<{ access_token: string; refresh_token: string }> {
     const apiKeyEntity = await this.apiKeyRepo.findOne({ where: { clientId } });
     if (!apiKeyEntity) {
@@ -47,12 +46,12 @@ export class ApiKeyAuthService {
 
     try {
       const access_token = this.jwtService.sign(
-        { clientId, fingerprint, typ: 'access', jti: uuidv4() },
-        { secret: secretKey, algorithm: 'HS256', expiresIn: '1m' },
+        { sub: clientId, typ: 'access', jti: uuidv4() },
+        { secret: secretKey, algorithm: 'HS256', expiresIn: '5m' },
       );
 
       const refresh_token = this.jwtService.sign(
-        { clientId, fingerprint, typ: 'refresh', jti: uuidv4() },
+        { sub: clientId, typ: 'refresh', jti: uuidv4() },
         { secret: secretKey, algorithm: 'HS256', expiresIn: '7d' },
       );
 
@@ -63,25 +62,30 @@ export class ApiKeyAuthService {
     }
   }
 
-  async refreshToken(
-    clientId: string,
-    refreshToken: string,
-  ): Promise<{ access_token: string }> {
-    let decoded: ApiKeyAuthJwtPayload;
+  async refreshToken(refreshToken: string): Promise<{ access_token: string }> {
+    let decoded: {
+      sub: string;
+      typ: 'refresh';
+      jti: string;
+    };
 
     try {
-      decoded = this.jwtService.decode<ApiKeyAuthJwtPayload>(refreshToken);
+      decoded = this.jwtService.decode<{
+        sub: string;
+        typ: 'refresh';
+        jti: string;
+      }>(refreshToken);
     } catch (error) {
       this.logger.error('Error al decodificar refresh token', error);
       throw new UnauthorizedException('Token inválido');
     }
 
-    if (!decoded || !decoded.clientId || decoded.typ !== 'refresh') {
+    if (!decoded || !decoded.sub || decoded.typ !== 'refresh') {
       throw new UnauthorizedException('Token inválido');
     }
-
+    const clientId = decoded.sub;
     const apiKeyEntity = await this.apiKeyRepo.findOne({ where: { clientId } });
-    if (!apiKeyEntity || apiKeyEntity.clientId !== decoded.clientId) {
+    if (!apiKeyEntity || apiKeyEntity.clientId !== clientId) {
       throw new UnauthorizedException('Cliente no coincide o no existe');
     }
 
@@ -95,12 +99,11 @@ export class ApiKeyAuthService {
 
       const newAccessToken = this.jwtService.sign(
         {
-          clientId: decoded.clientId,
-          fingerprint: decoded.fingerprint,
+          sub: clientId,
           typ: 'access',
           jti: uuidv4(),
         },
-        { secret: secretKey, algorithm: 'HS256', expiresIn: '1m' },
+        { secret: secretKey, algorithm: 'HS256', expiresIn: '5m' },
       );
       return { access_token: newAccessToken };
     } catch (error) {

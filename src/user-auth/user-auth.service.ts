@@ -48,7 +48,7 @@ export class UserAuthService {
     };
     const access_token = this.jwtService.sign(payload_access_token, {
       secret,
-      expiresIn: '1m',
+      expiresIn: '5m',
     });
 
     const payload_refresh_token = {
@@ -136,7 +136,7 @@ export class UserAuthService {
     };
     const access_token = this.jwtService.sign(payload_access_token, {
       secret,
-      expiresIn: '1m',
+      expiresIn: '5m',
     });
 
     return { access_token };

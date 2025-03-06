@@ -30,7 +30,7 @@ export class ApiKeyAuthController {
     if (!clientId || !fingerprint) {
       throw new UnauthorizedException('Datos incompletos');
     }
-    return await this.apiKeyAuthService.createTokens(clientId, fingerprint);
+    return await this.apiKeyAuthService.createTokens(clientId);
   }
 
   /**
@@ -44,7 +44,7 @@ export class ApiKeyAuthController {
     if (!clientId || !refreshToken) {
       throw new UnauthorizedException('Datos incompletos');
     }
-    return await this.apiKeyAuthService.refreshToken(clientId, refreshToken);
+    return await this.apiKeyAuthService.refreshToken(refreshToken);
   }
 
   /**
