@@ -1,27 +1,28 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { GuidersClientWebsocketGateway } from './guiders-client-websocket/guiders-client-websocket.gateway';
-import { GuidersControlWebsocketGateway } from './guiders-control-websocket/guiders-control-websocket.gateway';
-import { ClientsService } from './shared/service/client.service';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
-import { ApiKeyAuthModule } from './api-key-auth/api-key-auth.module';
-import { UserAuthModule } from './user-auth/user-auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ApiKeyEntity } from './api-key-auth/api-key.entity';
-import { EncryptionService } from './shared/service/encryption.service';
-import { DeviceFingerprintsEntity } from './device/device-fingerprints.entity';
 import { CqrsModule } from '@nestjs/cqrs';
+import { AppService } from './app.service';
+import { AuthVisitorModule } from './context/pixel/auth-visitor/infrastructure/auth-visitor.module';
+import { ApiKeyModule } from './context/pixel/api-key/infrastructure/api-key.module';
+import { CommercialModule } from './context/commercial/commercial/infrastructure/commercial.module';
+import { AuthUserModule } from './context/commercial/auth-user/infrastructure/auth-user.module';
 
 @Module({
   imports: [
+    // Importar los módulos de los contextos
+    AuthUserModule,
+    AuthVisitorModule,
+    CommercialModule,
+
+    ApiKeyModule,
     CqrsModule.forRoot(),
     JwtModule.register({
       global: true,
+      secret: process.env.GLOBAL_TOKEN_SECRET,
     }),
     ConfigModule.forRoot({
       isGlobal: true,
@@ -31,8 +32,6 @@ import { CqrsModule } from '@nestjs/cqrs';
       wildcard: true,
       delimiter: '::',
     }),
-    ApiKeyAuthModule,
-    UserAuthModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',
@@ -43,15 +42,8 @@ import { CqrsModule } from '@nestjs/cqrs';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // Solo para desarrollo
     }),
-    TypeOrmModule.forFeature([ApiKeyEntity, DeviceFingerprintsEntity]),
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    ClientsService,
-    GuidersClientWebsocketGateway,
-    GuidersControlWebsocketGateway,
-    EncryptionService,
-  ],
+  providers: [AppService],
 })
 export class AppModule {}
