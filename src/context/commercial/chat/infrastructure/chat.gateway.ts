@@ -75,12 +75,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       if (visitors[visitorId]) {
-        console.log('Ya existe');
         if (!visitors[visitorId].sockets.includes(client.id)) {
           visitors[visitorId].sockets.push(client.id);
         }
       } else {
-        console.log('No existe');
         visitors[visitorId] = {
           clientId: visitorId,
           sockets: [client.id],
