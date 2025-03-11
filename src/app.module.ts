@@ -10,6 +10,7 @@ import { AuthVisitorModule } from './context/pixel/auth-visitor/infrastructure/a
 import { ApiKeyModule } from './context/pixel/api-key/infrastructure/api-key.module';
 import { CommercialModule } from './context/commercial/commercial/infrastructure/commercial.module';
 import { AuthUserModule } from './context/commercial/auth-user/infrastructure/auth-user.module';
+import { ChatModule } from './context/commercial/chat/infrastructure/chat.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AuthUserModule } from './context/commercial/auth-user/infrastructure/au
     AuthUserModule,
     AuthVisitorModule,
     CommercialModule,
+    ChatModule,
 
     ApiKeyModule,
     CqrsModule.forRoot(),

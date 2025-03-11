@@ -63,6 +63,17 @@ export class UserAccount {
     );
   }
 
+  public updateLastLoginAt(): UserAccount {
+    return new UserAccount(
+      this.id,
+      this.email,
+      this.password,
+      this.createdAt,
+      this.updatedAt,
+      Optional.of(UserAccountLastLogin.create(new Date())),
+    );
+  }
+
   public toPrimitives(): {
     id: string;
     email: string;

@@ -68,4 +68,27 @@ export class AuthUserController {
       );
     }
   }
+
+  @Post('refresh')
+  async refresh(@Body('refresh_token') refreshToken: string) {
+    try {
+      const tokens = await this.authUserService.refresh(refreshToken);
+      return {
+        access_token: tokens.accessToken,
+      };
+    } catch (error) {
+      this.logger.error('Error refreshing token', error);
+      if (error instanceof ValidationError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+      if (error instanceof UnauthorizedError) {
+        throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+      }
+
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

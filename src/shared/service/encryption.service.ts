@@ -16,7 +16,6 @@ export class EncryptionService {
       .update(this.configService.get<string>('ENCRYPTION_KEY')!)
       .digest('base64')
       .slice(0, 32);
-    console.log('key', key);
     const cipher = crypto.createCipheriv(this.algorithm, Buffer.from(key), iv);
     let encrypted = cipher.update(text, 'utf8', 'base64');
     encrypted += cipher.final('base64');
@@ -30,7 +29,6 @@ export class EncryptionService {
       .update(this.configService.get<string>('ENCRYPTION_KEY')!)
       .digest('base64')
       .slice(0, 32);
-    console.log('key', key);
     const decipher = crypto.createDecipheriv(
       this.algorithm,
       Buffer.from(key),

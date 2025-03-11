@@ -41,7 +41,13 @@ export class UserLoginUseCase {
       throw new UnauthorizedError('Invalid password');
     }
 
-    const tokens = await this.tokenService.generate(user.toPrimitives());
+    const newUserUpdateLastLogin = user.updateLastLoginAt();
+    await this.userRepository.save(newUserUpdateLastLogin);
+
+    const tokens = await this.tokenService.generate({
+      id: newUserUpdateLastLogin.id.getValue(),
+      email: newUserUpdateLastLogin.email.getValue(),
+    });
     return tokens;
   }
 }

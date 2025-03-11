@@ -13,9 +13,14 @@ import { VisitorAccountMapper } from './mapper/visitor-account-mapper';
 import { ApiKeyEntity } from '../../api-key/infrastructure/api-key.entity';
 import { EncryptAdapter } from '../../api-key/infrastructure/encrypt-adapter';
 import { RefreshVisitorToken } from '../application/usecase/refresh-visitor-token.usecase';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([VisitorAccountEntity, ApiKeyEntity])],
+  imports: [
+    HttpModule,
+    TypeOrmModule.forFeature([VisitorAccountEntity, ApiKeyEntity]),
+  ],
   controllers: [AuthVisitorController],
   providers: [
     { provide: AUTH_VISITOR_TOKEN_SERVICE, useClass: AuthVisitorJwt },
@@ -26,6 +31,7 @@ import { RefreshVisitorToken } from '../application/usecase/refresh-visitor-toke
     RegisterVisitor,
     VisitorAccountMapper,
     EncryptAdapter,
+    TokenVerifyService,
   ],
 })
 export class AuthVisitorModule {}

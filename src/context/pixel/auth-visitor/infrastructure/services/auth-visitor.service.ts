@@ -29,11 +29,11 @@ export class AuthVisitorService {
   }
 
   async refresh(refreshToken: string): Promise<{
-    acces_token: string;
+    access_token: string;
   }> {
     const token = await this.refreshToken.execute(refreshToken);
     return {
-      acces_token: token.accessToken,
+      access_token: token.accessToken,
     };
   }
 }

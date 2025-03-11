@@ -8,10 +8,11 @@ import { UserRegisterUseCase } from '../application/usecases/user-register.useca
 import { USER_ACCOUNT_REPOSITORY } from '../domain/user-account.repository';
 import { BcryptHashService } from './services/bcrypt-hash.service';
 import { TokenService } from './services/token.service';
-import { UserLoginUseCase } from '../application/usecases/user-login.usercase';
+import { UserLoginUseCase } from '../application/usecases/user-login.usecase';
 import { UserAccountMapper } from './user-account-mapper';
 import { USER_PASSWORD_HASHER } from '../application/service/user-password-hasher';
 import { USER_TOKEN_SERVICE } from '../application/service/user-token-service';
+import { RefreshTokenUseCase } from '../application/usecases/refresh-token.usecase';
 
 @Module({
   imports: [TypeOrmModule.forFeature([UserAccountEntity])],
@@ -24,6 +25,7 @@ import { USER_TOKEN_SERVICE } from '../application/service/user-token-service';
     UserAccountMapper,
     UserRegisterUseCase,
     UserLoginUseCase,
+    RefreshTokenUseCase,
   ],
 })
 export class AuthUserModule {}

@@ -13,10 +13,12 @@ import { Repository } from 'typeorm';
 import { EncryptAdapter } from 'src/context/pixel/api-key/infrastructure/encrypt-adapter';
 import { v4 as uuidv4 } from 'uuid';
 import { InvalidTokenError, ApiKeyNotFoundError } from './errors';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthVisitorJwt implements AuthVisitorTokenService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     @InjectRepository(ApiKeyEntity)
     private readonly apiKeyRepository: Repository<ApiKeyEntity>,
@@ -25,18 +27,22 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
 
   async refresh(refreshToken: string): Promise<{ accessToken: string }> {
     const decoded = this.jwtService.decode<{
-      kid: string;
-      sub: string;
-      typ: string;
-    }>(refreshToken);
+      header: {
+        kid: string;
+      };
+      payload: {
+        sub: string;
+        typ: string;
+      };
+    }>(refreshToken, { complete: true });
     if (!decoded) {
       throw new InvalidTokenError('Token decoding failed');
     }
-    if (decoded['typ'] !== 'refresh') {
+    if (decoded['payload']['typ'] !== 'refresh') {
       throw new InvalidTokenError('Token type is not refresh');
     }
     const apiKey = await this.apiKeyRepository.findOne({
-      where: { kid: decoded['kid'] },
+      where: { kid: decoded['header']['kid'] },
     });
     if (!apiKey) {
       throw new ApiKeyNotFoundError();
@@ -67,8 +73,8 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         role: ['visitor'],
       },
       {
-        subject: decoded['sub'],
-        expiresIn: '5m',
+        subject: decoded['payload']['sub'],
+        expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
@@ -97,7 +103,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
       },
       {
         subject: account.clientID.getValue().toString(),
-        expiresIn: '5m',
+        expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
@@ -114,7 +120,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
       },
       {
         subject: account.clientID.getValue().toString(),
-        expiresIn: '7d',
+        expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRATION'),
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
