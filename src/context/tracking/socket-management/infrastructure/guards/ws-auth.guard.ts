@@ -24,6 +24,7 @@ export class WsAuthGuard implements CanActivate {
 
     if (!token) {
       this.logger.warn('Conexión rechazada: No hay token en el handshake');
+      client.emit('auth_error', { message: 'invalid token' }); // Envía error
       return false;
     }
 
@@ -33,6 +34,7 @@ export class WsAuthGuard implements CanActivate {
       return true;
     } catch (error) {
       this.logger.warn(`Conexión rechazada: ${error.message}`);
+      client.emit('auth_error', { message: 'invalid token' }); // Envía error
       return false;
     }
   }
