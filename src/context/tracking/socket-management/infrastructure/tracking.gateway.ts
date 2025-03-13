@@ -52,16 +52,7 @@ export class TrackingGateway
   private logger = new Logger('TrackingGateway');
   @WebSocketServer() private server: Server;
 
-  constructor(private readonly tokenVerifyService: TokenVerifyService) {
-    this.logger.log(`visitors count: ${Object.keys(visitors).length}`);
-    this.logger.log(`commercials count: ${Object.keys(commercials).length}`);
-    this.logger.log(
-      `socketToVisitor count: ${Object.keys(socketToVisitor).length}`,
-    );
-    this.logger.log(
-      `socketToCommercial count: ${Object.keys(socketToCommercial).length}`,
-    );
-  }
+  constructor(private readonly tokenVerifyService: TokenVerifyService) {}
 
   async onModuleDestroy() {
     await this.server.close();

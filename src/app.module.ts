@@ -11,6 +11,7 @@ import { ApiKeyModule } from './context/pixel/api-key/infrastructure/api-key.mod
 import { CommercialModule } from './context/commercial/commercial/infrastructure/commercial.module';
 import { AuthUserModule } from './context/commercial/auth-user/infrastructure/auth-user.module';
 import { TrackingModule } from './context/tracking/socket-management/infrastructure/tracking.module';
+import { OpenSearchModule } from './shared/infrastructure/open-search/open-search.module';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { TrackingModule } from './context/tracking/socket-management/infrastruct
     AuthVisitorModule,
     CommercialModule,
     TrackingModule,
-
+    OpenSearchModule,
     ApiKeyModule,
     CqrsModule.forRoot(),
     JwtModule.register({
