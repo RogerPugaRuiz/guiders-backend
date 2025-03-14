@@ -6,6 +6,15 @@ import { VisitorAccountClientID } from './visitor-account-client-id';
 import { VisitorAccountUserAgent } from './visitor-account-user-agent';
 import { VisitorAccountApiKey } from './visitor-account-api-key';
 
+export interface VisitorAccountPrimitives {
+  id: string;
+  clientID: number;
+  userAgent: string;
+  createdAt: Date;
+  apiKey: string;
+  lastLoginAt: Date | null | undefined;
+}
+
 export class VisitorAccount {
   private constructor(
     readonly id: VisitorAccountId,
@@ -60,14 +69,7 @@ export class VisitorAccount {
     );
   }
 
-  toPrimitives(): {
-    id: string;
-    clientID: number;
-    userAgent: string;
-    createdAt: Date;
-    apiKey: string;
-    lastLoginAt: Date | null;
-  } {
+  toPrimitives(): VisitorAccountPrimitives {
     return {
       id: this.id.getValue(),
       clientID: this.clientID.getValue(),

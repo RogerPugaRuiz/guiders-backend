@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ApiKeyEntity } from './api-key.entity';
 import { ApiKeyMapper } from './api-key.mapper';
 import { Repository } from 'typeorm';
+import { ApiKeyDomain } from '../domain/model/api-key-domain';
+import { ApiKeyValue } from '../domain/model/api-key-value';
 
 @Injectable()
 export class ApiKeyOrmAdapter implements ApiKeyRepository {
@@ -19,9 +21,19 @@ export class ApiKeyOrmAdapter implements ApiKeyRepository {
     await this.apiKeyRepository.save(apiKeyEntity);
   }
 
-  async getApiKeyByDomain(domain: string): Promise<ApiKey | null> {
+  async getApiKeyByDomain(domain: ApiKeyDomain): Promise<ApiKey | null> {
     const apiKeyEntity = await this.apiKeyRepository.findOne({
-      where: { domain },
+      where: { domain: domain.getValue() },
+    });
+    if (!apiKeyEntity) {
+      return null;
+    }
+    return this.apiKeyMapper.toDomain(apiKeyEntity);
+  }
+
+  async getApiKeyByApiKey(apiKey: ApiKeyValue): Promise<ApiKey | null> {
+    const apiKeyEntity = await this.apiKeyRepository.findOne({
+      where: { apiKey: apiKey.getValue() },
     });
     if (!apiKeyEntity) {
       return null;

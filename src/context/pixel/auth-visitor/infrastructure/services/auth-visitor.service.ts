@@ -10,10 +10,12 @@ export class AuthVisitorService {
     private readonly registerVisitor: RegisterVisitor,
     private readonly refreshToken: RefreshVisitorToken,
   ) {}
-  async tokens(
-    client: number,
-  ): Promise<{ access_token: string; refresh_token: string }> {
-    const tokens = await this.generateVisitorTokens.execute(client);
+  async tokens(params: {
+    client: number;
+    domain: string;
+  }): Promise<{ access_token: string; refresh_token: string }> {
+    const { client, domain } = params;
+    const tokens = await this.generateVisitorTokens.execute(client, domain);
     return {
       access_token: tokens.accessToken,
       refresh_token: tokens.refreshToken,
@@ -24,8 +26,14 @@ export class AuthVisitorService {
     apiKey: string,
     client: number,
     userAgent: string,
+    domain: string,
   ): Promise<void> {
-    return await this.registerVisitor.execute(apiKey, client, userAgent);
+    return await this.registerVisitor.execute(
+      apiKey,
+      client,
+      userAgent,
+      domain,
+    );
   }
 
   async refresh(refreshToken: string): Promise<{

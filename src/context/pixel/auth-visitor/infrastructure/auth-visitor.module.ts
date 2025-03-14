@@ -15,6 +15,11 @@ import { EncryptAdapter } from '../../api-key/infrastructure/encrypt-adapter';
 import { RefreshVisitorToken } from '../application/usecase/refresh-visitor-token.usecase';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
+import { API_KEY_REPOSITORY } from '../../api-key/domain/repository/api-key.repository';
+import { ApiKeyOrmAdapter } from '../../api-key/infrastructure/api-key-orm-adapter';
+import { ValidateDomainApiKeyAdapter } from './services/validate-domain-api-key-adapter';
+import { VALIDATE_DOMAIN_API_KEY } from '../application/services/validate-domain-api-key';
+import { ApiKeyMapper } from '../../api-key/infrastructure/api-key.mapper';
 
 @Module({
   imports: [
@@ -25,6 +30,10 @@ import { HttpModule } from '@nestjs/axios';
   providers: [
     { provide: AUTH_VISITOR_TOKEN_SERVICE, useClass: AuthVisitorJwt },
     { provide: AUTH_VISITOR_REPOSITORY, useClass: AuthVisitorOrmRepository },
+    { provide: API_KEY_REPOSITORY, useClass: ApiKeyOrmAdapter },
+    { provide: VALIDATE_DOMAIN_API_KEY, useClass: ValidateDomainApiKeyAdapter },
+    ApiKeyMapper,
+    ValidateDomainApiKeyAdapter,
     AuthVisitorService,
     GenerateVisitorTokens,
     RefreshVisitorToken,

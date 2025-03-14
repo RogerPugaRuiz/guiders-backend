@@ -7,8 +7,8 @@ async function bootstrap() {
 
   app.enableCors({
     origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type, Accept, Authorization, x-origin-domain',
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Referer'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
   const logger = new Logger('bootstrap');

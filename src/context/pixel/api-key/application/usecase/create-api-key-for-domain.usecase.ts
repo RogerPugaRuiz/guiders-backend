@@ -31,20 +31,26 @@ export class CreateApiKeyForDomainUseCase {
     private readonly hashService: ApiKeyHasher,
   ) {}
   async execute(domain: string): Promise<{ apiKey: string }> {
-    const foundApiKey = await this.apiKeyRepository.getApiKeyByDomain(domain);
+    const domainValue = ApiKeyDomain.create(domain);
+    const apiKeyValue = ApiKeyValue.create(await this.hashService.hash(domain));
+
+    const foundApiKey =
+      await this.apiKeyRepository.getApiKeyByDomain(domainValue);
     if (foundApiKey) {
       return { apiKey: foundApiKey.apiKey.getValue() };
     }
     const { publicKey, privateKey } = await this.keysGenerator.generate();
 
+    const publicKeyValue = ApiKeyPublicKey.create(publicKey);
+    const privateKeyValue = ApiKeyPrivateKey.create(privateKey);
+    const kidValue = ApiKeyValue.create(await this.hashService.hash(publicKey));
+
     const newApiKey = ApiKey.create({
-      domain: ApiKeyDomain.create(domain),
-      publicKey: ApiKeyPublicKey.create(publicKey),
-      privateKey: ApiKeyPrivateKey.create(
-        await this.encryptService.encrypt(privateKey),
-      ),
-      apiKey: ApiKeyValue.create(await this.hashService.hash(domain)),
-      kid: ApiKeyValue.create(await this.hashService.hash(publicKey)),
+      domain: domainValue,
+      publicKey: publicKeyValue,
+      privateKey: privateKeyValue,
+      apiKey: apiKeyValue,
+      kid: kidValue,
     });
 
     await this.apiKeyRepository.save(newApiKey);

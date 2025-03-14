@@ -18,3 +18,10 @@ export class VisitorAccountAlreadyExistError extends Error {
     this.name = 'VisitorAccountAlreadyExistError';
   }
 }
+
+export class InvalidDomainError extends Error {
+  constructor() {
+    super('Invalid domain');
+    this.name = 'InvalidDomainError';
+  }
+}
