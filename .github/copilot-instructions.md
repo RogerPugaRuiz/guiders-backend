@@ -1,25 +1,30 @@
-# Guía de Formato de Commits
+# Copilot Instructions
 
-Sigue el formato de commits convencionales:
- • Usa el tiempo verbal imperativo y presente: "change" en lugar de "changed" o "changes".
- • Mantén el asunto breve: máx. 50 caracteres, cuerpo opcional de hasta 72 caracteres.
- • Separa el asunto del cuerpo con una línea en blanco.
- • No termines la línea del asunto con un punto.
- • Explica el qué y el por qué en el cuerpo del mensaje, si es necesario.
-Formato del mensaje de commit
-<tipo>(<ámbito opcional>): <asunto>
-<BLANK LINE>
-<cuerpo opcional>
-<BLANK LINE>
-<pie de página opcional>
+## Estilo de Commits
 
-Tipos de commit
- • feat: Nueva funcionalidad para el usuario.
- • fix: Corrección de errores.
- • docs: Cambios en la documentación.
- • style: Cambios de formato (espacios, comas, etc.).
- • refactor: Refactorización sin cambios en funcionalidad.
- • test: Agregar o refactorizar pruebas.
- • chore: Mantenimiento sin impacto en el código de producción.
- • build: Cambios en herramientas de compilación o dependencias.
- • perf: Mejoras de rendimiento.
+Los mensajes de commit deben seguir la convención `tipo(scope): descripción`, donde:
+
+- **tipo**: Indica el propósito del cambio. Puede ser uno de los siguientes:
+  - `feat`: Nueva funcionalidad.
+  - `fix`: Corrección de errores.
+  - `refactor`: Reestructuración del código sin cambios en la funcionalidad.
+  - `perf`: Mejoras de rendimiento.
+  - `docs`: Cambios en la documentación.
+  - `test`: Agregado o modificación de pruebas.
+  - `build`: Cambios en la configuración de build o dependencias.
+  - `chore`: Mantenimiento general del código (sin afectar el código de producción).
+  - `style`: Cambios en el formato (espacios, puntos y comas, etc.).
+  - `ci`: Cambios en la configuración de integración continua.
+
+- **scope** (opcional): Indica el módulo o contexto del cambio, por ejemplo: `auth`, `calendar`, `live-chat`, `core`.
+
+- **descripción**: Un resumen claro y conciso del cambio (en tiempo presente, sin mayúscula inicial y sin punto final).
+
+## Estructura del proyecto
+
+src
+|__ context
+|   |__ commercial
+|   |__ pixel
+|   |__ shared
+|   |__ tracking
