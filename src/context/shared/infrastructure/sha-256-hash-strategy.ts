@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { ApiKeyHasher } from 'src/context/pixel/api-key/application/services/api-key-hasher';
+import { ApiKeyHasher } from 'src/context/auth-context/api-key/application/services/api-key-hasher';
 
 export class Sha256HashStrategy implements ApiKeyHasher {
   async hash(plainText: string): Promise<string> {

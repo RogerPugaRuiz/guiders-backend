@@ -1,7 +1,7 @@
 import { ValidationError } from './validation.error';
 
 export abstract class PrimitiveValueObject<T> {
-  protected value: T;
+  readonly value: T;
 
   protected constructor(
     value: T,

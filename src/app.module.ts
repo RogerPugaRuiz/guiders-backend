@@ -6,21 +6,19 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
-import { AuthVisitorModule } from './context/pixel/auth-visitor/infrastructure/auth-visitor.module';
-import { ApiKeyModule } from './context/pixel/api-key/infrastructure/api-key.module';
-import { CommercialModule } from './context/commercial/commercial/infrastructure/commercial.module';
-import { AuthUserModule } from './context/commercial/auth-user/infrastructure/auth-user.module';
-import { TrackingModule } from './context/tracking/socket-management/infrastructure/tracking.module';
-import { OpenSearchModule } from './shared/infrastructure/open-search/open-search.module';
+import { AuthVisitorModule } from './context/auth-context/auth-visitor/infrastructure/auth-visitor.module';
+import { ApiKeyModule } from './context/auth-context/api-key/infrastructure/api-key.module';
+import { TrackingModule } from './context/real-time-context/websocket/infrastructure/tracking.module';
+// import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
+import { AuthUserModule } from './context/auth-context/auth-user/infrastructure/auth-user.module';
 
 @Module({
   imports: [
     // Importar los módulos de los contextos
-    AuthUserModule,
     AuthVisitorModule,
-    CommercialModule,
+    AuthUserModule,
     TrackingModule,
-    OpenSearchModule,
+    // OpenSearchModule,
     ApiKeyModule,
     CqrsModule.forRoot(),
     JwtModule.register({
