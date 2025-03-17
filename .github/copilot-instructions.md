@@ -94,7 +94,7 @@ src/
 
 ## ¿Como crear value objects?
 
-tienes que usar el archivo -> src/context/shared/domain/primitive-value-object.ts
+tienes que usar el archivo si quieres construir un value object -> src/context/shared/domain/primitive-value-object.ts
 
 ```ts
 
