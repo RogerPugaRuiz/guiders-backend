@@ -76,9 +76,9 @@ export class VisitorAccount {
       userAgent: this.userAgent.getValue(),
       createdAt: this.createdAt.getValue(),
       apiKey: this.apiKey.getValue(),
-      lastLoginAt: this.lastLoginAt.isDefined()
-        ? this.lastLoginAt.get().getValue()
-        : null,
+      lastLoginAt: this.lastLoginAt
+        .map((value) => value.getValue())
+        .getOrNull(),
     };
   }
 
@@ -102,10 +102,6 @@ export class VisitorAccount {
   }
 
   private compareLastLoginAt(visitorAccount: VisitorAccount): boolean {
-    return (
-      this.lastLoginAt.isDefined() === visitorAccount.lastLoginAt.isDefined() &&
-      (!this.lastLoginAt.isDefined() ||
-        this.lastLoginAt.get().equals(visitorAccount.lastLoginAt.get()))
-    );
+    return this.lastLoginAt.equals(visitorAccount.lastLoginAt);
   }
 }

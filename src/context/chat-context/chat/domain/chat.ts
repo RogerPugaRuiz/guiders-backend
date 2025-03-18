@@ -3,53 +3,69 @@ import { CommercialId } from './value-objects/commercial-id';
 import { VisitorId } from './value-objects/visitor-id';
 import { LastMessage } from './value-objects/last-message';
 import { LastMessageAt } from './value-objects/last-message-at';
-import { UnreadMessages } from './value-objects/unread-messages';
 import { Status } from './value-objects/status';
+import { Optional } from 'src/context/shared/domain/optional';
+
+export interface ChatPrimitives {
+  id: string;
+  commercialId: string | null;
+  visitorId: string;
+  status: string;
+  lastMessage: string | null;
+  lastMessageAt: Date | null;
+}
 
 export class Chat {
   private constructor(
     readonly id: ChatId,
-    readonly commercialId: CommercialId,
+    readonly commercialId: Optional<CommercialId>,
     readonly visitorId: VisitorId,
     readonly status: Status,
-    readonly lastMessage: LastMessage,
-    readonly lastMessageAt: LastMessageAt,
-    readonly unreadMessages: UnreadMessages,
+    readonly lastMessage: Optional<LastMessage>,
+    readonly lastMessageAt: Optional<LastMessageAt>,
   ) {}
 
-  public static fromPrimitives(params: {
-    id: string;
-    commercialId: string;
-    visitorId: string;
-    status: string;
-    lastMessage: string;
-    lastMessageAt: Date;
-    unreadMessages: number;
-  }): Chat {
+  public static fromPrimitives(params: ChatPrimitives): Chat {
     return new Chat(
       ChatId.create(params.id),
-      CommercialId.create(params.commercialId),
+      Optional.ofNullable(params.commercialId).map((id) =>
+        CommercialId.create(id),
+      ),
       VisitorId.create(params.visitorId),
       Status.create(params.status),
-      LastMessage.create(params.lastMessage),
-      LastMessageAt.create(params.lastMessageAt),
-      UnreadMessages.create(params.unreadMessages),
+      Optional.ofNullable(params.lastMessage).map((message) =>
+        LastMessage.create(message),
+      ),
+      Optional.ofNullable(params.lastMessageAt).map((date) =>
+        LastMessageAt.create(date),
+      ),
     );
   }
 
-  public static createNewChat(params: {
-    commercialId: CommercialId;
-    visitorId: VisitorId;
-  }): Chat {
+  public static createNewChat(params: { visitorId: VisitorId }): Chat {
     return new Chat(
       ChatId.random(),
-      params.commercialId,
+      Optional.empty(),
       params.visitorId,
       Status.new(),
-      LastMessage.create(''),
-      LastMessageAt.create(new Date()),
-      UnreadMessages.create(0),
+      Optional.empty(),
+      Optional.empty(),
     );
+  }
+
+  public toPrimitives(): ChatPrimitives {
+    return {
+      id: this.id.getValue(),
+      commercialId: this.commercialId.map((id) => id.getValue()).getOrNull(),
+      visitorId: this.visitorId.getValue(),
+      status: this.status.getValue(),
+      lastMessage: this.lastMessage
+        .map((message) => message.getValue())
+        .getOrNull(),
+      lastMessageAt: this.lastMessageAt
+        .map((date) => date.getValue())
+        .getOrNull(),
+    };
   }
 
   public addMessageFromVisitor(message: string): Chat {
@@ -58,9 +74,8 @@ export class Chat {
       this.commercialId,
       this.visitorId,
       this.status,
-      LastMessage.create(message),
-      LastMessageAt.create(new Date()),
-      this.unreadMessages.increment(),
+      Optional.of(LastMessage.create(message)),
+      Optional.of(LastMessageAt.create(new Date())),
     );
   }
 
@@ -70,9 +85,8 @@ export class Chat {
       this.commercialId,
       this.visitorId,
       this.status,
-      LastMessage.create(message),
-      LastMessageAt.create(new Date()),
-      this.unreadMessages,
+      Optional.of(LastMessage.create(message)),
+      Optional.of(LastMessageAt.create(new Date())),
     );
   }
 
@@ -84,7 +98,6 @@ export class Chat {
       this.status,
       this.lastMessage,
       this.lastMessageAt,
-      this.unreadMessages.decrement(),
     );
   }
 }

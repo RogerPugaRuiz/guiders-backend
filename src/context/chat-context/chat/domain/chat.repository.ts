@@ -1,13 +1,13 @@
+import { Criteria } from 'src/context/shared/domain/criteria';
 import { Chat } from './chat';
+import { ChatId } from './value-objects/chat-id';
+
+export const CHAT_REPOSITORY = Symbol('CHAT_REPOSITORY');
 
 export interface ChatRepository {
   save(chat: Chat): Promise<void>;
-  findById(id: string): Promise<Chat | undefined>;
-  findByVisitorId(visitorId: string): Promise<Chat | undefined>;
-  findByCommercialId(commercialId: string): Promise<Chat | undefined>;
-  findByVisitorIdAndCommercialId(
-    visitorId: string,
-    commercialId: string,
-  ): Promise<Chat | undefined>;
+  findById(id: ChatId): Promise<Chat | undefined>;
+  findOne(criteria: Criteria<Chat>): Promise<Chat | undefined>;
+  find(criteria: Criteria<Chat>): Promise<Chat[]>;
   findAll(): Promise<Chat[]>;
 }

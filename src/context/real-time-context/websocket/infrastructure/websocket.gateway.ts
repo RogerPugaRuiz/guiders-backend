@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
@@ -18,8 +19,9 @@ import { WsAuthGuard } from './guards/ws-auth.guard';
 import { AuthenticatedSocket } from './authenticated-socket';
 import { WsRolesGuard } from './guards/ws-role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ConnectUserToSocketUseCase } from '../application/connect-user-to-socket.usecase';
-import { DisconnectUserToSocketUseCase } from '../application/disconnect-user-to-socket.usecase';
+import { QueryBus } from '@nestjs/cqrs';
+import { FindNewChatsQuery } from 'src/context/chat-context/chat/application/queries/find-new-chats.query';
+import { FindNewChatsUseCaseResponse } from 'src/context/chat-context/chat/application/usecases/find-new-chats.usecase';
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -28,29 +30,26 @@ export class RealTimeWebSocketGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnModuleDestroy
 {
   private logger = new Logger('RealTimeWebSocketGateway');
+
   @WebSocketServer() private server: Server;
   constructor(
-    private readonly connectUserToSocketUseCase: ConnectUserToSocketUseCase,
-    private readonly disconnectUserToSocketUseCase: DisconnectUserToSocketUseCase,
     private readonly tokenVerifyService: TokenVerifyService,
+    private readonly queryBus: QueryBus,
   ) {}
 
-  async onModuleDestroy() {}
+  onModuleDestroy() {
+    this.server.removeAllListeners();
+  }
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
       const token = client.handshake.auth.token as string;
       if (!token) {
         throw new UnauthorizedException();
       }
-      const { sub: clientID } =
+      const { sub: clientID, role } =
         await this.tokenVerifyService.verifyToken(token);
 
-      await this.connectUserToSocketUseCase.execute({
-        userId: clientID,
-        socketId: client.id,
-      });
-
-      this.logger.log(`Conectado ${clientID}`);
+      this.logger.log(`Conectado ${client.id}`);
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         this.logger.error('Unauthorized connection');
@@ -59,26 +58,32 @@ export class RealTimeWebSocketGateway
     }
   }
 
-  async handleDisconnect(client: Socket) {
+  handleDisconnect(client: Socket) {
     this.logger.log(`Desconectado ${client.id}`);
-    await this.disconnectUserToSocketUseCase.execute(client.id);
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @Roles('user')
   @SubscribeMessage('get_chat_list')
-  handleGetVisitors(client: AuthenticatedSocket) {
+  async handleGetVisitors(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user?.sub} is getting chat list`);
-    client.emit('chat_list', { message: 'chat list' });
+    // this.logger.log(`Chats: ${JSON.stringify(chats)}`);
+    const chats = await this.queryBus.execute<
+      FindNewChatsQuery,
+      FindNewChatsUseCaseResponse
+    >(new FindNewChatsQuery());
+    client.emit('chat_list', chats);
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @Roles('visitor')
-  @SubscribeMessage('chat_status')
-  handleTracking(
-    client: AuthenticatedSocket,
-    data: { status: 'active' | 'inactive' },
+  @SubscribeMessage('init_chat')
+  handleInitChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { visitorId: string },
   ) {
-    this.logger.log(`User ${client.user?.sub} is ${data.status}`);
+    this.logger.log(
+      `User ${client.user?.sub} is initializing chat with visitor ${data.visitorId}`,
+    );
   }
 }

@@ -11,6 +11,7 @@ import { ApiKeyModule } from './context/auth-context/api-key/infrastructure/api-
 import { TrackingModule } from './context/real-time-context/websocket/infrastructure/tracking.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth-context/auth-user/infrastructure/auth-user.module';
+import { ChatModule } from './context/chat-context/chat/infrastructure/chat.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthUserModule } from './context/auth-context/auth-user/infrastructure/
     TrackingModule,
     // OpenSearchModule,
     ApiKeyModule,
+    ChatModule,
     CqrsModule.forRoot(),
     JwtModule.register({
       global: true,

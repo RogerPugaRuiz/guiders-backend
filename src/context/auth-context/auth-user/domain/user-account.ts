@@ -88,9 +88,9 @@ export class UserAccount {
       password: this.password.getValue(),
       createdAt: this.createdAt.getValue(),
       updatedAt: this.updatedAt.getValue(),
-      lastLoginAt: this.lastLoginAt.isDefined()
-        ? this.lastLoginAt.get().getValue()
-        : null,
+      lastLoginAt: this.lastLoginAt
+        .map((value) => value.getValue())
+        .getOrNull(),
     };
   }
 
@@ -104,10 +104,6 @@ export class UserAccount {
   }
 
   private compareLastLoginAt(userAccount: UserAccount): boolean {
-    return (
-      this.lastLoginAt.isDefined() === userAccount.lastLoginAt.isDefined() &&
-      (!this.lastLoginAt.isDefined() ||
-        this.lastLoginAt.get().equals(userAccount.lastLoginAt.get()))
-    );
+    return this.lastLoginAt.equals(userAccount.lastLoginAt);
   }
 }

@@ -25,9 +25,9 @@ export class UserAccountMapper {
     userAccountEntity.password = userAccount.password.getValue();
     userAccountEntity.createdAt = userAccount.createdAt.getValue();
     userAccountEntity.updatedAt = userAccount.updatedAt.getValue();
-    userAccountEntity.lastLoginAt = userAccount.lastLoginAt.isDefined()
-      ? userAccount.lastLoginAt.get().getValue()
-      : null;
+    userAccountEntity.lastLoginAt = userAccount.lastLoginAt
+      .map((value) => value.getValue())
+      .getOrNull();
     return userAccountEntity;
   }
 }

@@ -91,6 +91,9 @@ src/
 |   |   |   |__ application
 |   |   |   |__ domain
 |   |   |   |__ infrastructure
+|   |__ shared
+|   |   |__ domain
+|   |   |__ infrastructure
 
 ## ¿Como crear value objects?
 
