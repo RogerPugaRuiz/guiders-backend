@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DbChatEntity } from './db-chat.entity';
-import { CreateChatUseCase } from '../application/usecases/create-chat.usecase';
+import { NewChatUseCase } from '../application/usecases/new-chat.usecase';
 import { CHAT_REPOSITORY } from '../domain/chat.repository';
 import { DbChatService } from './db-chat.service';
-import { CreateChatCommandHandler } from '../application/handlers/create-chat.command-handler';
+import { NewChatCommandHandler } from '../application/handlers/new-chat.command-handler';
 import { FindNewChatsUseCase } from '../application/usecases/find-new-chats.usecase';
 import { FindNewChatsQueryHandler } from '../application/handlers/find-new-chats.query-handler';
-import { RoomCreatedEventHandler } from '../application/handlers/create-chat.event-handler';
+import { CreateChatOnVisitorConnectedEventHandler } from '../application/handlers/create-chat-on-visitor-connected.event-handler';
 
 @Module({
   imports: [TypeOrmModule.forFeature([DbChatEntity])],
@@ -15,14 +15,14 @@ import { RoomCreatedEventHandler } from '../application/handlers/create-chat.eve
   providers: [
     { provide: CHAT_REPOSITORY, useClass: DbChatService },
     // usecases
-    CreateChatUseCase,
+    NewChatUseCase,
     FindNewChatsUseCase,
 
     // handlers
-    CreateChatCommandHandler,
+    NewChatCommandHandler,
+    CreateChatOnVisitorConnectedEventHandler,
     FindNewChatsQueryHandler,
-    RoomCreatedEventHandler,
   ],
-  exports: [CreateChatUseCase],
+  exports: [],
 })
 export class ChatModule {}

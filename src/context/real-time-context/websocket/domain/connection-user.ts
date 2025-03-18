@@ -3,6 +3,8 @@ import { ConnectionRole } from './value-objects/connection-role';
 import { ConnectionSocketId } from './value-objects/connection-socket-id';
 import { ConnectionUserId } from './value-objects/connection-user-id';
 import { AggregateRoot } from '@nestjs/cqrs';
+import { ConnectedEvent } from './events/connected.event';
+import { DisconnectedEvent } from './events/disconnected.event';
 
 export interface ConnectionUserPrimitive {
   userId: string;
@@ -82,10 +84,31 @@ export class ConnectionUser extends AggregateRoot {
   }
 
   public connect(socketId: ConnectionSocketId): ConnectionUser {
-    return new ConnectionUser(this.userId, Optional.of(socketId), this.role);
+    const newConnection = new ConnectionUser(
+      this.userId,
+      Optional.of(socketId),
+      this.role,
+    );
+    newConnection.apply(
+      new ConnectedEvent(newConnection.userId.value, newConnection.role.value),
+    );
+    return newConnection;
   }
 
   public disconnect(): ConnectionUser {
-    return new ConnectionUser(this.userId, Optional.empty(), this.role);
+    const newDisconnect = new ConnectionUser(
+      this.userId,
+      Optional.empty(),
+      this.role,
+    );
+
+    newDisconnect.apply(
+      new DisconnectedEvent(
+        newDisconnect.userId.value,
+        newDisconnect.role.value,
+      ),
+    );
+
+    return newDisconnect;
   }
 }

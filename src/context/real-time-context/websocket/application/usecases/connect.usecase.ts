@@ -8,6 +8,7 @@ import { ConnectionUserId } from '../../domain/value-objects/connection-user-id'
 import { ConnectionRole } from '../../domain/value-objects/connection-role';
 import { ConnectionSocketId } from '../../domain/value-objects/connection-socket-id';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
+import { EventPublisher } from '@nestjs/cqrs';
 
 export interface ConnectUseCaseRequest {
   connectionId: string;
@@ -21,6 +22,7 @@ export class ConnectUseCase {
   constructor(
     @Inject(CONNECTION_REPOSITORY)
     private readonly repository: ConnectionRepository,
+    private readonly publisher: EventPublisher,
   ) {}
 
   async execute(request: ConnectUseCaseRequest): Promise<void> {
@@ -41,6 +43,7 @@ export class ConnectUseCase {
         });
         this.logger.log(`Creating connection for userId: ${connectionId}`);
         await this.repository.save(newConnection);
+        this.publisher.mergeObjectContext(newConnection).commit();
       },
       // En caso de éxito, conectamos y guardamos la nueva conexión.
       async (connection) => {
@@ -53,6 +56,7 @@ export class ConnectUseCase {
               `Connecting connection for userId: ${connectionId}`,
             );
             await this.repository.save(newConnection);
+            this.publisher.mergeObjectContext(newConnection).commit();
           },
           async () => {
             this.logger.warn(

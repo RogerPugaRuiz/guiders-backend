@@ -1,4 +1,4 @@
 import { ICommand } from '@nestjs/cqrs';
-export class CreateChatCommand implements ICommand {
+export class NewChatCommand implements ICommand {
   constructor(public readonly visitorId: string) {}
 }

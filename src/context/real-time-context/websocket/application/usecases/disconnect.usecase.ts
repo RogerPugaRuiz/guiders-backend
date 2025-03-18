@@ -5,6 +5,7 @@ import {
 } from '../../domain/connection.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { ConnectionUser } from '../../domain/connection-user';
+import { EventPublisher } from '@nestjs/cqrs';
 
 export interface DisconnectUseCaseRequest {
   socketId: string;
@@ -16,6 +17,7 @@ export class DisconnectUseCase {
   constructor(
     @Inject(CONNECTION_REPOSITORY)
     private readonly repository: ConnectionRepository,
+    private readonly publisher: EventPublisher,
   ) {}
 
   async execute(request: DisconnectUseCaseRequest): Promise<void> {
@@ -38,6 +40,7 @@ export class DisconnectUseCase {
           `Disconnecting connection for userId: ${connection.userId.value}`,
         );
         await this.repository.save(disconnectedConnection);
+        this.publisher.mergeObjectContext(disconnectedConnection).commit();
       },
     );
   }

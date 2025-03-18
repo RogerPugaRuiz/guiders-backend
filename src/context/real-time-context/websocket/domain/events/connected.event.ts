@@ -1,7 +1,6 @@
-export class RoomCreatedEvent {
+export class ConnectedEvent {
   constructor(
-    public readonly roomId: string,
-    public readonly userId: string,
+    public readonly connectionId: string,
     public readonly role: string,
     public readonly timestamp: Date = new Date(),
   ) {}

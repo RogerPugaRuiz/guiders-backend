@@ -4,18 +4,18 @@ import { Chat } from '../../domain/chat';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 
-export interface CreateChatUseCaseRequest {
+export interface NewChatUseCaseRequest {
   visitorId: string;
 }
 
 @Injectable()
-export class CreateChatUseCase {
-  private readonly logger = new Logger(CreateChatUseCase.name);
+export class NewChatUseCase {
+  private readonly logger = new Logger(NewChatUseCase.name);
   constructor(
     @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
   ) {}
 
-  async execute(request: CreateChatUseCaseRequest): Promise<void> {
+  async execute(request: NewChatUseCaseRequest): Promise<void> {
     const { visitorId } = request;
     const criteria = new Criteria<Chat>().addFilter(
       'visitorId',
