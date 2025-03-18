@@ -22,6 +22,8 @@ import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 import { QueryBus } from '@nestjs/cqrs';
 import { FindNewChatsQuery } from 'src/context/chat-context/chat/application/queries/find-new-chats.query';
 import { FindNewChatsUseCaseResponse } from 'src/context/chat-context/chat/application/usecases/find-new-chats.usecase';
+import { ConnectUseCase } from '../application/usecases/connect.usecase';
+import { DisconnectUseCase } from '../application/usecases/disconnect.usecase';
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -34,6 +36,8 @@ export class RealTimeWebSocketGateway
   @WebSocketServer() private server: Server;
   constructor(
     private readonly tokenVerifyService: TokenVerifyService,
+    private readonly connection: ConnectUseCase,
+    private readonly disconnect: DisconnectUseCase,
     private readonly queryBus: QueryBus,
   ) {}
 
@@ -48,7 +52,11 @@ export class RealTimeWebSocketGateway
       }
       const { sub: clientID, role } =
         await this.tokenVerifyService.verifyToken(token);
-
+      await this.connection.execute({
+        connectionId: clientID,
+        role: role.includes('visitor') ? 'visitor' : 'commercial',
+        socketId: client.id,
+      });
       this.logger.log(`Conectado ${client.id}`);
     } catch (error) {
       if (error instanceof UnauthorizedException) {
@@ -58,8 +66,9 @@ export class RealTimeWebSocketGateway
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     this.logger.log(`Desconectado ${client.id}`);
+    await this.disconnect.execute({ socketId: client.id });
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)

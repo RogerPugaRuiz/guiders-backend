@@ -137,4 +137,13 @@ export class Optional<T> {
     }
     return this.value as T;
   }
+
+  /**
+   * Ejecuta fold sobre el valor interno.
+   * Si hay un valor presente, aplica mapper y devuelve el resultado.
+   * Si está vacío, retorna el resultado de ifEmpty.
+   */
+  fold<U>(ifEmpty: () => U, mapper: (value: T) => U): U {
+    return this.isPresent() ? mapper(this.value as T) : ifEmpty();
+  }
 }

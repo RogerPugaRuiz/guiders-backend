@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ConnectionRepository } from '../domain/connection.repository';
 import { ConnectionUser } from '../domain/connection-user';
 import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
+import { err, ok, Result } from 'src/context/shared/domain/result';
+import { ConnectionUserNotFound } from '../domain/errors/connection-user-not-found';
+
 @Injectable()
 export class InMemoryConnectionService implements ConnectionRepository {
   private userSocketsMap: Map<string, string> = new Map(); // userId -> socketId
@@ -55,7 +58,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
 
   async findOne(
     criteria: Criteria<ConnectionUser>,
-  ): Promise<ConnectionUser | undefined> {
+  ): Promise<Result<ConnectionUser, ConnectionUserNotFound>> {
     const { filters } = criteria;
 
     // Iterar sobre todos los usuarios registrados
@@ -67,11 +70,11 @@ export class InMemoryConnectionService implements ConnectionRepository {
         role,
       });
       if (this.matchesCriteria(user, filters)) {
-        return Promise.resolve(user);
+        return Promise.resolve(ok(user));
       }
     }
 
-    return Promise.resolve(undefined);
+    return Promise.resolve(err(new ConnectionUserNotFound()));
   }
 
   private matchesCriteria(

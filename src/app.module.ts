@@ -8,7 +8,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
 import { AuthVisitorModule } from './context/auth-context/auth-visitor/infrastructure/auth-visitor.module';
 import { ApiKeyModule } from './context/auth-context/api-key/infrastructure/api-key.module';
-import { TrackingModule } from './context/real-time-context/websocket/infrastructure/tracking.module';
+import { WebsocketModule } from './context/real-time-context/websocket/infrastructure/websocket.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth-context/auth-user/infrastructure/auth-user.module';
 import { ChatModule } from './context/chat-context/chat/infrastructure/chat.module';
@@ -18,10 +18,10 @@ import { ChatModule } from './context/chat-context/chat/infrastructure/chat.modu
     // Importar los módulos de los contextos
     AuthVisitorModule,
     AuthUserModule,
-    TrackingModule,
-    // OpenSearchModule,
+    WebsocketModule,
     ApiKeyModule,
     ChatModule,
+    // OpenSearchModule,
     CqrsModule.forRoot(),
     JwtModule.register({
       global: true,

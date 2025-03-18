@@ -4,6 +4,8 @@ import { TokenVerifyService } from '../../../shared/infrastructure/token-verify.
 import { HttpModule } from '@nestjs/axios';
 import { CONNECTION_REPOSITORY } from '../domain/connection.repository';
 import { InMemoryConnectionService } from './in-memory-connection.service';
+import { ConnectUseCase } from '../application/usecases/connect.usecase';
+import { DisconnectUseCase } from '../application/usecases/disconnect.usecase';
 
 @Module({
   imports: [HttpModule],
@@ -12,6 +14,8 @@ import { InMemoryConnectionService } from './in-memory-connection.service';
     TokenVerifyService,
     { provide: CONNECTION_REPOSITORY, useClass: InMemoryConnectionService },
     // usecases
+    ConnectUseCase,
+    DisconnectUseCase,
   ],
 })
-export class TrackingModule {}
+export class WebsocketModule {}

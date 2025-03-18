@@ -1,4 +1,5 @@
 import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-object';
+import { ValidationError } from 'src/context/shared/domain/validation.error';
 
 export type ConnectionRoleValue = 'visitor' | 'commercial';
 export class ConnectionRole extends PrimitiveValueObject<string> {
@@ -6,7 +7,7 @@ export class ConnectionRole extends PrimitiveValueObject<string> {
   private constructor(value: string) {
     super(value);
     if (!ConnectionRole.VALID_VALUES.includes(value)) {
-      throw new Error(`Invalid ConnectionRole value: ${value}`);
+      throw new ValidationError(`Invalid ConnectionRole value: ${value}`);
     }
   }
 

@@ -53,17 +53,19 @@ export class ConnectionUser extends AggregateRoot {
     return this.socketId.isPresent();
   }
 
-  public ifConnected(callback: (socketId: ConnectionSocketId) => void): void {
-    this.socketId.ifPresent(callback);
+  public ifConnected(callback: (connection: ConnectionUser) => void): void {
+    if (this.isConnected()) {
+      callback(this);
+    }
   }
 
   public isDisconnected(): boolean {
     return !this.isConnected();
   }
 
-  public ifDisconnected(callback: () => void): void {
+  public ifDisconnected(callback: (connection: ConnectionUser) => void): void {
     if (this.isDisconnected()) {
-      callback();
+      callback(this);
     }
   }
 
