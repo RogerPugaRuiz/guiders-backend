@@ -4,7 +4,7 @@ import {
   ConnectionRepository,
 } from '../../domain/connection.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { ConnectionUser } from '../../domain/connection-user';
+import { ConnectionUserPrimitive } from '../../domain/connection-user';
 import { EventPublisher } from '@nestjs/cqrs';
 
 export interface DisconnectUseCaseRequest {
@@ -22,7 +22,7 @@ export class DisconnectUseCase {
 
   async execute(request: DisconnectUseCaseRequest): Promise<void> {
     const { socketId } = request;
-    const criteria = new Criteria<ConnectionUser>().addFilter(
+    const criteria = new Criteria<ConnectionUserPrimitive>().addFilter(
       'socketId',
       Operator.EQUALS,
       socketId,

@@ -95,4 +95,16 @@ export class RealTimeWebSocketGateway
       `User ${client.user?.sub} is initializing chat with visitor ${data.visitorId}`,
     );
   }
+
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @Roles('visitor')
+  @SubscribeMessage('send_chat_message')
+  handleSendMessage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() data: { message: string },
+  ) {
+    this.logger.log(
+      `User ${client.user?.sub} is sending message to chat ${data.message}`,
+    );
+  }
 }

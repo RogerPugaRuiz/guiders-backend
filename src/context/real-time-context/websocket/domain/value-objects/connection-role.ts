@@ -11,6 +11,9 @@ export class ConnectionRole extends PrimitiveValueObject<string> {
     }
   }
 
+  static VISITOR = new ConnectionRole('visitor');
+  static COMMERCIAL = new ConnectionRole('commercial');
+
   static create(value: string): ConnectionRole {
     return new ConnectionRole(value);
   }

@@ -23,12 +23,11 @@ export class ConnectionUser extends AggregateRoot {
 
   public static create(params: {
     userId: ConnectionUserId;
-    socketId: ConnectionSocketId;
     role: ConnectionRole;
   }): ConnectionUser {
     return new ConnectionUser(
       params.userId,
-      Optional.of(params.socketId),
+      Optional.empty(),
       params.role,
     );
   }
