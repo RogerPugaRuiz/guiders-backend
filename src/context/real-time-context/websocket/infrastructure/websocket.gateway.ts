@@ -39,7 +39,7 @@ export class RealTimeWebSocketGateway
 {
   private logger = new Logger('RealTimeWebSocketGateway');
 
-  @WebSocketServer() private server: Server;
+  @WebSocketServer() readonly server: Server;
   constructor(
     private readonly tokenVerifyService: TokenVerifyService,
     private readonly connection: ConnectUseCase,
@@ -48,6 +48,25 @@ export class RealTimeWebSocketGateway
     private readonly getCommercialSocket: GetCommercialSocketUseCase,
     private readonly queryBus: QueryBus,
   ) {}
+
+  // sendNewChat(chat: {
+  //   chatId: string;
+  //   commercialId: string | null;
+  //   visitorId: string;
+  //   status: string;
+  //   lastMessage: string | null;
+  //   lastMessageAt: Date | null;
+  // }): Promise<void> {
+  //   if (!chat.commercialId) {
+  //     this.server.to(ConnectionRoleEnum.COMMERCIAL).emit('new_chat', chat);
+  //     this.logger.log('Sending new chat to all commercials');
+  //     return Promise.resolve();
+  //   }
+  //   this.logger.log(`Sending new chat to commercial ${chat.commercialId}`);
+  //   this.server.to(chat.commercialId).emit('new_chat', chat);
+
+  //   return Promise.resolve();
+  // }
 
   onModuleDestroy() {
     this.server.removeAllListeners();
@@ -89,7 +108,7 @@ export class RealTimeWebSocketGateway
   @Roles('commercial')
   @SubscribeMessage('get_chat_list')
   async handleGetVisitors(client: AuthenticatedSocket) {
-    this.logger.log(`User ${client.user?.sub} is getting chat list`);
+    this.logger.log(`User ${client.user.sub} is getting chat list`);
     // this.logger.log(`Chats: ${JSON.stringify(chats)}`);
     const chats = await this.queryBus.execute<
       FindNewChatsQuery,
@@ -156,6 +175,13 @@ export class RealTimeWebSocketGateway
 
     this.broadcastMessageToCommercial(socketId, message);
   }
+  public emitToUser(userId: string, event: string, data: any) {
+    this.server.to(userId).emit(event, data);
+  }
+  public emitToRole(role: ConnectionRoleEnum, event: string, data: any) {
+    this.server.to(role).emit(event, data);
+  }
+
   private broadcastMessageToCommercial(
     socketId: string | null,
     message: string,

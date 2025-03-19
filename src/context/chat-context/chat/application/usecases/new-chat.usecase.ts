@@ -3,6 +3,7 @@ import { CHAT_REPOSITORY, ChatRepository } from '../../domain/chat.repository';
 import { Chat } from '../../domain/chat';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
+import { EventPublisher } from '@nestjs/cqrs';
 
 export interface NewChatUseCaseRequest {
   visitorId: string;
@@ -13,6 +14,7 @@ export class NewChatUseCase {
   private readonly logger = new Logger(NewChatUseCase.name);
   constructor(
     @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
+    private readonly publisher: EventPublisher,
   ) {}
 
   async execute(request: NewChatUseCaseRequest): Promise<void> {
@@ -41,6 +43,7 @@ export class NewChatUseCase {
       visitorId: VisitorId.create(visitorId),
     });
     await this.repository.save(newChat);
+    this.publisher.mergeObjectContext(newChat).commit();
     this.logger.log(`Chat created with id: ${newChat.id.value}`);
     return;
   }

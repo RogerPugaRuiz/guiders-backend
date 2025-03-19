@@ -19,9 +19,12 @@ export class DbChatService implements ChatRepository {
   async findOne(criteria: Criteria<Chat>): Promise<Optional<Chat>> {
     const queryBuilder = this.chatRepository.createQueryBuilder('chat');
     criteria.filters.forEach((filter) => {
-      queryBuilder.andWhere(`chat.${filter.field} ${filter.operator} :value`, {
-        value: filter.value,
-      });
+      queryBuilder.andWhere(
+        `chat.${String(filter.field)} ${String(filter.operator)} :value`,
+        {
+          value: filter.value,
+        },
+      );
     });
     const entity = await queryBuilder.getOne();
     return entity ? Optional.of(ChatMapper.toDomain(entity)) : Optional.empty();
@@ -30,13 +33,16 @@ export class DbChatService implements ChatRepository {
   async find(criteria: Criteria<Chat>): Promise<Chat[]> {
     const queryBuilder = this.chatRepository.createQueryBuilder('chat');
     criteria.filters.forEach((filter) => {
-      queryBuilder.andWhere(`chat.${filter.field} ${filter.operator} :value`, {
-        value: filter.value,
-      });
+      queryBuilder.andWhere(
+        `chat.${String(filter.field)} ${String(filter.operator)} :value`,
+        {
+          value: filter.value,
+        },
+      );
     });
     if (criteria.orderBy) {
       queryBuilder.orderBy(
-        `chat.${criteria.orderBy.field}`,
+        `chat.${String(criteria.orderBy.field)}`,
         criteria.orderBy.direction,
       );
     }

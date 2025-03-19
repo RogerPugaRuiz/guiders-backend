@@ -5,6 +5,8 @@ import { LastMessage } from './value-objects/last-message';
 import { LastMessageAt } from './value-objects/last-message-at';
 import { Status } from './value-objects/status';
 import { Optional } from 'src/context/shared/domain/optional';
+import { AggregateRoot } from '@nestjs/cqrs';
+import { NewChatCreatedEvent } from './events/new-chat-created.event';
 
 export interface ChatPrimitives {
   id: string;
@@ -15,7 +17,7 @@ export interface ChatPrimitives {
   lastMessageAt: Date | null;
 }
 
-export class Chat {
+export class Chat extends AggregateRoot {
   private constructor(
     readonly id: ChatId,
     readonly commercialId: Optional<CommercialId>,
@@ -23,7 +25,9 @@ export class Chat {
     readonly status: Status,
     readonly lastMessage: Optional<LastMessage>,
     readonly lastMessageAt: Optional<LastMessageAt>,
-  ) {}
+  ) {
+    super();
+  }
 
   public static fromPrimitives(params: ChatPrimitives): Chat {
     return new Chat(
@@ -43,7 +47,7 @@ export class Chat {
   }
 
   public static createNewChat(params: { visitorId: VisitorId }): Chat {
-    return new Chat(
+    const newChat = new Chat(
       ChatId.random(),
       Optional.empty(),
       params.visitorId,
@@ -51,6 +55,19 @@ export class Chat {
       Optional.empty(),
       Optional.empty(),
     );
+
+    newChat.apply(
+      new NewChatCreatedEvent(
+        newChat.id.value,
+        newChat.commercialId.map((id) => id.value).getOrNull(),
+        newChat.visitorId.value,
+        newChat.status.value,
+        newChat.lastMessage.map((message) => message.value).getOrNull(),
+        newChat.lastMessageAt.map((date) => date.value).getOrNull(),
+      ),
+    );
+
+    return newChat;
   }
 
   public toPrimitives(): ChatPrimitives {
