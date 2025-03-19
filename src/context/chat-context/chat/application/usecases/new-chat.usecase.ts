@@ -23,16 +23,27 @@ export class NewChatUseCase {
       visitorId,
     );
     const findChat = await this.repository.findOne(criteria);
-    if (findChat) {
-      this.logger.warn(`Chat already exists for visitorId: ${visitorId}`);
-      return;
-    }
 
-    this.logger.log(`Creating chat for visitorId: ${visitorId}`);
+    await findChat.fold(
+      async () => this.alreadyExists(visitorId),
+      async (chat) => {
+        return await this.createChat(chat.visitorId);
+      },
+    );
+  }
+
+  private async alreadyExists(visitorId: string): Promise<void> {
+    this.logger.warn(`Chat already exists for visitorId: ${visitorId}`);
+    return Promise.resolve();
+  }
+
+  private async createChat(visitorId: VisitorId): Promise<void> {
+    this.logger.log(`Creating chat for visitorId: ${visitorId.value}`);
     const newChat = Chat.createNewChat({
-      visitorId: VisitorId.create(visitorId),
+      visitorId,
     });
     await this.repository.save(newChat);
     this.logger.log(`Chat created with id: ${newChat.id.value}`);
+    return;
   }
 }

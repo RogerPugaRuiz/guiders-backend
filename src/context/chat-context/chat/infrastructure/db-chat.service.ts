@@ -7,6 +7,7 @@ import { ChatMapper } from './chat-mapper';
 import { DbChatEntity } from './db-chat.entity';
 import { ChatId } from '../domain/value-objects/chat-id';
 import { Criteria } from 'src/context/shared/domain/criteria';
+import { Optional } from 'src/context/shared/domain/optional';
 
 @Injectable()
 export class DbChatService implements ChatRepository {
@@ -15,7 +16,7 @@ export class DbChatService implements ChatRepository {
     private readonly chatRepository: Repository<DbChatEntity>,
   ) {}
 
-  async findOne(criteria: Criteria<Chat>): Promise<Chat | undefined> {
+  async findOne(criteria: Criteria<Chat>): Promise<Optional<Chat>> {
     const queryBuilder = this.chatRepository.createQueryBuilder('chat');
     criteria.filters.forEach((filter) => {
       queryBuilder.andWhere(`chat.${filter.field} ${filter.operator} :value`, {
@@ -23,7 +24,7 @@ export class DbChatService implements ChatRepository {
       });
     });
     const entity = await queryBuilder.getOne();
-    return entity ? ChatMapper.toDomain(entity) : undefined;
+    return entity ? Optional.of(ChatMapper.toDomain(entity)) : Optional.empty();
   }
 
   async find(criteria: Criteria<Chat>): Promise<Chat[]> {
