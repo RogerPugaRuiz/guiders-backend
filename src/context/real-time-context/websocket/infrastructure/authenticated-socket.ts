@@ -1,9 +1,9 @@
 import { Socket } from 'socket.io';
 
 export interface AuthenticatedSocket extends Socket {
-  user?: {
+  user: {
     sub: string;
     email?: string;
-    role: string;
+    role: string[];
   };
 }

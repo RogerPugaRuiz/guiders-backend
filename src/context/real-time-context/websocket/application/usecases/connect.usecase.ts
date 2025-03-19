@@ -3,10 +3,7 @@ import {
   CONNECTION_REPOSITORY,
   ConnectionRepository,
 } from '../../domain/connection.repository';
-import {
-  ConnectionUser,
-  ConnectionUserPrimitive,
-} from '../../domain/connection-user';
+import { ConnectionUser } from '../../domain/connection-user';
 import { ConnectionUserId } from '../../domain/value-objects/connection-user-id';
 import { ConnectionRole } from '../../domain/value-objects/connection-role';
 import { ConnectionSocketId } from '../../domain/value-objects/connection-socket-id';
@@ -30,8 +27,7 @@ export class ConnectUseCase {
 
   async execute(request: ConnectUseCaseRequest): Promise<void> {
     const { connectionId, role, socketId } = request;
-
-    const criteria = new Criteria<ConnectionUserPrimitive>().addFilter(
+    const criteria = new Criteria<ConnectionUser>().addFilter(
       'userId',
       Operator.EQUALS,
       connectionId,

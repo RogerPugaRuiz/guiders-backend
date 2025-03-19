@@ -104,7 +104,7 @@ export class AuthVisitorController {
     }
   }
 
-  @Post('refresh')
+  @Post('token/refresh')
   async refresh(@Body('refresh_token') refreshToken: string): Promise<{
     access_token: string;
   }> {

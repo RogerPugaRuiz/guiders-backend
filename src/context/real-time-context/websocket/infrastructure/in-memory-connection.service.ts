@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConnectionRepository } from '../domain/connection.repository';
-import {
-  ConnectionUser,
-  ConnectionUserPrimitive,
-} from '../domain/connection-user';
+import { ConnectionUser } from '../domain/connection-user';
 import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
 import { err, ok, Result } from 'src/context/shared/domain/result';
 import { ConnectionUserNotFound } from '../domain/errors/connection-user-not-found';
@@ -39,12 +36,9 @@ export class InMemoryConnectionService implements ConnectionRepository {
     return Promise.resolve();
   }
 
-  async find(
-    criteria: Criteria<ConnectionUserPrimitive>,
-  ): Promise<ConnectionUser[]> {
+  async find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]> {
     const { filters } = criteria;
     const users: ConnectionUser[] = [];
-
     // Iterar sobre todos los usuarios registrados (según roles)
     this.userRolesMap.forEach((role, userId) => {
       const socketId = this.userSocketsMap.get(userId);
@@ -62,7 +56,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
   }
 
   async findOne(
-    criteria: Criteria<ConnectionUserPrimitive>,
+    criteria: Criteria<ConnectionUser>,
   ): Promise<Result<ConnectionUser, ConnectionUserNotFound>> {
     const { filters } = criteria;
 
@@ -84,7 +78,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
 
   private matchesCriteria(
     user: ConnectionUser,
-    filters: Filter<ConnectionUserPrimitive>[],
+    filters: Filter<ConnectionUser>[],
   ): boolean {
     return filters.every((filter) => {
       const { field, operator, value } = filter;

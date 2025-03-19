@@ -49,7 +49,7 @@ export class TokenService implements UserTokenService {
       {
         sub: data.id,
         email: data.email,
-        role: ['user'],
+        role: ['commercial'],
         typ: 'access',
       },
       {
@@ -64,7 +64,7 @@ export class TokenService implements UserTokenService {
       {
         sub: data.id,
         email: data.email,
-        role: ['user'],
+        role: ['commercial'],
         typ: 'refresh',
       },
       {

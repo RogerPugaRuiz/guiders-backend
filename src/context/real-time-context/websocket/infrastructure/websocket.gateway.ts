@@ -24,6 +24,12 @@ import { FindNewChatsQuery } from 'src/context/chat-context/chat/application/que
 import { FindNewChatsUseCaseResponse } from 'src/context/chat-context/chat/application/usecases/find-new-chats.usecase';
 import { ConnectUseCase } from '../application/usecases/connect.usecase';
 import { DisconnectUseCase } from '../application/usecases/disconnect.usecase';
+import { FindChatByVisitorQuery } from 'src/context/chat-context/chat/application/queries/find-chat-by-visitor.query';
+import { FindChatByVisitorQueryResponse } from 'src/context/chat-context/chat/application/handlers/find-chat-by-visitor.query-handler';
+import { GetSocketByUserUseCase } from '../application/usecases/get-socket-by-user';
+import { GetCommercialSocketUseCase } from '../application/usecases/get-comercial-sockets';
+import { ConnectionRole, ConnectionRoleEnum } from '../domain/value-objects/connection-role';
+import { ValidationError } from 'src/context/shared/domain/validation.error';
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -38,6 +44,8 @@ export class RealTimeWebSocketGateway
     private readonly tokenVerifyService: TokenVerifyService,
     private readonly connection: ConnectUseCase,
     private readonly disconnect: DisconnectUseCase,
+    private readonly getSocketByUser: GetSocketByUserUseCase,
+    private readonly getCommercialSocket: GetCommercialSocketUseCase,
     private readonly queryBus: QueryBus,
   ) {}
 
@@ -58,10 +66,16 @@ export class RealTimeWebSocketGateway
         socketId: client.id,
       });
       this.logger.log(`Conectado ${client.id}`);
+      role.map((r) => this.logger.log(`Role: ${r}`));
+      await Promise.all(role.map(async (r) => client.join(r)));
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         this.logger.error('Unauthorized connection');
         this.server.emit('auth_error', { message: 'invalid token' });
+      }
+      if (error instanceof ValidationError) {
+        this.logger.error('Validation error');
+        this.server.emit('auth_error', { message: error.message });
       }
     }
   }
@@ -72,7 +86,7 @@ export class RealTimeWebSocketGateway
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)
-  @Roles('user')
+  @Roles('commercial')
   @SubscribeMessage('get_chat_list')
   async handleGetVisitors(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user?.sub} is getting chat list`);
@@ -92,19 +106,59 @@ export class RealTimeWebSocketGateway
     @MessageBody() data: { visitorId: string },
   ) {
     this.logger.log(
-      `User ${client.user?.sub} is initializing chat with visitor ${data.visitorId}`,
+      `User ${client.user.sub} is initializing chat with visitor ${data.visitorId}`,
     );
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @Roles('visitor')
   @SubscribeMessage('send_chat_message')
-  handleSendMessage(
+  async handleSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() data: { message: string },
   ) {
     this.logger.log(
       `User ${client.user?.sub} is sending message to chat ${data.message}`,
     );
+    const role = client.user.role;
+    const userId = client.user.sub;
+
+    if (!role.includes('visitor')) return;
+    const { chat } = await this.queryBus.execute<
+      FindChatByVisitorQuery,
+      FindChatByVisitorQueryResponse
+    >(new FindChatByVisitorQuery(userId));
+    if (!chat) {
+      this.logger.error(`Chat not found for visitor ${userId}`);
+      return;
+    }
+    if (!chat.commercialId) {
+      this.broadcastMessageToAllCommercials(data.message);
+      return;
+    }
+    const { socketId } = await this.getSocketByUser.execute({
+      userId: chat.commercialId,
+    });
+
+    this.broadcastMessageToCommercial(socketId, data.message);
+  }
+
+  private broadcastMessageToCommercial(
+    socketId: string | null,
+    message: string,
+  ) {
+    if (!socketId) {
+      this.logger.error('Commercial socket not found');
+      return;
+    }
+    this.server.to(socketId).emit('new_message', { message });
+    this.logger.log(`Message sent to commercial ${socketId} `);
+  }
+
+  private broadcastMessageToAllCommercials(message: string) {
+    this.server
+      .to(ConnectionRoleEnum.COMMERCIAL)
+      .emit('new_message', { message });
+    this.logger.log(`Message sent to all commercials`);
   }
 }

@@ -8,6 +8,7 @@ import { NewChatCommandHandler } from '../application/handlers/new-chat.command-
 import { FindNewChatsUseCase } from '../application/usecases/find-new-chats.usecase';
 import { FindNewChatsQueryHandler } from '../application/handlers/find-new-chats.query-handler';
 import { CreateChatOnVisitorConnectedEventHandler } from '../application/handlers/create-chat-on-visitor-connected.event-handler';
+import { FindChatByVisitorQueryHandler } from '../application/handlers/find-chat-by-visitor.query-handler';
 
 @Module({
   imports: [TypeOrmModule.forFeature([DbChatEntity])],
@@ -22,6 +23,7 @@ import { CreateChatOnVisitorConnectedEventHandler } from '../application/handler
     NewChatCommandHandler,
     CreateChatOnVisitorConnectedEventHandler,
     FindNewChatsQueryHandler,
+    FindChatByVisitorQueryHandler,
   ],
   exports: [],
 })

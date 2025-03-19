@@ -4,8 +4,9 @@ import {
   ConnectionRepository,
 } from '../../domain/connection.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { ConnectionUserPrimitive } from '../../domain/connection-user';
+import { ConnectionUser } from '../../domain/connection-user';
 import { EventPublisher } from '@nestjs/cqrs';
+import { ConnectionRoleEnum } from '../../domain/value-objects/connection-role';
 
 export interface DisconnectUseCaseRequest {
   socketId: string;
@@ -22,7 +23,7 @@ export class DisconnectUseCase {
 
   async execute(request: DisconnectUseCaseRequest): Promise<void> {
     const { socketId } = request;
-    const criteria = new Criteria<ConnectionUserPrimitive>().addFilter(
+    const criteria = new Criteria<ConnectionUser>().addFilter(
       'socketId',
       Operator.EQUALS,
       socketId,
@@ -32,6 +33,17 @@ export class DisconnectUseCase {
       async () => {
         // En caso de error, podemos registrar el fallo o simplemente no hacer nada.
         this.logger.warn(`Connection not found for socketId: ${socketId}`);
+        const criteria = new Criteria<ConnectionUser>().addFilter(
+          'role',
+          Operator.EQUALS,
+          ConnectionRoleEnum.VISITOR,
+        );
+        const findAllConnections = await this.repository.find(criteria);
+        this.logger.warn(
+          `All connections: ${findAllConnections
+            .map((connection) => connection.userId.value)
+            .join(', ')}`,
+        );
         return Promise.resolve();
       },
       async (connection) => {

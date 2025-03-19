@@ -1,18 +1,20 @@
 import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-object';
 import { ValidationError } from 'src/context/shared/domain/validation.error';
 
-export type ConnectionRoleValue = 'visitor' | 'commercial';
+export enum ConnectionRoleEnum {
+  VISITOR = 'visitor',
+  COMMERCIAL = 'commercial',
+}
+
 export class ConnectionRole extends PrimitiveValueObject<string> {
-  private static readonly VALID_VALUES = ['visitor', 'commercial'];
   private constructor(value: string) {
     super(value);
-    if (!ConnectionRole.VALID_VALUES.includes(value)) {
+    if (
+      !Object.values(ConnectionRoleEnum).includes(value as ConnectionRoleEnum)
+    ) {
       throw new ValidationError(`Invalid ConnectionRole value: ${value}`);
     }
   }
-
-  static VISITOR = new ConnectionRole('visitor');
-  static COMMERCIAL = new ConnectionRole('commercial');
 
   static create(value: string): ConnectionRole {
     return new ConnectionRole(value);
