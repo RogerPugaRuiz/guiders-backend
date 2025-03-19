@@ -25,11 +25,7 @@ export class ConnectionUser extends AggregateRoot {
     userId: ConnectionUserId;
     role: ConnectionRole;
   }): ConnectionUser {
-    return new ConnectionUser(
-      params.userId,
-      Optional.empty(),
-      params.role,
-    );
+    return new ConnectionUser(params.userId, Optional.empty(), params.role);
   }
 
   public static fromPrimitives(primitives: {
