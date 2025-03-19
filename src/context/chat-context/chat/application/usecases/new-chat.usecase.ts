@@ -25,22 +25,20 @@ export class NewChatUseCase {
     const findChat = await this.repository.findOne(criteria);
 
     await findChat.fold(
-      async () => this.alreadyExists(visitorId),
-      async (chat) => {
-        return await this.createChat(chat.visitorId);
-      },
+      async () => this.createChat(visitorId),
+      async (chat) => this.alreadyExists(chat),
     );
   }
 
-  private async alreadyExists(visitorId: string): Promise<void> {
-    this.logger.warn(`Chat already exists for visitorId: ${visitorId}`);
+  private async alreadyExists(chat: Chat): Promise<void> {
+    this.logger.log(`Chat already exists with id: ${chat.id.value}`);
     return Promise.resolve();
   }
 
-  private async createChat(visitorId: VisitorId): Promise<void> {
-    this.logger.log(`Creating chat for visitorId: ${visitorId.value}`);
+  private async createChat(visitorId: string): Promise<void> {
+    this.logger.log(`Creating chat for visitorId: ${visitorId}`);
     const newChat = Chat.createNewChat({
-      visitorId,
+      visitorId: VisitorId.create(visitorId),
     });
     await this.repository.save(newChat);
     this.logger.log(`Chat created with id: ${newChat.id.value}`);
