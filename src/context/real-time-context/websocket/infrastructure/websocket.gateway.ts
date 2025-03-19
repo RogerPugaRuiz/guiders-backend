@@ -28,7 +28,7 @@ import { FindChatByVisitorQuery } from 'src/context/chat-context/chat/applicatio
 import { FindChatByVisitorQueryResponse } from 'src/context/chat-context/chat/application/handlers/find-chat-by-visitor.query-handler';
 import { GetSocketByUserUseCase } from '../application/usecases/get-socket-by-user';
 import { GetCommercialSocketUseCase } from '../application/usecases/get-comercial-sockets';
-import { ConnectionRole, ConnectionRoleEnum } from '../domain/value-objects/connection-role';
+import { ConnectionRoleEnum } from '../domain/value-objects/connection-role';
 import { ValidationError } from 'src/context/shared/domain/validation.error';
 
 @WebSocketGateway({
@@ -123,26 +123,39 @@ export class RealTimeWebSocketGateway
     const role = client.user.role;
     const userId = client.user.sub;
 
-    if (!role.includes('visitor')) return;
+    if (role.includes('visitor')) {
+      this.sendChatMessageToVisitor(userId, data.message);
+      return;
+    }
+    if (role.includes('commercial')) {
+      await this.sendChatMessageToCommercial(userId, data.message);
+      return;
+    }
+  }
+
+  private sendChatMessageToVisitor(visitorId: string, message: string) {}
+  private async sendChatMessageToCommercial(
+    commercialId: string,
+    message: string,
+  ) {
     const { chat } = await this.queryBus.execute<
       FindChatByVisitorQuery,
       FindChatByVisitorQueryResponse
-    >(new FindChatByVisitorQuery(userId));
+    >(new FindChatByVisitorQuery(commercialId));
     if (!chat) {
-      this.logger.error(`Chat not found for visitor ${userId}`);
+      this.logger.error(`Chat not found for visitor ${commercialId}`);
       return;
     }
     if (!chat.commercialId) {
-      this.broadcastMessageToAllCommercials(data.message);
+      this.broadcastMessageToAllCommercials(message);
       return;
     }
     const { socketId } = await this.getSocketByUser.execute({
       userId: chat.commercialId,
     });
 
-    this.broadcastMessageToCommercial(socketId, data.message);
+    this.broadcastMessageToCommercial(socketId, message);
   }
-
   private broadcastMessageToCommercial(
     socketId: string | null,
     message: string,
