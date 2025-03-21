@@ -71,6 +71,7 @@ export class RealTimeWebSocketGateway
   onModuleDestroy() {
     this.server.removeAllListeners();
   }
+
   async handleConnection(@ConnectedSocket() client: Socket) {
     try {
       const token = client.handshake.auth.token as string;
@@ -130,53 +131,113 @@ export class RealTimeWebSocketGateway
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)
-  @Roles('visitor')
-  @SubscribeMessage('send_chat_message')
-  async handleSendMessage(
+  @Roles('visitor', 'commercial')
+  @SubscribeMessage('chat_message')
+  async handleChatMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() data: { message: string },
+    @MessageBody()
+    payload: { type: string; data: Record<string, unknown>; timestamp: number },
   ) {
-    this.logger.log(
-      `User ${client.user?.sub} is sending message to chat ${data.message}`,
-    );
-    const role = client.user.role;
-    const userId = client.user.sub;
+    this.logger.log(`User ${client.user.sub} is sending event ${payload.type}`);
 
-    if (role.includes('visitor')) {
-      this.sendChatMessageToVisitor(userId, data.message);
-      return;
-    }
-    if (role.includes('commercial')) {
-      await this.sendChatMessageToCommercial(userId, data.message);
-      return;
+    if (client.user.role.includes('visitor')) {
+      const { message } = payload.data;
+      if (!message) {
+        return Promise.resolve({
+          success: false,
+          message: 'Missing parameters',
+        });
+      }
+
+      await this.sendChatMessageToCommercial(
+        client.user.sub,
+        payload.data.message as string,
+      );
+
+      return Promise.resolve({
+        success: true,
+        message: 'Message sent to commercial',
+      });
+    } else {
+      const { to, message } = payload.data;
+      if (!to || !message) {
+        return Promise.resolve({
+          success: false,
+          message: 'Missing parameters',
+        });
+      }
+      await this.sendChatMessageToVisitor(to as string, message as string);
+
+      return Promise.resolve({
+        success: true,
+        message: 'Message sent to visitor',
+      });
     }
   }
 
-  private sendChatMessageToVisitor(visitorId: string, message: string) {}
+  private async sendChatMessageToVisitor(
+    visitorId: string,
+    message: string,
+  ): Promise<void> {
+    const { chat } = await this.queryBus.execute<
+      FindChatByVisitorQuery,
+      FindChatByVisitorQueryResponse
+    >(new FindChatByVisitorQuery(visitorId));
+
+    if (!chat) {
+      this.logger.error(`Chat not found for visitor ${visitorId}`);
+      return;
+    }
+    const { socketId } = await this.getSocketByUser.execute({
+      userId: visitorId,
+    });
+    if (!socketId) {
+      this.logger.error(`Socket not found for visitor ${visitorId}`);
+      return;
+    }
+    this.server.to(socketId).emit('chat_message', {
+      type: 'chat_message',
+      data: { message },
+      timestamp: new Date().getTime(),
+    });
+    this.logger.log(`Message sent to visitor ${visitorId}`);
+  }
+
   private async sendChatMessageToCommercial(
-    commercialId: string,
+    visitorId: string,
     message: string,
   ) {
     const { chat } = await this.queryBus.execute<
       FindChatByVisitorQuery,
       FindChatByVisitorQueryResponse
-    >(new FindChatByVisitorQuery(commercialId));
+    >(new FindChatByVisitorQuery(visitorId));
     if (!chat) {
-      this.logger.error(`Chat not found for visitor ${commercialId}`);
+      this.logger.error(`Chat not found for visitor ${visitorId}`);
       return;
     }
     if (!chat.commercialId) {
-      this.broadcastMessageToAllCommercials(message);
+      this.broadcastMessageToAllCommercials({
+        message,
+        from: chat.visitorId,
+      });
       return;
     }
     const { socketId } = await this.getSocketByUser.execute({
       userId: chat.commercialId,
     });
 
-    this.broadcastMessageToCommercial(socketId, message);
+    this.broadcastMessageToCommercial(socketId, {
+      message,
+      from: chat.visitorId,
+    });
   }
-  public emitToUser(userId: string, event: string, data: any) {
-    this.server.to(userId).emit(event, data);
+  public async emitToUser(userId: string, event: string, data: any) {
+    const { socketId } = await this.getSocketByUser.execute({ userId });
+    if (!socketId) {
+      this.logger.error(`Socket not found for user ${userId}`);
+      return;
+    }
+    this.server.to(socketId).emit(event, data);
   }
   public emitToRole(role: ConnectionRoleEnum, event: string, data: any) {
     this.server.to(role).emit(event, data);
@@ -184,20 +245,30 @@ export class RealTimeWebSocketGateway
 
   private broadcastMessageToCommercial(
     socketId: string | null,
-    message: string,
+    payload: { message: string; from: string },
   ) {
     if (!socketId) {
       this.logger.error('Commercial socket not found');
       return;
     }
-    this.server.to(socketId).emit('new_message', { message });
+
+    const { message, from } = payload;
+    // number of milliseconds since 1970/01/01
+    const timestamp = new Date().getTime();
+    this.server.to(socketId).emit('chat_message', { message, timestamp, from });
     this.logger.log(`Message sent to commercial ${socketId} `);
   }
 
-  private broadcastMessageToAllCommercials(message: string) {
+  private broadcastMessageToAllCommercials(payload: {
+    message: string;
+    from: string;
+  }) {
+    const { message, from } = payload;
+    const timestamp = new Date().getTime();
+    this.logger.log(`Broadcasting message to all commercials`);
     this.server
       .to(ConnectionRoleEnum.COMMERCIAL)
-      .emit('new_message', { message });
+      .emit('chat_message', { message, timestamp, from });
     this.logger.log(`Message sent to all commercials`);
   }
 }

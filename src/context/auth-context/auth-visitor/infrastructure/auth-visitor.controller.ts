@@ -70,30 +70,41 @@ export class AuthVisitorController {
     @Body('userAgent') userAgent: string,
     @Headers('origin') origin: string | undefined,
     @Headers('referer') referer: string | undefined,
-  ): Promise<void> {
+  ): Promise<{
+    access_token: string;
+    refresh_token: string;
+  }> {
+    if (!origin || !referer) {
+      throw new HttpException('No origin or referer', 400);
+    }
+    const originUrl = new URL(origin);
+    const refererUrl = new URL(referer);
+    if (originUrl.hostname !== refererUrl.hostname) {
+      throw new HttpException('Origin and referer do not match', 400);
+    }
+    const domain = originUrl.hostname;
+    this.logger.log(`Registering visitor for domain ${domain}`);
     try {
-      if (!origin || !referer) {
-        throw new HttpException('No origin or referer', 400);
-      }
-      const originUrl = new URL(origin);
-      const refererUrl = new URL(referer);
-      if (originUrl.hostname !== refererUrl.hostname) {
-        throw new HttpException('Origin and referer do not match', 400);
-      }
-      const domain = originUrl.hostname;
-      this.logger.log(`Registering visitor for domain ${domain}`);
       await this.authVisitor.register(
         apiKey,
         parseInt(client),
         userAgent,
         domain,
       );
+
+      return await this.authVisitor.tokens({
+        client: parseInt(client),
+        domain,
+      });
     } catch (error) {
       if (error instanceof VisitorAccountNotFoundError) {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       }
       if (error instanceof VisitorAccountAlreadyExistError) {
-        throw new HttpException(error.message, HttpStatus.OK);
+        return await this.authVisitor.tokens({
+          client: parseInt(client),
+          domain: originUrl.hostname,
+        });
       }
 
       if (error instanceof HttpException) {
