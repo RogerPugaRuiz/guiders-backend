@@ -175,6 +175,18 @@ export class RealTimeWebSocketGateway
     }
   }
 
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @Roles('visitor', 'commercial')
+  @SubscribeMessage('pageview')
+  handlePageView(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    payload: { type: string; data: Record<string, unknown>; timestamp: number },
+  ) {
+    this.logger.log(`User ${client.user.sub} is sending event ${payload.type}`);
+    this.logger.log(`Payload: ${JSON.stringify(payload)}`);
+  }
+
   private async sendChatMessageToVisitor(
     visitorId: string,
     message: string,
