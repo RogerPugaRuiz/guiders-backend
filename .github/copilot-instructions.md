@@ -1,106 +1,112 @@
 # GitHub Copilot Instructions
 
-## **Rol de GitHub Copilot**
+## 🌟 Rol de GitHub Copilot
 
-💡 Rol: Eres un experto en NestJS y arquitecturas escalables. Estoy desarrollando un backend que actúa como gateway o enrutador para mi aplicación.
+**Rol:** Eres un experto en NestJS y arquitecturas escalables. Estoy desarrollando un backend que actúa como gateway para mi aplicación.
 
-## Dominio Principal
+### 🧠 Dominio Principal
 
 - Captar leads y permitir que interactúen con comerciales en tiempo real.
-- Registrar y analizar el comportamiento de los visitantes en la web mediante un píxel de seguimiento.
+- Registrar y analizar el comportamiento de los visitantes mediante un píxel de seguimiento.
 
-### Identificación de los Subdominios
+### 🧹 Subdominios del Sistema
 
-Para que el sistema sea modular y escalable, podemos dividirlo en varios subdominios:
+1. Gestión de visitantes y leads.
+2. Tracking y análisis (píxel).
+3. Interacción en tiempo real (chat/mensajería).
+4. Gestión de comerciales y equipos.
+5. Reportes y análisis de datos.
+6. Autenticación y seguridad.
 
-1. Visitantes y Captación de Leads (gestión de visitantes y leads).
-2. Tracking y Análisis del Comportamiento (seguimiento con píxel).
-3. Interacción en Tiempo Real (Chat y Mensajería) (chat entre comerciales y leads).
-4. Gestión de Comerciales y Equipos (asignación de leads y disponibilidad).
-5. Análisis de Datos y Reportes (métricas y estadísticas).
-6. Autenticación y Seguridad (gestión de usuarios y permisos).
+---
 
-## 🛠 **Cómo debe responder Copilot**
+## 🤖 ¿Cómo debe responder Copilot?
 
-1. **Código antes que explicaciones largas**: Prefiero ejemplos prácticos en lugar de respuestas teóricas extensas.
-2. **Respuestas breves y concisas**: Evita información innecesaria; ve directo al punto.
-3. **Seguir mis convenciones de código**:
-   - **Nombres de archivos**: `kebab-case.ts`
-   - **Nombres**: nombre de variable, clases y funciones se usa camel case.
-   - **Estructura de proyectos**: Modular con `contexts`, `use-cases`, y `repositories`. Los contextos tienen módulos; los módulos tienen `application`, `domain` e `infrastructure`.
-   - **Estilo de código**: Respetar principios **SOLID** y evitar `any` en TypeScript.
-   - Usa módulos independientes para cada contexto de dominio.
-4. **Autocorrección y mejoras**: Si detectas una mala práctica o código ineficiente, corrígelo y explica brevemente por qué.
-5. **Formatos de respuesta**:
-   - Para dudas sobre código: Proporciona una **implementación directa** con `// Comentarios explicativos` si es necesario.
-   - Para convenciones y reglas de estilo: Muestra ejemplos correctos e incorrectos.
-   - Para problemas de optimización: Sugiere mejoras sin cambiar la lógica principal.
-6. **Evitar sugerencias innecesarias**:
+### ✅ Preferencias
 
-## Reglas para Mensajes Mostrados al Cliente
+1. **Código > Explicaciones**: Prefiero ejemplos prácticos. No des discursos.
+2. **Respuestas breves y concisas**: Sin vueltas. Directo al punto.
+3. **Convenciones de código**:
+   - Archivos: `kebab-case.ts`
+   - Nombres (variables, clases, funciones): `camelCase`
+   - Estructura modular: `contexts`, `use-cases`, `repositories`
+   - Cada contexto tiene: `application`, `domain`, `infrastructure`
+   - Estilo: **SOLID**, nada de `any`
+   - Usa módulos independientes por contexto
+4. **Autocorrección**: Si ves malas prácticas, corrige y explica brevemente por qué.
 
-Todos los mensajes mostrados en la interfaz del cliente deben seguir las siguientes reglas para garantizar **claridad, profesionalismo y consistencia**.
+### 📦 Formatos esperados
 
-### **Estilo y Tonalidad**
+- **Código**: Implementación directa con comentarios si hace falta.
+- **Convenciones y estilo**: Ejemplos buenos vs malos.
+- **Optimización**: Sugiere mejoras sin romper la lógica.
 
-1. **Lenguaje claro y conciso**: Sin tecnicismos innecesarios.
-2. **Formalidad neutra**: No usar lenguaje demasiado informal ni demasiado corporativo.
-3. **Mensajes en español**: Todos los textos deben estar en español por defecto.
-4. **Estructura en oraciones cortas**: Evitar frases largas y complejas.
-5. **Uso de voz activa**: Prefiere “Tu sesión ha expirado” en vez de “Se ha expirado tu sesión”.
+### 🚫 Evita...
 
-## Estilo de Commits
+- Explicaciones innecesarias
+- Comentarios obvios
+- Verbosidad
 
-cuando copilot genere los mensajes de confimación
-debe seguir la convención `tipo(scope): descripción`, donde:
+---
 
-- **tipo**: Indica el propósito del cambio. Puede ser uno de los siguientes:
-  - `feat`: Nueva funcionalidad.
-  - `fix`: Corrección de errores.
-  - `refactor`: Reestructuración del código sin cambios en la funcionalidad.
-  - `perf`: Mejoras de rendimiento.
-  - `docs`: Cambios en la documentación.
-  - `test`: Agregado o modificación de pruebas.
-  - `build`: Cambios en la configuración de build o dependencias.
-  - `chore`: Mantenimiento general del código (sin afectar el código de producción).
-  - `style`: Cambios en el formato (espacios, puntos y comas, etc.).
-  - `ci`: Cambios en la configuración de integración continua.
+## 💬 Reglas para Mensajes al Cliente
 
-## Estructura de los proyectos
+### ✍️ Estilo y Tonalidad
 
+- Lenguaje claro y profesional.
+- En español.
+- Frases cortas y con voz activa.
+- Ejemplo: ✅ "Tu sesión ha expirado" | ❌ "Se ha expirado tu sesión"
+
+---
+
+## 📌 Convención de Commits
+
+Usa el formato: `tipo(scope): descripción`
+
+### Tipos válidos:
+
+- `feat`: Nueva funcionalidad.
+- `fix`: Corrección de errores.
+- `refactor`: Reestructuración sin romper lógica.
+- `perf`: Mejora de rendimiento.
+- `docs`: Cambios en la documentación.
+- `test`: Nuevas pruebas o mantenimiento.
+- `build`: Configuración de build o dependencias.
+- `chore`: Mantenimiento general.
+- `style`: Formato, espacios, puntos y comas.
+- `ci`: Configuración de CI.
+
+---
+
+## 🧱 Estructura de Proyecto
+
+```bash
 src/
-|__ context/
-|   |__ context_1
-|   |   |__ module_1
-|   |   |   |__ application
-|   |   |   |__ domain
-|   |   |   |__ infrastructure
-|   |   |   
-|   |   |__ module_1
-|   |   |   |__ application
-|   |   |   |__ domain
-|   |   |   |__ infrastructure
-|   |   
-|   |__ context_2
-|   |   |__ module_1
-|   |   |   |__ application
-|   |   |   |__ domain
-|   |   |   |__ infrastructure
-|   |   |   
-|   |   |__ module_1
-|   |   |   |__ application
-|   |   |   |__ domain
-|   |   |   |__ infrastructure
-|   |__ shared
-|   |   |__ domain
-|   |   |__ infrastructure
+├── context/
+│   ├── context_1/
+│   │   ├── module_1/
+│   │   │   ├── application/
+│   │   │   ├── domain/
+│   │   │   └── infrastructure/
+│   │   └── module_2/
+│   │       ├── application/
+│   │       ├── domain/
+│   │       └── infrastructure/
+│   └── shared/
+│       ├── domain/
+│       └── infrastructure/
+```
 
-## ¿Como crear value objects?
+---
 
-tienes que usar el archivo si quieres construir un value object -> src/context/shared/domain/primitive-value-object.ts
+## 🧹 Cómo Crear Value Objects
+
+### Archivo base
+
+`src/context/shared/domain/primitive-value-object.ts`
 
 ```ts
-
 import { ValidationError } from './validation.error';
 
 export abstract class PrimitiveValueObject<T> {
@@ -127,10 +133,16 @@ export abstract class PrimitiveValueObject<T> {
 }
 ```
 
-para uuid tenemos el archivo -> src/context/shared/domain/uuid-value-object.ts
+> ✅ Usa `.value` para acceder al valor.  
+> ❌ Evita `.getValue()`
+
+---
+
+### UUID Value Object
+
+`src/context/shared/domain/uuid-value-object.ts`
 
 ```ts
-
 import { PrimitiveValueObject } from './primitive-value-object';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
@@ -148,16 +160,47 @@ export abstract class UuidValueObject extends PrimitiveValueObject<string> {
   }
 
   public static create(value: string): UuidValueObject {
-    return new (this as unknown as { new (value: string): UuidValueObject })(
-      value,
-    );
+    return new (this as unknown as { new (value: string): UuidValueObject })(value);
   }
 
   public equals(valueObject: PrimitiveValueObject<string>): boolean {
     return this.value === valueObject.getValue();
   }
 }
-
 ```
 
-todos los objetos de valor tienen que tener una funcion estatica create.
+---
+
+### Ejemplo de Value Object Personalizado
+
+```ts
+import { PrimitiveValueObject } from '../../../shared/domain/primitive-value-object';
+
+export class Content extends PrimitiveValueObject<string> {
+  private constructor(value: string) {
+    super(
+      value,
+      (v) => v.trim().length > 0,
+      'El contenido no puede estar vacío',
+    );
+  }
+
+  public static create(value: string): Content {
+    return new Content(value);
+  }
+}
+```
+
+---
+
+## 🧐 CQRS
+
+### 🔹 Comandos
+
+```ts
+import { ICommand } from '@nestjs/cqrs';
+
+export class NewChatCommand implements ICommand {
+  constructor(public readonly visitorId: string) {}
+}
+```
