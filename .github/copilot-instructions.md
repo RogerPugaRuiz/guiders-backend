@@ -133,7 +133,7 @@ export abstract class PrimitiveValueObject<T> {
 }
 ```
 
-> ✅ Usa `.value` para acceder al valor.  
+> ✅ Usa `.value` para acceder al valor.\
 > ❌ Evita `.getValue()`
 
 ---
@@ -204,3 +204,98 @@ export class NewChatCommand implements ICommand {
   constructor(public readonly visitorId: string) {}
 }
 ```
+
+### 🔹 Command Handler
+
+```ts
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { NewChatCommand } from '../commands/new-chat.command';
+import { NewChatUseCase } from '../usecases/new-chat.usecase';
+import { Logger } from '@nestjs/common';
+
+@CommandHandler(NewChatCommand)
+export class NewChatCommandHandler implements ICommandHandler<NewChatCommand> {
+  private logger = new Logger('CreateChatHandler');
+
+  constructor(private readonly service: NewChatUseCase) {}
+
+  async execute(command: NewChatCommand): Promise<void> {
+    this.logger.log(`Command received: ${command.constructor.name}`);
+    await this.service.execute(command);
+  }
+}
+```
+
+> ✅ El `CommandHandler` escucha comandos específicos y delega la ejecución a un caso de uso.\
+> ✅ El `Logger` es opcional pero útil para trazabilidad.
+
+### 🔹 Use Case
+
+```ts
+import { Inject, Injectable } from '@nestjs/common';
+import { MESSAGE_REPOSITORY, MessageRepository } from '../../domain/repository';
+import { Message } from '../../domain/message';
+import { ChatId } from '../../domain/chat-id';
+import { SenderId } from '../../domain/sender-id';
+import { Content } from '../../domain/content';
+import { EventPublisher } from '@nestjs/cqrs';
+
+export interface NewMessageRequest {
+  chatId: string;
+  senderId: string;
+  content: string;
+}
+
+@Injectable()
+export class NewMessageUseCase {
+  constructor(
+    @Inject(MESSAGE_REPOSITORY) private readonly repository: MessageRepository,
+    private readonly publisher: EventPublisher,
+  ) {}
+
+  async execute(request: NewMessageRequest): Promise<void> {
+    const message = Message.createNewMessage({
+      chatId: ChatId.create(request.chatId),
+      senderId: SenderId.create(request.senderId),
+      content: Content.create(request.content),
+    });
+    await this.repository.save(message);
+    this.publisher.mergeObjectContext(message).commit();
+  }
+}
+```
+
+> ✅ Los casos de uso encapsulan la lógica de aplicación y orquestan las operaciones del dominio.
+
+### 🔹 Query y Query Handler
+
+```ts
+import { IQuery } from '@nestjs/cqrs';
+
+export class FindNewChatsQuery implements IQuery {
+  constructor() {}
+}
+```
+
+```ts
+import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { FindNewChatsQuery } from '../queries/find-new-chats.query';
+import {
+  FindNewChatsUseCase,
+  FindNewChatsUseCaseResponse,
+} from '../usecases/find-new-chats.usecase';
+
+@QueryHandler(FindNewChatsQuery)
+export class FindNewChatsQueryHandler
+  implements IQueryHandler<FindNewChatsQuery, FindNewChatsUseCaseResponse>
+{
+  constructor(private readonly service: FindNewChatsUseCase) {}
+
+  async execute(): Promise<FindNewChatsUseCaseResponse> {
+    return await this.service.execute();
+  }
+}
+```
+
+> ✅ Las queries son operaciones de solo lectura.
+> ✅ El `QueryHandler` invoca un caso de uso que devuelve un resultado sin modificar el estado.
