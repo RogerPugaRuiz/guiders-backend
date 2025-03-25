@@ -1,9 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Message } from '../message';
 import { MessageId } from '../value-objects/message-id';
 import { ChatId } from '../value-objects/chat-id';
 import { SenderId } from '../value-objects/sender-id';
 import { Content } from '../value-objects/content';
 import { CreatedAt } from '../value-objects/created-at';
+import { faker } from '@faker-js/faker';
 
 export class MessageMother {
   public static random(): Message {
@@ -11,8 +15,8 @@ export class MessageMother {
       id: MessageId.create().value,
       chatId: ChatId.create().value,
       senderId: SenderId.create().value,
-      content: Content.create('Contenido de prueba').value,
-      createdAt: CreatedAt.create(new Date()).value,
+      content: Content.create(faker.lorem.sentence()).value,
+      createdAt: CreatedAt.create(faker.date.past()).value,
     });
   }
 
@@ -27,8 +31,8 @@ export class MessageMother {
       id: MessageId.create(params?.id).value,
       chatId: ChatId.create(params?.chatId).value,
       senderId: SenderId.create(params?.senderId).value,
-      content: params?.content ?? Content.create('Contenido de prueba').value,
-      createdAt: params?.createdAt ?? CreatedAt.create(new Date()).value,
+      content: params?.content ?? Content.create(faker.lorem.sentence()).value,
+      createdAt: params?.createdAt ?? CreatedAt.create(faker.date.past()).value,
     });
   }
 }
