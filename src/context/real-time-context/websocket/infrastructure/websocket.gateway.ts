@@ -121,10 +121,6 @@ export class RealTimeWebSocketGateway
     @MessageBody()
     payload: { type: string; data: Record<string, unknown>; timestamp: number },
   ): Promise<{ success: boolean; message: string }> {
-    this.logger.log(
-      `Usuario ${client.user.sub} envía un evento de tipo ${payload.type}`,
-    );
-
     // Para un visitante
     if (client.user.role.includes('visitor')) {
       const { message } = payload.data;
@@ -236,12 +232,15 @@ export class RealTimeWebSocketGateway
   private emitChatMessage(
     destination: string,
     messageText: string,
-    sender: string,
+    from: string,
   ): void {
     const timestamp = Date.now();
     this.server.to(destination).emit('chat_message', {
-      message: messageText,
-      from: sender,
+      type: 'chat_message',
+      data: {
+        message: messageText,
+        from,
+      },
       timestamp,
     });
     this.logger.log(`Mensaje emitido a ${destination}`);

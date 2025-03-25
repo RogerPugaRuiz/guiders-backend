@@ -1,7 +1,12 @@
-import { WsRoleGuard } from './ws-role.guard';
+import { Reflector } from '@nestjs/core';
+import { WsRolesGuard } from './ws-role.guard';
 
 describe('WsRoleGuard', () => {
   it('should be defined', () => {
-    expect(new WsRoleGuard()).toBeDefined();
+    const reflector = {
+      get: jest.fn(),
+    } as unknown as Reflector;
+
+    expect(new WsRolesGuard(reflector)).toBeDefined();
   });
 });
