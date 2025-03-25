@@ -19,7 +19,7 @@ import { WsAuthGuard } from './guards/ws-auth.guard';
 import { AuthenticatedSocket } from './authenticated-socket';
 import { WsRolesGuard } from './guards/ws-role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FindNewChatsQuery } from 'src/context/chat-context/chat/application/queries/find-new-chats.query';
 import { FindNewChatsUseCaseResponse } from 'src/context/chat-context/chat/application/usecases/find-new-chats.usecase';
 import { ConnectUseCase } from '../application/usecases/connect.usecase';
@@ -30,6 +30,7 @@ import { GetSocketByUserUseCase } from '../application/usecases/get-socket-by-us
 import { GetCommercialSocketUseCase } from '../application/usecases/get-comercial-sockets';
 import { ConnectionRoleEnum } from '../domain/value-objects/connection-role';
 import { ValidationError } from 'src/context/shared/domain/validation.error';
+import { NewMessageCommand } from 'src/context/chat-context/message/application/commands/new-message.command';
 
 @WebSocketGateway({
   cors: { origin: '*' },
@@ -47,26 +48,8 @@ export class RealTimeWebSocketGateway
     private readonly getSocketByUser: GetSocketByUserUseCase,
     private readonly getCommercialSocket: GetCommercialSocketUseCase,
     private readonly queryBus: QueryBus,
+    private readonly commandBus: CommandBus,
   ) {}
-
-  // sendNewChat(chat: {
-  //   chatId: string;
-  //   commercialId: string | null;
-  //   visitorId: string;
-  //   status: string;
-  //   lastMessage: string | null;
-  //   lastMessageAt: Date | null;
-  // }): Promise<void> {
-  //   if (!chat.commercialId) {
-  //     this.server.to(ConnectionRoleEnum.COMMERCIAL).emit('new_chat', chat);
-  //     this.logger.log('Sending new chat to all commercials');
-  //     return Promise.resolve();
-  //   }
-  //   this.logger.log(`Sending new chat to commercial ${chat.commercialId}`);
-  //   this.server.to(chat.commercialId).emit('new_chat', chat);
-
-  //   return Promise.resolve();
-  // }
 
   onModuleDestroy() {
     this.server.removeAllListeners();
@@ -111,11 +94,11 @@ export class RealTimeWebSocketGateway
   async handleGetVisitors(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user.sub} is getting chat list`);
     // this.logger.log(`Chats: ${JSON.stringify(chats)}`);
-    const chats = await this.queryBus.execute<
+    const response = await this.queryBus.execute<
       FindNewChatsQuery,
       FindNewChatsUseCaseResponse
     >(new FindNewChatsQuery());
-    client.emit('chat_list', chats);
+    client.emit('chat_list', response);
   }
 
   @UseGuards(WsAuthGuard, WsRolesGuard)
@@ -137,59 +120,41 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody()
     payload: { type: string; data: Record<string, unknown>; timestamp: number },
-  ) {
-    this.logger.log(`User ${client.user.sub} is sending event ${payload.type}`);
+  ): Promise<{ success: boolean; message: string }> {
+    this.logger.log(
+      `Usuario ${client.user.sub} envía un evento de tipo ${payload.type}`,
+    );
 
+    // Para un visitante
     if (client.user.role.includes('visitor')) {
       const { message } = payload.data;
       if (!message) {
-        return Promise.resolve({
-          success: false,
-          message: 'Missing parameters',
-        });
+        return { success: false, message: 'Faltan parámetros (message)' };
       }
-
-      await this.sendChatMessageToCommercial(
-        client.user.sub,
-        payload.data.message as string,
-      );
-
-      return Promise.resolve({
-        success: true,
-        message: 'Message sent to commercial',
-      });
-    } else {
-      const { to, message } = payload.data;
-      if (!to || !message) {
-        return Promise.resolve({
-          success: false,
-          message: 'Missing parameters',
-        });
-      }
-      await this.sendChatMessageToVisitor(to as string, message as string);
-
-      return Promise.resolve({
-        success: true,
-        message: 'Message sent to visitor',
-      });
+      await this.handleVisitorMessage(client.user.sub, message as string);
+      return { success: true, message: 'Mensaje enviado al comercial' };
     }
+
+    // Para un comercial
+    const { to, message } = payload.data;
+    if (!to || !message) {
+      return { success: false, message: 'Faltan parámetros (to, message)' };
+    }
+    await this.handleCommercialMessage(
+      to as string,
+      message as string,
+      client.user.sub,
+    );
+    return { success: true, message: 'Mensaje enviado al visitante' };
   }
 
-  @UseGuards(WsAuthGuard, WsRolesGuard)
-  @Roles('visitor', 'commercial')
-  @SubscribeMessage('pageview')
-  handlePageView(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody()
-    payload: { type: string; data: Record<string, unknown>; timestamp: number },
-  ) {
-    this.logger.log(`User ${client.user.sub} is sending event ${payload.type}`);
-    this.logger.log(`Payload: ${JSON.stringify(payload)}`);
-  }
-
-  private async sendChatMessageToVisitor(
+  /**
+   * Lógica cuando un visitante envía un mensaje.
+   * Puede ir directamente a un comercial asignado o, si no existe aún, emitirse a todos los comerciales.
+   */
+  private async handleVisitorMessage(
     visitorId: string,
-    message: string,
+    text: string,
   ): Promise<void> {
     const { chat } = await this.queryBus.execute<
       FindChatByVisitorQuery,
@@ -197,90 +162,126 @@ export class RealTimeWebSocketGateway
     >(new FindChatByVisitorQuery(visitorId));
 
     if (!chat) {
-      this.logger.error(`Chat not found for visitor ${visitorId}`);
+      this.logger.error(`No existe Chat para el visitante ${visitorId}`);
       return;
     }
+
+    // Si no hay comercial asignado, se envía a todos
+    if (!chat.commercialId) {
+      await this.broadcastToAllCommercials(chat.chatId, visitorId, text);
+      return;
+    }
+
+    // De lo contrario, se envía al comercial específico
     const { socketId } = await this.getSocketByUser.execute({
-      userId: visitorId,
+      userId: chat.commercialId,
     });
     if (!socketId) {
-      this.logger.error(`Socket not found for visitor ${visitorId}`);
+      this.logger.error(
+        `No se encontró socket para el comercial ${chat.commercialId}`,
+      );
       return;
     }
-    this.server.to(socketId).emit('chat_message', {
-      type: 'chat_message',
-      data: { message },
-      timestamp: new Date().getTime(),
-    });
-    this.logger.log(`Message sent to visitor ${visitorId}`);
+
+    // Emitimos y persistimos
+    this.emitChatMessage(socketId, text, visitorId);
+    await this.saveNewMessage(chat.chatId, visitorId, text);
   }
 
-  private async sendChatMessageToCommercial(
+  /**
+   * Lógica cuando un comercial envía un mensaje a un visitante.
+   */
+  private async handleCommercialMessage(
     visitorId: string,
-    message: string,
-  ) {
+    text: string,
+    commercialId: string,
+  ): Promise<void> {
     const { chat } = await this.queryBus.execute<
       FindChatByVisitorQuery,
       FindChatByVisitorQueryResponse
     >(new FindChatByVisitorQuery(visitorId));
     if (!chat) {
-      this.logger.error(`Chat not found for visitor ${visitorId}`);
+      this.logger.error(`No existe Chat para el visitante ${visitorId}`);
       return;
     }
-    if (!chat.commercialId) {
-      this.broadcastMessageToAllCommercials({
-        message,
-        from: chat.visitorId,
-      });
-      return;
-    }
+    // Obtenemos el socket del visitante y emitimos el mensaje
     const { socketId } = await this.getSocketByUser.execute({
-      userId: chat.commercialId,
+      userId: visitorId,
     });
+    if (!socketId) {
+      this.logger.error(`No se encontró socket para el visitante ${visitorId}`);
+      return;
+    }
 
-    this.broadcastMessageToCommercial(socketId, {
-      message,
-      from: chat.visitorId,
-    });
+    this.emitChatMessage(socketId, text, commercialId);
+    await this.saveNewMessage(chat.chatId, commercialId, text);
   }
-  public async emitToUser(userId: string, event: string, data: any) {
+
+  /**
+   * Envía un mensaje a todos los comerciales disponibles.
+   */
+  private async broadcastToAllCommercials(
+    chatId: string,
+    senderId: string,
+    text: string,
+  ) {
+    this.logger.log('Enviando mensaje a todos los comerciales');
+    this.emitChatMessage(ConnectionRoleEnum.COMMERCIAL, text, senderId);
+    await this.saveNewMessage(chatId, senderId, text);
+  }
+
+  /**
+   * Emite un 'chat_message' a un socket o a un rol (grupo de sockets) con su respectivo timestamp.
+   */
+  private emitChatMessage(
+    destination: string,
+    messageText: string,
+    sender: string,
+  ): void {
+    const timestamp = Date.now();
+    this.server.to(destination).emit('chat_message', {
+      message: messageText,
+      from: sender,
+      timestamp,
+    });
+    this.logger.log(`Mensaje emitido a ${destination}`);
+  }
+
+  /**
+   * Persiste (guarda) el nuevo mensaje usando el CommandBus.
+   */
+  private async saveNewMessage(
+    chatId: string,
+    senderId: string,
+    text: string,
+    timestamp: number = Date.now(),
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new NewMessageCommand(chatId, senderId, text, new Date(timestamp)),
+    );
+  }
+
+  /**
+   * Métodos extra para emitir a un usuario o rol genérico.
+   */
+  public async emitEventToUser(
+    userId: string,
+    event: string,
+    data: any,
+  ): Promise<void> {
     const { socketId } = await this.getSocketByUser.execute({ userId });
     if (!socketId) {
-      this.logger.error(`Socket not found for user ${userId}`);
+      this.logger.error(`No se encontró socket para el usuario ${userId}`);
       return;
     }
     this.server.to(socketId).emit(event, data);
   }
-  public emitToRole(role: ConnectionRoleEnum, event: string, data: any) {
+
+  public emitEventToRole(
+    role: ConnectionRoleEnum,
+    event: string,
+    data: any,
+  ): void {
     this.server.to(role).emit(event, data);
-  }
-
-  private broadcastMessageToCommercial(
-    socketId: string | null,
-    payload: { message: string; from: string },
-  ) {
-    if (!socketId) {
-      this.logger.error('Commercial socket not found');
-      return;
-    }
-
-    const { message, from } = payload;
-    // number of milliseconds since 1970/01/01
-    const timestamp = new Date().getTime();
-    this.server.to(socketId).emit('chat_message', { message, timestamp, from });
-    this.logger.log(`Message sent to commercial ${socketId} `);
-  }
-
-  private broadcastMessageToAllCommercials(payload: {
-    message: string;
-    from: string;
-  }) {
-    const { message, from } = payload;
-    const timestamp = new Date().getTime();
-    this.logger.log(`Broadcasting message to all commercials`);
-    this.server
-      .to(ConnectionRoleEnum.COMMERCIAL)
-      .emit('chat_message', { message, timestamp, from });
-    this.logger.log(`Message sent to all commercials`);
   }
 }

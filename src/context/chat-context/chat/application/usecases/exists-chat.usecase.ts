@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CHAT_REPOSITORY, ChatRepository } from '../../domain/chat.repository';
+import { CHAT_REPOSITORY, IChatRepository } from '../../domain/chat.repository';
 import { ChatId } from '../../domain/value-objects/chat-id';
 
 export interface ExistsChatUseCaseResponse {
@@ -9,7 +9,7 @@ export interface ExistsChatUseCaseResponse {
 @Injectable()
 export class ExistsChatUseCase {
   constructor(
-    @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
+    @Inject(CHAT_REPOSITORY) private readonly repository: IChatRepository,
   ) {}
 
   async execute(chatId: string): Promise<ExistsChatUseCaseResponse> {

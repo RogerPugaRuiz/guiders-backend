@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { CHAT_REPOSITORY, ChatRepository } from '../../domain/chat.repository';
+import { CHAT_REPOSITORY, IChatRepository } from '../../domain/chat.repository';
 import { Chat, ChatPrimitives } from '../../domain/chat';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 
@@ -9,7 +9,7 @@ export interface FindNewChatsUseCaseResponse {
 
 export class FindNewChatsUseCase {
   constructor(
-    @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
+    @Inject(CHAT_REPOSITORY) private readonly repository: IChatRepository,
   ) {}
 
   async execute(): Promise<FindNewChatsUseCaseResponse> {

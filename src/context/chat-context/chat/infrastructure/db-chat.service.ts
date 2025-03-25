@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ChatRepository } from '../domain/chat.repository';
+import { IChatRepository } from '../domain/chat.repository';
 import { Chat } from '../domain/chat';
 import { ChatMapper } from './chat-mapper';
 import { DbChatEntity } from './db-chat.entity';
@@ -10,7 +10,7 @@ import { Criteria } from 'src/context/shared/domain/criteria';
 import { Optional } from 'src/context/shared/domain/optional';
 
 @Injectable()
-export class DbChatService implements ChatRepository {
+export class DbChatService implements IChatRepository {
   constructor(
     @InjectRepository(DbChatEntity)
     private readonly chatRepository: Repository<DbChatEntity>,

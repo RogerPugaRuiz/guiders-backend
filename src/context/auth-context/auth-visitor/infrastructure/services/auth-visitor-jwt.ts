@@ -102,7 +102,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         role: ['visitor'],
       },
       {
-        subject: account.clientID.getValue().toString(),
+        subject: account.id.value,
         expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
         algorithm: 'RS256',
         keyid: apiKey.kid,
@@ -119,7 +119,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         role: ['visitor'],
       },
       {
-        subject: account.clientID.getValue().toString(),
+        subject: account.id.value,
         expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRATION'),
         algorithm: 'RS256',
         keyid: apiKey.kid,

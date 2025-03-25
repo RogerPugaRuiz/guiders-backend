@@ -4,8 +4,8 @@ import { Message } from './message';
 
 export const MESSAGE_REPOSITORY = Symbol('MESSAGE_REPOSITORY');
 
-export interface MessageRepository {
+export interface IMessageRepository {
   save(message: Message): Promise<void>;
-  find(criteria: Criteria<Message>): Promise<Message[]>;
-  findOne(criteria: Criteria<Message>): Promise<Optional<Message>>;
+  find(criteria: Criteria<Message>): Promise<{ messages: Message[] }>;
+  findOne(criteria: Criteria<Message>): Promise<Optional<{ message: Message }>>;
 }

@@ -1,4 +1,4 @@
-import { UuidValueObject } from '../../../shared/domain/uuid-value-object';
+import { UuidValueObject } from '../../../../shared/domain/uuid-value-object';
 
 export class SenderId extends UuidValueObject {
   private constructor(value: string) {

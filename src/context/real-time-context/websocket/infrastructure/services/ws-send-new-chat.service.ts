@@ -17,10 +17,10 @@ export class WsSendNewChatService implements SendNewChatRealTimePort {
   }): Promise<void> {
     this.logger.log('Sending new chat');
     if (chat.commercialId) {
-      await this.ws.emitToUser(chat.commercialId, 'new_chat', chat);
+      await this.ws.emitEventToUser(chat.commercialId, 'new_chat', chat);
       return Promise.resolve();
     }
-    this.ws.emitToRole(ConnectionRoleEnum.COMMERCIAL, 'new_chat', chat);
+    this.ws.emitEventToRole(ConnectionRoleEnum.COMMERCIAL, 'new_chat', chat);
     return Promise.resolve();
   }
 }

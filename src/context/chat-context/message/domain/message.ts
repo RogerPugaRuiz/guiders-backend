@@ -1,9 +1,9 @@
 import { AggregateRoot } from '@nestjs/cqrs';
-import { MessageId } from './message-id';
-import { ChatId } from './chat-id';
-import { SenderId } from './sender-id';
-import { Content } from './content';
-import { CreatedAt } from './created-at';
+import { MessageId } from './value-objects/message-id';
+import { ChatId } from './value-objects/chat-id';
+import { SenderId } from './value-objects/sender-id';
+import { Content } from './value-objects/content';
+import { CreatedAt } from './value-objects/created-at';
 import { MessageCreatedEvent } from './message-created.event';
 
 export interface MessagePrimitives {
@@ -60,5 +60,15 @@ export class Message extends AggregateRoot {
       ),
     );
     return message;
+  }
+
+  public toPrimitives(): MessagePrimitives {
+    return {
+      id: this.id.value,
+      chatId: this.chatId.value,
+      senderId: this.senderId.value,
+      content: this.content.value,
+      createdAt: this.createdAt.value,
+    };
   }
 }

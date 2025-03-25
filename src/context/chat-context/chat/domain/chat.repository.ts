@@ -5,7 +5,7 @@ import { Optional } from 'src/context/shared/domain/optional';
 
 export const CHAT_REPOSITORY = Symbol('CHAT_REPOSITORY');
 
-export interface ChatRepository {
+export interface IChatRepository {
   save(chat: Chat): Promise<void>;
   findById(id: ChatId): Promise<Chat | undefined>;
   findOne(criteria: Criteria<Chat>): Promise<Optional<Chat>>;

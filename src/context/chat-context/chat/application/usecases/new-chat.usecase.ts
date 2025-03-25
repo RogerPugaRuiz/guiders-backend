@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CHAT_REPOSITORY, ChatRepository } from '../../domain/chat.repository';
+import { CHAT_REPOSITORY, IChatRepository } from '../../domain/chat.repository';
 import { Chat } from '../../domain/chat';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
@@ -13,7 +13,7 @@ export interface NewChatUseCaseRequest {
 export class NewChatUseCase {
   private readonly logger = new Logger(NewChatUseCase.name);
   constructor(
-    @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
+    @Inject(CHAT_REPOSITORY) private readonly repository: IChatRepository,
     private readonly publisher: EventPublisher,
   ) {}
 

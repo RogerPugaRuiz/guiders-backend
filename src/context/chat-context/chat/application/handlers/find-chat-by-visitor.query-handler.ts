@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindChatByVisitorQuery } from '../queries/find-chat-by-visitor.query';
 import { Inject } from '@nestjs/common';
-import { CHAT_REPOSITORY, ChatRepository } from '../../domain/chat.repository';
+import { CHAT_REPOSITORY, IChatRepository } from '../../domain/chat.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { Chat } from '../../domain/chat';
 
@@ -20,7 +20,7 @@ export class FindChatByVisitorQueryHandler
     IQueryHandler<FindChatByVisitorQuery, FindChatByVisitorQueryResponse>
 {
   constructor(
-    @Inject(CHAT_REPOSITORY) private readonly repository: ChatRepository,
+    @Inject(CHAT_REPOSITORY) private readonly repository: IChatRepository,
   ) {}
 
   async execute(

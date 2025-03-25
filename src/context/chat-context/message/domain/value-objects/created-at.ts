@@ -1,4 +1,4 @@
-import { PrimitiveValueObject } from '../../../shared/domain/primitive-value-object';
+import { PrimitiveValueObject } from '../../../../shared/domain/primitive-value-object';
 
 export class CreatedAt extends PrimitiveValueObject<Date> {
   private constructor(value: Date) {
