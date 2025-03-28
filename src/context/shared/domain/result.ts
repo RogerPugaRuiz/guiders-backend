@@ -94,6 +94,10 @@ export function ok<T, E extends DomainError>(value: T): Result<T, E> {
   return new Ok<T, E>(value);
 }
 
+export function okVoid<E extends DomainError>(): Result<void, E> {
+  return new Ok<void, E>(undefined);
+}
+
 export function err<T, E extends DomainError>(error: E): Result<T, E> {
   return new Err<T, E>(error);
 }

@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Socket } from 'socket.io';
 import { AuthenticatedSocket } from '../authenticated-socket';
+import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 
 @Injectable()
 export class WsRolesGuard implements CanActivate {
@@ -9,7 +10,7 @@ export class WsRolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.get<string[]>(
-      'roles',
+      Roles,
       context.getHandler(),
     );
     if (!requiredRoles) return true; // Si no se especifican roles, permitir acceso

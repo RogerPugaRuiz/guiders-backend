@@ -5,40 +5,41 @@ import { ConnectionUserId } from './value-objects/connection-user-id';
 import { AggregateRoot } from '@nestjs/cqrs';
 import { ConnectedEvent } from './events/connected.event';
 import { DisconnectedEvent } from './events/disconnected.event';
+import { RealTimeMessageSendEvent } from './events/real-time-message-send.event';
 
 export interface ConnectionUserPrimitive {
   userId: string;
   socketId: string | null;
-  role: string;
+  roles: string[];
 }
 
 export class ConnectionUser extends AggregateRoot {
   private constructor(
     readonly userId: ConnectionUserId,
     readonly socketId: Optional<ConnectionSocketId>,
-    readonly role: ConnectionRole,
+    readonly roles: ConnectionRole[],
   ) {
     super();
   }
 
   public static create(params: {
     userId: ConnectionUserId;
-    role: ConnectionRole;
+    roles: ConnectionRole[];
   }): ConnectionUser {
-    return new ConnectionUser(params.userId, Optional.empty(), params.role);
+    return new ConnectionUser(params.userId, Optional.empty(), params.roles);
   }
 
   public static fromPrimitives(primitives: {
     userId: string;
     socketId?: string;
-    role: string;
+    roles: string[];
   }): ConnectionUser {
     return new ConnectionUser(
       ConnectionUserId.create(primitives.userId),
       Optional.ofNullable(primitives.socketId).map((socketId) =>
         ConnectionSocketId.create(socketId),
       ),
-      ConnectionRole.create(primitives.role),
+      primitives.roles.map((role) => ConnectionRole.create(role)),
     );
   }
 
@@ -48,6 +49,14 @@ export class ConnectionUser extends AggregateRoot {
 
   public isConnected(): boolean {
     return this.socketId.isPresent();
+  }
+
+  public hasRole(role: string | ConnectionRole): boolean {
+    if (typeof role === 'string') {
+      return this.roles.some((r) => r.value === role
+      );
+    }
+    return this.roles.some((r) => r.equals(role));
   }
 
   public ifConnected(callback: (connection: ConnectionUser) => void): void {
@@ -70,22 +79,25 @@ export class ConnectionUser extends AggregateRoot {
     return {
       userId: this.userId.value,
       socketId: this.socketId.map((socketId) => socketId.value).getOrNull(),
-      role: this.role.value,
+      roles: this.roles.map((role) => role.value),
     };
   }
 
-  public updateRole(role: ConnectionRole): ConnectionUser {
-    return new ConnectionUser(this.userId, this.socketId, role);
+  public updateRole(roles: ConnectionRole[]): ConnectionUser {
+    return new ConnectionUser(this.userId, this.socketId, roles);
   }
 
   public connect(socketId: ConnectionSocketId): ConnectionUser {
     const newConnection = new ConnectionUser(
       this.userId,
       Optional.of(socketId),
-      this.role,
+      this.roles,
     );
     newConnection.apply(
-      new ConnectedEvent(newConnection.userId.value, newConnection.role.value),
+      new ConnectedEvent(
+        newConnection.userId.value,
+        newConnection.roles.map((role) => role.value),
+      ),
     );
     return newConnection;
   }
@@ -94,16 +106,32 @@ export class ConnectionUser extends AggregateRoot {
     const newDisconnect = new ConnectionUser(
       this.userId,
       Optional.empty(),
-      this.role,
+      this.roles,
     );
 
     newDisconnect.apply(
       new DisconnectedEvent(
         newDisconnect.userId.value,
-        newDisconnect.role.value,
+        newDisconnect.roles.map((role) => role.value),
       ),
     );
 
     return newDisconnect;
+  }
+
+  public sendMessage(params: {
+    toUser?: ConnectionUser;
+    message: string;
+    timestamp: Date;
+  }): ConnectionUser {
+    this.apply(
+      new RealTimeMessageSendEvent(
+        this.userId.value,
+        params.toUser ? params.toUser.userId.value : 'all',
+        params.message,
+        params.timestamp,
+      ),
+    );
+    return this;
   }
 }

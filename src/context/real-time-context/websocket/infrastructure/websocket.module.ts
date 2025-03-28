@@ -4,13 +4,13 @@ import { TokenVerifyService } from '../../../shared/infrastructure/token-verify.
 import { HttpModule } from '@nestjs/axios';
 import { CONNECTION_REPOSITORY } from '../domain/connection.repository';
 import { InMemoryConnectionService } from './in-memory-connection.service';
-import { ConnectUseCase } from '../application/usecases/connect.usecase';
-import { DisconnectUseCase } from '../application/usecases/disconnect.usecase';
-import { GetSocketByUserUseCase } from '../application/usecases/get-socket-by-user';
-import { GetCommercialSocketUseCase } from '../application/usecases/get-comercial-sockets';
-import { SendChatOnNewChatEventHandler } from '../application/handler/send-chat-on-new-chat.event-handler';
-import { SEND_NEW_CHAT_REAL_TIME_PORT } from '../application/services/send-new-chat-real-time-port';
-import { WsSendNewChatService } from './services/ws-send-new-chat.service';
+import { ConnectUserCommandHandler } from '../application/command/connect/connect-user.command-handler';
+import { DisconnectUserCommandHandler } from '../application/command/disconnect/disconnect-user.command-handler';
+import { FindOneUserBySocketIdQueryHandler } from '../application/query/find-one/find-one-user-by-socket-id.query-handler';
+import { SendMessageToVisitorCommandHandler } from '../application/command/message/to-visitor/send-message-to-visitor.command-handler';
+import { CHAT_MESSAGE_EMITTER } from 'src/context/real-time-context/websocket/domain/message-emitter';
+import { WsChatMessageEmitterService } from 'src/context/real-time-context/websocket/infrastructure/services/ws-chat-message-emitter.service';
+import { SendMessageToCommercialCommandHandler } from '../application/command/message/to-commercial/send-message-to-commercial.command-handler';
 
 @Module({
   imports: [HttpModule],
@@ -18,15 +18,22 @@ import { WsSendNewChatService } from './services/ws-send-new-chat.service';
     RealTimeWebSocketGateway,
     TokenVerifyService,
     { provide: CONNECTION_REPOSITORY, useClass: InMemoryConnectionService },
-    { provide: SEND_NEW_CHAT_REAL_TIME_PORT, useClass: WsSendNewChatService },
+    {
+      provide: CHAT_MESSAGE_EMITTER,
+      useFactory: (socketServer: RealTimeWebSocketGateway) =>
+        new WsChatMessageEmitterService(socketServer),
+      inject: [RealTimeWebSocketGateway],
+    },
     // usecases
-    ConnectUseCase,
-    DisconnectUseCase,
-    GetSocketByUserUseCase,
-    GetCommercialSocketUseCase,
 
     // handlers
-    SendChatOnNewChatEventHandler,
+    ConnectUserCommandHandler,
+    DisconnectUserCommandHandler,
+    FindOneUserBySocketIdQueryHandler,
+
+    SendMessageToVisitorCommandHandler,
+    SendMessageToCommercialCommandHandler,
   ],
+  exports: [],
 })
 export class WebsocketModule {}

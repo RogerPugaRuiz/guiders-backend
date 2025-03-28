@@ -20,7 +20,7 @@ export class GetCommercialSocketUseCase {
 
   async execute() {
     const criteria = new Criteria<ConnectionUser>().addFilter(
-      'role',
+      'roles',
       Operator.EQUALS,
       ConnectionRoleEnum.COMMERCIAL,
     );

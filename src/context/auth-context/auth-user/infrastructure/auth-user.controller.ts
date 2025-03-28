@@ -1,10 +1,13 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   HttpStatus,
   Logger,
   Post,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthUserService } from './services/auth-user.service';
 import { ValidationError } from 'src/context/shared/domain/validation.error';
@@ -82,6 +85,51 @@ export class AuthUserController {
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
       if (error instanceof UnauthorizedError) {
+        throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+      }
+
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('logout')
+  async logout(@Body('refresh_token') refreshToken: string) {
+    try {
+      await this.authUserService.logout(refreshToken);
+    } catch (error) {
+      this.logger.error('Error logging out user', error);
+      if (error instanceof ValidationError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+      if (error instanceof UnauthorizedError) {
+        throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+      } else {
+        throw new HttpException(
+          'Internal server error',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+  }
+
+  @Get('validate')
+  async validate(@Headers('Authorization') bearerToken: string) {
+    const [prefix, accessToken] = bearerToken.split(' ');
+    if (prefix !== 'Bearer') {
+      throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      const payload = await this.authUserService.validate(accessToken);
+      return payload;
+    } catch (error) {
+      this.logger.error('Error validating token', error);
+      if (error instanceof ValidationError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+      if (error instanceof UnauthorizedException) {
         throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
       }
 

@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConnectionRepository } from '../domain/connection.repository';
 import { ConnectionUser } from '../domain/connection-user';
-import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
+import {
+  Criteria,
+  Filter,
+  FilterGroup,
+  Operator,
+} from 'src/context/shared/domain/criteria';
 import { err, ok, Result } from 'src/context/shared/domain/result';
 import { ConnectionUserNotFound } from '../domain/errors/connection-user-not-found';
 
@@ -9,10 +14,10 @@ import { ConnectionUserNotFound } from '../domain/errors/connection-user-not-fou
 export class InMemoryConnectionService implements ConnectionRepository {
   private userSocketsMap: Map<string, string> = new Map(); // userId -> socketId
   private socketUserMap: Map<string, string> = new Map(); // socketId -> userId
-  private userRolesMap: Map<string, string> = new Map(); // userId -> role
+  private userRolesMap: Map<string, string[]> = new Map(); // userId -> roles
 
   async save(user: ConnectionUser): Promise<void> {
-    const { userId, role } = user.toPrimitives();
+    const { userId, roles } = user.toPrimitives();
     if (user.socketId.isPresent()) {
       const socketId = user.socketId.get();
       this.socketUserMap.set(socketId.value, userId);
@@ -21,7 +26,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
       // Asegurarse de eliminar cualquier socket anterior si el usuario está desconectado.
       this.userSocketsMap.delete(userId);
     }
-    this.userRolesMap.set(userId, role);
+    this.userRolesMap.set(userId, roles);
     return Promise.resolve();
   }
 
@@ -40,12 +45,12 @@ export class InMemoryConnectionService implements ConnectionRepository {
     const { filters } = criteria;
     const users: ConnectionUser[] = [];
     // Iterar sobre todos los usuarios registrados (según roles)
-    this.userRolesMap.forEach((role, userId) => {
+    this.userRolesMap.forEach((roles, userId) => {
       const socketId = this.userSocketsMap.get(userId);
       const user = ConnectionUser.fromPrimitives({
         userId,
         socketId, // Puede ser undefined, lo que generará Optional.empty()
-        role,
+        roles,
       });
       if (this.matchesCriteria(user, filters)) {
         users.push(user);
@@ -61,12 +66,12 @@ export class InMemoryConnectionService implements ConnectionRepository {
     const { filters } = criteria;
 
     // Iterar sobre todos los usuarios registrados
-    for (const [userId, role] of this.userRolesMap.entries()) {
+    for (const [userId, roles] of this.userRolesMap.entries()) {
       const socketId = this.userSocketsMap.get(userId);
       const user = ConnectionUser.fromPrimitives({
         userId,
         socketId,
-        role,
+        roles,
       });
       if (this.matchesCriteria(user, filters)) {
         return Promise.resolve(ok(user));
@@ -78,9 +83,14 @@ export class InMemoryConnectionService implements ConnectionRepository {
 
   private matchesCriteria(
     user: ConnectionUser,
-    filters: Filter<ConnectionUser>[],
+    filters: (Filter<ConnectionUser> | FilterGroup<ConnectionUser>)[],
   ): boolean {
     return filters.every((filter) => {
+      if (filter instanceof FilterGroup) {
+        return filter.filters.every((subFilter) =>
+          this.matchesCriteria(user, [subFilter]),
+        );
+      }
       const { field, operator, value } = filter;
       switch (field) {
         case 'userId':
@@ -94,8 +104,12 @@ export class InMemoryConnectionService implements ConnectionRepository {
             );
           }
           return false;
-        case 'role':
-          return this.applyOperator(user.role.value, operator, value);
+        case 'roles':
+          return this.applyOperator(
+            user.roles.map((role) => role.value).join(','),
+            operator,
+            value,
+          );
         default:
           return false;
       }

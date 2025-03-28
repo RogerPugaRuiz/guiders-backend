@@ -13,9 +13,11 @@ import { UserAccountMapper } from './user-account-mapper';
 import { USER_PASSWORD_HASHER } from '../application/service/user-password-hasher';
 import { USER_TOKEN_SERVICE } from '../application/service/user-token-service';
 import { RefreshTokenUseCase } from '../application/usecases/refresh-token.usecase';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAccountEntity])],
+  imports: [TypeOrmModule.forFeature([UserAccountEntity]), HttpModule],
   controllers: [AuthUserController],
   providers: [
     { provide: USER_ACCOUNT_REPOSITORY, useClass: UserAccountService },
@@ -26,6 +28,7 @@ import { RefreshTokenUseCase } from '../application/usecases/refresh-token.useca
     UserRegisterUseCase,
     UserLoginUseCase,
     RefreshTokenUseCase,
+    TokenVerifyService,
   ],
 })
 export class AuthUserModule {}

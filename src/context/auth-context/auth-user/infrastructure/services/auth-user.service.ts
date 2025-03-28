@@ -2,6 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UserRegisterUseCase } from '../../application/usecases/user-register.usecase';
 import { UserLoginUseCase } from '../../application/usecases/user-login.usecase';
 import { RefreshTokenUseCase } from '../../application/usecases/refresh-token.usecase';
+import {
+  TokenPayload,
+  TokenVerifyService,
+} from 'src/context/shared/infrastructure/token-verify.service';
 
 @Injectable()
 export class AuthUserService {
@@ -9,6 +13,7 @@ export class AuthUserService {
     private readonly userRegister: UserRegisterUseCase,
     private readonly userLogin: UserLoginUseCase,
     private readonly refreshToken: RefreshTokenUseCase,
+    private readonly validateToken: TokenVerifyService,
   ) {}
 
   async login(
@@ -27,5 +32,14 @@ export class AuthUserService {
 
   async refresh(refreshToken: string): Promise<{ accessToken: string }> {
     return await this.refreshToken.execute(refreshToken);
+  }
+
+  async validate(token: string): Promise<TokenPayload> {
+    return await this.validateToken.verifyToken(token);
+  }
+
+  // TODO: Implement logout
+  logout(refreshToken: string): Promise<void> {
+    return Promise.resolve();
   }
 }

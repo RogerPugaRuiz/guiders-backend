@@ -4,10 +4,10 @@ import { TypeOrmMessageRepository } from './type-orm-message-repository';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MessageEntity } from '../entities/message.entity';
 import { Repository, SelectQueryBuilder } from 'typeorm';
-import { MessageMapper } from '../mappers/message.mapper';
-import { MessageMother } from '../../domain/mothers/message-mother';
+import { MessageMother } from '../../../chat/domain/message/message-mother';
 import { Criteria, Operator } from '../../../../shared/domain/criteria';
-import { Message } from '../../domain/message';
+import { Message } from '../../../chat/domain/message/message';
+import { MessageMapper } from 'src/context/chat-context/chat/infrastructure/mappers/message.mapper';
 
 describe('TypeOrmMessageRepository', () => {
   let repository: TypeOrmMessageRepository;
@@ -47,7 +47,7 @@ describe('TypeOrmMessageRepository', () => {
       chatId: chatId,
       senderId: senderId,
       content: content,
-      createdAt: createdAt,
+      createdAt: new Date(createdAt),
     };
     jest.spyOn(MessageMapper, 'toEntity').mockReturnValue(entity);
 
@@ -77,6 +77,7 @@ describe('TypeOrmMessageRepository', () => {
       leftJoin: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       setParameters: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
     } as unknown as jest.Mocked<SelectQueryBuilder<MessageEntity>>;
     jest.spyOn(ormRepository, 'createQueryBuilder').mockReturnValue(qb);
     const numOffset = 1;

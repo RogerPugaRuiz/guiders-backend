@@ -12,7 +12,7 @@ import { EventPublisher } from '@nestjs/cqrs';
 
 export interface ConnectUseCaseRequest {
   connectionId: string;
-  role: 'visitor' | 'commercial';
+  roles: string[];
   socketId: string;
 }
 
@@ -26,7 +26,7 @@ export class ConnectUseCase {
   ) {}
 
   async execute(request: ConnectUseCaseRequest): Promise<void> {
-    const { connectionId, role, socketId } = request;
+    const { connectionId, roles, socketId } = request;
     const criteria = new Criteria<ConnectionUser>().addFilter(
       'userId',
       Operator.EQUALS,
@@ -36,7 +36,7 @@ export class ConnectUseCase {
     const result = await this.repository.findOne(criteria);
 
     await result.fold(
-      async () => this.handleNewConnection(connectionId, role, socketId),
+      async () => this.handleNewConnection(connectionId, roles, socketId),
       async (connection) =>
         this.handleExistingConnection(connection, connectionId, socketId),
     );
@@ -44,12 +44,12 @@ export class ConnectUseCase {
 
   private async handleNewConnection(
     connectionId: string,
-    role: 'visitor' | 'commercial',
+    roles: string[],
     socketId: string,
   ): Promise<void> {
     const newConnection = ConnectionUser.create({
       userId: ConnectionUserId.create(connectionId),
-      role: ConnectionRole.create(role),
+      roles: roles.map((role) => ConnectionRole.create(role)),
     });
 
     const newConnectionWithSocket = newConnection.connect(

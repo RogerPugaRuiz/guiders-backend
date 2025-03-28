@@ -3,23 +3,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessageEntity } from './entities/message.entity';
 import { MESSAGE_REPOSITORY } from '../domain/repository';
 import { TypeOrmMessageRepository } from './repositories/type-orm-message-repository';
-import { NewMessageUseCase } from '../application/usecases/new-message.usecase';
-import { NewMessageCommandHandler } from '../application/handlers/new-message.command-handler';
-import { GetMessageByChatUseCase } from '../application/usecases/get-message-by-chat.usecase';
-import { MessageController } from './controllers/message.controller';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MessageEntity])],
-  controllers: [MessageController],
+  imports: [TypeOrmModule.forFeature([MessageEntity]), HttpModule],
+  controllers: [],
   providers: [
     { provide: MESSAGE_REPOSITORY, useClass: TypeOrmMessageRepository },
 
-    // usecases
-    NewMessageUseCase,
-    GetMessageByChatUseCase,
-
-    // handlers
-    NewMessageCommandHandler,
+    // services
+    TokenVerifyService,
   ],
 })
 export class MessageModule {}

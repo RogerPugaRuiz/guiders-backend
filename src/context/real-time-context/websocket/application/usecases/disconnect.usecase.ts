@@ -34,7 +34,7 @@ export class DisconnectUseCase {
         // En caso de error, podemos registrar el fallo o simplemente no hacer nada.
         this.logger.warn(`Connection not found for socketId: ${socketId}`);
         const criteria = new Criteria<ConnectionUser>().addFilter(
-          'role',
+          'roles',
           Operator.EQUALS,
           ConnectionRoleEnum.VISITOR,
         );

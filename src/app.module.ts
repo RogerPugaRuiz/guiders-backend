@@ -12,7 +12,8 @@ import { WebsocketModule } from './context/real-time-context/websocket/infrastru
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth-context/auth-user/infrastructure/auth-user.module';
 import { ChatModule } from './context/chat-context/chat/infrastructure/chat.module';
-import { MessageModule } from './context/chat-context/message/infrastructure/message.module';
+import { HttpModule } from '@nestjs/axios';
+import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 
 @Module({
   imports: [
@@ -22,9 +23,9 @@ import { MessageModule } from './context/chat-context/message/infrastructure/mes
     WebsocketModule,
     ApiKeyModule,
     ChatModule,
-    MessageModule,
     // OpenSearchModule,
     CqrsModule.forRoot(),
+    HttpModule,
     JwtModule.register({
       global: true,
       secret: process.env.GLOBAL_TOKEN_SECRET,
@@ -49,6 +50,6 @@ import { MessageModule } from './context/chat-context/message/infrastructure/mes
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, TokenVerifyService],
 })
 export class AppModule {}

@@ -5,6 +5,14 @@ import { firstValueFrom } from 'rxjs';
 import { createPublicKey } from 'crypto';
 import * as jwt from 'jsonwebtoken'; // Importar explícitamente jwt para capturar errores
 
+export interface TokenPayload {
+  sub: string;
+  typ: string;
+  role: string[];
+  iat: number;
+  exp: number;
+}
+
 @Injectable()
 export class TokenVerifyService {
   constructor(
@@ -12,9 +20,7 @@ export class TokenVerifyService {
     private readonly http: HttpService,
   ) {}
 
-  async verifyToken(
-    token: string,
-  ): Promise<{ sub: string; typ: string; role: string[] }> {
+  async verifyToken(token: string): Promise<TokenPayload> {
     try {
       const decoded = this.jwtservice.decode<{
         header: { kid?: string };

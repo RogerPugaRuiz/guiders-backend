@@ -1,6 +1,6 @@
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { Optional } from 'src/context/shared/domain/optional';
-import { Message } from './message';
+import { Message } from '../../chat/domain/message/message';
 
 export const MESSAGE_REPOSITORY = Symbol('MESSAGE_REPOSITORY');
 

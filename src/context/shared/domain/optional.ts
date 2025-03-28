@@ -63,6 +63,13 @@ export class Optional<T> {
   }
 
   /**
+   * Retorna true si está vacío, false si hay un valor presente.
+   */
+  isEmpty(): boolean {
+    return !this.isPresent();
+  }
+
+  /**
    * Ejecuta la acción (consumer) si hay valor presente.
    */
   ifPresent(consumer: (value: T) => void): void {

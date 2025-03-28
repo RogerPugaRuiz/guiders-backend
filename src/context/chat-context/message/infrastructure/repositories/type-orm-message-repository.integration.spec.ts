@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { TypeOrmMessageRepository } from './type-orm-message-repository';
 import { MessageEntity } from '../entities/message.entity';
-import { Message } from '../../domain/message';
-import { MessageMother } from '../../domain/mothers/message-mother';
+import { Message } from '../../../chat/domain/message/message';
+import { MessageMother } from '../../../chat/domain/message/message-mother';
 import { Criteria, Operator } from '../../../../shared/domain/criteria';
 import { Repository } from 'typeorm';
 
