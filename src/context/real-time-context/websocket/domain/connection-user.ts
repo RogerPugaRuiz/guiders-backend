@@ -53,8 +53,7 @@ export class ConnectionUser extends AggregateRoot {
 
   public hasRole(role: string | ConnectionRole): boolean {
     if (typeof role === 'string') {
-      return this.roles.some((r) => r.value === role
-      );
+      return this.roles.some((r) => r.value === role);
     }
     return this.roles.some((r) => r.equals(role));
   }

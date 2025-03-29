@@ -6,6 +6,8 @@ import { TypeOrmChatService } from './typeORM-chat.service';
 import { HttpModule } from '@nestjs/axios';
 import { MessageEntity } from '../../message/infrastructure/entities/message.entity';
 import { FindCommercialChatsQueryHandler } from '../application/query/find/commercial/find-commercial-chats.query-handler';
+import { RegisterChatCommandHandler } from '../application/command/create/register-chat.command-handler';
+import { RegisterChatOnVisitorConnection } from '../application/event/register-chat-on-visitor-connection';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ChatEntity, MessageEntity]), HttpModule],
@@ -16,6 +18,8 @@ import { FindCommercialChatsQueryHandler } from '../application/query/find/comme
 
     // handlers
     FindCommercialChatsQueryHandler,
+    RegisterChatCommandHandler,
+    RegisterChatOnVisitorConnection,
   ],
   exports: [],
 })

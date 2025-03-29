@@ -7,29 +7,22 @@ export class ConnectionNotFoundError extends Error {
 }
 
 export class SendMessageToVisitorError extends DomainError {
-  message: string;
-  details?: string | Record<string, unknown> | undefined;
+  protected name: string = 'SendMessageToVisitorError';
   constructor(message: string) {
-    super();
-    this.message = message;
+    super(message);
   }
 }
 
 export class SendMessageToCommercialError extends DomainError {
-  message: string;
-  details?: string | Record<string, unknown> | undefined;
+  protected name: string = 'SendMessageToCommercialError';
   constructor(message: string) {
-    super();
-    this.message = message;
+    super(message);
   }
 }
 
 export class UserNotConnectedError extends DomainError {
-  message: string;
-  details?: string | Record<string, unknown>;
-
+  protected name: string = 'UserNotConnectedError';
   constructor(userId: string) {
-    super();
-    this.message = `User ${userId} is not connected`;
+    super(`El usuario no está conectado: ${userId}`);
   }
 }

@@ -1,4 +1,7 @@
 export abstract class DomainError {
-  abstract message: string;
-  abstract details?: string | Record<string, unknown> | undefined;
+  readonly message: string;
+  protected name: string = this.constructor.name;
+  constructor(message: string) {
+    this.message = message;
+  }
 }
