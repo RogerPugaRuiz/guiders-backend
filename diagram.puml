@@ -1,0 +1,53 @@
+@startuml
+title Diagrama Contexto en Tiempo Real
+
+package "RealTime Context" {
+  class RealTimeWebSocketGateway {
+    +handleConnection(client: Socket)
+    +handleDisconnect(client: Socket)
+    +handleVisitorSendMessage(client: AuthenticatedSocket, event: Event)
+    +handleCommercialSendMessage(client: AuthenticatedSocket, event: Event)
+    +handleGetCommercialChats(client: AuthenticatedSocket)
+  }
+
+  class ConnectionUser {
+    -userId: ConnectionUserId
+    -socketId: Optional<ConnectionSocketId>
+    -roles: ConnectionRole[]
+    +isSameUser(userId: ConnectionUserId): boolean
+    +isConnected(): boolean
+    +isDisconnected(): boolean
+    +hasRole(role: string | ConnectionRole): boolean
+    +connect(socketId: ConnectionSocketId): ConnectionUser
+    +disconnect(): ConnectionUser
+    +sendMessage(toUser: ConnectionUser, message: string, timestamp: Date): ConnectionUser
+    +toPrimitives(): ConnectionUserPrimitive
+  }
+
+  interface ConnectionRepository {
+    +save(user: ConnectionUser): Promise<void>
+    +remove(user: ConnectionUser): Promise<void>
+    +find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]>
+    +findOne(criteria: Criteria<ConnectionUser>): Promise<Result<ConnectionUser, ConnectionUserNotFound>>
+  }
+
+  class InMemoryConnectionService {
+    -userSocketsMap: Map<string, string>
+    -socketUserMap: Map<string, string>
+    -userRolesMap: Map<string, string[]>
+    +save(user: ConnectionUser): Promise<void>
+    +remove(user: ConnectionUser): Promise<void>
+    +find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]>
+    +findOne(criteria: Criteria<ConnectionUser>): Promise<Result<ConnectionUser, ConnectionUserNotFound>>
+  }
+
+  class WsChatMessageEmitterService {
+    +emit(from: ConnectionUser, to: ConnectionUser, message: string, timestamp: Date): Promise<Result<void, UserNotConnectedError>>
+  }
+}
+
+RealTimeWebSocketGateway --> ConnectionRepository
+RealTimeWebSocketGateway --> WsChatMessageEmitterService
+ConnectionUser --> ConnectionRepository
+
+@enduml
