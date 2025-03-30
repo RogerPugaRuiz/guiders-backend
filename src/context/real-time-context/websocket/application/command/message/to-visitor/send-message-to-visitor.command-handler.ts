@@ -35,7 +35,6 @@ export class SendMessageToVisitorCommandHandler
   async execute(
     command: SendMessageToVisitorCommand,
   ): Promise<SendMessageToVisitorResponse> {
-    console.log('Send message to visitor command received', command);
     const { from, to, message, timestamp } = command;
 
     const resultSender = await this.connectionRepository.findOne(

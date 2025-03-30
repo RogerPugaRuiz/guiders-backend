@@ -4,7 +4,7 @@ import { Inject } from '@nestjs/common';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from 'src/context/chat-context/chat/domain/chat.repository';
+} from 'src/context/chat-context/chat/domain/chat/chat.repository';
 import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
 import {
   Chat,

@@ -5,7 +5,7 @@ import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from '../../../domain/chat.repository';
+} from '../../../domain/chat/chat.repository';
 import { Chat } from '../../../domain/chat/chat';
 import { VisitorId } from '../../../domain/chat/value-objects/visitor-id';
 

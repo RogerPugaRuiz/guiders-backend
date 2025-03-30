@@ -11,7 +11,7 @@ import {
   IChatMessageEmitter,
   CHAT_MESSAGE_EMITTER,
 } from 'src/context/real-time-context/websocket/domain/message-emitter';
-import { err, okVoid, Result } from 'src/context/shared/domain/result';
+import { err, Result } from 'src/context/shared/domain/result';
 import { SendMessageToCommercialError } from 'src/context/real-time-context/websocket/domain/errors';
 
 export type SendMessageToCommercialResponse = Result<
@@ -38,7 +38,6 @@ export class SendMessageToCommercialCommandHandler
   async execute(
     command: SendMessageToCommercialCommand,
   ): Promise<SendMessageToCommercialResponse> {
-    console.log('Send message to visitor command received', command);
     const { from, to, message, timestamp } = command;
 
     const resultSender = await this.connectionRepository.findOne(

@@ -6,7 +6,7 @@ import { Inject } from '@nestjs/common';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from '../../../domain/chat.repository';
+} from '../../../domain/chat/chat.repository';
 
 export type RegisterChatResponse = Result<void, RegisterChatError>;
 

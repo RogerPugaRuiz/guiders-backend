@@ -36,9 +36,11 @@ export class ConnectionUser extends AggregateRoot {
   }): ConnectionUser {
     return new ConnectionUser(
       ConnectionUserId.create(primitives.userId),
-      Optional.ofNullable(primitives.socketId).map((socketId) =>
-        ConnectionSocketId.create(socketId),
-      ),
+      primitives.socketId
+        ? Optional.of<ConnectionSocketId>(
+            ConnectionSocketId.create(primitives.socketId),
+          )
+        : Optional.empty(),
       primitives.roles.map((role) => ConnectionRole.create(role)),
     );
   }
@@ -129,6 +131,11 @@ export class ConnectionUser extends AggregateRoot {
         params.toUser ? params.toUser.userId.value : 'all',
         params.message,
         params.timestamp,
+        params.toUser
+          ? params.toUser.hasRole('commercial')
+            ? 'toCommercial'
+            : 'toVisitor'
+          : 'toVisitor',
       ),
     );
     return this;

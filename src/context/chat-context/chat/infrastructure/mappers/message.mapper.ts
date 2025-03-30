@@ -1,4 +1,4 @@
-import { MessageEntity } from 'src/context/chat-context/message/infrastructure/entities/message.entity';
+import { MessageEntity } from 'src/context/chat-context/chat/infrastructure/message.entity';
 import { Message } from '../../domain/message/message';
 
 export class MessageMapper {

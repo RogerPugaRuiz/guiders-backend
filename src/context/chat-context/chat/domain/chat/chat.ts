@@ -8,7 +8,6 @@ import { Optional } from 'src/context/shared/domain/optional';
 import { AggregateRoot } from '@nestjs/cqrs';
 import { NewChatCreatedEvent } from './events/new-chat-created.event';
 import { ChatMessageSendEvent } from './events/chat-message-send.event';
-import { ValidationError } from 'src/context/shared/domain/validation.error';
 import { VistorLastReadAt } from './value-objects/vistor-last-read-at';
 import { CommercialLastReadAt } from './value-objects/commercial-last-read-at';
 
@@ -116,14 +115,18 @@ export class Chat extends AggregateRoot {
     };
   }
 
-  public addMessageFromVisitor(message: string): Chat {
+  public updateChatOnVisitorMessageSendToCommercial(params: {
+    message: string;
+    timestamp: Date;
+  }): Chat {
+    const { message, timestamp } = params;
     const chat = new Chat(
       this.id,
       this.commercialId,
       this.visitorId,
       this.status,
       Optional.of(LastMessage.create(message)),
-      Optional.of(LastMessageAt.create(new Date())),
+      Optional.of(LastMessageAt.create(timestamp)),
       Optional.of(VistorLastReadAt.create(new Date())),
       this.commercialLastReadAt,
     );
@@ -134,35 +137,25 @@ export class Chat extends AggregateRoot {
         from: this.visitorId.value,
         to: this.commercialId.map((id) => id.value).orElseGet(() => 'all'),
         message,
-        timestamp: new Date(),
+        timestamp,
       }),
     );
 
     return chat;
   }
 
-  public addMessageFromCommercial(
-    message: string,
-    commercialId?: CommercialId,
-  ): Chat {
-    let assignedCommercialId: CommercialId;
-    if (!commercialId && !this.commercialId.isPresent()) {
-      throw new ValidationError('Chat does not have a commercial assigned');
-    }
-
-    if (!commercialId && this.commercialId.isPresent()) {
-      assignedCommercialId = this.commercialId.get();
-    } else {
-      assignedCommercialId = commercialId!;
-    }
-
+  public updateChatOnCommercialMessageSendToVisitor(params: {
+    message: string;
+    timestamp: Date;
+  }): Chat {
+    const { message, timestamp } = params;
     const chat = new Chat(
       this.id,
-      Optional.of(commercialId!),
+      this.commercialId,
       this.visitorId,
       Status.inProgress(),
       Optional.of(LastMessage.create(message)),
-      Optional.of(LastMessageAt.create(new Date())),
+      Optional.of(LastMessageAt.create(timestamp)),
       this.visitorLastReadAt,
       Optional.of(CommercialLastReadAt.create(new Date())),
     );
@@ -172,29 +165,25 @@ export class Chat extends AggregateRoot {
         chat.apply(
           ChatMessageSendEvent.create({
             chatId: this.id.value,
-            from: assignedCommercialId.value,
+            from: this.visitorId.value,
             to: this.visitorId.value,
             message,
-            timestamp: new Date(),
+            timestamp,
           }),
         );
         return chat;
       },
       (comercial) => {
-        if (comercial.equals(assignedCommercialId)) {
-          chat.apply(
-            ChatMessageSendEvent.create({
-              chatId: this.id.value,
-              from: assignedCommercialId.value,
-              to: this.visitorId.value,
-              message,
-              timestamp: new Date(),
-            }),
-          );
-          return chat;
-        }
-
-        throw new ValidationError('Chat already has a commercial assigned');
+        chat.apply(
+          ChatMessageSendEvent.create({
+            chatId: this.id.value,
+            from: this.visitorId.value,
+            to: comercial.value,
+            message,
+            timestamp,
+          }),
+        );
+        return chat;
       },
     );
   }

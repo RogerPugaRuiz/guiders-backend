@@ -150,11 +150,6 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    this.logger.log(event);
-    this.logger.log(
-      `User ${client.user.sub} is sending message to commercial `,
-    );
-
     const { message, timestamp } = event.data as {
       message: string;
       timestamp: number;
@@ -201,10 +196,6 @@ export class RealTimeWebSocketGateway
         to: string;
       };
     };
-    this.logger.log(
-      `User ${client.user.sub} is sending message to visitor `,
-      message,
-    );
 
     const result = await this.commandBus.execute<
       SendMessageToVisitorCommand,

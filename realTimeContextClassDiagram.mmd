@@ -1,0 +1,87 @@
+classDiagram
+    class RealTimeWebSocketGateway {
+        +handleConnection(client: Socket)
+        +handleDisconnect(client: Socket)
+        +handleVisitorSendMessage(client: AuthenticatedSocket, event: Event)
+        +handleCommercialSendMessage(client: AuthenticatedSocket, event: Event)
+        +handleGetCommercialChats(client: AuthenticatedSocket)
+    }
+
+    class ConnectionUser {
+        -userId: ConnectionUserId
+        -socketId: Optional<ConnectionSocketId>
+        -roles: ConnectionRole[]
+        +isSameUser(userId: ConnectionUserId): boolean
+        +isConnected(): boolean
+        +isDisconnected(): boolean
+        +hasRole(role: string | ConnectionRole): boolean
+        +connect(socketId: ConnectionSocketId): ConnectionUser
+        +disconnect(): ConnectionUser
+        +sendMessage(params: { toUser?: ConnectionUser, message: string, timestamp: Date }): ConnectionUser
+        +toPrimitives(): ConnectionUserPrimitive
+    }
+
+    class ConnectionRepository {
+        <<interface>>
+        +save(user: ConnectionUser): Promise<void>
+        +remove(user: ConnectionUser): Promise<void>
+        +find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]>
+        +findOne(criteria: Criteria<ConnectionUser>): Promise<Result<ConnectionUser, ConnectionUserNotFound>>
+    }
+
+    class InMemoryConnectionService {
+        -userSocketsMap: Map<string, string>
+        -socketUserMap: Map<string, string>
+        -userRolesMap: Map<string, string[]>
+        +save(user: ConnectionUser): Promise<void>
+        +remove(user: ConnectionUser): Promise<void>
+        +find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]>
+        +findOne(criteria: Criteria<ConnectionUser>): Promise<Result<ConnectionUser, ConnectionUserNotFound>>
+    }
+
+    class WsChatMessageEmitterService {
+        +emit(params: { from: ConnectionUser, to?: ConnectionUser, message: string, timestamp: Date }): Promise<Result<void, UserNotConnectedError>>
+    }
+
+    class ConnectionRole {
+        +create(value: string): ConnectionRole
+        +visitor(): ConnectionRole
+        +commercial(): ConnectionRole
+        +isVisitor: boolean
+        +isCommercial: boolean
+    }
+
+    class ConnectionSocketId {
+        +create(value: string): ConnectionSocketId
+    }
+
+    class ConnectionUserId {
+        +create(value: string): ConnectionUserId
+    }
+
+    class RealTimeMessageSendEvent {
+        +create(params: { from: string, to: string, message: string, timestamp: Date, direction: string }): RealTimeMessageSendEvent
+    }
+
+    class DisconnectedEvent {
+        +connectionId: string
+        +roles: string[]
+        +timestamp: Date
+    }
+
+    class ConnectedEvent {
+        +connectionId: string
+        +roles: string[]
+        +timestamp: Date
+    }
+
+    RealTimeWebSocketGateway --> ConnectionRepository
+    RealTimeWebSocketGateway --> WsChatMessageEmitterService
+    ConnectionUser --> ConnectedEvent
+    ConnectionUser --> DisconnectedEvent
+    ConnectionUser --> RealTimeMessageSendEvent
+    ConnectionUser --> ConnectionRole
+    ConnectionUser --> ConnectionSocketId
+    ConnectionUser --> ConnectionUserId
+    InMemoryConnectionService ..|> ConnectionRepository
+    WsChatMessageEmitterService ..|> IChatMessageEmitter
