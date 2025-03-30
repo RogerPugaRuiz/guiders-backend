@@ -17,7 +17,7 @@ classDiagram
         +hasRole(role: string | ConnectionRole): boolean
         +connect(socketId: ConnectionSocketId): ConnectionUser
         +disconnect(): ConnectionUser
-        +sendMessage(params: { toUser?: ConnectionUser, message: string, timestamp: Date }): ConnectionUser
+        +sendMessage(toUser: ConnectionUser, message: string, timestamp: Date): ConnectionUser
         +toPrimitives(): ConnectionUserPrimitive
     }
 
@@ -40,7 +40,7 @@ classDiagram
     }
 
     class WsChatMessageEmitterService {
-        +emit(params: { from: ConnectionUser, to?: ConnectionUser, message: string, timestamp: Date }): Promise<Result<void, UserNotConnectedError>>
+        +emit(from: ConnectionUser, to: ConnectionUser, message: string, timestamp: Date): Promise<Result<void, UserNotConnectedError>>
     }
 
     class ConnectionRole {
@@ -60,7 +60,7 @@ classDiagram
     }
 
     class RealTimeMessageSendEvent {
-        +create(params: { from: string, to: string, message: string, timestamp: Date, direction: string }): RealTimeMessageSendEvent
+        +create(from: string, to: string, message: string, timestamp: Date, direction: string): RealTimeMessageSendEvent
     }
 
     class DisconnectedEvent {
