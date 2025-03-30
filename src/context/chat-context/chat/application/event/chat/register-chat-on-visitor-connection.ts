@@ -1,10 +1,13 @@
 import { EventPublisher, EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { ConnectedEvent } from 'src/context/real-time-context/websocket/domain/events/connected.event';
 import { Inject } from '@nestjs/common';
-import { CHAT_REPOSITORY, IChatRepository } from '../../domain/chat.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { Chat } from '../../domain/chat/chat';
-import { VisitorId } from '../../domain/chat/value-objects/visitor-id';
+import {
+  CHAT_REPOSITORY,
+  IChatRepository,
+} from '../../../domain/chat.repository';
+import { Chat } from '../../../domain/chat/chat';
+import { VisitorId } from '../../../domain/chat/value-objects/visitor-id';
 
 @EventsHandler(ConnectedEvent)
 export class RegisterChatOnVisitorConnection

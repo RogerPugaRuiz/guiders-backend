@@ -1,5 +1,5 @@
 import { MessageEntity } from 'src/context/chat-context/message/infrastructure/entities/message.entity';
-import { Message } from '../../../chat/domain/message/message';
+import { Message } from '../../domain/message/message';
 
 export class MessageMapper {
   static toEntity(message: Message): MessageEntity {
