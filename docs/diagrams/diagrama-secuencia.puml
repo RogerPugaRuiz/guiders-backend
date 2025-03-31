@@ -121,7 +121,6 @@ else Token válido
     activate CR
     alt Chat no encontrado
       CR --> SM: Chat no encontrado
-      SM -> CR: save(Chat)
       SM --> EB: void
     else Chat encontrado
       CR --> SM: Chat encontrado
@@ -169,7 +168,6 @@ else Token válido
     activate CR
     alt Chat no encontrado
       CR --> SM: Chat no encontrado
-      SM -> CR: save(Chat)
       SM --> EB: void
     else Chat encontrado
       CR --> SM: Chat encontrado
