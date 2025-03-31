@@ -4,7 +4,7 @@ import { SenderId } from './value-objects/sender-id';
 import { Content } from './value-objects/content';
 import { CreatedAt } from './value-objects/created-at';
 import { MessageCreatedEvent } from './events/message-created.event';
-import { ChatId } from '../chat/value-objects/chat-id';
+import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 
 export interface MessagePrimitives {
   id: string;

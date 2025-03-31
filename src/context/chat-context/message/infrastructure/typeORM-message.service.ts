@@ -8,13 +8,13 @@ import {
   Operator,
 } from 'src/context/shared/domain/criteria';
 import { Optional } from 'src/context/shared/domain/optional';
-import { Message } from '../domain/message/message';
-import { MessageEntity } from './message.entity';
+import { Message } from '../domain/message';
+import { MessageEntity } from './entities/message.entity';
 import { MessageMapper } from './mappers/message.mapper';
-import { IMessageRepository } from '../domain/message/message.repository';
+import { IMessageRepository } from '../domain/message.repository';
 import { err, okVoid, Result } from 'src/context/shared/domain/result';
-import { SaveMessageError } from '../domain/message/errors';
-import { ChatId } from '../domain/chat/value-objects/chat-id';
+import { SaveMessageError } from '../domain/errors';
+import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 
 @Injectable()
 export class TypeOrmMessageService implements IMessageRepository {

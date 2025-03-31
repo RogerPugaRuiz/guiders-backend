@@ -3,7 +3,7 @@ import { Message } from './message';
 import { Optional } from 'src/context/shared/domain/optional';
 import { Result } from 'src/context/shared/domain/result';
 import { SaveMessageError } from './errors';
-import { ChatId } from '../chat/value-objects/chat-id';
+import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 
 export const MESSAGE_REPOSITORY = Symbol('MESSAGE_REPOSITORY');
 

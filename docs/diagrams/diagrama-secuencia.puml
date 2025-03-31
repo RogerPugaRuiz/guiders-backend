@@ -1,0 +1,92 @@
+@startuml
+!theme amiga
+actor "Usuario" as User
+note right of User: Roles: Visitor, Commercial
+participant "RealTime" as RT
+participant "TokenVerifyService" as TV
+participant "CommandBus" as CB
+participant "QueryBus" as QB
+participant "FindCommercialChatsQueryHandler" as FCC
+participant "ConnectUserCommandHandler" as CH
+participant "ConnectionRepository" as ConR
+participant "EventBus" as EB
+participant "RegisterChatOnVisitorConnection" as RC
+participant "ChatRepository" as CR
+
+User -> RT: Conexión establecida
+activate RT
+
+RT -> TV: verifyToken(token)
+activate TV
+alt Error en token
+  TV --> RT: Error
+  RT --> User: return error
+else Token válido
+  TV -> RT: TokenPayload
+  deactivate TV
+
+  RT -> CB: execute(ConnectUserCommand)
+  activate CB
+  CB -> CH: execute(ConnectUserCommand)
+  activate CH
+  CH -> ConR: findOne(criteria)
+  activate ConR
+  ConR --> CH: Conexión encontrada
+  CH -> ConR: save(Connection)
+  ConR --> CH: void
+  deactivate ConR
+  CH -> EB: emit(ConnectedEvent)
+  activate EB
+  EB -> RC: handle(ConnectedEvent)
+  activate RC
+  deactivate EB
+  CH --> CB: void
+  deactivate CH
+  CB --> RT: void
+  deactivate CB
+  RT -> RT: asociar los usuarios por role
+  RT --> User: 
+  deactivate RT
+  RC -> RC: validar role
+  alt Usuario Comercial
+    RC --> EB: void
+  else Usuario Visitante
+    RC -> CR: findOne(criteria)
+    activate CR
+    alt Chat ya existe
+      CR --> RC: Chat encontrado
+      RC --> EB: void
+    else Chat no existe
+      CR --> RC: Chat no encontrado
+      RC -> CR: save(Chat)
+      RC --> EB: void
+    end
+    deactivate CR
+  end
+  deactivate RC
+  
+  User -> RT: obtener los chats
+  activate RT
+  RT -> RT: validateRole
+  alt Es un Visitante
+    RT --> User: error
+
+  else Es un Comercial
+    RT -> QB: execute(FindCommercialChatsQuery)
+    activate QB
+    QB -> FCC: execute(FindCommercialChatsQuery)
+    activate FCC
+    FCC ->CR: find(criteria)
+    activate CR
+    CR --> FCC: Chat[]
+    deactivate CR
+    FCC --> QB: FindCommercialChatsQueryResult
+    deactivate FCC
+    QB --> RT: FindCommercialChatsQueryResult
+    deactivate QB
+    RT --> User: Lista de chats
+  end
+  deactivate RT
+  
+end
+@enduml

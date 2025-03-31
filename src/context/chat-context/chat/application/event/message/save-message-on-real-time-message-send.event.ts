@@ -1,20 +1,20 @@
 import { Inject, Logger } from '@nestjs/common';
 import { EventPublisher, EventsHandler, IEventHandler } from '@nestjs/cqrs';
+import { Message } from 'src/context/chat-context/message/domain/message';
+import {
+  MESSAGE_REPOSITORY,
+  IMessageRepository,
+} from 'src/context/chat-context/message/domain/message.repository';
+import { Content } from 'src/context/chat-context/message/domain/value-objects/content';
+import { SenderId } from 'src/context/chat-context/message/domain/value-objects/sender-id';
 import { RealTimeMessageSendEvent } from 'src/context/real-time-context/websocket/domain/events/real-time-message-send.event';
+import { Criteria, Operator } from 'src/context/shared/domain/criteria';
+import { Chat } from '../../../domain/chat/chat';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
 } from '../../../domain/chat/chat.repository';
-import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { Chat } from '../../../domain/chat/chat';
-import {
-  IMessageRepository,
-  MESSAGE_REPOSITORY,
-} from '../../../domain/message/message.repository';
-import { Message } from '../../../domain/message/message';
 import { ChatId } from '../../../domain/chat/value-objects/chat-id';
-import { Content } from '../../../domain/message/value-objects/content';
-import { SenderId } from '../../../domain/message/value-objects/sender-id';
 
 @EventsHandler(RealTimeMessageSendEvent)
 export class SaveMessageOnRealTimeMessageSendEvent

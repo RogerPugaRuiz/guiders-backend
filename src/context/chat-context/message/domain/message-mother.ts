@@ -7,7 +7,7 @@ import { SenderId } from './value-objects/sender-id';
 import { Content } from './value-objects/content';
 import { CreatedAt } from './value-objects/created-at';
 import { faker } from '@faker-js/faker';
-import { ChatId } from '../chat/value-objects/chat-id';
+import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 
 export class MessageMother {
   public static random(): Message {

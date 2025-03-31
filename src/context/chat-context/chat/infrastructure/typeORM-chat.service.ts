@@ -13,7 +13,7 @@ import {
   Operator,
 } from 'src/context/shared/domain/criteria';
 import { Optional } from 'src/context/shared/domain/optional';
-import { MessageEntity } from './message.entity';
+import { MessageEntity } from '../../message/infrastructure/entities/message.entity';
 
 @Injectable()
 export class TypeOrmChatService implements IChatRepository {

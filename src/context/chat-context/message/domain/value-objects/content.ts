@@ -1,4 +1,4 @@
-import { PrimitiveValueObject } from '../../../../../shared/domain/primitive-value-object';
+import { PrimitiveValueObject } from '../../../../shared/domain/primitive-value-object';
 
 export class Content extends PrimitiveValueObject<string> {
   private constructor(value: string) {
