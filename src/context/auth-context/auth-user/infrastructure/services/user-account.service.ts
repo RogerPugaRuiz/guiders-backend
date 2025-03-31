@@ -13,9 +13,12 @@ export class UserAccountService implements UserAccountRepository {
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
     private readonly userAccountMapper: UserAccountMapper,
-
   ) {}
   async findByEmail(email: string): Promise<UserAccount | null> {
+    if (!email) {
+      this.logger.error('Email is required');
+      return null;
+    }
     const user = await this.entityManager.findOne(UserAccountEntity, {
       where: { email },
     });

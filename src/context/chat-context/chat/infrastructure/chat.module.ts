@@ -11,10 +11,13 @@ import { RegisterChatOnVisitorConnection } from '../application/event/chat/regis
 import { SaveMessageOnRealTimeMessageSendEvent } from '../application/event/message/save-message-on-real-time-message-send.event';
 import { MESSAGE_REPOSITORY } from '../../message/domain/message.repository';
 import { TypeOrmMessageService } from '../../message/infrastructure/typeORM-message.service';
+import { ChatController } from './chat.controller';
+import { MessagePaginateQueryHandler } from '../../message/application/paginate/message-paginate.query-handler';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ChatEntity, MessageEntity]), HttpModule],
-  controllers: [],
+  controllers: [ChatController],
   providers: [
     { provide: CHAT_REPOSITORY, useClass: TypeOrmChatService },
     { provide: MESSAGE_REPOSITORY, useClass: TypeOrmMessageService },
@@ -24,8 +27,13 @@ import { TypeOrmMessageService } from '../../message/infrastructure/typeORM-mess
     FindCommercialChatsQueryHandler,
     RegisterChatCommandHandler,
     RegisterChatOnVisitorConnection,
+    // queries
+    MessagePaginateQueryHandler,
     // events
     SaveMessageOnRealTimeMessageSendEvent,
+
+    // services
+    TokenVerifyService,
   ],
   exports: [],
 })

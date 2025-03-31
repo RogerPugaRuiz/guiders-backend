@@ -15,6 +15,9 @@ import {
   IChatRepository,
 } from '../../../domain/chat/chat.repository';
 import { ChatId } from '../../../domain/chat/value-objects/chat-id';
+import { LastMessage } from '../../../domain/chat/value-objects/last-message';
+import { LastMessageAt } from '../../../domain/chat/value-objects/last-message-at';
+import { CommercialId } from '../../../domain/chat/value-objects/commercial-id';
 
 @EventsHandler(RealTimeMessageSendEvent)
 export class SaveMessageOnRealTimeMessageSendEvent
@@ -60,8 +63,9 @@ export class SaveMessageOnRealTimeMessageSendEvent
             try {
               const updatedchat =
                 chat.updateChatOnCommercialMessageSendToVisitor({
-                  message,
-                  timestamp,
+                  message: LastMessage.create(message),
+                  timestamp: LastMessageAt.create(timestamp),
+                  commercialId: CommercialId.create(from),
                 });
 
               this.publisher.mergeObjectContext(updatedchat).commit();
@@ -78,8 +82,8 @@ export class SaveMessageOnRealTimeMessageSendEvent
             try {
               const updatedchat =
                 chat.updateChatOnVisitorMessageSendToCommercial({
-                  message,
-                  timestamp,
+                  message: LastMessage.create(message),
+                  timestamp: LastMessageAt.create(timestamp),
                 });
 
               this.publisher.mergeObjectContext(updatedchat).commit();

@@ -12,8 +12,8 @@ import { Message } from '../domain/message';
 import { MessageEntity } from './entities/message.entity';
 import { MessageMapper } from './mappers/message.mapper';
 import { IMessageRepository } from '../domain/message.repository';
-import { err, okVoid, Result } from 'src/context/shared/domain/result';
-import { SaveMessageError } from '../domain/errors';
+import { err, ok, okVoid, Result } from 'src/context/shared/domain/result';
+import { PaginateEndOfStreamError, SaveMessageError } from '../domain/errors';
 import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 
 @Injectable()
@@ -145,7 +145,12 @@ export class TypeOrmMessageService implements IMessageRepository {
     chatId: ChatId,
     index: string,
     limit: number,
-  ): Promise<{ messages: Message[] }> {
+  ): Promise<
+    Result<
+      { messages: Message[]; total: number; index: string },
+      PaginateEndOfStreamError
+    >
+  > {
     const queryBuilder = this.messageRepository.createQueryBuilder('message');
     queryBuilder.where('message.chatId = :chatId', { chatId: chatId.value });
     queryBuilder.orderBy('message.createdAt', 'DESC');
@@ -157,10 +162,26 @@ export class TypeOrmMessageService implements IMessageRepository {
         { createdAt, id },
       );
     }
-    return queryBuilder.getMany().then((entities) => {
-      return {
-        messages: entities.map((entity) => MessageMapper.toDomain(entity)),
-      };
+
+    const entities = await queryBuilder.getMany();
+    // .then((entities) => {
+    //   return {
+    //     messages: entities.map((entity) => MessageMapper.toDomain(entity)),
+    //     total: entities.length,
+    //     index: `${entities[entities.length - 1].createdAt.toISOString()},${entities[entities.length - 1].id}`,
+    //   };
+    // });
+    const total = entities.length;
+    if (total === 0) {
+      return err(new PaginateEndOfStreamError());
+    }
+
+    return ok({
+      messages: entities
+        .map((entity) => MessageMapper.toDomain(entity))
+        .reverse(),
+      total,
+      index: `${entities[entities.length - 1].createdAt.toISOString()},${entities[entities.length - 1].id}`,
     });
   }
 }

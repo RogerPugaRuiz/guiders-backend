@@ -116,17 +116,18 @@ export class Chat extends AggregateRoot {
   }
 
   public updateChatOnVisitorMessageSendToCommercial(params: {
-    message: string;
-    timestamp: Date;
+    message: LastMessage;
+    timestamp: LastMessageAt;
+    commercialId?: CommercialId;
   }): Chat {
-    const { message, timestamp } = params;
+    const { message, timestamp, commercialId } = params;
     const chat = new Chat(
       this.id,
-      this.commercialId,
+      this.commercialId ?? commercialId,
       this.visitorId,
       this.status,
-      Optional.of(LastMessage.create(message)),
-      Optional.of(LastMessageAt.create(timestamp)),
+      Optional.of(message),
+      Optional.of(timestamp),
       Optional.of(VistorLastReadAt.create(new Date())),
       this.commercialLastReadAt,
     );
@@ -136,8 +137,8 @@ export class Chat extends AggregateRoot {
         chatId: this.id.value,
         from: this.visitorId.value,
         to: this.commercialId.map((id) => id.value).orElseGet(() => 'all'),
-        message,
-        timestamp,
+        message: message.value,
+        timestamp: timestamp.value,
       }),
     );
 
@@ -145,20 +146,28 @@ export class Chat extends AggregateRoot {
   }
 
   public updateChatOnCommercialMessageSendToVisitor(params: {
-    message: string;
-    timestamp: Date;
+    message: LastMessage;
+    commercialId?: CommercialId;
+    timestamp: LastMessageAt;
   }): Chat {
-    const { message, timestamp } = params;
+    const { message, timestamp, commercialId } = params;
+    const newCommercialId =
+      this.commercialId.isEmpty() && commercialId
+        ? Optional.of(commercialId)
+        : this.commercialId;
     const chat = new Chat(
       this.id,
-      this.commercialId,
+      newCommercialId,
       this.visitorId,
       Status.inProgress(),
-      Optional.of(LastMessage.create(message)),
-      Optional.of(LastMessageAt.create(timestamp)),
+      Optional.of(message),
+      Optional.of(timestamp),
       this.visitorLastReadAt,
       Optional.of(CommercialLastReadAt.create(new Date())),
     );
+
+    console.log('commercialId', commercialId);
+    console.log('chat', chat);
 
     return this.commercialId.fold(
       () => {
@@ -167,8 +176,8 @@ export class Chat extends AggregateRoot {
             chatId: this.id.value,
             from: this.visitorId.value,
             to: this.visitorId.value,
-            message,
-            timestamp,
+            message: message.value,
+            timestamp: timestamp.value,
           }),
         );
         return chat;
@@ -179,8 +188,8 @@ export class Chat extends AggregateRoot {
             chatId: this.id.value,
             from: this.visitorId.value,
             to: comercial.value,
-            message,
-            timestamp,
+            message: message.value,
+            timestamp: timestamp.value,
           }),
         );
         return chat;

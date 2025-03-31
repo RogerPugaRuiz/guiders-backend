@@ -7,7 +7,7 @@ import {
 import { Request } from 'express';
 import { TokenVerifyService } from '../token-verify.service';
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user?: { id: string; roles: string[] };
 }
 
