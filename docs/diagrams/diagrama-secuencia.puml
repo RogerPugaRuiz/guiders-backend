@@ -1,4 +1,4 @@
-@startuml
+@startuml Diagrama-secuencia
 !theme amiga
 actor "Usuario" as User
 note right of User: Roles: Visitor, Commercial
@@ -7,11 +7,15 @@ participant "TokenVerifyService" as TV
 participant "CommandBus" as CB
 participant "QueryBus" as QB
 participant "FindCommercialChatsQueryHandler" as FCC
+participant "SendMessageToVisitorCommandHandler" as SMV
+participant "SendMessageToCommercialCommandHandler" as SMC
 participant "ConnectUserCommandHandler" as CH
 participant "ConnectionRepository" as ConR
 participant "EventBus" as EB
+participant "SaveMessageOnRealTimeMessageSendEvent" as SM
 participant "RegisterChatOnVisitorConnection" as RC
 participant "ChatRepository" as CR
+participant "MessageRepository" as MR
 
 User -> RT: Conexión establecida
 activate RT
@@ -39,7 +43,7 @@ else Token válido
   activate EB
   EB -> RC: handle(ConnectedEvent)
   activate RC
-  deactivate EB
+  
   CH --> CB: void
   deactivate CH
   CB --> RT: void
@@ -63,6 +67,7 @@ else Token válido
     end
     deactivate CR
   end
+  deactivate EB
   deactivate RC
   
   User -> RT: obtener los chats
@@ -86,6 +91,111 @@ else Token válido
     deactivate QB
     RT --> User: Lista de chats
   end
+  deactivate RT
+
+  User -> RT: send message to visitor
+  activate RT
+  RT -> CB: execute(SendMessageToVisitorCommand)
+  activate CB
+  CB -> SMV: execute(SendMessageToVisitorCommand)
+  activate SMV
+
+  ' Búsqueda del ConnectionUser para el sender
+  SMV -> ConR: findOne(sender criteria)
+  activate ConR
+  ConR --> SMV: resultSender
+  deactivate ConR
+
+  ' Búsqueda del ConnectionUser para el receiver
+  SMV -> ConR: findOne(receiver criteria)
+  activate ConR
+  ConR --> SMV: resultReceiver
+  deactivate ConR
+
+  alt Ambos encontrados
+    SMV -> EB: emit(RealTimeMessageSendEvent)
+    activate EB
+    EB -> SM: handle(RealTimeMessageSendEvent)
+    activate SM
+    SM -> CR: findOne(criteria)
+    activate CR
+    alt Chat no encontrado
+      CR --> SM: Chat no encontrado
+      SM -> CR: save(Chat)
+      SM --> EB: void
+    else Chat encontrado
+      CR --> SM: Chat encontrado
+      SM -> SM: updateChat(Chat)
+      SM -> CR: save(Chat)
+      SM -> MR: save(Message)
+      activate MR
+      MR --> SM: void
+      deactivate MR
+      SM --> EB: void
+    end
+    deactivate CR
+    deactivate SM
+    deactivate EB
+    SMV -> CB: ok(void) \n(Se emite mensaje y se commitea el evento)
+  else Sender no encontrado
+    SMV -> CB: err("Sender not found")
+  else Receiver no encontrado
+    SMV -> CB: err("Receiver not found")
+  end
+
+  deactivate SMV
+  CB -> RT: respuesta (éxito o err(SendMessageToVisitorError))
+  deactivate CB
+  RT -> User: response message
+  deactivate RT
+  User -> RT: send message to commercial
+  activate RT
+  RT -> CB: execute(SendMessageToCommercialCommand)
+  activate CB
+  CB -> SMC: execute(SendMessageToCommercialCommand)
+  activate SMC
+  ' Búsqueda del ConnectionUser para el sender
+  SMC -> ConR: findOne(sender criteria)
+  activate ConR
+  ConR --> SMC: resultSender
+  deactivate ConR
+
+  alt Ambos encontrados
+    SMC -> EB: emit(RealTimeMessageSendEvent)
+    EB -> SM: handle(RealTimeMessageSendEvent)
+    activate EB
+    activate SM
+    SM -> CR: findOne(criteria)
+    activate CR
+    alt Chat no encontrado
+      CR --> SM: Chat no encontrado
+      SM -> CR: save(Chat)
+      SM --> EB: void
+    else Chat encontrado
+      CR --> SM: Chat encontrado
+      SM -> SM: updateChat(Chat)
+      SM -> CR: save(Chat)
+      SM -> MR: save(Message)
+      activate MR
+      MR --> SM: void
+      deactivate MR
+      SM --> EB: void
+    end
+    deactivate CR
+    deactivate SM
+    deactivate EB
+    SM -> EB: void
+    deactivate EB
+    SMC -> CB: ok(void) \n(Se emite mensaje a commercial y se commitea el evento)
+  else Receiver no encontrado
+    SMC -> CB: ok(void) \n(Se emite mensaje a todos los comerciales y se commitea el evento)
+  else Sender no encontrado
+    SMC -> CB: err("Sender not found")
+  end
+  deactivate SMC
+  CB -> RT: respuesta (éxito o err(SendMessageToCommercialError))
+  deactivate CB
+  RT -> User: response message
   deactivate RT
   
 end
