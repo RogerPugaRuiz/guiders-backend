@@ -107,10 +107,6 @@ export class AuthVisitorController {
         });
       }
 
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
       throw new HttpException(`Internal server error: ${error}`, 500);
     }
   }
