@@ -57,7 +57,10 @@ export class AppModule {
   constructor(private readonly configService: ConfigService) {
     // Configuración de variables de entorno
     const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');
-
+    const GLOBAL_TOKEN_SECRET = this.configService.get<string>(
+      'GLOBAL_TOKEN_SECRET',
+    );
     this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
+    this.logger.log('GLOBAL_TOKEN_SECRET', GLOBAL_TOKEN_SECRET);
   }
 }
