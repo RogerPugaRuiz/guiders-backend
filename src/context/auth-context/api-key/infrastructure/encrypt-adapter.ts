@@ -30,6 +30,8 @@ export class EncryptAdapter implements ApiKeyEncryptPrivateKey {
     const ENCRYPTION_KEY =
       this.configService.get<string>('ENCRYPTION_KEY') ||
       '0f0dd60415efd0a1d5c4409ed92fc1df3e4cfc517c4d3ad7d1e1d828f45f2bd4';
+    this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
+    this.logger.log(this.configService.get('ENCRYPTION_KEY'));
     const [ivHex, encryptedData] = encrypted.split(':');
     const iv = Buffer.from(ivHex, 'hex');
     const decipher = createDecipheriv(
