@@ -13,6 +13,7 @@ export class EncryptAdapter implements ApiKeyEncryptPrivateKey {
       this.configService.get<string>('ENCRYPTION_KEY') ||
       'default_key_32_bytes_long_here';
     this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
+    this.logger.log(this.configService.get('ENCRYPTION_KEY'));
     const IV_LENGTH = 16;
     const iv = randomBytes(IV_LENGTH);
     const cipher = createCipheriv(
