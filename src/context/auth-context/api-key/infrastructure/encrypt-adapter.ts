@@ -1,16 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 import { ApiKeyEncryptPrivateKey } from 'src/context/auth-context/api-key/application/services/api-key-encrypt-private-key';
 
 @Injectable()
 export class EncryptAdapter implements ApiKeyEncryptPrivateKey {
+  private logger = new Logger(EncryptAdapter.name);
   constructor(private readonly configService: ConfigService) {}
 
   async encrypt(plainText: string): Promise<string> {
     const ENCRYPTION_KEY =
       this.configService.get<string>('ENCRYPTION_KEY') ||
       'default_key_32_bytes_long_here';
+    this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
     const IV_LENGTH = 16;
     const iv = randomBytes(IV_LENGTH);
     const cipher = createCipheriv(
