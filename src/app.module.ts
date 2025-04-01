@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Logger, Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
@@ -52,4 +52,12 @@ import { TokenVerifyService } from './context/shared/infrastructure/token-verify
   controllers: [AppController],
   providers: [AppService, TokenVerifyService],
 })
-export class AppModule {}
+export class AppModule {
+  private readonly logger = new Logger(AppModule.name);
+  constructor(private readonly configService: ConfigService) {
+    // Configuración de variables de entorno
+    const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');
+
+    this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
+  }
+}
