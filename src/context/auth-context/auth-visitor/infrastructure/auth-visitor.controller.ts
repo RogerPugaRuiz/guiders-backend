@@ -101,6 +101,10 @@ export class AuthVisitorController {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       }
       if (error instanceof VisitorAccountAlreadyExistError) {
+        return {
+          access_token: '',
+          refresh_token: '',
+        };
         return await this.authVisitor.tokens({
           client: parseInt(client),
           domain: originUrl.hostname,
