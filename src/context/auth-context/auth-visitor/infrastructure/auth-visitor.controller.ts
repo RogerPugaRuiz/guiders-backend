@@ -111,7 +111,7 @@ export class AuthVisitorController {
         throw error;
       }
 
-      throw new HttpException('Internal server error', 500);
+      throw new HttpException(`Internal server error: ${error}`, 500);
     }
   }
 
