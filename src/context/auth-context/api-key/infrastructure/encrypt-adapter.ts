@@ -11,7 +11,7 @@ export class EncryptAdapter implements ApiKeyEncryptPrivateKey {
   async encrypt(plainText: string): Promise<string> {
     const ENCRYPTION_KEY =
       this.configService.get<string>('ENCRYPTION_KEY') ||
-      'default_key_32_bytes_long_here';
+      '0f0dd60415efd0a1d5c4409ed92fc1df3e4cfc517c4d3ad7d1e1d828f45f2bd4';
     this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
     this.logger.log(this.configService.get('ENCRYPTION_KEY'));
     const IV_LENGTH = 16;
