@@ -4,6 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { createPublicKey } from 'crypto';
 import * as jwt from 'jsonwebtoken'; // Importar explícitamente jwt para capturar errores
+import { ConfigService } from '@nestjs/config';
 
 export interface TokenPayload {
   sub: string;
@@ -16,6 +17,7 @@ export interface TokenPayload {
 @Injectable()
 export class TokenVerifyService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly jwtservice: JwtService,
     private readonly http: HttpService,
   ) {}
@@ -47,7 +49,7 @@ export class TokenVerifyService {
               n: string;
               e: string;
             }[];
-          }>('http://localhost:3000/jwks'),
+          }>(`https://guiders-backend-production.up.railway.app/jwks`),
         );
 
         const foundKey = data.keys.find((k) => k.kid === kid);
