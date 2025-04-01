@@ -65,7 +65,6 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
       }
       throw new InvalidTokenError('Token verification failed');
     }
-    const privateKey = await this.encryptService.decrypt(apiKey.privateKey);
     const accessToken = this.jwtService.sign(
       {
         typ: 'access',
@@ -78,7 +77,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey,
+        privateKey: apiKey.privateKey,
       },
     );
     return Promise.resolve({ accessToken });
@@ -92,7 +91,6 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
     if (!apiKey) {
       throw new ApiKeyNotFoundError();
     }
-    const privateKey = await this.encryptService.decrypt(apiKey.privateKey);
     const accessToken = this.jwtService.sign(
       {
         typ: 'access',
@@ -107,7 +105,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey,
+        privateKey: apiKey.privateKey,
       },
     );
     const refreshToken = this.jwtService.sign(
@@ -124,7 +122,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey,
+        privateKey: apiKey.privateKey,
       },
     );
     return Promise.resolve({ accessToken, refreshToken });
