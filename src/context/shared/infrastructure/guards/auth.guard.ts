@@ -8,7 +8,7 @@ import { Request } from 'express';
 import { TokenVerifyService } from '../token-verify.service';
 
 export interface AuthenticatedRequest extends Request {
-  user?: { id: string; roles: string[] };
+  user: { id: string; roles: string[] };
 }
 
 @Injectable()

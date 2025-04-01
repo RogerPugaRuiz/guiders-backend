@@ -20,15 +20,38 @@ import {
   RequiredRoles,
 } from 'src/context/shared/infrastructure/guards/role.guard';
 import { PaginateEndOfStreamError } from '../../message/domain/errors';
+import { GetChatByVisitorIdQuery } from '../application/query/find/visitor/get-chat-by-visitor-id.query';
+import { GetChatByVisitorIdQueryResult } from '../application/query/find/visitor/get-chat-by-visitor-id.query-handler';
 
 @Controller('chat')
 export class ChatController {
   constructor(private readonly queryBus: QueryBus) {}
+
   @Get('visitor')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
   async getChat(@Req() req: AuthenticatedRequest): Promise<any> {
-    return Promise.resolve('ok');
+    const { id } = req.user;
+    const query = new GetChatByVisitorIdQuery(id);
+    const result = await this.queryBus.execute<
+      GetChatByVisitorIdQuery,
+      GetChatByVisitorIdQueryResult
+    >(query);
+    return result.fold(
+      (error) => {
+        // Handle error
+        console.error('Error fetching chat:', error.message);
+        throw new HttpException(
+          'Error fetching chat',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      },
+      (response) => {
+        // Handle success
+        console.log('Fetched chat:', response);
+        return response;
+      },
+    );
   }
 
   // get messages by chatId

@@ -67,11 +67,11 @@ services:
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_DATABASE}
     ports:
-      - "${DB_PORT}:5432"
+      - "${DATABASE_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -82,11 +82,11 @@ services:
     container_name: postgres-test
     restart: always
     environment:
-      POSTGRES_USER: ${TEST_DB_USERNAME}
-      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD}
-      POSTGRES_DB: ${TEST_DB_DATABASE}
+      POSTGRES_USER: ${TEST_DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD}
+      POSTGRES_DB: ${TEST_DATABASE_DATABASE}
     ports:
-      - "${TEST_DB_PORT}:5432"
+      - "${TEST_DATABASE_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql_test/data
     networks:

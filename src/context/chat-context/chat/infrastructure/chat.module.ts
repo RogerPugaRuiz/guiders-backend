@@ -14,6 +14,7 @@ import { TypeOrmMessageService } from '../../message/infrastructure/typeORM-mess
 import { ChatController } from './chat.controller';
 import { MessagePaginateQueryHandler } from '../../message/application/paginate/message-paginate.query-handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { GetChatByVisitorIdQueryHandler } from '../application/query/find/visitor/get-chat-by-visitor-id.query-handler';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ChatEntity, MessageEntity]), HttpModule],
@@ -29,6 +30,7 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
     RegisterChatOnVisitorConnection,
     // queries
     MessagePaginateQueryHandler,
+    GetChatByVisitorIdQueryHandler,
     // events
     SaveMessageOnRealTimeMessageSendEvent,
 

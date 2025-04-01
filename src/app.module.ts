@@ -40,11 +40,11 @@ import { TokenVerifyService } from './context/shared/infrastructure/token-verify
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT!, 10) || 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'password',
-      database: process.env.DB_DATABASE || 'mydb',
+      host: process.env.DATABASE_URL || 'localhost',
+      port: parseInt(process.env.DATABASE_PORT!, 10) || 5432,
+      username: process.env.DATABASE_USERNAME || 'postgres',
+      password: process.env.DATABASE_PASSWORD || 'password',
+      database: process.env.DATABASE_DATABASE || 'mydb',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // Solo para desarrollo
     }),
