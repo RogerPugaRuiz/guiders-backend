@@ -60,7 +60,22 @@ export class AppModule {
     const GLOBAL_TOKEN_SECRET = this.configService.get<string>(
       'GLOBAL_TOKEN_SECRET',
     );
+    const DATABASE_HOST = this.configService.get<string>('DATABASE_HOST');
+    const DATABASE_PORT = this.configService.get<number>('DATABASE_PORT');
+    const DATABASE_USERNAME =
+      this.configService.get<string>('DATABASE_USERNAME');
+    const DATABASE_PASSWORD =
+      this.configService.get<string>('DATABASE_PASSWORD');
+    const DATABASE_DATABASE =
+      this.configService.get<string>('DATABASE_DATABASE');
     this.logger.log('ENCRYPTION_KEY', ENCRYPTION_KEY);
     this.logger.log('GLOBAL_TOKEN_SECRET', GLOBAL_TOKEN_SECRET);
+    this.logger.log('DATABASE_HOST', DATABASE_HOST);
+    this.logger.log('DATABASE_PORT', DATABASE_PORT);
+    this.logger.log('DATABASE_USERNAME', DATABASE_USERNAME);
+    this.logger.log('DATABASE_PASSWORD', DATABASE_PASSWORD);
+    this.logger.log('DATABASE_DATABASE', DATABASE_DATABASE);
+
+    this.logger.log('ENCRYPTION_KEY', process.env.ENCRYPTION_KEY);
   }
 }
