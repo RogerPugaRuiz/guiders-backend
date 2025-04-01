@@ -125,6 +125,15 @@ export class ConnectionUser extends AggregateRoot {
     message: string;
     timestamp: Date;
   }): ConnectionUser {
+    console.log(
+      'hasRoleCommercial',
+      params.toUser ? params.toUser.hasRole('commercial') : true,
+    );
+    console.log(
+      'hasRoleVisitor',
+      params.toUser ? params.toUser.hasRole('visitor') : false,
+    );
+    console.log('hasRoleVisitor', this.hasRole('visitor'));
     this.apply(
       new RealTimeMessageSendEvent(
         this.userId.value,
@@ -135,7 +144,7 @@ export class ConnectionUser extends AggregateRoot {
           ? params.toUser.hasRole('commercial')
             ? 'toCommercial'
             : 'toVisitor'
-          : 'toVisitor',
+          : 'toCommercial',
       ),
     );
     return this;

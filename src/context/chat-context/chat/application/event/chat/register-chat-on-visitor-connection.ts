@@ -19,7 +19,6 @@ export class RegisterChatOnVisitorConnection
     private readonly publisher: EventPublisher,
   ) {}
   async handle(event: ConnectedEvent): Promise<void> {
-    console.log('Visitor connected', event);
     if (event.roles.includes('commercial')) {
       return;
     }
@@ -43,7 +42,6 @@ export class RegisterChatOnVisitorConnection
         newChat.commit();
       },
       async (chat) => {
-        console.log('Chat found', chat);
         return Promise.resolve();
       },
     );

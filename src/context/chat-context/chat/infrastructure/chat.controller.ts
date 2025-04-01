@@ -5,12 +5,16 @@ import {
   HttpStatus,
   Param,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { MessagePaginateQuery } from '../../message/application/paginate/message-paginate.query';
 import { MessagePaginateQueryResult } from '../../message/application/paginate/message-paginate.query-handler';
-import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import {
+  AuthenticatedRequest,
+  AuthGuard,
+} from 'src/context/shared/infrastructure/guards/auth.guard';
 import {
   RolesGuard,
   RequiredRoles,
@@ -20,6 +24,13 @@ import { PaginateEndOfStreamError } from '../../message/domain/errors';
 @Controller('chat')
 export class ChatController {
   constructor(private readonly queryBus: QueryBus) {}
+  @Get('visitor')
+  @RequiredRoles('visitor')
+  @UseGuards(AuthGuard, RolesGuard)
+  async getChat(@Req() req: AuthenticatedRequest): Promise<any> {
+    return Promise.resolve('ok');
+  }
+
   // get messages by chatId
   @Get(':chatId/messages')
   @RequiredRoles('visitor', 'commercial')
