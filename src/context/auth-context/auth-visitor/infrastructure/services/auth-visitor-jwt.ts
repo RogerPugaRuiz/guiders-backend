@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { AuthVisitorTokenService } from '../../application/services/auth-visitor-token-service';
 import { VisitorAccount } from '../../domain/models/visitor-account';
 import {
@@ -17,6 +17,7 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthVisitorJwt implements AuthVisitorTokenService {
+  private readonly logger = new Logger(AuthVisitorJwt.name);
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
@@ -65,6 +66,10 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
       }
       throw new InvalidTokenError('Token verification failed');
     }
+    this.logger.log(`privateKey: ${apiKey.privateKey}`);
+    const privateKey = await this.encryptService.decrypt(apiKey.privateKey);
+    this.logger.log(`privateKey: ${privateKey}`);
+
     const accessToken = this.jwtService.sign(
       {
         typ: 'access',
@@ -77,7 +82,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey: apiKey.privateKey,
+        privateKey,
       },
     );
     return Promise.resolve({ accessToken });
@@ -91,6 +96,10 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
     if (!apiKey) {
       throw new ApiKeyNotFoundError();
     }
+    this.logger.log(`privateKey: ${apiKey.privateKey}`);
+    const privateKey = await this.encryptService.decrypt(apiKey.privateKey);
+    this.logger.log(`privateKey: ${privateKey}`);
+
     const accessToken = this.jwtService.sign(
       {
         typ: 'access',
@@ -105,7 +114,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey: apiKey.privateKey,
+        privateKey,
       },
     );
     const refreshToken = this.jwtService.sign(
@@ -122,7 +131,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey: apiKey.privateKey,
+        privateKey,
       },
     );
     return Promise.resolve({ accessToken, refreshToken });

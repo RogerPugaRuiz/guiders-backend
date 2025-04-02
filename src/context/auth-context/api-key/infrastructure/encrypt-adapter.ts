@@ -44,5 +44,4 @@ export class EncryptAdapter implements ApiKeyEncryptPrivateKey {
     decrypted += decipher.final('utf8');
     return Promise.resolve(decrypted);
   }
-
 }

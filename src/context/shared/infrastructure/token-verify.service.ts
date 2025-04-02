@@ -49,7 +49,7 @@ export class TokenVerifyService {
               n: string;
               e: string;
             }[];
-          }>(`https://guiders-backend-production.up.railway.app/jwks`),
+          }>(`${this.configService.get('APP_URL')}/jwks`),
         );
 
         const foundKey = data.keys.find((k) => k.kid === kid);
