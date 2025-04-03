@@ -69,7 +69,7 @@ services:
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-      POSTGRES_DB: ${DATABASE_DATABASE}
+      POSTGRES_DB: ${DATABASE}
     ports:
       - "${DATABASE_PORT}:5432"
     volumes:
@@ -84,7 +84,7 @@ services:
     environment:
       POSTGRES_USER: ${TEST_DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD}
-      POSTGRES_DB: ${TEST_DATABASE_DATABASE}
+      POSTGRES_DB: ${TEST_DATABASE}
     ports:
       - "${TEST_DATABASE_PORT}:5432"
     volumes:
