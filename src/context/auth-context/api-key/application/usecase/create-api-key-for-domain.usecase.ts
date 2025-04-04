@@ -43,12 +43,15 @@ export class CreateApiKeyForDomainUseCase {
 
     const publicKeyValue = ApiKeyPublicKey.create(publicKey);
     const privateKeyValue = ApiKeyPrivateKey.create(privateKey);
+    const encryptedPrivateKey = await privateKeyValue.encrypt((value) =>
+      this.encryptService.encrypt(value),
+    );
     const kidValue = ApiKeyValue.create(await this.hashService.hash(publicKey));
 
     const newApiKey = ApiKey.create({
       domain: domainValue,
       publicKey: publicKeyValue,
-      privateKey: privateKeyValue,
+      privateKey: encryptedPrivateKey,
       apiKey: apiKeyValue,
       kid: kidValue,
     });

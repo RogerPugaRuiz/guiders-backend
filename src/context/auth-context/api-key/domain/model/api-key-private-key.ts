@@ -8,4 +8,12 @@ export class ApiKeyPrivateKey extends PrimitiveValueObject<string> {
   static create(value: string): ApiKeyPrivateKey {
     return new ApiKeyPrivateKey(value);
   }
+
+  async encrypt(
+    encryptor: (value: string) => Promise<string>,
+  ): Promise<ApiKeyPrivateKey> {
+    return encryptor(this.value).then((encryptedValue) => {
+      return ApiKeyPrivateKey.create(encryptedValue);
+    });
+  }
 }
