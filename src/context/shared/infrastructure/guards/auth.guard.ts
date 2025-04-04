@@ -27,6 +27,8 @@ export class AuthGuard implements CanActivate {
       const { prefix, token } = this.extractToken(
         request.headers.authorization,
       );
+      this.logger.log(`Token encontrado: ${token}`);
+      this.logger.log(`Tipo de token: ${prefix}`);
       if (prefix !== 'Bearer') {
         throw new UnauthorizedException('No se permite el tipo de token');
       }
