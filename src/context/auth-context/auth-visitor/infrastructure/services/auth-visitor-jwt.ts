@@ -82,7 +82,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey,
+        secret: privateKey,
       },
     );
     return Promise.resolve({ accessToken });
@@ -110,11 +110,11 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
       },
       {
         subject: account.id.value,
-        expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
+        expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION') || '1h',
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey,
+        secret: privateKey,
       },
     );
     const refreshToken = this.jwtService.sign(
@@ -131,7 +131,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         algorithm: 'RS256',
         keyid: apiKey.kid,
         jwtid: uuidv4(),
-        privateKey,
+        secret: privateKey,
       },
     );
     return Promise.resolve({ accessToken, refreshToken });
