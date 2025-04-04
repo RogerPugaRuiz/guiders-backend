@@ -101,10 +101,17 @@ export class AuthVisitorController {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       }
       if (error instanceof VisitorAccountAlreadyExistError) {
-        return await this.authVisitor.tokens({
-          client: parseInt(client),
-          domain: originUrl.hostname,
-        });
+        try {
+          return await this.authVisitor.tokens({
+            client: parseInt(client),
+            domain: originUrl.hostname,
+          });
+        } catch (error) {
+          if (error instanceof ApiKeyNotFoundError) {
+            throw new HttpException(error.message, 401);
+          }
+          throw error;
+        }
       }
 
       throw new HttpException(`Internal server error: ${error}`, 500);
