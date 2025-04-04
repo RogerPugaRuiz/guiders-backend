@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -16,6 +16,8 @@ export interface TokenPayload {
 
 @Injectable()
 export class TokenVerifyService {
+  private readonly logger = new Logger(TokenVerifyService.name);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtservice: JwtService,
@@ -83,6 +85,7 @@ export class TokenVerifyService {
       if (error instanceof jwt.TokenExpiredError) {
         throw new UnauthorizedException('Token expirado');
       }
+      this.logger.error(`Error al verificar el token: ${error}`);
       throw new UnauthorizedException('Token inválido');
     }
   }
