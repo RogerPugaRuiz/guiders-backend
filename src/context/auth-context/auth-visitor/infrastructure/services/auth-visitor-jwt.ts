@@ -52,7 +52,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
     try {
       this.jwtService.verify(refreshToken, {
         algorithms: ['RS256'],
-        publicKey: apiKey.publicKey,
+        secret: apiKey.publicKey,
       });
     } catch (error) {
       if (
@@ -153,7 +153,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
 
     return this.jwtService.verify(token, {
       algorithms: ['RS256'],
-      publicKey: apiKey.publicKey,
+      secret: apiKey.publicKey,
     });
   }
 }

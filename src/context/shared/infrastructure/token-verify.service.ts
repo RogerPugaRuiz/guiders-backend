@@ -80,7 +80,7 @@ export class TokenVerifyService {
 
         return this.jwtservice.verify(token, {
           algorithms: ['RS256'],
-          publicKey: pem,
+          secret: pem,
         });
       }
 
