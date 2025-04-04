@@ -21,14 +21,12 @@ export class RolesGuard implements CanActivate {
       'roles',
       context.getHandler(),
     );
-    console.log('Required Roles:', requiredRoles);
     if (!requiredRoles || requiredRoles.length === 0) {
       // Si no se especifica ningún rol, se permite el acceso
       return true;
     }
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    console.log('Request:', request);
     const user = request.user;
     if (!user || !user.roles) {
       throw new ForbiddenException('El usuario no tiene roles asignados');

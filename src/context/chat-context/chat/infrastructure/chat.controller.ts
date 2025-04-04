@@ -48,7 +48,6 @@ export class ChatController {
       },
       (response) => {
         // Handle success
-        console.log('Fetched chat:', response);
         return response;
       },
     );
