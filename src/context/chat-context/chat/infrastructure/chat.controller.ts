@@ -62,7 +62,6 @@ export class ChatController {
     @Query('index') index: string,
     @Query('limit') limit: number = 10,
   ): Promise<any> {
-    return { success: true };
     const query = MessagePaginateQuery.create({
       chatId,
       index,
