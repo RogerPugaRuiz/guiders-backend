@@ -55,8 +55,7 @@ export class ChatController {
 
   // get messages by chatId
   @Get(':chatId/messages')
-  @RequiredRoles('visitor', 'commercial')
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(AuthGuard)
   async messagePaginate(
     @Param('chatId') chatId: string,
     @Query('index') index: string,
