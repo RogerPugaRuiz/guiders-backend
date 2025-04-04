@@ -18,25 +18,31 @@ export class AuthGuard implements CanActivate {
 
   constructor(private readonly service: TokenVerifyService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    // ...validación del token o usuario...
-    if (!request.headers.authorization) {
-      throw new UnauthorizedException('No se a encontrado el token');
-    }
-    const { prefix, token } = this.extractToken(request.headers.authorization);
-    if (prefix !== 'Bearer') {
-      throw new UnauthorizedException('No se permite el tipo de token');
-    }
     try {
-      const { sub, typ, role } = await this.service.verifyToken(token);
-      if (typ !== 'access') {
-        throw new UnauthorizedException('Token inválido');
+      const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+      // ...validación del token o usuario...
+      if (!request.headers.authorization) {
+        throw new UnauthorizedException('No se a encontrado el token');
       }
+      const { prefix, token } = this.extractToken(
+        request.headers.authorization,
+      );
+      if (prefix !== 'Bearer') {
+        throw new UnauthorizedException('No se permite el tipo de token');
+      }
+      try {
+        const { sub, typ, role } = await this.service.verifyToken(token);
+        if (typ !== 'access') {
+          throw new UnauthorizedException('Token inválido');
+        }
 
-      request.user = { id: sub, roles: role };
+        request.user = { id: sub, roles: role };
+      } catch (error) {
+        throw new UnauthorizedException('No autorizado');
+      }
     } catch (error) {
-      this.logger.error(`Error al verificar el token: ${error}`);
-      throw new UnauthorizedException('No autorizado');
+      this.logger.error(`Error en el guard de autenticación : ${error}`);
+      throw error;
     }
 
     return true;
