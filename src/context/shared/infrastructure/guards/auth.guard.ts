@@ -21,11 +21,11 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     // ...validación del token o usuario...
     if (!request.headers.authorization) {
-      throw new UnauthorizedException('No autorizado');
+      throw new UnauthorizedException('No se a encontrado el token');
     }
     const { prefix, token } = this.extractToken(request.headers.authorization);
     if (prefix !== 'Bearer') {
-      throw new UnauthorizedException('No autorizado');
+      throw new UnauthorizedException('No se permite el tipo de token');
     }
     try {
       const { sub, typ, role } = await this.service.verifyToken(token);
