@@ -92,15 +92,10 @@ export class AuthVisitorController {
         domain,
       );
 
-      return {
-        access_token: '',
-        refresh_token: '',
-      };
-
-      // return await this.authVisitor.tokens({
-      //   client: parseInt(client),
-      //   domain,
-      // });
+      return await this.authVisitor.tokens({
+        client: parseInt(client),
+        domain,
+      });
     } catch (error) {
       if (error instanceof VisitorAccountNotFoundError) {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
