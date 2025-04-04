@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -13,6 +14,8 @@ export interface AuthenticatedRequest extends Request {
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly logger = new Logger(AuthGuard.name);
+
   constructor(private readonly service: TokenVerifyService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -32,7 +35,7 @@ export class AuthGuard implements CanActivate {
 
       request.user = { id: sub, roles: role };
     } catch (error) {
-      console.error(error);
+      this.logger.error(`Error al verificar el token: ${error}`);
       throw new UnauthorizedException('No autorizado');
     }
 
