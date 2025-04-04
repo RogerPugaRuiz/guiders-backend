@@ -54,6 +54,12 @@ export class TokenVerifyService {
           }>(`${this.configService.get('APP_URL')}/jwks`),
         );
 
+        this.logger.log(`Kid: ${kid}`);
+        this.logger.log(`data: ${JSON.stringify(data)}`);
+        this.logger.log(`Keys: ${JSON.stringify(data.keys)}`);
+        this.logger.log(`Token: ${token}`);
+        this.logger.log(`Decoded: ${JSON.stringify(decoded)}`);
+
         const foundKey = data.keys.find((k) => k.kid === kid);
         if (!foundKey) {
           throw new UnauthorizedException('Token inválido: kid no encontrado');
