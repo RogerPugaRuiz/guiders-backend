@@ -41,7 +41,7 @@ export class RegisterVisitor {
     });
 
     if (!isValid) {
-      throw new InvalidDomainError();
+      throw new InvalidDomainError(domain);
     }
 
     const findAccount = await this.repository.findByClientID(client);

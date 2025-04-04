@@ -11,6 +11,7 @@ import { AuthVisitorService } from './services/auth-visitor.service';
 import { ApiKeyNotFoundError, InvalidTokenError } from './services/errors';
 import {
   ClientNotFoundError,
+  InvalidDomainError,
   VisitorAccountAlreadyExistError,
   VisitorAccountNotFoundError,
 } from '../application/error/auth-visitor.errors';
@@ -100,22 +101,28 @@ export class AuthVisitorController {
       if (error instanceof VisitorAccountNotFoundError) {
         throw new HttpException(error.message, HttpStatus.NOT_FOUND);
       }
+      if (error instanceof InvalidDomainError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
       if (error instanceof VisitorAccountAlreadyExistError) {
         try {
-          return {
-            access_token: '',
-            refresh_token: '',
-          };
-          // return await this.authVisitor.tokens({
-          //   client: parseInt(client),
-          //   domain: originUrl.hostname,
-          // });
+          return await this.authVisitor.tokens({
+            client: parseInt(client),
+            domain: originUrl.hostname,
+          });
         } catch (error) {
           if (error instanceof ApiKeyNotFoundError) {
-            throw new HttpException(error.message, 401);
+            throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+          }
+          if (error instanceof InvalidDomainError) {
+            throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
           }
           throw error;
         }
+      }
+
+      if (error instanceof HttpException) {
+        throw error;
       }
 
       throw new HttpException(`Internal server error: ${error}`, 500);

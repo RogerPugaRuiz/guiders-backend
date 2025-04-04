@@ -48,7 +48,7 @@ export class GenerateVisitorTokens {
       domain,
     });
     if (!isValidDomain) {
-      throw new InvalidDomainError();
+      throw new InvalidDomainError(domain);
     }
 
     const updatedAccount = account.updateLastLoginAt();
