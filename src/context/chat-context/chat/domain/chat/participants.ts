@@ -1,0 +1,82 @@
+import { Optional } from 'src/context/shared/domain/optional';
+import { Participant } from './value-objects/participant';
+
+export class Participants {
+  private _participants: Participant[];
+
+  public get value(): Participant[] {
+    return this._participants;
+  }
+
+  constructor(participants?: Participant[]) {
+    if (!participants) {
+      this._participants = [];
+      return;
+    }
+    if (!Array.isArray(participants)) {
+      throw new Error('Participants must be an array');
+    }
+    if (participants.length === 0) {
+      throw new Error('Participants cannot be empty');
+    }
+    if (
+      participants.some((participant) => !(participant instanceof Participant))
+    ) {
+      throw new Error('Participants must be an array of Participant objects');
+    }
+    this._participants = participants;
+  }
+
+  public static create(
+    participants: {
+      id: string;
+      name: string;
+      isCommercial: boolean;
+      isVisitor: boolean;
+    }[],
+  ): Participants {
+    const participantObjects = participants.map((participant) =>
+      Participant.create(participant),
+    );
+    return new Participants(participantObjects);
+  }
+
+  public addParticipant(
+    id: string,
+    name: string,
+    isCommercial: boolean,
+    isVisitor: boolean,
+  ): void {
+    const participant = Participant.create({
+      id,
+      name,
+      isCommercial,
+      isVisitor,
+    });
+    this._participants.push(participant);
+  }
+
+  public removeParticipant(id: string): void {
+    this._participants = this._participants.filter(
+      (participant) => participant.id !== id,
+    );
+  }
+
+  public getParticipant(id: string): Optional<Participant> {
+    return Optional.ofNullable(
+      this._participants.find((participant) => participant.id === id),
+    );
+  }
+
+  public setLastSeenAt(id: string, lastSeenAt: Date): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setLastSeenAt(lastSeenAt);
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
+}

@@ -5,19 +5,21 @@ import { CHAT_REPOSITORY } from '../domain/chat/chat.repository';
 import { TypeOrmChatService } from './typeORM-chat.service';
 import { HttpModule } from '@nestjs/axios';
 import { MessageEntity } from '../../message/infrastructure/entities/message.entity';
-import { FindCommercialChatsQueryHandler } from '../application/query/find/commercial/find-commercial-chats.query-handler';
-import { RegisterChatCommandHandler } from '../application/command/create/register-chat.command-handler';
-import { RegisterChatOnVisitorConnection } from '../application/event/chat/register-chat-on-visitor-connection';
-import { SaveMessageOnRealTimeMessageSendEvent } from '../application/event/message/save-message-on-real-time-message-send.event';
 import { MESSAGE_REPOSITORY } from '../../message/domain/message.repository';
 import { TypeOrmMessageService } from '../../message/infrastructure/typeORM-message.service';
 import { ChatController } from './chat.controller';
 import { MessagePaginateQueryHandler } from '../../message/application/paginate/message-paginate.query-handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
-import { GetChatByVisitorIdQueryHandler } from '../application/query/find/visitor/get-chat-by-visitor-id.query-handler';
+import { StartChatCommandHandler } from '../application/create/pending/start-chat.command-handler';
+import { ParticipantsEntity } from './participants.entity';
+import { ChatService } from './chat.service';
+import { FindOneChatByIdQueryHandler } from '../application/find/by-id/find-one-chat-by-id.query-handler';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ChatEntity, MessageEntity]), HttpModule],
+  imports: [
+    TypeOrmModule.forFeature([ChatEntity, MessageEntity, ParticipantsEntity]),
+    HttpModule,
+  ],
   controllers: [ChatController],
   providers: [
     { provide: CHAT_REPOSITORY, useClass: TypeOrmChatService },
@@ -25,17 +27,18 @@ import { GetChatByVisitorIdQueryHandler } from '../application/query/find/visito
     // usecases
 
     // handlers
-    FindCommercialChatsQueryHandler,
-    RegisterChatCommandHandler,
-    RegisterChatOnVisitorConnection,
+    StartChatCommandHandler,
+
     // queries
     MessagePaginateQueryHandler,
-    GetChatByVisitorIdQueryHandler,
+    FindOneChatByIdQueryHandler,
+
     // events
-    SaveMessageOnRealTimeMessageSendEvent,
 
     // services
     TokenVerifyService,
+
+    ChatService,
   ],
   exports: [],
 })

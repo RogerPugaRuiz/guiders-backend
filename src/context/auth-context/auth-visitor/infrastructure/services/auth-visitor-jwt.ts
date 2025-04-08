@@ -75,6 +75,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         typ: 'access',
         auth_time: Math.floor(Date.now() / 1000),
         role: ['visitor'],
+        username: decoded['payload']['username'] as string,
       },
       {
         subject: decoded['payload']['sub'],
@@ -107,6 +108,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
           account.lastLoginAt.get().getValue().getTime() / 1000,
         ),
         role: ['visitor'],
+        username: account.id.value,
       },
       {
         subject: account.id.value,
@@ -124,6 +126,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
           account.lastLoginAt.get().getValue().getTime() / 1000,
         ),
         role: ['visitor'],
+        username: account.id.value,
       },
       {
         subject: account.id.value,

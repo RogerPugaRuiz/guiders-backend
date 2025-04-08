@@ -7,10 +7,9 @@ import { InMemoryConnectionService } from './in-memory-connection.service';
 import { ConnectUserCommandHandler } from '../application/command/connect/connect-user.command-handler';
 import { DisconnectUserCommandHandler } from '../application/command/disconnect/disconnect-user.command-handler';
 import { FindOneUserBySocketIdQueryHandler } from '../application/query/find-one/find-one-user-by-socket-id.query-handler';
-import { SendMessageToVisitorCommandHandler } from '../application/command/message/to-visitor/send-message-to-visitor.command-handler';
 import { CHAT_MESSAGE_EMITTER } from 'src/context/real-time-context/websocket/domain/message-emitter';
 import { WsChatMessageEmitterService } from 'src/context/real-time-context/websocket/infrastructure/services/ws-chat-message-emitter.service';
-import { SendMessageToCommercialCommandHandler } from '../application/command/message/to-commercial/send-message-to-commercial.command-handler';
+import { RealTimeMessageSenderCommandHandler } from '../application/command/message/real-time-message-sender.command-handler';
 
 @Module({
   imports: [HttpModule],
@@ -30,9 +29,7 @@ import { SendMessageToCommercialCommandHandler } from '../application/command/me
     ConnectUserCommandHandler,
     DisconnectUserCommandHandler,
     FindOneUserBySocketIdQueryHandler,
-
-    SendMessageToVisitorCommandHandler,
-    SendMessageToCommercialCommandHandler,
+    RealTimeMessageSenderCommandHandler,
   ],
   exports: [],
 })

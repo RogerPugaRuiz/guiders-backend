@@ -7,22 +7,36 @@ export class Status extends PrimitiveValueObject<string> {
 
   public static create(value: string): Status {
     // Validar el valor del estado
-    const validStatuses = ['new', 'in progress', 'closed'];
+    const validStatuses = [
+      'active',
+      'inactive',
+      'closed',
+      'archived',
+      'pending',
+    ];
     if (!validStatuses.includes(value)) {
       throw new Error('Invalid status value');
     }
     return new Status(value);
   }
 
-  public static new(): Status {
-    return new Status('new');
+  public static get DEFAULT(): Status {
+    return new Status('pending');
   }
 
-  public static inProgress(): Status {
-    return new Status('in progress');
+  public static get ACTIVE(): Status {
+    return new Status('active');
   }
-
-  public static closed(): Status {
+  public static get INACTIVE(): Status {
+    return new Status('inactive');
+  }
+  public static get CLOSED(): Status {
     return new Status('closed');
+  }
+  public static get ARCHIVED(): Status {
+    return new Status('archived');
+  }
+  public static get PENDING(): Status {
+    return new Status('pending');
   }
 }

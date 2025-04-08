@@ -14,6 +14,7 @@ import {
 } from 'src/context/shared/domain/criteria';
 import { Optional } from 'src/context/shared/domain/optional';
 import { MessageEntity } from '../../message/infrastructure/entities/message.entity';
+import { ParticipantsEntity } from './participants.entity';
 
 @Injectable()
 export class TypeOrmChatService implements IChatRepository {
@@ -22,9 +23,13 @@ export class TypeOrmChatService implements IChatRepository {
     private readonly chatRepository: Repository<ChatEntity>,
     @InjectRepository(MessageEntity)
     private readonly messageRepository: Repository<MessageEntity>,
+    @InjectRepository(ParticipantsEntity)
+    private readonly participantsRepository: Repository<ParticipantsEntity>,
   ) {}
   async findOne(criteria: Criteria<Chat>): Promise<Optional<{ chat: Chat }>> {
-    const queryBuilder = this.chatRepository.createQueryBuilder('chat');
+    const queryBuilder = this.chatRepository
+      .createQueryBuilder('chat')
+      .leftJoinAndSelect('chat.participants', 'participants');
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
         const subfilters = filter.filters.map((f: Filter<Chat>) => {

@@ -16,6 +16,7 @@ export class WsChatMessageEmitterService implements IChatMessageEmitter {
   async emit(params: {
     from: ConnectionUser;
     to?: ConnectionUser | null | undefined;
+    chatId: string;
     message: string;
     timestamp: Date;
   }): Promise<Result<void, UserNotConnectedError>> {
@@ -39,6 +40,7 @@ export class WsChatMessageEmitterService implements IChatMessageEmitter {
           {
             sender: from.userId.value,
             message,
+            chatId: params.chatId,
             timestamp: timestamp.getTime(),
           },
           'chat_message',
@@ -57,6 +59,7 @@ export class WsChatMessageEmitterService implements IChatMessageEmitter {
         {
           sender: fromUserId,
           message,
+          chatId: params.chatId,
           timestamp: timestamp.getTime(),
         },
         'chat_message',

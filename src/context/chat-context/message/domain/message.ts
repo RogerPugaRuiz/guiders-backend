@@ -1,9 +1,7 @@
-import { AggregateRoot } from '@nestjs/cqrs';
 import { MessageId } from './value-objects/message-id';
 import { SenderId } from './value-objects/sender-id';
 import { Content } from './value-objects/content';
 import { CreatedAt } from './value-objects/created-at';
-import { MessageCreatedEvent } from './events/message-created.event';
 import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 
 export interface MessagePrimitives {
@@ -14,16 +12,14 @@ export interface MessagePrimitives {
   createdAt: number;
 }
 
-export class Message extends AggregateRoot {
+export class Message {
   private constructor(
     readonly id: MessageId,
     readonly chatId: ChatId,
     readonly senderId: SenderId,
     readonly content: Content,
     readonly createdAt: CreatedAt,
-  ) {
-    super();
-  }
+  ) {}
 
   public static fromPrimitives(params: {
     id: string;
@@ -56,15 +52,6 @@ export class Message extends AggregateRoot {
       createdAt,
     );
     // Se aplica el evento de dominio
-    message.apply(
-      new MessageCreatedEvent(
-        id.value,
-        params.chatId.value,
-        params.senderId.value,
-        params.content.value,
-        createdAt.value,
-      ),
-    );
     return message;
   }
 

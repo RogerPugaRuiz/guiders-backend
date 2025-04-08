@@ -5,3 +5,9 @@ export class ConnectionUserNotFound extends DomainError {
     super(`Connection user not found: ${userId}`);
   }
 }
+
+export class RealTimeMessageSenderError extends DomainError {
+  constructor(message: string) {
+    super(`[RealTimeMessageSenderError] ${message}`);
+  }
+}

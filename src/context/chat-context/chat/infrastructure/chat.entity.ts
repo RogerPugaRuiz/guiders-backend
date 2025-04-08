@@ -1,22 +1,24 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryColumn, Column, ManyToMany, JoinTable } from 'typeorm';
+import { ParticipantsEntity } from './participants.entity';
 
 @Entity('chats')
 export class ChatEntity {
   @PrimaryColumn('uuid')
   id: string;
 
-  @Column({
-    type: 'text',
-    nullable: true,
+  @ManyToMany(() => ParticipantsEntity, { eager: true, cascade: true })
+  @JoinTable({
+    name: 'chat_participants',
+    joinColumn: {
+      name: 'chat_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'participant_id',
+      referencedColumnName: 'id',
+    },
   })
-  commercialId: string | null;
-
-  @Column({
-    type: 'text',
-    unique: true,
-    nullable: false,
-  })
-  visitorId: string;
+  participants: ParticipantsEntity[];
 
   @Column()
   status: string;
@@ -30,12 +32,6 @@ export class ChatEntity {
   @Column({ type: 'timestamptz', nullable: true })
   lastMessageAt: Date | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  visitorLastReadAt: Date | null;
-
-  @Column({ type: 'timestamptz', nullable: true })
-  commercialLastReadAt: Date | null;
-
   @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  createdAt: Date | null;
 }

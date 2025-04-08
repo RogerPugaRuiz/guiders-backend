@@ -8,6 +8,7 @@ export interface IChatMessageEmitter {
   emit(params: {
     from: ConnectionUser;
     to?: ConnectionUser | null | undefined;
+    chatId: string;
     message: string;
     timestamp: Date;
   }): Promise<Result<void, UserNotConnectedError>>;

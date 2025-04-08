@@ -4,11 +4,12 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  Post,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { MessagePaginateQuery } from '../../message/application/paginate/message-paginate.query';
 import { MessagePaginateQueryResult } from '../../message/application/paginate/message-paginate.query-handler';
 import {
@@ -20,37 +21,32 @@ import {
   RequiredRoles,
 } from 'src/context/shared/infrastructure/guards/role.guard';
 import { PaginateEndOfStreamError } from '../../message/domain/errors';
-import { GetChatByVisitorIdQuery } from '../application/query/find/visitor/get-chat-by-visitor-id.query';
-import { GetChatByVisitorIdQueryResult } from '../application/query/find/visitor/get-chat-by-visitor-id.query-handler';
+import { ChatService } from './chat.service';
 
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly queryBus: QueryBus) {}
+  constructor(
+    private readonly queryBus: QueryBus,
+    private readonly chatService: ChatService,
+  ) {}
 
   @Get('visitor')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
   async getChat(@Req() req: AuthenticatedRequest): Promise<any> {
     const { id } = req.user;
-    const query = new GetChatByVisitorIdQuery(id);
-    const result = await this.queryBus.execute<
-      GetChatByVisitorIdQuery,
-      GetChatByVisitorIdQueryResult
-    >(query);
-    return result.fold(
-      (error) => {
-        // Handle error
-        console.error('Error fetching chat:', error.message);
-        throw new HttpException(
-          'Error fetching chat',
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      },
-      (response) => {
-        // Handle success
-        return response;
-      },
-    );
+    return Promise.resolve({});
+  }
+
+  @Post(':chatId')
+  @RequiredRoles('visitor')
+  @UseGuards(AuthGuard, RolesGuard)
+  async startChat(
+    @Param('chatId') chatId: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<any> {
+    const { id: visitorId, username: visitorName } = req.user;
+    return await this.chatService.startChat(chatId, visitorId, visitorName);
   }
 
   // get messages by chatId

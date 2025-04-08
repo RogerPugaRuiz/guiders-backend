@@ -9,7 +9,12 @@ import { Request } from 'express';
 import { TokenVerifyService } from '../token-verify.service';
 
 export interface AuthenticatedRequest extends Request {
-  user: { id: string; roles: string[] };
+  user: {
+    id: string;
+    roles: string[];
+    username: string;
+    email?: string;
+  };
 }
 
 @Injectable()
@@ -33,12 +38,20 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('No se permite el tipo de token');
       }
       try {
-        const { sub, typ, role } = await this.service.verifyToken(token);
+        const { sub, typ, role, username, email } =
+          await this.service.verifyToken(token);
         if (typ !== 'access') {
           throw new UnauthorizedException('Token inválido');
         }
-
-        request.user = { id: sub, roles: role };
+        if (username === undefined) {
+          throw new UnauthorizedException('No se encontró el username');
+        }
+        request.user = {
+          id: sub,
+          roles: role,
+          username: username as string,
+          email: email as string,
+        };
       } catch (error) {
         throw new UnauthorizedException('No autorizado');
       }

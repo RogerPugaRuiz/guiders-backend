@@ -3,11 +3,14 @@ import { IEvent } from '@nestjs/cqrs';
 export class NewChatCreatedEvent implements IEvent {
   constructor(
     public readonly chatId: string,
-    public readonly commercialId: string | null,
-    public readonly visitorId: string,
+    public readonly participants: {
+      id: string;
+      name: string;
+      isCommercial: boolean;
+      isVisitor: boolean;
+    }[],
     public readonly status: string,
-    public readonly lastMessage: string | null,
-    public readonly lastMessageAt: Date | null,
+    public readonly createdAt: Date,
     public readonly timestamp: Date = new Date(),
   ) {}
 }

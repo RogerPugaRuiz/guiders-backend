@@ -13,6 +13,7 @@ export class TokenService implements UserTokenService {
 
   generate(data: {
     id: string;
+    username: string;
     email: string;
   }): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = this.createAccessToken(data);
@@ -22,6 +23,7 @@ export class TokenService implements UserTokenService {
   }
   verify(token: string): Promise<{
     sub: number;
+    username: string;
     email: string;
     role: string[];
     typ: string;
@@ -40,14 +42,19 @@ export class TokenService implements UserTokenService {
       accessToken: this.createAccessToken({
         id: payload.sub.toString(),
         email: payload.email,
+        username: payload.username,
       }),
     };
   }
 
-  private createAccessToken(data: { id: string; email: string }) {
+  private createAccessToken(data: {
+    id: string;
+    email: string;
+    username: string;
+  }) {
     const accessToken = this.jwtService.sign(
       {
-        sub: data.id,
+        username: data.username,
         email: data.email,
         role: ['commercial'],
         typ: 'access',
@@ -55,14 +62,19 @@ export class TokenService implements UserTokenService {
       {
         expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
         secret: process.env.GLOBAL_TOKEN_SECRET,
+        subject: data.id,
       },
     );
     return accessToken;
   }
-  private createRefreshToken(data: { id: string; email: string }) {
+  private createRefreshToken(data: {
+    id: string;
+    email: string;
+    username: string;
+  }) {
     const refreshToken = this.jwtService.sign(
       {
-        sub: data.id,
+        username: data.username,
         email: data.email,
         role: ['commercial'],
         typ: 'refresh',
@@ -70,6 +82,7 @@ export class TokenService implements UserTokenService {
       {
         expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRATION'),
         secret: process.env.GLOBAL_TOKEN_SECRET,
+        subject: data.id,
       },
     );
     return refreshToken;
