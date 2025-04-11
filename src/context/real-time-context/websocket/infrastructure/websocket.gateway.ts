@@ -29,6 +29,9 @@ import { DisconnectUserCommand } from '../application/command/disconnect/disconn
 import { RealTimeMessageSenderCommand } from 'src/context/real-time-context/websocket/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
+import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
+import { FindChatListByParticipantQuery } from 'src/context/chat-context/chat/application/read/find-chat-list-by-participant.query';
+import { StartChatCommand } from 'src/context/chat-context/chat/application/create/pending/start-chat.command';
 
 export interface Event {
   data: Record<string, unknown>;
@@ -207,37 +210,37 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    const { message } = event.data as {
-      message: {
-        chat: string;
-        text: string;
-        timestamp: number;
-        from: string;
-        to: string;
-      };
+    const { message, timestamp, chatId } = event.data as {
+      message: string;
+      timestamp: number;
+      chatId: string;
     };
+    this.logger.log(
+      `User ${client.user.sub} is sending message to visitor: ${message}`,
+    );
 
-    // const result = await this.commandBus.execute<
-    //   SendMessageToVisitorCommand,
-    //   SendMessageToVisitorResponse
-    // >(
-    //   SendMessageToVisitorCommand.create({
-    //     chatId: message.chat,
-    //     from: message.from,
-    //     to: message.to,
-    //     message: message.text,
-    //     timestamp: new Date(message.timestamp),
-    //   }),
-    // );
-
-    // if (result.isErr()) {
-    //   return Promise.resolve(
-    //     ResponseBuilder.build(false, result.error.message),
-    //   );
-    // }
-
+    const command = new RealTimeMessageSenderCommand(
+      chatId,
+      client.user.sub,
+      message,
+      new Date(timestamp),
+    );
+    const result = await this.commandBus.execute<
+      RealTimeMessageSenderCommand,
+      Result<void, DomainError>
+    >(command);
+    if (result.isErr()) {
+      return Promise.resolve(
+        ResponseBuilder.build(false, result.error.message),
+      );
+    }
+    this.logger.log(
+      `User ${client.user.sub} has sent message to visitor: ${message}`,
+    );
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Mensaje enviado al visitante'),
+      ResponseBuilder.build(true, 'Mensaje enviado al visitante', {
+        message,
+      }),
     );
   }
 
@@ -247,11 +250,42 @@ export class RealTimeWebSocketGateway
   async handleGetCommercialChats(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user.sub} is getting chat list`);
 
-    // const { chats } = await this.queryBus.execute<
-    //   FindCommercialChatsQuery,
-    //   FindCommercialChatsQueryResult
-    // >(new FindCommercialChatsQuery(client.user.sub));
+    const { chats } = await this.queryBus.execute<
+      FindChatListByParticipantQuery,
+      { chats: ChatPrimitives[] }
+    >(new FindChatListByParticipantQuery(client.user.sub));
+    this.logger.log(
+      `User ${client.user.sub} has ${chats.length} chats: ${JSON.stringify(chats)}`,
+    );
+    return Promise.resolve(
+      ResponseBuilder.build(true, 'Chats obtenidos', {
+        chats: chats.map((chat) => ({
+          id: chat.id,
+          receiverId: chat.participants.find((p) => p.isVisitor)?.id || '',
+          status: chat.status,
+          lastMessage: chat.lastMessage,
+          lastMessageAt: chat.lastMessageAt,
+        })),
+      }),
+    );
+  }
 
-    return Promise.resolve(ResponseBuilder.build(true, 'Chats obtenidos', {}));
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('start_chat')
+  async handleStartChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    const { chatId } = event.data as {
+      chatId: string;
+    };
+    const visitorId = client.user.sub;
+    const visitorName = client.user.email || client.user.sub;
+    const command = new StartChatCommand(chatId, visitorId, visitorName);
+    await this.commandBus.execute<StartChatCommand, void>(command);
+    return Promise.resolve(
+      ResponseBuilder.build(true, 'Chat started', event.data),
+    );
   }
 }

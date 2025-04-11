@@ -5,7 +5,14 @@ import { UserAccountId } from './user-account-id';
 import { UserAccountLastLogin } from './user-account-last-login';
 import { UserAccountPassword } from './user-account-password';
 import { UserAccountUpdatedAt } from './user-account-updated-at';
-
+export interface UserAccountPrimitives {
+  id: string;
+  email: string;
+  password: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLoginAt?: Date | null;
+}
 export class UserAccount {
   private constructor(
     public readonly id: UserAccountId,
@@ -74,14 +81,7 @@ export class UserAccount {
     );
   }
 
-  public toPrimitives(): {
-    id: string;
-    email: string;
-    password: string;
-    createdAt: Date;
-    updatedAt: Date;
-    lastLoginAt?: Date | null;
-  } {
+  public toPrimitives(): UserAccountPrimitives {
     return {
       id: this.id.getValue(),
       email: this.email.getValue(),

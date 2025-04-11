@@ -1,13 +1,13 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { FindOneChatByIdQuery } from './find-one-chat-by-id.query';
+import { FindOneChatByIdQuery } from '../read/find-one-chat-by-id.query';
 import { err, ok, Result } from 'src/context/shared/domain/result';
-import { Chat, ChatPrimitives } from '../../../domain/chat/chat';
+import { Chat, ChatPrimitives } from '../../domain/chat/chat';
 import { Inject } from '@nestjs/common';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from '../../../domain/chat/chat.repository';
-import { ChatNotFoundError } from '../../../domain/chat/errors/errors';
+} from '../../domain/chat/chat.repository';
+import { ChatNotFoundError } from '../../domain/chat/errors/errors';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 
 @QueryHandler(FindOneChatByIdQuery)

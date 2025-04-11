@@ -1,5 +1,6 @@
 import { Optional } from 'src/context/shared/domain/optional';
 import { Participant } from './value-objects/participant';
+import { ValidationError } from 'src/context/shared/domain/validation.error';
 
 export class Participants {
   private _participants: Participant[];
@@ -14,15 +15,17 @@ export class Participants {
       return;
     }
     if (!Array.isArray(participants)) {
-      throw new Error('Participants must be an array');
+      throw new ValidationError('Participants must be an array');
     }
     if (participants.length === 0) {
-      throw new Error('Participants cannot be empty');
+      throw new ValidationError('Participants cannot be empty');
     }
     if (
       participants.some((participant) => !(participant instanceof Participant))
     ) {
-      throw new Error('Participants must be an array of Participant objects');
+      throw new ValidationError(
+        'Participants must be an array of Participant objects',
+      );
     }
     this._participants = participants;
   }

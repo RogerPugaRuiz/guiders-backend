@@ -28,7 +28,7 @@ export class StartChatCommandHandler
     });
 
     const chatAggregate = this.publisher.mergeObjectContext(chat);
-    chatAggregate.commit();
     await this.chatRepository.save(chatAggregate);
+    chatAggregate.commit();
   }
 }

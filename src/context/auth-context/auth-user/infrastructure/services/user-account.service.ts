@@ -14,6 +14,16 @@ export class UserAccountService implements UserAccountRepository {
     private readonly entityManager: EntityManager,
     private readonly userAccountMapper: UserAccountMapper,
   ) {}
+  async findById(id: string): Promise<UserAccount | null> {
+    if (!id) {
+      this.logger.error('ID is required');
+      return null;
+    }
+    const user = await this.entityManager.findOne(UserAccountEntity, {
+      where: { id },
+    });
+    return this.userAccountMapper.fromEntity(user);
+  }
   async findByEmail(email: string): Promise<UserAccount | null> {
     if (!email) {
       this.logger.error('Email is required');

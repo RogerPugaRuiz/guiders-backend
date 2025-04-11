@@ -8,3 +8,10 @@ export class ChatNotFoundError extends DomainError {
     super('Chat not found');
   }
 }
+
+export class ChatCanNotSaveMessageError extends DomainError {
+  protected name: string = 'ChatCanNotSaveMessageError';
+  constructor() {
+    super('Chat can not save message');
+  }
+}

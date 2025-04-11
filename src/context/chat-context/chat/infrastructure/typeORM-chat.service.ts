@@ -57,15 +57,24 @@ export class TypeOrmChatService implements IChatRepository {
   }
 
   async find(criteria: Criteria<Chat>): Promise<{ chats: Chat[] }> {
-    const queryBuilder = this.chatRepository.createQueryBuilder('chat');
+    const queryBuilder = this.chatRepository
+      .createQueryBuilder('chat')
+      .leftJoinAndSelect('chat.participants', 'participants');
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
         const subfilters = filter.filters.map((f: Filter<Chat>) => {
+          if (f.field === 'participants') {
+            return `chat.id IN (
+              SELECT cp.chat_id
+              FROM chat_participants cp
+              WHERE cp.participant_id ${String(f.operator)} :participantId
+            )`;
+          }
           if (f.operator === Operator.IS_NULL) {
             return `chat.${String(f.field)} IS NULL`;
           }
 
-          return `chat.${String(f.field)} ${String(f.operator)} :${String(f.field)}`;
+          return `chat.${String(f.field)} ${String(f.operator)} :${String(f.value)}`;
         });
 
         const parameters = filter.filters.reduce(
@@ -82,6 +91,18 @@ export class TypeOrmChatService implements IChatRepository {
           `(${subfilters.join(` ${filter.operator} `)})`,
           parameters,
         );
+        return;
+      }
+      if (filter.field === 'participants') {
+        queryBuilder.andWhere(
+          `chat.id IN (
+            SELECT cp.chat_id
+            FROM chat_participants cp
+            WHERE cp.participant_id ${String(filter.operator)} :participantId
+          )`,
+          { participantId: filter.value },
+        );
+
         return;
       }
       queryBuilder.andWhere(

@@ -10,6 +10,7 @@ import { FindOneUserBySocketIdQueryHandler } from '../application/query/find-one
 import { CHAT_MESSAGE_EMITTER } from 'src/context/real-time-context/websocket/domain/message-emitter';
 import { WsChatMessageEmitterService } from 'src/context/real-time-context/websocket/infrastructure/services/ws-chat-message-emitter.service';
 import { RealTimeMessageSenderCommandHandler } from '../application/command/message/real-time-message-sender.command-handler';
+import { AssignOnPendingChatEventHandler } from '../application/event/assign-on-pending-chat.event-handler';
 
 @Module({
   imports: [HttpModule],
@@ -30,6 +31,7 @@ import { RealTimeMessageSenderCommandHandler } from '../application/command/mess
     DisconnectUserCommandHandler,
     FindOneUserBySocketIdQueryHandler,
     RealTimeMessageSenderCommandHandler,
+    AssignOnPendingChatEventHandler,
   ],
   exports: [],
 })

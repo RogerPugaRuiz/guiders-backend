@@ -13,7 +13,12 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
 import { StartChatCommandHandler } from '../application/create/pending/start-chat.command-handler';
 import { ParticipantsEntity } from './participants.entity';
 import { ChatService } from './chat.service';
-import { FindOneChatByIdQueryHandler } from '../application/find/by-id/find-one-chat-by-id.query-handler';
+import { FindOneChatByIdQueryHandler } from '../application/read/find-one-chat-by-id.query-handler';
+import { SaveMessageCommand } from '../application/create/message/save-message.command';
+import { USER_FINDER } from '../application/read/get-username-by-id';
+import { UserFinderAdapterService } from './user-finder-adapter.service';
+import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../application/update/update-chat-participants-on-commercials-assigned.event-handler';
+import { FindChatListByParticipantQueryHandler } from '../application/read/find-chat-list-by-participant.query-handler';
 
 @Module({
   imports: [
@@ -24,16 +29,20 @@ import { FindOneChatByIdQueryHandler } from '../application/find/by-id/find-one-
   providers: [
     { provide: CHAT_REPOSITORY, useClass: TypeOrmChatService },
     { provide: MESSAGE_REPOSITORY, useClass: TypeOrmMessageService },
+    { provide: USER_FINDER, useClass: UserFinderAdapterService },
     // usecases
 
-    // handlers
+    // commands
     StartChatCommandHandler,
+    SaveMessageCommand,
 
     // queries
     MessagePaginateQueryHandler,
     FindOneChatByIdQueryHandler,
+    FindChatListByParticipantQueryHandler,
 
     // events
+    UpdateChatParticipantsOnCommercialsAssignedEventHandler,
 
     // services
     TokenVerifyService,

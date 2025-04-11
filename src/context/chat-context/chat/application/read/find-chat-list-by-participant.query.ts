@@ -1,5 +1,5 @@
 import { IQuery } from '@nestjs/cqrs';
 
-export class FindOneChatByParticipantQuery implements IQuery {
+export class FindChatListByParticipantQuery implements IQuery {
   constructor(readonly participantId: string) {}
 }

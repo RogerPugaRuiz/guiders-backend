@@ -37,13 +37,16 @@ export class Message {
     );
   }
 
-  public static createNewMessage(params: {
+  public static create(params: {
     chatId: ChatId;
     senderId: SenderId;
     content: Content;
+    createdAt?: CreatedAt;
   }): Message {
     const id = MessageId.random();
-    const createdAt = CreatedAt.now();
+    const createdAt = params.createdAt
+      ? CreatedAt.create(params.createdAt.value)
+      : CreatedAt.create(new Date());
     const message = new Message(
       id,
       params.chatId,
@@ -51,7 +54,6 @@ export class Message {
       params.content,
       createdAt,
     );
-    // Se aplica el evento de dominio
     return message;
   }
 

@@ -15,6 +15,7 @@ import { USER_TOKEN_SERVICE } from '../application/service/user-token-service';
 import { RefreshTokenUseCase } from '../application/usecases/refresh-token.usecase';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
+import { FindOneUserByIdQueryHandler } from '../application/read/find-one-user-by-id.query-handler';
 
 @Module({
   imports: [TypeOrmModule.forFeature([UserAccountEntity]), HttpModule],
@@ -29,6 +30,9 @@ import { HttpModule } from '@nestjs/axios';
     UserLoginUseCase,
     RefreshTokenUseCase,
     TokenVerifyService,
+
+    // handlers
+    FindOneUserByIdQueryHandler,
   ],
 })
 export class AuthUserModule {}

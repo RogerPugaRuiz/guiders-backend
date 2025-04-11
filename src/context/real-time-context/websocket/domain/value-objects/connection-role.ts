@@ -28,6 +28,14 @@ export class ConnectionRole extends PrimitiveValueObject<string> {
     return new ConnectionRole('commercial');
   }
 
+  static get COMMERCIAL(): string {
+    return ConnectionRoleEnum.COMMERCIAL;
+  }
+
+  static get VISITOR(): string {
+    return ConnectionRoleEnum.VISITOR;
+  }
+
   get isVisitor(): boolean {
     return this.value === 'visitor';
   }

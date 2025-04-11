@@ -8,6 +8,6 @@ export class ConnectionUserNotFound extends DomainError {
 
 export class RealTimeMessageSenderError extends DomainError {
   constructor(message: string) {
-    super(`[RealTimeMessageSenderError] ${message}`);
+    super(`${message}`);
   }
 }

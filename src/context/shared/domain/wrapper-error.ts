@@ -12,6 +12,10 @@ export class DomainErrorWrapper extends DomainError {
   has(error: string): boolean {
     return this.errors.some((e) => e.getName() === error);
   }
+
+  hasAny(): boolean {
+    return this.errors.length > 0;
+  }
 }
 
 export class DomainErrorWrapperBuilder {
