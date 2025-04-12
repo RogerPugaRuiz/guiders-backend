@@ -34,6 +34,7 @@ import { FindChatListByParticipantQuery } from 'src/context/chat-context/chat/ap
 import { StartChatCommand } from 'src/context/chat-context/chat/application/create/pending/start-chat.command';
 
 export interface Event {
+  type?: string;
   data: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   timestamp: number;
@@ -60,7 +61,7 @@ export class ResponseBuilder {
     success: boolean,
     message: string,
     data: T = {} as T,
-    type: string = 'default',
+    type: string = 'notification',
   ): SuccessResponse<T> | ErrorResponse {
     const timestamp = Date.now();
     if (success) {
@@ -145,7 +146,7 @@ export class RealTimeWebSocketGateway
 
   @Roles(['visitor'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
-  @SubscribeMessage('send_message_to_commercial')
+  @SubscribeMessage('visitor:send-message')
   async handleVisitorSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
@@ -177,35 +178,44 @@ export class RealTimeWebSocketGateway
     return Promise.resolve(
       ResponseBuilder.build(true, 'Mensaje enviado al comercial'),
     );
+  }
 
-    // const result = await this.commandBus.execute<
-    //   SendMessageToCommercialCommand,
-    //   SendMessageToCommercialResponse
-    // >(
-    //   SendMessageToCommercialCommand.create({
-    //     chatId: client.user.sub,
-    //     from: client.user.sub,
-    //     to: 'all',
-    //     message,
-    //     timestamp: new Date(timestamp),
-    //   }),
-    // );
-
-    // if (result.isErr()) {
-    //   return Promise.resolve(
-    //     ResponseBuilder.build(false, result.error.message),
-    //   );
-    // }
-
-    return Promise.resolve({
-      success: true,
-      message: 'Mensaje enviado al comercial',
-    });
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('visitor:start-chat')
+  async handleStartChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    const { chatId } = event.data as {
+      chatId: string;
+    };
+    const visitorId = client.user.sub;
+    const visitorName = client.user.email || client.user.sub;
+    const command = new StartChatCommand(chatId, visitorId, visitorName);
+    await this.commandBus.execute<StartChatCommand, void>(command);
+    return Promise.resolve(
+      ResponseBuilder.build(true, 'Chat started', event.data),
+    );
   }
 
   @Roles(['commercial'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
-  @SubscribeMessage('send_message_to_visitor')
+  @SubscribeMessage('commercial:notifications')
+  handleCommercialNotification(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    return ResponseBuilder.build(
+      true,
+      'Mensaje enviado al visitante',
+      event.data,
+    );
+  }
+
+  @Roles(['commercial'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('commercial:send-message')
   async handleCommercialSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
@@ -246,7 +256,7 @@ export class RealTimeWebSocketGateway
 
   @Roles(['commercial'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
-  @SubscribeMessage('get_commercial_chats')
+  @SubscribeMessage('commercial:get-chats')
   async handleGetCommercialChats(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user.sub} is getting chat list`);
 
@@ -267,25 +277,6 @@ export class RealTimeWebSocketGateway
           lastMessageAt: chat.lastMessageAt,
         })),
       }),
-    );
-  }
-
-  @Roles(['visitor'])
-  @UseGuards(WsAuthGuard, WsRolesGuard)
-  @SubscribeMessage('start_chat')
-  async handleStartChat(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() event: Event,
-  ) {
-    const { chatId } = event.data as {
-      chatId: string;
-    };
-    const visitorId = client.user.sub;
-    const visitorName = client.user.email || client.user.sub;
-    const command = new StartChatCommand(chatId, visitorId, visitorName);
-    await this.commandBus.execute<StartChatCommand, void>(command);
-    return Promise.resolve(
-      ResponseBuilder.build(true, 'Chat started', event.data),
     );
   }
 }

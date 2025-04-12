@@ -8,6 +8,7 @@ import {
   Post,
   Headers,
   UnauthorizedException,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthUserService } from './services/auth-user.service';
 import { ValidationError } from 'src/context/shared/domain/validation.error';
@@ -116,14 +117,15 @@ export class AuthUserController {
   }
 
   @Get('validate')
+  @HttpCode(HttpStatus.NO_CONTENT)
   async validate(@Headers('Authorization') bearerToken: string) {
     const [prefix, accessToken] = bearerToken.split(' ');
     if (prefix !== 'Bearer') {
       throw new HttpException('Invalid token', HttpStatus.BAD_REQUEST);
     }
     try {
-      const payload = await this.authUserService.validate(accessToken);
-      return payload;
+      await this.authUserService.validate(accessToken);
+      return;
     } catch (error) {
       this.logger.error('Error validating token', error);
       if (error instanceof ValidationError) {

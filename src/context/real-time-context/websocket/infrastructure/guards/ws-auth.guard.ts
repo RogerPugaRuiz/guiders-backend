@@ -20,7 +20,9 @@ export class WsAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const client: Socket = context.switchToWs().getClient();
-    const token = client.handshake.auth?.token as string;
+    const token =
+      (client.handshake.auth?.token as string) ||
+      (client.data?.token as string);
 
     if (!token) {
       this.logger.warn('Conexión rechazada: No hay token en el handshake');
