@@ -260,23 +260,12 @@ export class RealTimeWebSocketGateway
   async handleGetCommercialChats(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user.sub} is getting chat list`);
 
-    const { chats } = await this.queryBus.execute<
+    const response = await this.queryBus.execute<
       FindChatListByParticipantQuery,
       { chats: ChatPrimitives[] }
     >(new FindChatListByParticipantQuery(client.user.sub));
-    this.logger.log(
-      `User ${client.user.sub} has ${chats.length} chats: ${JSON.stringify(chats)}`,
-    );
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Chats obtenidos', {
-        chats: chats.map((chat) => ({
-          id: chat.id,
-          receiverId: chat.participants.find((p) => p.isVisitor)?.id || '',
-          status: chat.status,
-          lastMessage: chat.lastMessage,
-          lastMessageAt: chat.lastMessageAt,
-        })),
-      }),
+      ResponseBuilder.build(true, 'Chats obtenidos', response),
     );
   }
 }
