@@ -268,4 +268,17 @@ export class RealTimeWebSocketGateway
       ResponseBuilder.build(true, 'Chats obtenidos', response),
     );
   }
+
+  @Roles(['visitor', 'commercial'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('health-check')
+  handleHealthCheck(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<Record<string, unknown>>> {
+    const token = client.handshake.auth.token as string;
+    return Promise.resolve(
+      ResponseBuilder.build(true, 'Conexión establecida', { token }),
+    );
+  }
 }
