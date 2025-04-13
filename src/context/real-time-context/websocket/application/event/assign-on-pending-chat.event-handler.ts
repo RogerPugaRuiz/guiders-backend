@@ -21,7 +21,10 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
   ) {}
 
   async handle(event: NewChatCreatedEvent): Promise<void> {
-    const { chatId, createdAt, participants, status, timestamp } = event;
+    const { atributes, timestamp } = event;
+
+    const { chat, publisherId } = atributes;
+    const { id: chatId, participants, status, createdAt } = chat;
 
     const connCommercialList = await this.getCommercialConnections();
 
@@ -33,7 +36,7 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
     );
 
     this.logger.log(
-      `Chat commercials assigned for chatId: ${chatId}, createdAt: ${createdAt.toISOString()}, participants: ${JSON.stringify(participants)}, status: ${status}, timestamp: ${timestamp.toISOString()}`,
+      `Chat commercials assigned for chatId: ${chatId}, createdAt: ${createdAt!.toISOString()}, participants: ${JSON.stringify(participants)}, status: ${status}, timestamp: ${timestamp.toISOString()}`,
     );
 
     this.logger.log(connCommercialList);

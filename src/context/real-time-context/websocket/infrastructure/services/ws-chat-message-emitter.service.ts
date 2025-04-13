@@ -34,17 +34,18 @@ export class WsChatMessageEmitterService implements IChatMessageEmitter {
     if (!to && from.hasRole(ConnectionRole.visitor())) {
       this.ws.server.to(ConnectionRole.commercial().value).emit(
         'chat_message',
-        ResponseBuilder.build(
-          true,
-          `visitor ${from.userId.value} sent a message: ${message} at ${timestamp.toISOString()}`,
-          {
+        ResponseBuilder.create()
+          .addMessage(
+            `visitor ${from.userId.value} sent a message: ${message} at ${timestamp.toISOString()}`,
+          )
+          .addData({
             sender: from.userId.value,
             message,
             chatId: params.chatId,
             timestamp: timestamp.getTime(),
-          },
-          'chat_message',
-        ),
+          })
+          .addType('chat_message')
+          .build(),
       );
       return Promise.resolve(okVoid());
     }
@@ -53,17 +54,19 @@ export class WsChatMessageEmitterService implements IChatMessageEmitter {
     const toUserId = to!.userId.value;
     this.ws.server.to(toSocketId).emit(
       'chat_message',
-      ResponseBuilder.build(
-        true,
-        `user ${fromUserId} sent a message: ${message} to user ${toUserId} at ${timestamp.toISOString()}`,
-        {
+      ResponseBuilder.create()
+        .addSuccess(true)
+        .addMessage(
+          `user ${fromUserId} sent a message: ${message} to user ${toUserId} at ${timestamp.toISOString()}`,
+        )
+        .addData({
           sender: fromUserId,
           message,
           chatId: params.chatId,
           timestamp: timestamp.getTime(),
-        },
-        'chat_message',
-      ),
+        })
+        .addType('chat_message')
+        .build(),
     );
 
     return Promise.resolve(okVoid());

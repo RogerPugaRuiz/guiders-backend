@@ -11,14 +11,16 @@ import { StatusUpdatedEvent } from './events/status-updated.event';
 import { CreatedAt } from 'src/context/chat-context/message/domain/value-objects/created-at';
 import { ParticipantAssignedEvent } from './events/participant-assigned.event';
 
+export interface ParticipantPrimitives {
+  id: string;
+  name: string;
+  isCommercial: boolean;
+  isVisitor: boolean;
+}
+
 export interface ChatPrimitives {
   id: string;
-  participants: {
-    id: string;
-    name: string;
-    isCommercial: boolean;
-    isVisitor: boolean;
-  }[];
+  participants: ParticipantPrimitives[];
   status: string;
   lastMessage: string | null;
   lastMessageAt: Date | null;
@@ -88,12 +90,10 @@ export class Chat extends AggregateRoot {
     );
 
     pendingChat.apply(
-      new NewChatCreatedEvent(
-        pendingChat.id.value, // chatId
-        pendingChat.participants.value, // participants
-        pendingChat.status.value, // status
-        createdAt, // createdAt
-      ),
+      new NewChatCreatedEvent({
+        chat: pendingChat.toPrimitives(),
+        publisherId: visitor.id,
+      }),
     );
 
     return pendingChat;
@@ -116,15 +116,15 @@ export class Chat extends AggregateRoot {
     const participant = participantOptional.get();
 
     this.apply(
-      new ParticipantAssignedEvent(
-        this.id.value,
-        participant.id,
-        participant.name,
-        participant.isCommercial,
-        participant.isVisitor,
-        participant.assignedAt,
-        participant.lastSeenAt,
-      ),
+      new ParticipantAssignedEvent({
+        chat: this.toPrimitives(),
+        newParticipant: {
+          id: participant.id,
+          name: participant.name,
+          isCommercial: participant.isCommercial,
+          isVisitor: participant.isVisitor,
+        },
+      }),
     );
 
     return this;

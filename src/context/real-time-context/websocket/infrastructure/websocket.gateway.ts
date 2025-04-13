@@ -29,9 +29,13 @@ import { DisconnectUserCommand } from '../application/command/disconnect/disconn
 import { RealTimeMessageSenderCommand } from 'src/context/real-time-context/websocket/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
+import {
+  ChatPrimitives,
+  ParticipantPrimitives,
+} from 'src/context/chat-context/chat/domain/chat/chat';
 import { FindChatListByParticipantQuery } from 'src/context/chat-context/chat/application/read/find-chat-list-by-participant.query';
 import { StartChatCommand } from 'src/context/chat-context/chat/application/create/pending/start-chat.command';
+import { ConnectionUser } from '../domain/connection-user';
 
 export interface Event {
   type?: string;
@@ -56,24 +60,48 @@ export type Response<T extends Record<string, unknown>> =
   | ErrorResponse
   | SuccessResponse<T>;
 
-export class ResponseBuilder {
-  static build<T extends Record<string, unknown>>(
-    success: boolean,
-    message: string,
-    data: T = {} as T,
-    type: string = 'notification',
-  ): SuccessResponse<T> | ErrorResponse {
+export class ResponseBuilder<T extends Record<string, unknown>> {
+  private success: boolean = true;
+  private message: string = 'Operación exitosa';
+  private data: T = {} as T;
+  private type: string = 'notification';
+
+  static create<T extends Record<string, unknown>>(): ResponseBuilder<T> {
+    return new ResponseBuilder<T>();
+  }
+
+  addSuccess(success: boolean): this {
+    this.success = success;
+    return this;
+  }
+
+  addMessage(message: string): this {
+    this.message = message;
+    return this;
+  }
+
+  addData(data: T): this {
+    this.data = data;
+    return this;
+  }
+
+  addType(type: string): this {
+    this.type = type;
+    return this;
+  }
+
+  build(): SuccessResponse<T> | ErrorResponse {
     const timestamp = Date.now();
-    if (success) {
+    if (this.success) {
       return {
-        type,
-        message,
+        type: this.type,
+        message: this.message,
         timestamp,
-        data,
+        data: this.data,
       };
     }
     return {
-      error: message,
+      error: this.message,
       timestamp,
     };
   }
@@ -144,6 +172,62 @@ export class RealTimeWebSocketGateway
     }
   }
 
+  sendNotificationToParticipants(params: {
+    participants: ConnectionUser[];
+    notificationType?: 'error' | 'success';
+    message?: string;
+    data?: Record<string, unknown>;
+  }) {
+    const {
+      participants,
+      notificationType = 'success',
+      message = 'Operación exitosa',
+      data = {},
+    } = params;
+
+    if (!participants || participants.length === 0) {
+      this.logger.warn('No participants to send notification');
+      return;
+    }
+
+    if (!this.server) {
+      this.logger.error('Socket server not set');
+      return;
+    }
+
+    const response = ResponseBuilder.create()
+      .addType(notificationType)
+      .addMessage(message)
+      .addData(data)
+      .build();
+
+    participants.forEach((participant) => {
+      if (participant.isConnected()) {
+        this.server
+          .to(participant.socketId.get().value)
+          .emit('notification', response);
+      }
+    });
+  }
+
+  sendNotification(
+    payload: Record<string, unknown>,
+    recipientId: string,
+    type?: string,
+  ) {
+    if (!this.server) {
+      this.logger.error('Socket server not set');
+      return;
+    }
+    this.server.to(recipientId).emit(
+      type || 'notification',
+      ResponseBuilder.create()
+        .addData(payload)
+        .addType(type || 'notification')
+        .build(),
+    );
+  }
+
   @Roles(['visitor'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:send-message')
@@ -171,12 +255,17 @@ export class RealTimeWebSocketGateway
 
     if (result.isErr()) {
       return Promise.resolve(
-        ResponseBuilder.build(false, result.error.message),
+        ResponseBuilder.create()
+          .addSuccess(false)
+          .addMessage(result.error.message)
+          .build(),
       );
     }
 
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Mensaje enviado al comercial'),
+      ResponseBuilder.create()
+        .addMessage('Mensaje enviado al comercial')
+        .build(),
     );
   }
 
@@ -195,7 +284,10 @@ export class RealTimeWebSocketGateway
     const command = new StartChatCommand(chatId, visitorId, visitorName);
     await this.commandBus.execute<StartChatCommand, void>(command);
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Chat started', event.data),
+      ResponseBuilder.create()
+        .addMessage('Chat started')
+        .addData(event.data)
+        .build(),
     );
   }
 
@@ -206,11 +298,10 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    return ResponseBuilder.build(
-      true,
-      'Mensaje enviado al visitante',
-      event.data,
-    );
+    return ResponseBuilder.create()
+      .addMessage('Notificación recibida')
+      .addData(event.data)
+      .build();
   }
 
   @Roles(['commercial'])
@@ -241,16 +332,23 @@ export class RealTimeWebSocketGateway
     >(command);
     if (result.isErr()) {
       return Promise.resolve(
-        ResponseBuilder.build(false, result.error.message),
+        ResponseBuilder.create()
+          .addSuccess(false)
+          .addMessage(result.error.message)
+          .build(),
       );
     }
     this.logger.log(
       `User ${client.user.sub} has sent message to visitor: ${message}`,
     );
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Mensaje enviado al visitante', {
-        message,
-      }),
+      ResponseBuilder.create()
+        .addSuccess(true)
+        .addMessage('Mensaje enviado al visitante')
+        .addData({
+          message,
+        })
+        .build(),
     );
   }
 
@@ -265,7 +363,11 @@ export class RealTimeWebSocketGateway
       { chats: ChatPrimitives[] }
     >(new FindChatListByParticipantQuery(client.user.sub));
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Chats obtenidos', response),
+      ResponseBuilder.create()
+        .addSuccess(true)
+        .addMessage('Chats obtenidos')
+        .addData(response)
+        .build(),
     );
   }
 
@@ -278,7 +380,11 @@ export class RealTimeWebSocketGateway
   ): Promise<Response<Record<string, unknown>>> {
     const token = client.handshake.auth.token as string;
     return Promise.resolve(
-      ResponseBuilder.build(true, 'Conexión establecida', { token }),
+      ResponseBuilder.create()
+        .addSuccess(true)
+        .addMessage('Conexión establecida')
+        .addData({ token })
+        .build(),
     );
   }
 }

@@ -11,6 +11,11 @@ import { CHAT_MESSAGE_EMITTER } from 'src/context/real-time-context/websocket/do
 import { WsChatMessageEmitterService } from 'src/context/real-time-context/websocket/infrastructure/services/ws-chat-message-emitter.service';
 import { RealTimeMessageSenderCommandHandler } from '../application/command/message/real-time-message-sender.command-handler';
 import { AssignOnPendingChatEventHandler } from '../application/event/assign-on-pending-chat.event-handler';
+import { NEW_CHAT_NOTIFICATION } from '../domain/new-chat-notification';
+import { WsNewChatNotificationService } from './services/ws-new-chat-notification.service';
+import { NotifyOnParticipantAssignedToChatEventHandler } from '../application/event/notify-on-participant-assigned-to-chat.event-handler';
+import { NOTIFICATION } from '../domain/notification';
+import { WsNotificationService } from './services/ws-notification.service';
 
 @Module({
   imports: [HttpModule],
@@ -24,6 +29,11 @@ import { AssignOnPendingChatEventHandler } from '../application/event/assign-on-
         new WsChatMessageEmitterService(socketServer),
       inject: [RealTimeWebSocketGateway],
     },
+    {
+      provide: NEW_CHAT_NOTIFICATION,
+      useClass: WsNewChatNotificationService,
+    },
+    { provide: NOTIFICATION, useClass: WsNotificationService },
     // usecases
 
     // handlers
@@ -32,6 +42,7 @@ import { AssignOnPendingChatEventHandler } from '../application/event/assign-on-
     FindOneUserBySocketIdQueryHandler,
     RealTimeMessageSenderCommandHandler,
     AssignOnPendingChatEventHandler,
+    NotifyOnParticipantAssignedToChatEventHandler,
   ],
   exports: [],
 })
