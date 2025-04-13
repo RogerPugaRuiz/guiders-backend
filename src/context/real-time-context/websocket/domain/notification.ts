@@ -9,8 +9,9 @@ export const NOTIFICATION = Symbol('NOTIFICATION');
  * @returns {Promise<void>} - A promise that resolves when the notification is sent.
  */
 export interface INotification {
-  notify(
-    payload: Record<string, unknown>,
-    options: { recipientId: string; type?: string },
-  ): Promise<void>;
+  notify(params: {
+    payload: Record<string, unknown>;
+    recipientId: string;
+    type?: string;
+  }): Promise<void>;
 }

@@ -19,13 +19,11 @@ export class NotifyOnParticipantAssignedToChatEventHandler
     const { attributes } = event;
     const { chat, newParticipant } = attributes;
 
-    await this.notification.notify(
-      { chat },
-      {
-        recipientId: newParticipant.id,
-        type: 'commercial:incoming-chats',
-      },
-    );
+    await this.notification.notify({
+      payload: { chat },
+      recipientId: newParticipant.id,
+      type: 'commercial:incoming-chats',
+    });
 
     this.logger.log(
       `Participant assigned to chat: ${chat.id}, new participant: ${newParticipant.id}`,

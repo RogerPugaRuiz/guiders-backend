@@ -9,10 +9,6 @@ import { err, okVoid, Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Inject } from '@nestjs/common';
 import {
-  CHAT_MESSAGE_EMITTER,
-  IChatMessageEmitter,
-} from '../../../domain/message-emitter';
-import {
   CONNECTION_REPOSITORY,
   ConnectionRepository,
 } from '../../../domain/connection.repository';
@@ -28,6 +24,7 @@ import {
   DomainErrorWrapper,
   DomainErrorWrapperBuilder,
 } from 'src/context/shared/domain/wrapper-error';
+import { INotification, NOTIFICATION } from '../../../domain/notification';
 
 @CommandHandler(RealTimeMessageSenderCommand)
 export class RealTimeMessageSenderCommandHandler
@@ -35,8 +32,8 @@ export class RealTimeMessageSenderCommandHandler
     ICommandHandler<RealTimeMessageSenderCommand, Result<void, DomainError>>
 {
   constructor(
-    @Inject(CHAT_MESSAGE_EMITTER)
-    private readonly messageEmitter: IChatMessageEmitter,
+    @Inject(NOTIFICATION)
+    private readonly notification: INotification,
     @Inject(CONNECTION_REPOSITORY)
     private readonly repository: ConnectionRepository,
     private readonly queryBus: QueryBus,
@@ -161,16 +158,16 @@ export class RealTimeMessageSenderCommandHandler
     }
     for (const receiver of receivers) {
       if (receiver.isConnected()) {
-        const result = await this.messageEmitter.emit({
-          from: sender,
-          to: receiver,
-          chatId: chat.id,
-          message,
-          timestamp: createdAt,
+        await this.notification.notify({
+          recipientId: receiver.userId.value,
+          type: 'receive-message',
+          payload: {
+            chatId: chat.id,
+            senderId: sender.userId.value,
+            message,
+            createdAt,
+          },
         });
-        if (result.isErr()) {
-          errorWrapperBuilder.add(result.error);
-        }
       }
     }
 

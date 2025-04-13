@@ -29,10 +29,7 @@ import { DisconnectUserCommand } from '../application/command/disconnect/disconn
 import { RealTimeMessageSenderCommand } from 'src/context/real-time-context/websocket/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import {
-  ChatPrimitives,
-  ParticipantPrimitives,
-} from 'src/context/chat-context/chat/domain/chat/chat';
+import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
 import { FindChatListByParticipantQuery } from 'src/context/chat-context/chat/application/read/find-chat-list-by-participant.query';
 import { StartChatCommand } from 'src/context/chat-context/chat/application/create/pending/start-chat.command';
 import { ConnectionUser } from '../domain/connection-user';

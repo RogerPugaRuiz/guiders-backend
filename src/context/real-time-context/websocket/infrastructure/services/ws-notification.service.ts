@@ -15,14 +15,12 @@ export class WsNotificationService implements INotification {
     private readonly connectionRepository: ConnectionRepository,
     private readonly ws: RealTimeWebSocketGateway,
   ) {}
-  async notify(
-    payload: Record<string, unknown>,
-    options: {
-      recipientId: string;
-      type?: string;
-    },
-  ): Promise<void> {
-    const { recipientId, type } = options;
+  async notify(params: {
+    payload: Record<string, unknown>;
+    recipientId: string;
+    type: string;
+  }): Promise<void> {
+    const { recipientId, type, payload } = params;
     const criteria = new Criteria<ConnectionUser>().addFilter(
       'userId',
       Operator.EQUALS,
