@@ -1,4 +1,4 @@
-import { PrimitiveValueObject } from './primitive-value-object';
+import { PrimitiveValueObject } from '../primitive-value-object';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
 export class UUID extends PrimitiveValueObject<string> {

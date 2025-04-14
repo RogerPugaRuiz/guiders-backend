@@ -5,19 +5,21 @@ export class TrackingVisitorEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  visitorName: string;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  visitorName: string | null;
 
-  @Column({ type: 'number', nullable: false })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  currentUrl: string | null;
+
+  @Column({ type: 'numeric', nullable: false })
   connectionDuration: number;
+
+  @Column({ type: 'boolean', default: false })
+  isConnected: boolean;
 
   @Column({
     type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
-    transformer: {
-      to: (value: Date) => value,
-      from: (value: string) => new Date(value + 'Z'),
-    },
   })
   createdAt: Date;
 
@@ -25,10 +27,6 @@ export class TrackingVisitorEntity {
     type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
     onUpdate: 'CURRENT_TIMESTAMP',
-    transformer: {
-      to: (value: Date) => value,
-      from: (value: string) => new Date(value + 'Z'),
-    },
   })
   updatedAt: Date;
 }

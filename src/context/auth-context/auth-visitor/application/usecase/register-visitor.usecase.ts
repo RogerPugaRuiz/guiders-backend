@@ -15,6 +15,7 @@ import {
   VALIDATE_DOMAIN_API_KEY,
   ValidateDomainApiKey,
 } from '../services/validate-domain-api-key';
+import { EventPublisher } from '@nestjs/cqrs';
 
 @Injectable()
 export class RegisterVisitor {
@@ -23,6 +24,7 @@ export class RegisterVisitor {
     private readonly repository: AuthVisitorRepository,
     @Inject(VALIDATE_DOMAIN_API_KEY)
     private readonly validateDomainApiKey: ValidateDomainApiKey,
+    private readonly publisher: EventPublisher,
   ) {}
 
   async execute(
@@ -54,6 +56,10 @@ export class RegisterVisitor {
       clientID: clientIDValue,
       userAgent: userAgentValue,
     });
-    await this.repository.save(newAccount);
+
+    const newAccountWithPublisher =
+      this.publisher.mergeObjectContext(newAccount);
+    await this.repository.save(newAccountWithPublisher);
+    newAccountWithPublisher.commit();
   }
 }

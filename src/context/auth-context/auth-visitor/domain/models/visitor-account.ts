@@ -5,6 +5,8 @@ import { VisitorAccountLastLoginAt } from './visitor-account-last-login-at';
 import { VisitorAccountClientID } from './visitor-account-client-id';
 import { VisitorAccountUserAgent } from './visitor-account-user-agent';
 import { VisitorAccountApiKey } from './visitor-account-api-key';
+import { VisitorAccountCreatedEvent } from '../events/visitor-account-created.event';
+import { AggregateRoot } from '@nestjs/cqrs';
 
 export interface VisitorAccountPrimitives {
   id: string;
@@ -15,22 +17,24 @@ export interface VisitorAccountPrimitives {
   lastLoginAt: Date | null | undefined;
 }
 
-export class VisitorAccount {
-  private constructor(
+export class VisitorAccount extends AggregateRoot {
+  constructor(
     readonly id: VisitorAccountId,
     readonly clientID: VisitorAccountClientID,
     readonly userAgent: VisitorAccountUserAgent,
     readonly createdAt: VisitorAccountCreatedAt,
     readonly apiKey: VisitorAccountApiKey,
     readonly lastLoginAt: Optional<VisitorAccountLastLoginAt>,
-  ) {}
+  ) {
+    super();
+  }
 
   static create(params: {
     clientID: VisitorAccountClientID;
     userAgent: VisitorAccountUserAgent;
     apiKey: VisitorAccountApiKey;
   }): VisitorAccount {
-    return new VisitorAccount(
+    const newVisitorAccount = new VisitorAccount(
       VisitorAccountId.random(),
       params.clientID,
       params.userAgent,
@@ -38,6 +42,12 @@ export class VisitorAccount {
       params.apiKey,
       Optional.empty(),
     );
+
+    // Dispatch domain events if needed
+    newVisitorAccount.apply(
+      new VisitorAccountCreatedEvent(newVisitorAccount.toPrimitives()),
+    );
+    return newVisitorAccount;
   }
 
   static fromPrimitives(params: {
