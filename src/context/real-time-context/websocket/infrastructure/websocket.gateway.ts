@@ -149,7 +149,10 @@ export class RealTimeWebSocketGateway
     } catch (error) {
       if (error instanceof UnauthorizedException) {
         this.logger.error('Unauthorized connection');
-        this.server.emit('auth_error', { message: 'invalid token' });
+        this.server.emit('auth_error', {
+          message: 'invalid token',
+          token: client.handshake.auth.token as string,
+        });
       }
       if (error instanceof ValidationError) {
         this.logger.error('Validation error');
