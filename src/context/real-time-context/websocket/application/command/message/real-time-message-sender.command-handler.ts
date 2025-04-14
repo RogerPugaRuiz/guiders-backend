@@ -42,7 +42,7 @@ export class RealTimeMessageSenderCommandHandler
   async execute(
     command: RealTimeMessageSenderCommand,
   ): Promise<Result<void, DomainError>> {
-    const { chatId, createdAt, message, senderId } = command;
+    const { id, chatId, createdAt, message, senderId } = command;
 
     const chatOptional = await this.getChat(chatId);
     if (chatOptional.isEmpty()) {
@@ -57,14 +57,15 @@ export class RealTimeMessageSenderCommandHandler
     }
     const sender = senderOptional.get();
 
-    const isVisitor = chat.participants.find(
-      (p) => p.id === senderId,
-    )?.isVisitor;
+    // const isVisitor = chat.participants.find(
+    //   (p) => p.id === senderId,
+    // )?.isVisitor;
 
     // get receiver
     const receiverParticipants = chat.participants.filter(
-      (p) => p.isVisitor !== isVisitor,
+      (p) => p.id !== senderId,
     );
+    // const receiverParticipants = chat.participants;
 
     const receivers: ConnectionUser[] = [];
     for (const participant of receiverParticipants) {
@@ -76,13 +77,14 @@ export class RealTimeMessageSenderCommandHandler
     }
     // --- PROCESS MESSAGE ---
     // Emit the message to the sender
-    const messageResult = await this.emitMessage(
+    const messageResult = await this.emitMessage({
       sender,
       receivers,
       chat,
       message,
       createdAt,
-    );
+      id,
+    });
     if (messageResult.isErr()) {
       const errors = messageResult.error;
       return err(new RealTimeMessageSenderError(errors.message));
@@ -91,6 +93,7 @@ export class RealTimeMessageSenderCommandHandler
     // save message to database
     if (messageResult.isOk()) {
       const saveMessageCommand = new SaveMessageCommand(
+        id,
         chat.id,
         senderId,
         message,
@@ -141,14 +144,21 @@ export class RealTimeMessageSenderCommandHandler
     );
   }
 
-  private async emitMessage(
-    sender: ConnectionUser,
-    receivers: ConnectionUser[],
-    chat: ChatPrimitives,
-    message: string,
-    createdAt: Date,
-  ): Promise<Result<void, DomainErrorWrapper>> {
+  private async emitMessage(params: {
+    sender: ConnectionUser;
+    receivers: ConnectionUser[];
+    chat: ChatPrimitives;
+    message: string;
+    createdAt: Date;
+    id: string;
+  }): Promise<Result<void, DomainErrorWrapper>> {
+    const { sender, receivers, chat, message, createdAt, id } = params;
     const errorWrapperBuilder = new DomainErrorWrapperBuilder();
+    console.log(
+      `Emitting message to ${receivers.length} receivers: ${JSON.stringify(
+        receivers,
+      )}`,
+    );
     if (receivers.length === 0) {
       return err(
         errorWrapperBuilder
@@ -162,6 +172,7 @@ export class RealTimeMessageSenderCommandHandler
           recipientId: receiver.userId.value,
           type: 'receive-message',
           payload: {
+            id,
             chatId: chat.id,
             senderId: sender.userId.value,
             message,

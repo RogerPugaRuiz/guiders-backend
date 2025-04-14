@@ -232,13 +232,15 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    const { message, timestamp, chatId } = event.data as {
+    const { id, message, timestamp, chatId } = event.data as {
+      id: string;
       message: string;
       timestamp: number;
       chatId: string;
     };
 
     const command = new RealTimeMessageSenderCommand(
+      id,
       chatId,
       client.user.sub,
       message,
@@ -308,7 +310,8 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    const { message, timestamp, chatId } = event.data as {
+    const { id, message, timestamp, chatId } = event.data as {
+      id: string;
       message: string;
       timestamp: number;
       chatId: string;
@@ -318,6 +321,7 @@ export class RealTimeWebSocketGateway
     );
 
     const command = new RealTimeMessageSenderCommand(
+      id,
       chatId,
       client.user.sub,
       message,

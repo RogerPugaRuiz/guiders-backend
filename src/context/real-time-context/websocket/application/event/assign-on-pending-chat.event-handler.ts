@@ -23,7 +23,7 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
   async handle(event: NewChatCreatedEvent): Promise<void> {
     const { atributes, timestamp } = event;
 
-    const { chat, publisherId } = atributes;
+    const { chat } = atributes;
     const { id: chatId, participants, status, createdAt } = chat;
 
     const connCommercialList = await this.getCommercialConnections();
