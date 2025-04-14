@@ -8,6 +8,9 @@ export class TrackingVisitorEntity {
   @Column({ type: 'varchar', length: 255 })
   visitorName: string;
 
+  @Column({ type: 'number', nullable: false })
+  connectionDuration: number;
+
   @Column({
     type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',
