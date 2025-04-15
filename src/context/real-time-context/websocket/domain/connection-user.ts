@@ -94,12 +94,7 @@ export class ConnectionUser extends AggregateRoot {
       Optional.of(socketId),
       this.roles,
     );
-    newConnection.apply(
-      new ConnectedEvent(
-        newConnection.userId.value,
-        newConnection.roles.map((role) => role.value),
-      ),
-    );
+    newConnection.apply(new ConnectedEvent(newConnection.toPrimitives()));
     return newConnection;
   }
 
@@ -110,12 +105,7 @@ export class ConnectionUser extends AggregateRoot {
       this.roles,
     );
 
-    newDisconnect.apply(
-      new DisconnectedEvent(
-        newDisconnect.userId.value,
-        newDisconnect.roles.map((role) => role.value),
-      ),
-    );
+    newDisconnect.apply(new DisconnectedEvent(newDisconnect.toPrimitives()));
 
     return newDisconnect;
   }

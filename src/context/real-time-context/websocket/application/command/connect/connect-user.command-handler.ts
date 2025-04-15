@@ -10,6 +10,7 @@ import { ConnectionUser } from '../../../domain/connection-user';
 import { ConnectionSocketId } from '../../../domain/value-objects/connection-socket-id';
 import { ConnectionUserId } from '../../../domain/value-objects/connection-user-id';
 import { ConnectionRole } from '../../../domain/value-objects/connection-role';
+import { INotification, NOTIFICATION } from '../../../domain/notification';
 
 @CommandHandler(ConnectUserCommand)
 export class ConnectUserCommandHandler
@@ -19,6 +20,8 @@ export class ConnectUserCommandHandler
   constructor(
     @Inject(CONNECTION_REPOSITORY)
     private readonly repository: ConnectionRepository,
+    @Inject(NOTIFICATION)
+    private readonly notification: INotification,
     private readonly publisher: EventPublisher,
   ) {}
   async execute(command: ConnectUserCommand): Promise<void> {
@@ -37,6 +40,15 @@ export class ConnectUserCommandHandler
       async (connection) =>
         await this.handleExistingConnection(connection, socketId),
     );
+
+    await this.notification.notify({
+      recipientId: userId,
+      type: 'visitor:connected',
+      payload: {
+        socketId,
+        roles,
+      },
+    });
   }
 
   private async handleExistingConnection(

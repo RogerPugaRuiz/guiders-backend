@@ -16,6 +16,7 @@ import { WsNewChatNotificationService } from './services/ws-new-chat-notificatio
 import { NotifyOnParticipantAssignedToChatEventHandler } from '../application/event/notify-on-participant-assigned-to-chat.event-handler';
 import { NOTIFICATION } from '../domain/notification';
 import { WsNotificationService } from './services/ws-notification.service';
+import { NotifyOnParticipantOnlineStatusUpdatedEventHandler } from '../application/event/notify-on-participant-online-status-updated.event-handler';
 
 @Module({
   imports: [HttpModule],
@@ -43,6 +44,7 @@ import { WsNotificationService } from './services/ws-notification.service';
     RealTimeMessageSenderCommandHandler,
     AssignOnPendingChatEventHandler,
     NotifyOnParticipantAssignedToChatEventHandler,
+    NotifyOnParticipantOnlineStatusUpdatedEventHandler,
   ],
   exports: [],
 })

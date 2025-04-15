@@ -4,6 +4,7 @@ export class Participant {
     readonly name: string,
     readonly isCommercial: boolean,
     readonly isVisitor: boolean,
+    readonly isOnline: boolean = false,
     readonly assignedAt: Date = new Date(),
     readonly lastSeenAt: Date | null = null,
   ) {
@@ -23,12 +24,14 @@ export class Participant {
     name: string;
     isCommercial: boolean;
     isVisitor: boolean;
+    isOnline?: boolean;
   }): Participant {
     return new Participant(
       params.id,
       params.name,
       params.isCommercial,
       params.isVisitor,
+      params.isOnline ?? true,
     );
   }
 
@@ -38,8 +41,21 @@ export class Participant {
       this.name,
       this.isCommercial,
       this.isVisitor,
+      this.isOnline,
       this.assignedAt,
       lastSeenAt,
+    );
+  }
+
+  public updateOnlineStatus(isOnline: boolean): Participant {
+    return new Participant(
+      this.id,
+      this.name,
+      this.isCommercial,
+      this.isVisitor,
+      isOnline,
+      this.assignedAt,
+      this.lastSeenAt,
     );
   }
 }

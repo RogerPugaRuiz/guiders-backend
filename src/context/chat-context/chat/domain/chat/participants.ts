@@ -82,4 +82,14 @@ export class Participants {
       p.id === id ? updatedParticipant : p,
     );
   }
+
+  public updateParticipant(updatedParticipant: Participant): void {
+    const index = this._participants.findIndex(
+      (participant) => participant.id === updatedParticipant.id,
+    );
+    if (index === -1) {
+      throw new Error(`Participant with id ${updatedParticipant.id} not found`);
+    }
+    this._participants[index] = updatedParticipant;
+  }
 }

@@ -1,7 +1,8 @@
+import { ConnectionUserPrimitive } from '../connection-user';
+
 export class ConnectedEvent {
   constructor(
-    public readonly connectionId: string,
-    public readonly roles: string[],
+    public readonly connection: ConnectionUserPrimitive,
     public readonly timestamp: Date = new Date(),
   ) {}
 }

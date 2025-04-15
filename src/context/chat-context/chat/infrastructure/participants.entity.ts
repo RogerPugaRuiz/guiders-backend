@@ -23,6 +23,12 @@ export class ParticipantsEntity {
   })
   isVisitor: boolean;
 
+  @Column({
+    type: 'boolean',
+    nullable: false,
+  })
+  isOnline: boolean;
+
   @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   assignedAt: Date;
 

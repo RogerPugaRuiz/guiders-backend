@@ -10,12 +10,14 @@ import { MessageCreatedEvent } from 'src/context/chat-context/message/domain/eve
 import { StatusUpdatedEvent } from './events/status-updated.event';
 import { CreatedAt } from 'src/context/chat-context/message/domain/value-objects/created-at';
 import { ParticipantAssignedEvent } from './events/participant-assigned.event';
+import { ParticipantOnlineStatusUpdatedEvent } from './events/participant-online-status-updated.event';
 
 export interface ParticipantPrimitives {
   id: string;
   name: string;
   isCommercial: boolean;
   isVisitor: boolean;
+  isOnline: boolean;
 }
 
 export interface ChatPrimitives {
@@ -123,6 +125,7 @@ export class Chat extends AggregateRoot {
           name: participant.name,
           isCommercial: participant.isCommercial,
           isVisitor: participant.isVisitor,
+          isOnline: participant.isOnline,
         },
       }),
     );
@@ -192,6 +195,33 @@ export class Chat extends AggregateRoot {
     return updatedChat;
   }
 
+  public updateParticipantOnlineStatus(
+    participantId: string,
+    isOnline: boolean,
+  ): Chat {
+    const participantOptional = this.participants.getParticipant(participantId);
+
+    if (participantOptional.isEmpty()) {
+      throw new Error('Participant not found');
+    }
+
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.updateOnlineStatus(isOnline);
+
+    this.participants.updateParticipant(updatedParticipant);
+
+    const attributes = {
+      updatedParticipant: {
+        id: updatedParticipant.id,
+        isOnline: updatedParticipant.isOnline,
+      },
+      chat: this.toPrimitives(),
+    };
+    this.apply(new ParticipantOnlineStatusUpdatedEvent(attributes));
+
+    return this;
+  }
+
   public toPrimitives(): ChatPrimitives {
     return {
       id: this.id.value,
@@ -200,6 +230,7 @@ export class Chat extends AggregateRoot {
         name: participant.name,
         isCommercial: participant.isCommercial,
         isVisitor: participant.isVisitor,
+        isOnline: participant.isOnline,
       })),
       status: this.status.value,
       lastMessage: this.lastMessage ? this.lastMessage.value : null,

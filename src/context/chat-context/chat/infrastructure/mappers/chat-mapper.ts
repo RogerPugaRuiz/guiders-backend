@@ -10,6 +10,7 @@ export class ChatMapper {
       name: participant.name,
       isCommercial: participant.isCommercial,
       isVisitor: participant.isVisitor,
+      isOnline: participant.isOnline,
       assignedAt: participant.assignedAt,
       lastSeenAt: participant.lastSeenAt,
     }));
@@ -29,6 +30,7 @@ export class ChatMapper {
             name: participant.name,
             isCommercial: participant.isCommercial,
             isVisitor: participant.isVisitor,
+            isOnline: participant.isOnline,
             assignedAt: participant.assignedAt,
             lastSeenAt: participant.lastSeenAt,
           }))

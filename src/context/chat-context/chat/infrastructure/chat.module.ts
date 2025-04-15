@@ -19,6 +19,8 @@ import { USER_FINDER } from '../application/read/get-username-by-id';
 import { UserFinderAdapterService } from './user-finder-adapter.service';
 import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../application/update/update-chat-participants-on-commercials-assigned.event-handler';
 import { FindChatListByParticipantQueryHandler } from '../application/read/find-chat-list-by-participant.query-handler';
+import { UpdateParticipantStatusOnConnectedEventHandler } from '../application/update/update-participant-status-on-connected.event-handler';
+import { UpdateParticipantStatusOnDisconnectedEventHandler } from '../application/update/update-participant-status-on-disconnected.event-handler';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { FindChatListByParticipantQueryHandler } from '../application/read/find-
 
     // events
     UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+    UpdateParticipantStatusOnConnectedEventHandler,
+    UpdateParticipantStatusOnDisconnectedEventHandler,
 
     // services
     TokenVerifyService,

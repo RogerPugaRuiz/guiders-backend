@@ -7,6 +7,7 @@ import {
 } from '../../../domain/connection.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { ConnectionUser } from '../../../domain/connection-user';
+import { INotification, NOTIFICATION } from '../../../domain/notification';
 
 @CommandHandler(DisconnectUserCommand)
 export class DisconnectUserCommandHandler
@@ -17,6 +18,8 @@ export class DisconnectUserCommandHandler
     @Inject(CONNECTION_REPOSITORY)
     private readonly connectionRepository: ConnectionRepository,
     private readonly publisher: EventPublisher,
+    @Inject(NOTIFICATION)
+    private readonly notification: INotification,
   ) {}
   async execute(command: DisconnectUserCommand): Promise<void> {
     const { userId } = command;
@@ -27,13 +30,21 @@ export class DisconnectUserCommandHandler
     );
 
     const foundConnection = await this.connectionRepository.findOne(criteria);
-    return await foundConnection.fold(
+    await foundConnection.fold(
       async () => {
         this.logger.error('Connection not found');
         return Promise.resolve();
       },
       async (connection) => await this.handleExistingConnection(connection),
     );
+
+    await this.notification.notify({
+      recipientId: userId,
+      type: 'visitor:disconnected',
+      payload: {
+        userId,
+      },
+    });
   }
 
   private async handleExistingConnection(
