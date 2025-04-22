@@ -21,6 +21,7 @@ import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../appl
 import { FindChatListByParticipantQueryHandler } from '../application/read/find-chat-list-by-participant.query-handler';
 import { UpdateParticipantStatusOnConnectedEventHandler } from '../application/update/update-participant-status-on-connected.event-handler';
 import { UpdateParticipantStatusOnDisconnectedEventHandler } from '../application/update/update-participant-status-on-disconnected.event-handler';
+import { SaveMessageCommandHandler } from '../application/create/message/save-message.command-handler';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { UpdateParticipantStatusOnDisconnectedEventHandler } from '../applicatio
     UpdateChatParticipantsOnCommercialsAssignedEventHandler,
     UpdateParticipantStatusOnConnectedEventHandler,
     UpdateParticipantStatusOnDisconnectedEventHandler,
+    SaveMessageCommandHandler,
 
     // services
     TokenVerifyService,

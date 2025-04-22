@@ -1,10 +1,14 @@
 import { IEvent } from '@nestjs/cqrs';
+import { ChatPrimitives } from '../chat';
 
 export class StatusUpdatedEvent implements IEvent {
   constructor(
-    public readonly chatId: string,
-    public readonly oldStatus: string,
-    public readonly newStatus: string,
-    public readonly timestamp: Date = new Date(),
+    public readonly params: {
+      timestamp: Date;
+      attributes: {
+        chat: ChatPrimitives;
+        oldStatus: string;
+      };
+    },
   ) {}
 }

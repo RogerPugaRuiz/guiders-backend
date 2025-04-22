@@ -17,6 +17,8 @@ import { NotifyOnParticipantAssignedToChatEventHandler } from '../application/ev
 import { NOTIFICATION } from '../domain/notification';
 import { WsNotificationService } from './services/ws-notification.service';
 import { NotifyOnParticipantOnlineStatusUpdatedEventHandler } from '../application/event/notify-on-participant-online-status-updated.event-handler';
+import { NotifyOnChatStateUpdatedEventHandler } from '../application/event/notify-on-chat-state-updated.event-handler';
+import { NotifyOnChatLastMessageUpdatedEventHandler } from '../application/event/notify-on-chat-last-message-updated.event-handler';
 
 @Module({
   imports: [HttpModule],
@@ -45,6 +47,8 @@ import { NotifyOnParticipantOnlineStatusUpdatedEventHandler } from '../applicati
     AssignOnPendingChatEventHandler,
     NotifyOnParticipantAssignedToChatEventHandler,
     NotifyOnParticipantOnlineStatusUpdatedEventHandler,
+    NotifyOnChatStateUpdatedEventHandler,
+    NotifyOnChatLastMessageUpdatedEventHandler,
   ],
   exports: [],
 })

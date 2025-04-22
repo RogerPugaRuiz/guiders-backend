@@ -5,12 +5,12 @@ import { Status } from './value-objects/status';
 import { AggregateRoot } from '@nestjs/cqrs';
 import { Participants } from './participants';
 import { NewChatCreatedEvent } from './events/new-chat-created.event';
-import { Message } from 'src/context/chat-context/message/domain/message';
-import { MessageCreatedEvent } from 'src/context/chat-context/message/domain/events/message-created.event';
 import { StatusUpdatedEvent } from './events/status-updated.event';
 import { CreatedAt } from 'src/context/chat-context/message/domain/value-objects/created-at';
 import { ParticipantAssignedEvent } from './events/participant-assigned.event';
 import { ParticipantOnlineStatusUpdatedEvent } from './events/participant-online-status-updated.event';
+import { MessagePrimitives } from 'src/context/chat-context/message/domain/message';
+import { ChatUpdatedWithNewMessageEvent } from './events/chat-updated-with-new-message.event';
 
 export interface ParticipantPrimitives {
   id: string;
@@ -26,7 +26,7 @@ export interface ChatPrimitives {
   status: string;
   lastMessage: string | null;
   lastMessageAt: Date | null;
-  createdAt: Date | null;
+  createdAt: Date;
 }
 
 export class Chat extends AggregateRoot {
@@ -36,7 +36,7 @@ export class Chat extends AggregateRoot {
     readonly participants: Participants,
     readonly lastMessage: LastMessage | null,
     readonly lastMessageAt: LastMessageAt | null,
-    readonly createdAt: CreatedAt | null = null,
+    readonly createdAt: CreatedAt,
   ) {
     super();
   }
@@ -52,7 +52,7 @@ export class Chat extends AggregateRoot {
     status: string;
     lastMessage: string | null | undefined;
     lastMessageAt: Date | null | undefined;
-    createdAt: Date | null | undefined;
+    createdAt: Date;
   }): Chat {
     return new Chat(
       ChatId.create(params.id),
@@ -62,7 +62,7 @@ export class Chat extends AggregateRoot {
       params.lastMessageAt
         ? LastMessageAt.create(new Date(params.lastMessageAt))
         : null,
-      params.createdAt ? CreatedAt.create(params.createdAt) : null,
+      CreatedAt.create(new Date(params.createdAt)),
     );
   }
 
@@ -133,42 +133,57 @@ export class Chat extends AggregateRoot {
     return this;
   }
 
-  public canAddMessage(message: Message): Chat {
-    if (this.status.value === 'CLOSED') {
+  public canAddMessage(message: MessagePrimitives): Chat {
+    if (this.status.equals(Status.CLOSED)) {
       throw new Error('Chat is closed');
     }
 
-    if (
-      this.lastMessageAt &&
-      message.createdAt.value <= this.lastMessageAt.value
-    ) {
+    if (this.lastMessageAt && message.createdAt <= this.lastMessageAt.value) {
       throw new Error('Message is older than last message');
     }
 
-    const lastMessage = LastMessage.create(message.content.value);
-    const lastMessageAt = LastMessageAt.create(message.createdAt.value);
+    const lastMessage = LastMessage.create(message.content);
+    const lastMessageAt = LastMessageAt.create(message.createdAt);
+    this.participants.setLastSeenAt(message.senderId, message.createdAt);
 
-    this.participants.setLastSeenAt(
-      message.senderId.value,
-      message.createdAt.value,
-    );
+    const isPendingWithCommercial =
+      this.status.equals(Status.PENDING) &&
+      this.participants
+        .getParticipant(message.senderId)
+        .map((participant) => participant.isCommercial)
+        .orElse(false);
+
+    const updatedStatus = isPendingWithCommercial ? Status.ACTIVE : this.status;
 
     const updatedChat = new Chat(
       this.id,
-      this.status,
+      updatedStatus,
       this.participants,
       lastMessage,
       lastMessageAt,
+      this.createdAt,
     );
 
+    if (isPendingWithCommercial) {
+      updatedChat.apply(
+        new StatusUpdatedEvent({
+          timestamp: new Date(),
+          attributes: {
+            chat: updatedChat.toPrimitives(),
+            oldStatus: this.status.value,
+          },
+        }),
+      );
+    }
+
     updatedChat.apply(
-      new MessageCreatedEvent(
-        message.id.value,
-        message.chatId.value,
-        message.senderId.value,
-        message.content.value,
-        message.createdAt.value,
-      ),
+      new ChatUpdatedWithNewMessageEvent({
+        timestamp: new Date(),
+        attributes: {
+          chat: updatedChat.toPrimitives(),
+          message,
+        },
+      }),
     );
 
     return updatedChat;
@@ -184,13 +199,16 @@ export class Chat extends AggregateRoot {
       this.participants,
       this.lastMessage,
       this.lastMessageAt,
+      this.createdAt,
     );
     updatedChat.apply(
-      new StatusUpdatedEvent(
-        this.id.value, // chatId
-        this.status.value, // status
-        Status.ACTIVE.value, // newStatus
-      ),
+      new StatusUpdatedEvent({
+        timestamp: new Date(),
+        attributes: {
+          chat: updatedChat.toPrimitives(),
+          oldStatus: this.status.value,
+        },
+      }),
     );
     return updatedChat;
   }
@@ -235,7 +253,7 @@ export class Chat extends AggregateRoot {
       status: this.status.value,
       lastMessage: this.lastMessage ? this.lastMessage.value : null,
       lastMessageAt: this.lastMessageAt ? this.lastMessageAt.value : null,
-      createdAt: this.createdAt ? this.createdAt.value : null,
+      createdAt: this.createdAt.value,
     };
   }
 }

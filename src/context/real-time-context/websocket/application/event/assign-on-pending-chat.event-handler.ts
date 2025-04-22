@@ -34,12 +34,6 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
         connCommercialList.map((conn) => conn.userId.value),
       ),
     );
-
-    this.logger.log(
-      `Chat commercials assigned for chatId: ${chatId}, createdAt: ${createdAt!.toISOString()}, participants: ${JSON.stringify(participants)}, status: ${status}, timestamp: ${timestamp.toISOString()}`,
-    );
-
-    this.logger.log(connCommercialList);
   }
 
   async getCommercialConnections() {

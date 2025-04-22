@@ -1,12 +1,8 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
 import { SaveMessageCommand } from './save-message.command';
 import { err, okVoid, Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import {
-  IMessageRepository,
-  MESSAGE_REPOSITORY,
-} from 'src/context/chat-context/message/domain/message.repository';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
@@ -16,25 +12,21 @@ import {
   ChatCanNotSaveMessageError,
   ChatNotFoundError,
 } from '../../../domain/chat/errors/errors';
-import { Message } from 'src/context/chat-context/message/domain/message';
-import { SenderId } from 'src/context/chat-context/message/domain/value-objects/sender-id';
-import { Content } from 'src/context/chat-context/message/domain/value-objects/content';
-import { CreatedAt } from 'src/context/chat-context/message/domain/value-objects/created-at';
 
 @CommandHandler(SaveMessageCommand)
 export class SaveMessageCommandHandler
   implements ICommandHandler<SaveMessageCommand, Result<void, DomainError>>
 {
+  private readonly logger = new Logger(SaveMessageCommandHandler.name);
   constructor(
-    @Inject(MESSAGE_REPOSITORY)
-    private readonly messageRepository: IMessageRepository,
     @Inject(CHAT_REPOSITORY)
     private readonly chatRepository: IChatRepository,
+    private readonly publisher: EventPublisher,
   ) {}
   async execute(
     command: SaveMessageCommand,
   ): Promise<Result<void, DomainError>> {
-    const { chatId, message, createdAt, senderId } = command;
+    const { chatId, message, createdAt, senderId, id } = command;
     const optionalChat = await this.chatRepository.findById(
       ChatId.create(chatId),
     );
@@ -43,17 +35,19 @@ export class SaveMessageCommandHandler
     }
     const { chat } = optionalChat.get();
 
-    const messageObj = Message.create({
-      chatId: ChatId.create(chatId),
-      senderId: SenderId.create(senderId),
-      content: Content.create(message),
-      createdAt: CreatedAt.create(createdAt),
-    });
     try {
-      const updatedChat = chat.canAddMessage(messageObj);
-      await this.chatRepository.save(updatedChat);
-      await this.messageRepository.save(messageObj);
+      const updatedChat = chat.canAddMessage({
+        chatId,
+        content: message,
+        createdAt,
+        senderId,
+        id,
+      });
+      const chatWithEvents = this.publisher.mergeObjectContext(updatedChat);
+      await this.chatRepository.save(chatWithEvents);
+      chatWithEvents.commit();
     } catch (error) {
+      this.logger.error('Error saving message', error);
       return err(new ChatCanNotSaveMessageError());
     }
     return okVoid();

@@ -9,7 +9,7 @@ export interface MessagePrimitives {
   chatId: string;
   senderId: string;
   content: string;
-  createdAt: number;
+  createdAt: Date;
 }
 
 export class Message {
@@ -63,7 +63,7 @@ export class Message {
       chatId: this.chatId.value,
       senderId: this.senderId.value,
       content: this.content.value,
-      createdAt: this.createdAt.value.getTime(),
+      createdAt: this.createdAt.value,
     };
   }
 }

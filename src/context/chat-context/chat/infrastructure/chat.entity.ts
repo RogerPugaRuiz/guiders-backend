@@ -33,5 +33,5 @@ export class ChatEntity {
   lastMessageAt: Date | null;
 
   @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date | null;
+  createdAt: Date;
 }

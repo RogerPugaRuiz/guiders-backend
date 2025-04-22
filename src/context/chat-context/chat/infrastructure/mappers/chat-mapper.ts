@@ -17,7 +17,7 @@ export class ChatMapper {
     entity.status = chat.status.value;
     entity.lastMessage = chat.lastMessage ? chat.lastMessage.value : null;
     entity.lastMessageAt = chat.lastMessageAt ? chat.lastMessageAt.value : null;
-    entity.createdAt = chat.createdAt ? chat.createdAt.value : null;
+    entity.createdAt = chat.createdAt.value;
     return entity;
   }
 
