@@ -9,3 +9,17 @@
 7. No utilices código innecesario o redundante.
 8. No uses código de otras personas sin darles crédito.
 9. Antes de escribir código, asegúrate de entender el problema, la solución que estás implementando y que tienes toda la información necesaria.
+10. Para organizar el proyecto si tienes que crear una nueva carpeta quiero que esta exprese el propósito de su contenido y no sea una carpeta técnica como "utils" o "helpers". Por ejemplo "email" o "auth".
+11. Nombres de eventHandlers tienen que tener la siguiente estructura: <newAction>On<oldAction>EventHandler. Por ejemplo: CreateUserOnCreateUserEventHandler.
+12. Utiliza DDD (Domain Driven Design) y CQRS (Command Query Responsibility Segregation) para estructurar el código.
+13. Para CQRS utiliza la librería @nestjs/cqrs.  
+14. Código siempre en inglés pero los comentarios en español.
+15. La carpeta `application` debe seguir esta estructura:  
+  - application  
+    - create  
+    - delete  
+    - update  
+    - find  
+    - find-all  
+    - events  
+16. En los tests, si se requiere un uuid, este debe generarse utilizando la clase `Uuid` ubicada en `src/context/shared/domain/value-objects/uuid.ts`.
