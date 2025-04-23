@@ -15,14 +15,14 @@ import { Filter, Operator, Criteria } from 'src/context/shared/domain/criteria';
 import { base64ToCursor } from 'src/context/shared/infrastructure/utils/base64-to-cursor.util';
 import { cursorToBase64 } from 'src/context/shared/infrastructure/utils/cursor-to-base64.util';
 import { ok, err } from 'src/context/shared/domain/result';
-import { PaginateEndOfStreamError, PaginateError } from '../../domain/errors';
+import { PaginateError } from '../../domain/errors';
 export type MessagePaginateQueryResult = Result<
   {
     messages: MessagePrimitives[];
     total: number;
     cursor: string;
   },
-  PaginateError | PaginateEndOfStreamError
+  PaginateError
 >;
 
 @QueryHandler(MessagePaginateQuery)
@@ -47,11 +47,14 @@ export class MessagePaginateQueryHandler
       ];
 
       // Decodificar el cursor si existe
-      const criteriaCursor = base64ToCursor<Message>(cursor);
+      const criteriaCursor = cursor ? base64ToCursor(cursor) : undefined;
+
+      // Determinar la dirección de ordenación (puede venir de la query o del cursor)
+      const orderDirection = criteriaCursor?.direction || 'ASC';
 
       // Construir criteria con filtros, orden, limit y cursor
       let criteria = new Criteria<Message>(filters)
-        .orderByField('createdAt', 'DESC')
+        .orderByField('createdAt', orderDirection)
         .setLimit(limit ?? 10);
       if (criteriaCursor) {
         criteria = criteria.setCursor(criteriaCursor);
@@ -65,10 +68,24 @@ export class MessagePaginateQueryHandler
       // Calcular el nuevo cursor (si hay más mensajes)
       let newCursor = '';
       if (messages.length > 0) {
-        // El último mensaje es el nuevo cursor
+        // El último mensaje es el nuevo cursor, incluyendo direction
         newCursor = cursorToBase64<Message>({
           field: 'createdAt',
-          value: messages[messages.length - 1].createdAt,
+          value: {
+            createdAt: messages[messages.length - 1].createdAt.value,
+            id: messages[messages.length - 1].id.value,
+          },
+          direction: orderDirection,
+        });
+      }
+
+      // Si no hay mensajes y no hay cursor, retornar el mismo cursor
+      if (!newCursor && cursor) {
+        return ok({
+          messages: [],
+          total: 0,
+          endOfStream: true,
+          cursor: cursor,
         });
       }
 

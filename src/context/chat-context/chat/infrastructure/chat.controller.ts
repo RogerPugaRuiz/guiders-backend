@@ -55,8 +55,8 @@ export class ChatController {
   @UseGuards(AuthGuard, RolesGuard)
   async messagePaginate(
     @Param('chatId') chatId: string,
-    @Query('cursor') cursor: string,
     @Query('limit') limit: string = '10',
+    @Query('cursor') cursor?: string,
   ): Promise<any> {
     // Convertir limit a number de forma segura
     const parsedLimit = Number(limit) || 10;

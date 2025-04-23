@@ -73,6 +73,9 @@ export class CriteriaConverter {
     let cursorClause = '';
     if (criteria.cursor) {
       const value = criteria.cursor.value as { createdAt: Date; id: string };
+      console.warn(
+        `Cursor: ${JSON.stringify(value)}, field: ${criteria.cursor?.field as string}, direction: ${criteria.orderBy?.direction}`,
+      );
       const cursorColumn = getColumnName(String(criteria.cursor.field));
       if (
         criteria.orderBy &&

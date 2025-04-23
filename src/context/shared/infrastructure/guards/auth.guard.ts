@@ -41,17 +41,17 @@ export class AuthGuard implements CanActivate {
         if (typ !== 'access') {
           throw new UnauthorizedException('Token inválido');
         }
-        if (username === undefined) {
-          throw new UnauthorizedException('No se encontró el username');
-        }
         request.user = {
           id: sub,
           roles: role,
-          username: username as string,
-          email: email as string,
+          username: (username as string) ?? '',
+          email: (email as string) ?? '',
         };
       } catch (error) {
-        throw new UnauthorizedException('No autorizado');
+        if (error instanceof Error) {
+          throw new UnauthorizedException(error.message);
+        }
+        throw new UnauthorizedException('Unauthorized access');
       }
     } catch (error) {
       this.logger.error(`Error en el guard de autenticación : ${error}`);

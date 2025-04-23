@@ -1,12 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  Criteria,
-  Filter,
-  FilterGroup,
-  Operator,
-} from 'src/context/shared/domain/criteria';
+import { Criteria } from 'src/context/shared/domain/criteria';
 import { Optional } from 'src/context/shared/domain/optional';
 import { Message } from '../domain/message';
 import { MessageEntity } from './entities/message.entity';
@@ -18,6 +13,7 @@ import { CriteriaConverter } from 'src/context/shared/infrastructure/criteria-co
 
 @Injectable()
 export class TypeOrmMessageService implements IMessageRepository {
+  private readonly logger = new Logger(TypeOrmMessageService.name);
   constructor(
     @InjectRepository(MessageEntity)
     private readonly messageRepository: Repository<MessageEntity>,
@@ -26,7 +22,10 @@ export class TypeOrmMessageService implements IMessageRepository {
     criteria: Criteria<Message>,
   ): Promise<Optional<{ message: Message }>> {
     // Utiliza CriteriaConverter para construir la consulta
-    const { sql, parameters } = CriteriaConverter.toPostgresSql(criteria, 'message');
+    const { sql, parameters } = CriteriaConverter.toPostgresSql(
+      criteria,
+      'message',
+    );
     const entity = await this.messageRepository
       .createQueryBuilder('message')
       .where(sql.replace(/^WHERE /, '')) // Elimina el WHERE inicial porque TypeORM lo agrega
@@ -49,7 +48,13 @@ export class TypeOrmMessageService implements IMessageRepository {
 
   async find(criteria: Criteria<Message>): Promise<{ messages: Message[] }> {
     // Utiliza CriteriaConverter para construir la consulta
-    const { sql, parameters } = CriteriaConverter.toPostgresSql(criteria, 'message');
+    const { sql, parameters } = CriteriaConverter.toPostgresSql(
+      criteria,
+      'message',
+    );
+
+    this.logger.debug(`SQL: ${sql}`);
+    this.logger.debug(`Parameters: ${JSON.stringify(parameters)}`);
     const entities = await this.messageRepository
       .createQueryBuilder('message')
       .where(sql.replace(/^WHERE /, ''))
