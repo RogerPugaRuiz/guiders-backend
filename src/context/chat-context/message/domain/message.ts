@@ -38,12 +38,13 @@ export class Message {
   }
 
   public static create(params: {
+    id: MessageId;
     chatId: ChatId;
     senderId: SenderId;
     content: Content;
     createdAt?: CreatedAt;
   }): Message {
-    const id = MessageId.random();
+    const id = params.id;
     const createdAt = params.createdAt
       ? CreatedAt.create(params.createdAt.value)
       : CreatedAt.create(new Date());

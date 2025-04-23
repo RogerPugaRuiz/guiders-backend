@@ -1,3 +1,5 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SaveMessageOnChatUpdatedWithNewMessageEventHandler } from './save-message-on-chat-updated-with-new-message-event.handler';
@@ -18,8 +20,12 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forRoot({
-          type: 'sqlite',
-          database: ':memory:',
+          type: 'postgres',
+          host: process.env.TEST_DATABASE_HOST,
+          port: Number(process.env.TEST_DATABASE_PORT),
+          username: process.env.TEST_DATABASE_USERNAME,
+          password: process.env.TEST_DATABASE_PASSWORD,
+          database: process.env.TEST_DATABASE,
           dropSchema: true,
           entities: [MessageEntity],
           synchronize: true,
@@ -39,9 +45,16 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
     messageRepository = module.get<TypeOrmMessageService>(MESSAGE_REPOSITORY);
   });
 
+  beforeEach(async () => {
+    // Limpiamos la tabla de mensajes antes de cada prueba
+    await messageRepository['messageRepository'].query(
+      'TRUNCATE TABLE "messages" RESTART IDENTITY CASCADE;',
+    );
+  });
+
   afterAll(async () => {
     // Cerramos la conexión de TypeORM
-    await messageRepository['messageRepository'].manager.connection.close();
+    await messageRepository['messageRepository'].manager.connection.destroy();
   });
 
   it('should save the message in the database when event is handled', async () => {

@@ -9,7 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { QueryBus } from '@nestjs/cqrs';
 import { MessagePaginateQuery } from '../../message/application/paginate/message-paginate.query';
 import { MessagePaginateQueryResult } from '../../message/application/paginate/message-paginate.query-handler';
 import {
@@ -55,13 +55,15 @@ export class ChatController {
   @UseGuards(AuthGuard, RolesGuard)
   async messagePaginate(
     @Param('chatId') chatId: string,
-    @Query('index') index: string,
-    @Query('limit') limit: number = 10,
+    @Query('cursor') cursor: string,
+    @Query('limit') limit: string = '10',
   ): Promise<any> {
+    // Convertir limit a number de forma segura
+    const parsedLimit = Number(limit) || 10;
     const query = MessagePaginateQuery.create({
       chatId,
-      index,
-      limit,
+      cursor,
+      limit: parsedLimit,
     });
 
     const result = await this.queryBus.execute<
@@ -70,11 +72,9 @@ export class ChatController {
     >(query);
 
     return result.fold(
-      (errors) => {
-        // Handle error
-        console.error('Error fetching messages:', errors.message);
-
-        if (errors.has(PaginateEndOfStreamError.getName())) {
+      (error) => {
+        // Manejar error
+        if (error instanceof PaginateEndOfStreamError) {
           throw new HttpException(
             'No more messages available',
             HttpStatus.NO_CONTENT,
@@ -87,7 +87,7 @@ export class ChatController {
         );
       },
       (response) => {
-        // Handle success
+        // Manejar éxito
         console.log('Fetched messages:', response);
         return response;
       },

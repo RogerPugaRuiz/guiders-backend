@@ -15,6 +15,7 @@ import { ChatModule } from './context/chat-context/chat/infrastructure/chat.modu
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 import { TrackingModule } from './context/tracking-context/tracking.module';
+import { MessageModule } from './context/chat-context/message/infrastructure/message.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TrackingModule } from './context/tracking-context/tracking.module';
     WebsocketModule,
     ApiKeyModule,
     ChatModule,
+    MessageModule,
     TrackingModule,
     // OpenSearchModule,
     CqrsModule.forRoot(),

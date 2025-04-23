@@ -8,3 +8,10 @@ export class PaginateEndOfStreamError extends DomainError {
     super('End of stream');
   }
 }
+
+export class PaginateError extends DomainError {
+  protected name: string = 'PaginateError';
+  constructor() {
+    super('An error occurred during pagination');
+  }
+}

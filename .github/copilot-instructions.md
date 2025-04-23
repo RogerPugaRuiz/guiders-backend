@@ -23,3 +23,4 @@
     - find-all  
     - events  
 16. En los tests, si se requiere un uuid, este debe generarse utilizando la clase `Uuid` ubicada en `src/context/shared/domain/value-objects/uuid.ts`.
+17. Si modificas un archivo asegúrate que de modificar también su test correspondiente y que el test pase.

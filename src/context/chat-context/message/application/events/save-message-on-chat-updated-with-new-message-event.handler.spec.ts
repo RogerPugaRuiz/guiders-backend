@@ -5,6 +5,11 @@ import { ChatUpdatedWithNewMessageEvent } from 'src/context/chat-context/chat/do
 import { Message } from '../../domain/message';
 import { okVoid } from 'src/context/shared/domain/result';
 import { UUID } from 'src/context/shared/domain/value-objects/uuid';
+import { ChatId } from 'src/context/chat-context/chat/domain/chat/value-objects/chat-id';
+import { Content } from '../../domain/value-objects/content';
+import { SenderId } from '../../domain/value-objects/sender-id';
+import { CreatedAt } from '../../domain/value-objects/created-at';
+import { MessageId } from '../../domain/value-objects/message-id';
 
 // Mock para el repositorio de mensajes
 const messageRepositoryMock: jest.Mocked<IMessageRepository> = {
@@ -40,7 +45,14 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
     const event = {
       params: { attributes: { message: messagePrimitives } },
     } as unknown as ChatUpdatedWithNewMessageEvent;
-    const messageEntity = Message.fromPrimitives(messagePrimitives);
+    // Creamos la entidad Message igual que el handler (usando value objects, incluyendo el id)
+    const messageEntity = Message.create({
+      id: MessageId.create(messagePrimitives.id),
+      chatId: ChatId.create(messagePrimitives.chatId),
+      content: Content.create(messagePrimitives.content),
+      senderId: SenderId.create(messagePrimitives.senderId),
+      createdAt: CreatedAt.create(messagePrimitives.createdAt),
+    });
     messageRepositoryMock.save.mockResolvedValue(resultOk);
 
     // Act
@@ -80,14 +92,21 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
     const event = {
       params: { attributes: { message: messagePrimitives } },
     } as unknown as ChatUpdatedWithNewMessageEvent;
-    const spy = jest.spyOn(Message, 'fromPrimitives');
+    // Espiamos Message.create en vez de fromPrimitives
+    const spy = jest.spyOn(Message, 'create');
     messageRepositoryMock.save.mockResolvedValue(resultOk);
 
     // Act
     await handler.handle(event);
 
     // Assert
-    expect(spy).toHaveBeenCalledWith(messagePrimitives);
+    expect(spy).toHaveBeenCalledWith({
+      id: MessageId.create(messagePrimitives.id),
+      chatId: ChatId.create(messagePrimitives.chatId),
+      content: Content.create(messagePrimitives.content),
+      senderId: SenderId.create(messagePrimitives.senderId),
+      createdAt: CreatedAt.create(messagePrimitives.createdAt),
+    });
   });
 
   it('no debe hacer nada inesperado si el evento no tiene message', async () => {

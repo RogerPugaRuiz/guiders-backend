@@ -12,9 +12,9 @@ import { Message } from '../domain/message';
 import { MessageEntity } from './entities/message.entity';
 import { MessageMapper } from './mappers/message.mapper';
 import { IMessageRepository } from '../domain/message.repository';
-import { err, ok, okVoid, Result } from 'src/context/shared/domain/result';
-import { PaginateEndOfStreamError, SaveMessageError } from '../domain/errors';
-import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
+import { err, okVoid, Result } from 'src/context/shared/domain/result';
+import { SaveMessageError } from '../domain/errors';
+import { CriteriaConverter } from 'src/context/shared/infrastructure/criteria-converter/criteria-converter';
 
 @Injectable()
 export class TypeOrmMessageService implements IMessageRepository {
@@ -25,28 +25,13 @@ export class TypeOrmMessageService implements IMessageRepository {
   async findOne(
     criteria: Criteria<Message>,
   ): Promise<Optional<{ message: Message }>> {
-    const queryBuilder = this.messageRepository.createQueryBuilder('message');
-    criteria.filters.forEach((filter) => {
-      if (filter instanceof FilterGroup) {
-        const subfilters = filter.filters.map((f: Filter<Message>) => {
-          switch (f.operator) {
-            case Operator.IS_NULL:
-              return `message.${String(f.field)} IS NULL`;
-            default:
-              return `message.${String(f.field)} ${String(f.operator)} :${String(f.field)}`;
-          }
-        });
-        queryBuilder.andWhere(`(${subfilters.join(` ${filter.operator} `)})`);
-        return;
-      }
-      queryBuilder.andWhere(
-        `message.${String(filter.field)} ${String(filter.operator)} :value`,
-        {
-          value: filter.value,
-        },
-      );
-    });
-    const entity = await queryBuilder.getOne();
+    // Utiliza CriteriaConverter para construir la consulta
+    const { sql, parameters } = CriteriaConverter.toPostgresSql(criteria, 'message');
+    const entity = await this.messageRepository
+      .createQueryBuilder('message')
+      .where(sql.replace(/^WHERE /, '')) // Elimina el WHERE inicial porque TypeORM lo agrega
+      .setParameters(parameters)
+      .getOne();
     return entity
       ? Optional.of({ message: MessageMapper.toDomain(entity) })
       : Optional.empty();
@@ -63,123 +48,17 @@ export class TypeOrmMessageService implements IMessageRepository {
   }
 
   async find(criteria: Criteria<Message>): Promise<{ messages: Message[] }> {
-    const { filters, limit, offset, orderBy, cursor } = criteria;
-    console.log('criteria', criteria);
-    const queryBuilder = this.messageRepository.createQueryBuilder('message');
-
-    // Aplicar filtros
-    filters.forEach((filter) => {
-      if (filter instanceof FilterGroup) {
-        const subfilters = filter.filters.map((f: Filter<Message>) => {
-          switch (f.operator) {
-            case Operator.IS_NULL:
-              return `message.${String(f.field)} IS NULL`;
-            default:
-              return `message.${String(f.field)} ${String(f.operator)} :${String(f.field)}`;
-          }
-        });
-        queryBuilder.andWhere(`(${subfilters.join(` ${filter.operator} `)})`);
-        return;
-      }
-      queryBuilder.andWhere(
-        `message.${String(filter.field)} ${String(filter.operator)} :value`,
-        { value: filter.value },
-      );
-    });
-
-    // Ordenar resultados
-    if (orderBy) {
-      queryBuilder.orderBy(
-        `message.${String(orderBy.field)}`,
-        orderBy.direction,
-      );
-      // Ordenamiento secundario para desempatar
-      if (String(orderBy.field) === 'createdAt') {
-        queryBuilder.addOrderBy('message.id', orderBy.direction);
-      }
-    }
-
-    // Limitar la cantidad de registros
-    if (limit) {
-      queryBuilder.limit(limit);
-    }
-
-    // Usar el cursor para paginación basada en cursor
-    if (cursor) {
-      const value = cursor.value as { createdAt: Date; id: string };
-      if (orderBy && orderBy.direction.toUpperCase() === 'DESC') {
-        queryBuilder.andWhere(
-          `(message.${String(cursor.field)} < :cursorCreatedAt OR (message.${String(cursor.field)} = :cursorCreatedAt AND message.id < :cursorId))`,
-          {
-            cursorCreatedAt: value.createdAt,
-            cursorId: value.id,
-          },
-        );
-      } else {
-        queryBuilder.andWhere(
-          `(message.${String(cursor.field)} > :cursorCreatedAt OR (message.${String(cursor.field)} = :cursorCreatedAt AND message.id > :cursorId))`,
-          {
-            cursorCreatedAt: value.createdAt,
-            cursorId: value.id,
-          },
-        );
-      }
-    } else if (offset) {
-      queryBuilder.offset(offset);
-    }
-
-    const entities = await queryBuilder.getMany();
-
+    // Utiliza CriteriaConverter para construir la consulta
+    const { sql, parameters } = CriteriaConverter.toPostgresSql(criteria, 'message');
+    const entities = await this.messageRepository
+      .createQueryBuilder('message')
+      .where(sql.replace(/^WHERE /, ''))
+      .setParameters(parameters)
+      .getMany();
     return {
       messages: entities.map((entity: MessageEntity) =>
         MessageMapper.toDomain(entity),
       ),
     };
-  }
-
-  // el index es un string que contiene el id (uuid) y la fecha de creación
-  // ejemplo: "2023-03-30T12:34:56.789Z,123e4567-e89b-12d3-a456-426614174000"
-  async findPaginated(
-    chatId: ChatId,
-    index: string,
-    limit: number,
-  ): Promise<
-    Result<
-      { messages: Message[]; total: number; index: string },
-      PaginateEndOfStreamError
-    >
-  > {
-    const queryBuilder = this.messageRepository.createQueryBuilder('message');
-    queryBuilder.where('message.chatId = :chatId', { chatId: chatId.value });
-    queryBuilder.orderBy('message.createdAt', 'DESC');
-    queryBuilder.limit(limit);
-    if (index) {
-      const [createdAt, id] = index.split(',');
-      queryBuilder.andWhere(
-        '(message.createdAt < :createdAt OR (message.createdAt = :createdAt AND message.id < :id))',
-        { createdAt, id },
-      );
-    }
-
-    const entities = await queryBuilder.getMany();
-    // .then((entities) => {
-    //   return {
-    //     messages: entities.map((entity) => MessageMapper.toDomain(entity)),
-    //     total: entities.length,
-    //     index: `${entities[entities.length - 1].createdAt.toISOString()},${entities[entities.length - 1].id}`,
-    //   };
-    // });
-    const total = entities.length;
-    if (total === 0) {
-      return err(new PaginateEndOfStreamError());
-    }
-
-    return ok({
-      messages: entities
-        .map((entity) => MessageMapper.toDomain(entity))
-        .reverse(),
-      total,
-      index: `${entities[entities.length - 1].createdAt.toISOString()},${entities[entities.length - 1].id}`,
-    });
   }
 }

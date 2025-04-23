@@ -46,6 +46,7 @@ export class SaveMessageCommandHandler
       const chatWithEvents = this.publisher.mergeObjectContext(updatedChat);
       await this.chatRepository.save(chatWithEvents);
       chatWithEvents.commit();
+      this.logger.log('Chat updated with new message');
     } catch (error) {
       this.logger.error('Error saving message', error);
       return err(new ChatCanNotSaveMessageError());
