@@ -63,7 +63,7 @@ export class TypeOrmMessageService implements IMessageRepository {
   }
 
   async find(criteria: Criteria<Message>): Promise<{ messages: Message[] }> {
-    const { filters, limit, offset, orderBy, index } = criteria;
+    const { filters, limit, offset, orderBy, cursor } = criteria;
     console.log('criteria', criteria);
     const queryBuilder = this.messageRepository.createQueryBuilder('message');
 
@@ -104,14 +104,12 @@ export class TypeOrmMessageService implements IMessageRepository {
       queryBuilder.limit(limit);
     }
 
-    // Si se proporciona el index, usamos paginación basada en cursor compuesta.
-    // Se espera que index.value sea un objeto: { createdAt: Date, id: string }
-    if (index) {
-      const value = index.value as { createdAt: Date; id: string };
-      console.log('index', index);
+    // Usar el cursor para paginación basada en cursor
+    if (cursor) {
+      const value = cursor.value as { createdAt: Date; id: string };
       if (orderBy && orderBy.direction.toUpperCase() === 'DESC') {
         queryBuilder.andWhere(
-          `(message.${String(index.field)} < :cursorCreatedAt OR (message.${String(index.field)} = :cursorCreatedAt AND message.id < :cursorId))`,
+          `(message.${String(cursor.field)} < :cursorCreatedAt OR (message.${String(cursor.field)} = :cursorCreatedAt AND message.id < :cursorId))`,
           {
             cursorCreatedAt: value.createdAt,
             cursorId: value.id,
@@ -119,7 +117,7 @@ export class TypeOrmMessageService implements IMessageRepository {
         );
       } else {
         queryBuilder.andWhere(
-          `(message.${String(index.field)} > :cursorCreatedAt OR (message.${String(index.field)} = :cursorCreatedAt AND message.id > :cursorId))`,
+          `(message.${String(cursor.field)} > :cursorCreatedAt OR (message.${String(cursor.field)} = :cursorCreatedAt AND message.id > :cursorId))`,
           {
             cursorCreatedAt: value.createdAt,
             cursorId: value.id,

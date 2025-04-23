@@ -38,26 +38,31 @@ export interface OrderBy<T> {
   direction: 'ASC' | 'DESC';
 }
 
+export interface Cursor<T> {
+  field: keyof T;
+  value: unknown;
+}
+
 export class Criteria<T> {
   readonly filters: (Filter<T> | FilterGroup<T>)[];
   readonly orderBy?: OrderBy<T>;
   readonly limit?: number;
   readonly offset?: number;
-  readonly index?: Index<T>;
+  readonly cursor?: Cursor<T>;
 
   constructor(
     filters: (Filter<T> | FilterGroup<T>)[] = [],
     orderBy?: OrderBy<T>,
     limit?: number,
     offset?: number,
-    index?: Index<T>,
+    cursor?: Cursor<T>,
   ) {
     this.filters = [...filters];
     this.orderBy = orderBy;
     // Se acepta 0 como valor válido; por eso se comprueba contra undefined
     this.limit = limit !== undefined ? limit : undefined;
     this.offset = offset !== undefined ? offset : undefined;
-    this.index = index;
+    this.cursor = cursor;
   }
 
   public addFilter(
@@ -70,7 +75,7 @@ export class Criteria<T> {
       this.orderBy,
       this.limit,
       this.offset,
-      this.index,
+      this.cursor,
     );
   }
 
@@ -80,7 +85,7 @@ export class Criteria<T> {
       this.orderBy,
       this.limit,
       this.offset,
-      this.index,
+      this.cursor,
     );
   }
 
@@ -90,7 +95,7 @@ export class Criteria<T> {
       this.orderBy,
       this.limit,
       this.offset,
-      this.index,
+      this.cursor,
     );
   }
 
@@ -100,7 +105,7 @@ export class Criteria<T> {
       { field, direction },
       this.limit,
       this.offset,
-      this.index,
+      this.cursor,
     );
   }
 
@@ -110,7 +115,7 @@ export class Criteria<T> {
       this.orderBy,
       limit,
       this.offset,
-      this.index,
+      this.cursor,
     );
   }
 
@@ -120,17 +125,17 @@ export class Criteria<T> {
       this.orderBy,
       this.limit,
       offset,
-      this.index,
+      this.cursor,
     );
   }
 
-  public setIndex(index: { field: keyof T; value: unknown }): Criteria<T> {
+  public setCursor(cursor: { field: keyof T; value: unknown }): Criteria<T> {
     return new Criteria(
       this.filters,
       this.orderBy,
       this.limit,
       this.offset,
-      index,
+      cursor,
     );
   }
 }
