@@ -14,6 +14,9 @@ export class MessageEntity {
   @Column('text')
   content: string;
 
-  @Column('timestamptz')
+  @Column({ type: 'timestamp' }) // Cambiado de 'timestamptz' a 'datetime' para compatibilidad con SQLite
   createdAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true }) // Cambiado a 'timestamp' para consistencia
+  updatedAt?: Date;
 }
