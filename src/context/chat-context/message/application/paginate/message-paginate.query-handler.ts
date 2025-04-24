@@ -50,7 +50,7 @@ export class MessagePaginateQueryHandler
       const criteriaCursor = cursor ? base64ToCursor(cursor) : undefined;
 
       // Determinar la dirección de ordenación (puede venir de la query o del cursor)
-      const orderDirection = criteriaCursor?.direction || 'ASC';
+      const orderDirection = criteriaCursor?.direction || 'DESC';
 
       // Construir criteria con filtros, orden, limit y cursor
       let criteria = new Criteria<Message>(filters)
