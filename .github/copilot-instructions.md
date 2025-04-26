@@ -16,11 +16,11 @@
 14. Código siempre en inglés pero los comentarios en español.
 15. La carpeta `application` debe seguir esta estructura:  
   - application  
-    - create  
-    - delete  
-    - update  
-    - find  
-    - find-all  
-    - events  
-16. En los tests, si se requiere un uuid, este debe generarse utilizando la clase `Uuid` ubicada en `src/context/shared/domain/value-objects/uuid.ts`.
+  - create  
+  - delete  
+  - update  
+  - find  
+  - find-all  
+  - events  
+16. En los tests, si se requiere un uuid, este debe generarse utilizando la clase `Uuid` ubicada en `src/context/shared/domain/value-objects/uuid.ts`.ç
 17. Si modificas un archivo asegúrate que de modificar también su test correspondiente y que el test pase.
