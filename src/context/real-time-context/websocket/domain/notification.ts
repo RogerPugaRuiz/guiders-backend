@@ -14,4 +14,9 @@ export interface INotification {
     recipientId: string;
     type?: string;
   }): Promise<void>;
+  notifyRole(params: {
+    payload: Record<string, unknown>;
+    role: string;
+    type?: string;
+  }): Promise<void>;
 }

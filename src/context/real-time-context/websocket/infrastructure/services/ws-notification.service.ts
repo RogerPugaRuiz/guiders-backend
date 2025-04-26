@@ -37,4 +37,14 @@ export class WsNotificationService implements INotification {
 
     this.ws.sendNotification(payload, connection.socketId.get().value, type);
   }
+  notifyRole(params: {
+    payload: Record<string, unknown>;
+    role: string;
+    type?: string;
+  }): Promise<void> {
+    const { role, type, payload } = params;
+    console.log('notifyRole', role, type, payload);
+    this.ws.sendNotification(payload, role, type);
+    return Promise.resolve();
+  }
 }

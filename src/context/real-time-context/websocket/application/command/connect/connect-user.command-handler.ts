@@ -41,8 +41,8 @@ export class ConnectUserCommandHandler
         await this.handleExistingConnection(connection, socketId),
     );
 
-    await this.notification.notify({
-      recipientId: userId,
+    await this.notification.notifyRole({
+      role: 'commercial',
       type: 'visitor:connected',
       payload: {
         socketId,
