@@ -8,6 +8,7 @@ import { TrackingVisitorPrimitives } from './tracking-visitor-primitives';
 import { TrackingVisitorCurrentURL } from './value-objects/tracking-visitor-current-url';
 import { TrackingVisitorId } from './value-objects/tracking-visitor-id';
 import { TrackingVisitorCreatedEvent } from './events/tracking-visitor-created.event';
+import { TrackingUltimateConnectionDate } from './value-objects/tracking-ultimate-connection-date';
 
 export class TrackingVisitor extends AggregateRoot {
   constructor(
@@ -15,6 +16,7 @@ export class TrackingVisitor extends AggregateRoot {
     public readonly name: TrackingVisitorName | null,
     public readonly currentUrl: TrackingVisitorCurrentURL | null,
     public readonly connectionDuration: TrackingVisitorConnectionDuration,
+    public readonly ultimateConnectionDate: TrackingUltimateConnectionDate | null,
     public readonly isConnected: TrackingVisitorIsConnected,
     public readonly createdAt: TrackingVisitorCreatedAt,
     public readonly updatedAt: TrackingVisitorUpdatedAt,
@@ -30,6 +32,9 @@ export class TrackingVisitor extends AggregateRoot {
         ? new TrackingVisitorCurrentURL(params.currentUrl)
         : null,
       new TrackingVisitorConnectionDuration(params.connectionDuration),
+      params.ultimateConnectionDate
+        ? new TrackingUltimateConnectionDate(params.ultimateConnectionDate)
+        : null,
       new TrackingVisitorIsConnected(params.isConnected),
       new TrackingVisitorCreatedAt(params.createdAt),
       new TrackingVisitorUpdatedAt(params.updatedAt),
@@ -42,6 +47,7 @@ export class TrackingVisitor extends AggregateRoot {
       null, // Default name
       null, // Default currentUrl
       new TrackingVisitorConnectionDuration(0), // Default connectionDuration
+      null, // Default ultimateConnectionDate
       new TrackingVisitorIsConnected(false), // Default isConnected
       new TrackingVisitorCreatedAt(new Date()), // Default createdAt
       new TrackingVisitorUpdatedAt(new Date()), // Default updatedAt
@@ -61,6 +67,7 @@ export class TrackingVisitor extends AggregateRoot {
       name: this.name?.value || null,
       currentUrl: this.currentUrl?.value || null,
       connectionDuration: this.connectionDuration.value,
+      ultimateConnectionDate: this.ultimateConnectionDate?.value || null,
       isConnected: this.isConnected.value,
       createdAt: this.createdAt.value,
       updatedAt: this.updatedAt.value,

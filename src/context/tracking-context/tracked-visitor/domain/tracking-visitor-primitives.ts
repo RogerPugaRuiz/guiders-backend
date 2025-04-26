@@ -2,6 +2,7 @@ export interface TrackingVisitorPrimitives {
   id: string;
   name: string | null;
   connectionDuration: number;
+  ultimateConnectionDate: Date | null;
   isConnected: boolean;
   currentUrl: string | null;
   createdAt: Date;

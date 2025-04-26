@@ -8,6 +8,7 @@ export class TrackingVisitorMapper {
       name: entity.visitorName,
       currentUrl: entity.currentUrl,
       connectionDuration: entity.connectionDuration,
+      ultimateConnectionDate: entity.ultimateConnectionDate,
       isConnected: entity.isConnected,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -20,6 +21,8 @@ export class TrackingVisitorMapper {
     entity.visitorName = domain.name?.value || null;
     entity.currentUrl = domain.currentUrl?.value || null;
     entity.connectionDuration = domain.connectionDuration.value;
+    entity.ultimateConnectionDate =
+      domain.ultimateConnectionDate?.value || null;
     entity.isConnected = domain.isConnected.value;
     entity.createdAt = domain.createdAt.value;
     entity.updatedAt = domain.updatedAt.value;
