@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TrackingVisitorEntity } from './tracking-visitor.entity';
 import { TRACKING_VISITOR_REPOSITORY } from '../domain/tracking-visitor.repository';
 import { TrackingVisitorService } from './tracking-visitor.service';
-import { NewTrackingVisitorOnVisitorAccountCreate } from '../application/create/new-tracking-visitor-on-visitor-account-create';
+import { NewTrackingVisitorOnVisitorAccountCreate } from '../application/events/new-tracking-visitor-on-visitor-account-create';
 
 @Module({
   imports: [TypeOrmModule.forFeature([TrackingVisitorEntity])],
