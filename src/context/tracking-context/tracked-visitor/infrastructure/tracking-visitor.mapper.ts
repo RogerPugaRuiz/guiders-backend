@@ -6,8 +6,6 @@ export class TrackingVisitorMapper {
     return TrackingVisitor.fromPrimitives({
       id: entity.id,
       name: entity.visitorName,
-      currentUrl: entity.lastVisitedUrl, // ahora corresponde a lastVisitedUrl
-      connectionDuration: entity.sessionDurationSeconds, // ahora corresponde a sessionDurationSeconds
       ultimateConnectionDate: entity.lastVisitedAt, // ahora corresponde a lastVisitedAt
       isConnected: entity.isConnected,
       createdAt: entity.createdAt,
@@ -30,6 +28,8 @@ export class TrackingVisitorMapper {
     entity.sessionDurationSeconds = domain.sessionDurationSeconds.value;
     entity.createdAt = domain.createdAt.value;
     entity.updatedAt = domain.updatedAt.value;
+    entity.ultimateConnectionDate =
+      domain.ultimateConnectionDate?.value || null;
     return entity;
   }
 }

@@ -13,4 +13,8 @@ export class UUID extends PrimitiveValueObject<string> {
   public static validate(value: string): boolean {
     return uuidValidate(value);
   }
+
+  public static random(): UUID {
+    return new UUID(UUID.generate());
+  }
 }

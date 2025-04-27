@@ -38,24 +38,30 @@ export interface OrderBy<T> {
   direction: 'ASC' | 'DESC';
 }
 
+// Permite múltiples ordenamientos
+export type OrderByList<T> = OrderBy<T>[];
+
 export interface Cursor<T> {
   field: keyof T;
   value: unknown;
 }
 
+// Permite múltiples cursores para paginación compuesta
+export type CursorList<T> = Cursor<T>[];
+
 export class Criteria<T> {
   readonly filters: (Filter<T> | FilterGroup<T>)[];
-  readonly orderBy?: OrderBy<T>;
+  readonly orderBy?: OrderBy<T> | OrderByList<T>;
   readonly limit?: number;
   readonly offset?: number;
-  readonly cursor?: Cursor<T>;
+  readonly cursor?: Cursor<T> | CursorList<T>;
 
   constructor(
     filters: (Filter<T> | FilterGroup<T>)[] = [],
-    orderBy?: OrderBy<T>,
+    orderBy?: OrderBy<T> | OrderByList<T>,
     limit?: number,
     offset?: number,
-    cursor?: Cursor<T>,
+    cursor?: Cursor<T> | CursorList<T>,
   ) {
     this.filters = [...filters];
     this.orderBy = orderBy;
@@ -99,10 +105,39 @@ export class Criteria<T> {
     );
   }
 
+  // Permite agregar un solo orderBy o una lista de orderBy
   public orderByField(field: keyof T, direction: 'ASC' | 'DESC'): Criteria<T> {
+    if (Array.isArray(this.orderBy)) {
+      return new Criteria(
+        this.filters,
+        [...this.orderBy, { field, direction }],
+        this.limit,
+        this.offset,
+        this.cursor,
+      );
+    }
+    if (this.orderBy) {
+      return new Criteria(
+        this.filters,
+        [{ ...this.orderBy }, { field, direction }],
+        this.limit,
+        this.offset,
+        this.cursor,
+      );
+    }
     return new Criteria(
       this.filters,
-      { field, direction },
+      [{ field, direction }],
+      this.limit,
+      this.offset,
+      this.cursor,
+    );
+  }
+
+  public setOrderBy(orderBy: OrderBy<T> | OrderByList<T>): Criteria<T> {
+    return new Criteria(
+      this.filters,
+      orderBy,
       this.limit,
       this.offset,
       this.cursor,
@@ -129,7 +164,7 @@ export class Criteria<T> {
     );
   }
 
-  public setCursor(cursor: { field: keyof T; value: unknown }): Criteria<T> {
+  public setCursor(cursor: Cursor<T> | CursorList<T>): Criteria<T> {
     return new Criteria(
       this.filters,
       this.orderBy,

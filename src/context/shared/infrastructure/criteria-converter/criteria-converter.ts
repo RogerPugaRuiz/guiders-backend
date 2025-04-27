@@ -2,6 +2,7 @@
 // Permite reutilizar la lógica de conversión en diferentes servicios de infraestructura
 import {
   Criteria,
+  Cursor,
   Filter,
   FilterGroup,
   Operator,
@@ -51,12 +52,24 @@ export class CriteriaConverter {
     // Construcción de ORDER BY
     let orderByClause = '';
     if (criteria.orderBy) {
-      const orderByColumn = getColumnName(String(criteria.orderBy.field));
-      orderByClause = `ORDER BY ${alias}.${orderByColumn} ${criteria.orderBy.direction}`;
-      // Orden secundario para desempatar por id si es necesario
-      if (String(criteria.orderBy.field) === 'createdAt') {
-        orderByClause += `, ${alias}.id ${criteria.orderBy.direction}`;
+      const orderBys = Array.isArray(criteria.orderBy)
+        ? criteria.orderBy
+        : [criteria.orderBy];
+      const orderByParts = orderBys.map((order) => {
+        const orderByColumn = getColumnName(String(order.field));
+        return `${alias}.${orderByColumn} ${order.direction}`;
+      });
+      // Agrega el id como segundo criterio de ordenación si no está presente
+      const idField =
+        Object.keys(fieldNameMap || {}).find((key) => key === 'id') || 'id';
+      const idColumn = getColumnName(idField);
+      const idAlreadyPresent = orderBys.some(
+        (order) => String(order.field) === idField,
+      );
+      if (!idAlreadyPresent) {
+        orderByParts.push(`${alias}.${idColumn} DESC`);
       }
+      orderByClause = `ORDER BY ${orderByParts.join(', ')}`;
     }
 
     // Construcción de LIMIT y OFFSET
@@ -72,22 +85,30 @@ export class CriteriaConverter {
     // Construcción de paginación por cursor
     let cursorClause = '';
     if (criteria.cursor) {
-      const value = criteria.cursor.value as { createdAt: Date; id: string };
-      console.warn(
-        `Cursor: ${JSON.stringify(value)}, field: ${criteria.cursor?.field as string}, direction: ${criteria.orderBy?.direction}`,
-      );
-      const cursorColumn = getColumnName(String(criteria.cursor.field));
-      if (
-        criteria.orderBy &&
-        criteria.orderBy.direction.toUpperCase() === 'DESC'
-      ) {
-        parameters['cursorCreatedAt'] = value.createdAt;
-        parameters['cursorId'] = value.id;
-        cursorClause = `AND (${alias}.${cursorColumn} < :cursorCreatedAt OR (${alias}.${cursorColumn} = :cursorCreatedAt AND ${alias}.id < :cursorId))`;
-      } else {
-        parameters['cursorCreatedAt'] = value.createdAt;
-        parameters['cursorId'] = value.id;
-        cursorClause = `AND (${alias}.${cursorColumn} > :cursorCreatedAt OR (${alias}.${cursorColumn} = :cursorCreatedAt AND ${alias}.id > :cursorId))`;
+      // Soporte para múltiples cursores y orderBy
+      const cursors = Array.isArray(criteria.cursor)
+        ? criteria.cursor
+        : [criteria.cursor];
+      const orderBys = Array.isArray(criteria.orderBy)
+        ? criteria.orderBy
+        : criteria.orderBy
+          ? [criteria.orderBy]
+          : [];
+      const cursorExprs: string[] = [];
+      cursors.forEach((cursor: Cursor<any>, idx) => {
+        // Si no hay orderBy para este cursor, usar ASC por defecto
+        const order = orderBys[idx] || {
+          field: cursor.field,
+          direction: 'ASC',
+        };
+        const cursorColumn = getColumnName(String(cursor.field));
+        const paramName = `cursor_${String(cursor.field)}`;
+        parameters[paramName] = cursor.value;
+        const op = order.direction.toUpperCase() === 'DESC' ? '<' : '>';
+        cursorExprs.push(`${alias}.${cursorColumn} ${op} :${paramName}`);
+      });
+      if (cursorExprs.length > 0) {
+        cursorClause = `AND (${cursorExprs.join(' AND ')})`;
       }
     }
 

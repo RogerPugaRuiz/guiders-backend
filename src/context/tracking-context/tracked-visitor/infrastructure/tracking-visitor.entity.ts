@@ -17,6 +17,9 @@ export class TrackingVisitorEntity {
   @Column({ type: 'boolean', default: false })
   isConnected: boolean;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  ultimateConnectionDate: Date | null;
+
   @Column({ type: 'int', default: 0 })
   pageViews: number;
 

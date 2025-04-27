@@ -78,18 +78,42 @@ describe('CriteriaConverter', () => {
       undefined,
       {
         field: 'createdAt',
-        value: { createdAt: new Date('2023-01-01'), id: 'abc' },
+        value: new Date('2023-01-01'),
       },
     );
     const { sql, parameters } = CriteriaConverter.toPostgresSql(
       criteria,
       'dummy',
     );
-    expect(sql).toContain(
-      'AND (dummy.createdAt < :cursorCreatedAt OR (dummy.createdAt = :cursorCreatedAt AND dummy.id < :cursorId))',
+    // Verifica que la cláusula del cursor es correcta y los parámetros existen
+    expect(sql).toContain('dummy.createdAt < :cursor_createdAt');
+    expect(parameters).toHaveProperty('cursor_createdAt');
+  });
+
+  it('permite paginación por cursor con múltiples campos de ordenamiento', () => {
+    type Dummy = { id: string; createdAt: Date; score: number };
+    const criteria = new Criteria<Dummy>(
+      [],
+      [
+        { field: 'createdAt', direction: 'DESC' },
+        { field: 'score', direction: 'ASC' },
+      ],
+      10,
+      undefined,
+      [
+        { field: 'createdAt', value: new Date('2024-01-01') },
+        { field: 'score', value: 50 },
+      ],
     );
-    expect(parameters).toHaveProperty('cursorCreatedAt');
-    expect(parameters).toHaveProperty('cursorId', 'abc');
+    const { sql, parameters } = CriteriaConverter.toPostgresSql(
+      criteria,
+      'dummy',
+    );
+    // Verifica que la cláusula del cursor es correcta y los parámetros existen
+    expect(sql).toContain('dummy.createdAt < :cursor_createdAt');
+    expect(sql).toContain('dummy.score > :cursor_score');
+    expect(parameters).toHaveProperty('cursor_createdAt');
+    expect(parameters).toHaveProperty('cursor_score');
   });
 
   it('maps domain field names to database column names using fieldNameMap with Criteria and Filter<T>', () => {
