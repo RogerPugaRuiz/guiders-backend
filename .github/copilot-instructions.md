@@ -24,3 +24,4 @@
   - events  
 16. En los tests, si se requiere un uuid, este debe generarse utilizando la clase `Uuid` ubicada en `src/context/shared/domain/value-objects/uuid.ts`.ç
 17. Si modificas un archivo asegúrate que de modificar también su test correspondiente y que el test pase.
+18. Si te pido un diagrama el formato debe ser mermaid y almacenarlo en la carpeta `docs` con el nombre del diagrama y la fecha.
