@@ -18,6 +18,8 @@ export interface ParticipantPrimitives {
   isCommercial: boolean;
   isVisitor: boolean;
   isOnline: boolean;
+  assignedAt: Date;
+  lastSeenAt: Date | null;
 }
 
 export interface ChatPrimitives {
@@ -126,6 +128,8 @@ export class Chat extends AggregateRoot {
           isCommercial: participant.isCommercial,
           isVisitor: participant.isVisitor,
           isOnline: participant.isOnline,
+          assignedAt: participant.assignedAt,
+          lastSeenAt: participant.lastSeenAt,
         },
       }),
     );
@@ -249,6 +253,8 @@ export class Chat extends AggregateRoot {
         isCommercial: participant.isCommercial,
         isVisitor: participant.isVisitor,
         isOnline: participant.isOnline,
+        assignedAt: participant.assignedAt,
+        lastSeenAt: participant.lastSeenAt,
       })),
       status: this.status.value,
       lastMessage: this.lastMessage ? this.lastMessage.value : null,

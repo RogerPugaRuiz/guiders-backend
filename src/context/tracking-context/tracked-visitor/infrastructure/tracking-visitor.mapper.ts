@@ -6,12 +6,16 @@ export class TrackingVisitorMapper {
     return TrackingVisitor.fromPrimitives({
       id: entity.id,
       name: entity.visitorName,
-      currentUrl: entity.currentUrl,
-      connectionDuration: entity.connectionDuration,
-      ultimateConnectionDate: entity.ultimateConnectionDate,
+      currentUrl: entity.lastVisitedUrl, // ahora corresponde a lastVisitedUrl
+      connectionDuration: entity.sessionDurationSeconds, // ahora corresponde a sessionDurationSeconds
+      ultimateConnectionDate: entity.lastVisitedAt, // ahora corresponde a lastVisitedAt
       isConnected: entity.isConnected,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      lastVisitedUrl: entity.lastVisitedUrl,
+      lastVisitedAt: entity.lastVisitedAt,
+      pageViews: entity.pageViews,
+      sessionDurationSeconds: entity.sessionDurationSeconds,
     });
   }
 
@@ -19,11 +23,11 @@ export class TrackingVisitorMapper {
     const entity = new TrackingVisitorEntity();
     entity.id = domain.id.value;
     entity.visitorName = domain.name?.value || null;
-    entity.currentUrl = domain.currentUrl?.value || null;
-    entity.connectionDuration = domain.connectionDuration.value;
-    entity.ultimateConnectionDate =
-      domain.ultimateConnectionDate?.value || null;
+    entity.lastVisitedUrl = domain.lastVisitedUrl?.value || null;
+    entity.lastVisitedAt = domain.lastVisitedAt?.value || null;
     entity.isConnected = domain.isConnected.value;
+    entity.pageViews = domain.pageViews.value;
+    entity.sessionDurationSeconds = domain.sessionDurationSeconds.value;
     entity.createdAt = domain.createdAt.value;
     entity.updatedAt = domain.updatedAt.value;
     return entity;

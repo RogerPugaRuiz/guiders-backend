@@ -16,7 +16,6 @@ const messageRepositoryMock: jest.Mocked<IMessageRepository> = {
   save: jest.fn(),
   findOne: jest.fn(),
   find: jest.fn(),
-  findPaginated: jest.fn(),
 };
 
 // Utilidad para simular un Result<void, SaveMessageError>

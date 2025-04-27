@@ -16,12 +16,14 @@ import { ChatService } from './chat.service';
 import { FindOneChatByIdQueryHandler } from '../application/read/find-one-chat-by-id.query-handler';
 import { SaveMessageCommand } from '../application/create/message/save-message.command';
 import { USER_FINDER } from '../application/read/get-username-by-id';
-import { UserFinderAdapterService } from './user-finder-adapter.service';
 import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../application/update/update-chat-participants-on-commercials-assigned.event-handler';
 import { FindChatListByParticipantQueryHandler } from '../application/read/find-chat-list-by-participant.query-handler';
 import { UpdateParticipantStatusOnConnectedEventHandler } from '../application/update/update-participant-status-on-connected.event-handler';
 import { UpdateParticipantStatusOnDisconnectedEventHandler } from '../application/update/update-participant-status-on-disconnected.event-handler';
 import { SaveMessageCommandHandler } from '../application/create/message/save-message.command-handler';
+import { UserFinderAdapterService } from './finders/user-finder-adapter.service';
+import { VISITOR_FINDER } from '../application/read/visitor-finder';
+import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.service';
 
 @Module({
   imports: [
@@ -33,6 +35,7 @@ import { SaveMessageCommandHandler } from '../application/create/message/save-me
     { provide: CHAT_REPOSITORY, useClass: TypeOrmChatService },
     { provide: MESSAGE_REPOSITORY, useClass: TypeOrmMessageService },
     { provide: USER_FINDER, useClass: UserFinderAdapterService },
+    { provide: VISITOR_FINDER, useClass: VisitorFinderAdapterService },
     // usecases
 
     // commands

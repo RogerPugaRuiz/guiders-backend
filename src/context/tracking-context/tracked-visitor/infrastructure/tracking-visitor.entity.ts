@@ -9,16 +9,19 @@ export class TrackingVisitorEntity {
   visitorName: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  currentUrl: string | null;
+  lastVisitedUrl: string | null;
 
-  @Column({ type: 'numeric', nullable: false })
-  connectionDuration: number;
+  @Column({ type: 'timestamptz', nullable: true })
+  lastVisitedAt: Date | null;
 
   @Column({ type: 'boolean', default: false })
   isConnected: boolean;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  ultimateConnectionDate: Date | null;
+  @Column({ type: 'int', default: 0 })
+  pageViews: number;
+
+  @Column({ type: 'int', default: 0 })
+  sessionDurationSeconds: number;
 
   @Column({
     type: 'timestamptz',
