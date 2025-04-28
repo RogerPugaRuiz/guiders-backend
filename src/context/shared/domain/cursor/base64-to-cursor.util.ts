@@ -16,5 +16,15 @@ export function base64ToCursor<T>(base64String: string): Cursor<T> {
     throw new Error('Invalid cursor format');
   }
 
+  // Intentar convertir strings a fechas si tienen formato de fecha
+  for (const key in parsedObject) {
+    if (typeof parsedObject[key] === 'string') {
+      const potentialDate = new Date(parsedObject[key]);
+      if (!isNaN(potentialDate.getTime())) {
+        parsedObject[key] = potentialDate;
+      }
+    }
+  }
+
   return parsedObject;
 }

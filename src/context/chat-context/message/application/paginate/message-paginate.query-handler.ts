@@ -50,6 +50,9 @@ export class MessagePaginateQueryHandler
       // Decodificar el cursor si existe
       const criteriaCursor = cursor ? base64ToCursor(cursor) : undefined;
 
+      // comprobar los tipos dentro de criteriaCursor
+      console.log(criteriaCursor);
+
       // Determinar la dirección de ordenación (puede venir de la query o del cursor)
       const orderDirection = criteriaCursor?.direction || 'DESC';
 
@@ -71,12 +74,8 @@ export class MessagePaginateQueryHandler
       if (messages.length > 0) {
         // El último mensaje es el nuevo cursor, incluyendo direction
         newCursor = cursorToBase64<Message>({
-          field: 'createdAt',
-          value: {
-            createdAt: messages[messages.length - 1].createdAt.value,
-            id: messages[messages.length - 1].id.value,
-          },
-          direction: orderDirection,
+          createdAt: messages[messages.length - 1].createdAt.value,
+          id: messages[messages.length - 1].id.value,
         });
       }
 
@@ -85,7 +84,7 @@ export class MessagePaginateQueryHandler
         return ok({
           messages: [],
           total: 0,
-          endOfStream: true,
+          hasMore: false,
           cursor: cursor,
         });
       }
@@ -102,6 +101,7 @@ export class MessagePaginateQueryHandler
         messages: messagesPrimitives,
         total,
         cursor: newCursor,
+        hasMore: newCursor !== '',
       });
     } catch (error) {
       this.logger.error(`Error paginando mensajes: ${error}`);

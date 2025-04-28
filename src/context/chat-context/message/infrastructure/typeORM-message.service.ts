@@ -31,6 +31,7 @@ export class TypeOrmMessageService implements IMessageRepository {
       .where(sql.replace(/^WHERE /, '')) // Elimina el WHERE inicial porque TypeORM lo agrega
       .setParameters(parameters)
       .getOne();
+
     return entity
       ? Optional.of({ message: MessageMapper.toDomain(entity) })
       : Optional.empty();
