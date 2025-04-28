@@ -42,7 +42,7 @@ export interface OrderBy<T> {
 export type OrderByList<T> = OrderBy<T>[];
 
 export interface Cursor<T> {
-  [key: string]: string | number;
+  [key: string]: unknown;
 }
 
 // Permite múltiples cursores para paginación compuesta

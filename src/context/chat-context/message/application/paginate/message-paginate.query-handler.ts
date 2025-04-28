@@ -55,7 +55,7 @@ export class MessagePaginateQueryHandler
 
       // Construir criteria con filtros, orden, limit y cursor
       let criteria = new Criteria<Message>(filters)
-        .orderByField('createdAt', orderDirection)
+        .orderByField('createdAt', orderDirection as 'DESC' | 'ASC')
         .setLimit(limit ?? 10);
       if (criteriaCursor) {
         criteria = criteria.setCursor(criteriaCursor);
