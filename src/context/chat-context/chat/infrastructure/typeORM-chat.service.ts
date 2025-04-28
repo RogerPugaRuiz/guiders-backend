@@ -112,7 +112,7 @@ export class TypeOrmChatService implements IChatRepository {
         },
       );
     });
-    if (criteria.orderBy) {
+    if (criteria.orderBy && !Array.isArray(criteria.orderBy)) {
       queryBuilder.orderBy(
         `chat.${String(criteria.orderBy.field)}`,
         criteria.orderBy.direction,
