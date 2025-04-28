@@ -7,8 +7,9 @@ import {
   ITrackingVisitorRepository,
   TRACKING_VISITOR_REPOSITORY,
 } from '../../domain/tracking-visitor.repository';
-import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
+import { Criteria } from 'src/context/shared/domain/criteria';
 import { TrackingVisitor } from '../../domain/tracking-visitor';
+import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-cursor.util';
 
 @QueryHandler(FindAllPaginatedByCursorTrackingVisitorQuery)
 export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
@@ -23,86 +24,38 @@ export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
   async execute(
     query: FindAllPaginatedByCursorTrackingVisitorQuery,
   ): Promise<TrackingVisitorPaginationResponseDto> {
-    // Construye los filtros a partir de query.filters
-    const filters: Filter<TrackingVisitor>[] = [];
-    if (query.filters) {
-      for (const [field, value] of Object.entries(query.filters)) {
-        if (value === null) {
-          filters.push(
-            new Filter(field as keyof TrackingVisitor, Operator.IS_NULL),
-          );
-        } else {
-          filters.push(
-            new Filter(field as keyof TrackingVisitor, Operator.EQUALS, value),
-          );
-        }
+    // Convertir el cursor de Base64 a un objeto Cursor
+    const cursor = query.cursor
+      ? base64ToCursor<TrackingVisitor>(query.cursor as string)
+      : undefined;
+
+    // Crear un Criteria basado en el cursor y los filtros de orden
+    const criteria = new Criteria<TrackingVisitor>().setLimit(query.limit);
+    if (Array.isArray(query.orderBy)) {
+      for (const order of query.orderBy) {
+        criteria.orderByField(
+          order.field as keyof TrackingVisitor,
+          order.direction,
+        );
       }
     }
-
-    // Construye la lista de ordenamientos (soporta múltiples ordenes)
-    let orderByList: {
-      field: keyof TrackingVisitor;
-      direction: 'ASC' | 'DESC';
-    }[] = [];
-    if (Array.isArray(query.orderBy)) {
-      orderByList = query.orderBy
-        .filter(
-          (o): o is { field: string; direction: 'ASC' | 'DESC' } =>
-            typeof o === 'object' &&
-            typeof o.field === 'string' &&
-            (o.direction === 'ASC' || o.direction === 'DESC'),
-        )
-        .map((o) => ({
-          field: o.field as keyof TrackingVisitor,
-          direction: o.direction,
-        }));
-    }
-    if (!orderByList.some((o) => o.field === 'id')) {
-      orderByList.push({
-        field: 'id' as keyof TrackingVisitor,
-        direction: orderByList[0]?.direction || 'DESC',
-      });
+    if (cursor) {
+      // Si hay cursor, añadirlo a los criterios
+      criteria.setCursor(cursor);
     }
 
-    // Construye los cursores para paginación compuesta (cada cursor tiene field y value)
-    let cursorList:
-      | { field: keyof TrackingVisitor; value: unknown }[]
-      | undefined = undefined;
-    if (Array.isArray(query.cursors) && query.cursors.length > 0) {
-      cursorList = query.cursors.map((c) => ({
-        field: c.field as keyof TrackingVisitor,
-        value: c.value,
-      }));
-    }
+    // Usar el repositorio para obtener los resultados
+    const items = await this.trackingVisitorRepository.matcher(criteria);
 
-    // Crea el criteria con filtros, orden, límite y cursores
-    let criteria = new Criteria<TrackingVisitor>(filters)
-      .setOrderBy(orderByList)
-      .setLimit(query.limit);
-    if (cursorList) {
-      criteria = criteria.setCursor(cursorList);
-    }
+    // Construir la respuesta de paginación
+    const hasMore = items.length === query.limit;
+    const nextCursor = hasMore ? items[items.length - 1] : null;
 
-    // Consulta el repositorio
-    const visitors = await this.trackingVisitorRepository.matcher(criteria);
-
-    // Determina el nextCursor y hasMore
-    let nextCursor: { field: string; value: unknown }[] | null = null;
-    let hasMore = false;
-    if (visitors.length === query.limit) {
-      hasMore = true;
-      const last = visitors[visitors.length - 1].toPrimitives();
-      nextCursor = orderByList.map((o) => ({
-        field: o.field as string,
-        value: last[o.field as keyof typeof last],
-      }));
-    }
-
-    // Devuelve el DTO de respuesta actualizado
-    return new TrackingVisitorPaginationResponseDto({
-      items: visitors.map((v) => v.toPrimitives()),
-      nextCursor,
+    return {
+      items: items.map((item) => item.toPrimitives()),
+      total: items.length,
+      nextCursor: '',
       hasMore,
-    });
+    };
   }
 }

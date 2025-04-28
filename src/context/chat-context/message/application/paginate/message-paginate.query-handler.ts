@@ -12,10 +12,11 @@ import {
 import { Inject, Logger } from '@nestjs/common';
 // Importaciones necesarias para criteria y utilidades de cursor
 import { Filter, Operator, Criteria } from 'src/context/shared/domain/criteria';
-import { base64ToCursor } from 'src/context/shared/infrastructure/utils/base64-to-cursor.util';
-import { cursorToBase64 } from 'src/context/shared/infrastructure/utils/cursor-to-base64.util';
 import { ok, err } from 'src/context/shared/domain/result';
 import { PaginateError } from '../../domain/errors';
+import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-cursor.util';
+import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base64.util';
+
 export type MessagePaginateQueryResult = Result<
   {
     messages: MessagePrimitives[];

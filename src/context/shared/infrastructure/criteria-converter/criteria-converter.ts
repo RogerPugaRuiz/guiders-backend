@@ -2,7 +2,6 @@
 // Permite reutilizar la lógica de conversión en diferentes servicios de infraestructura
 import {
   Criteria,
-  Cursor,
   Filter,
   FilterGroup,
   Operator,
@@ -16,8 +15,8 @@ export class CriteriaConverter {
    * @param fieldNameMap (opcional) Mapeo de nombres de campo del dominio a nombres de columna en la base de datos
    * @returns Objeto con fragmentos SQL y parámetros
    */
-  static toPostgresSql(
-    criteria: Criteria<any>,
+  static toPostgresSql<T>(
+    criteria: Criteria<T>,
     alias: string,
     fieldNameMap?: Record<string, string>,
   ) {
@@ -29,7 +28,7 @@ export class CriteriaConverter {
     // Función auxiliar para obtener el nombre real de la columna
     const getColumnName = (field: string) => fieldNameMap?.[field] || field;
 
-    const parseFilter = (filter: Filter<any> | FilterGroup<any>): string => {
+    const parseFilter = (filter: Filter<T> | FilterGroup<T>): string => {
       if (filter instanceof FilterGroup) {
         const subClauses = filter.filters.map(parseFilter);
         return `(${subClauses.join(` ${filter.operator} `)})`;
@@ -84,30 +83,28 @@ export class CriteriaConverter {
 
     // Construcción de paginación por cursor
     let cursorClause = '';
-    if (criteria.cursor) {
-      // Soporte para múltiples cursores y orderBy
-      const cursors = Array.isArray(criteria.cursor)
-        ? criteria.cursor
-        : [criteria.cursor];
+    if (criteria.cursor && criteria.orderBy) {
+      // Solo un cursor, pero considerar todos los campos de orderBy
+      const cursor = criteria.cursor;
       const orderBys = Array.isArray(criteria.orderBy)
         ? criteria.orderBy
-        : criteria.orderBy
-          ? [criteria.orderBy]
-          : [];
+        : [criteria.orderBy];
+      // Generar expresión compuesta para el cursor
       const cursorExprs: string[] = [];
-      cursors.forEach((cursor: Cursor<any>, idx) => {
-        // Si no hay orderBy para este cursor, usar ASC por defecto
-        const order = orderBys[idx] || {
-          field: cursor.field,
-          direction: 'ASC',
-        };
-        const cursorColumn = getColumnName(String(cursor.field));
-        const paramName = `cursor_${String(cursor.field)}`;
-        parameters[paramName] = cursor.value;
-        const op = order.direction.toUpperCase() === 'DESC' ? '<' : '>';
-        cursorExprs.push(`${alias}.${cursorColumn} ${op} :${paramName}`);
+      // Para cada campo de orden, construir la comparación correspondiente
+      orderBys.forEach((order) => {
+        const cursorColumn = getColumnName(String(order.field));
+        const paramName = `cursor_${String(order.field)}`;
+        // El valor del cursor debe ser un objeto con los valores de los campos de orden
+        const cursorValue = cursor[order.field as string];
+        if (cursorValue !== undefined) {
+          parameters[paramName] = cursorValue;
+          const op = order.direction.toUpperCase() === 'DESC' ? '<' : '>';
+          cursorExprs.push(`${alias}.${cursorColumn} ${op} :${paramName}`);
+        }
       });
       if (cursorExprs.length > 0) {
+        // Se combinan las expresiones con AND para paginación compuesta
         cursorClause = `AND (${cursorExprs.join(' AND ')})`;
       }
     }

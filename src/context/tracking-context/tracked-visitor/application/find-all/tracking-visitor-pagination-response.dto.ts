@@ -10,17 +10,20 @@ export class TrackingVisitorPaginationResponseDto {
   // Lista de visitantes en formato primitivo
   readonly items: TrackingVisitorPrimitives[];
   // Cursor para la siguiente página (array de { field, value } o null si no hay más)
-  readonly nextCursor: { field: string; value: unknown }[] | null;
+  readonly nextCursor: string | null;
   // Indica si hay más resultados
   readonly hasMore: boolean;
+  readonly total: number;
 
   constructor(params: {
     items: TrackingVisitorPrimitives[];
-    nextCursor: { field: string; value: unknown }[] | null;
+    nextCursor: string | null;
     hasMore: boolean;
+    total: number;
   }) {
     this.items = params.items;
     this.nextCursor = params.nextCursor;
     this.hasMore = params.hasMore;
+    this.total = params.total;
   }
 }

@@ -77,8 +77,7 @@ describe('CriteriaConverter', () => {
       10,
       undefined,
       {
-        field: 'createdAt',
-        value: new Date('2023-01-01'),
+        createdAt: new Date('2023-01-01'),
       },
     );
     const { sql, parameters } = CriteriaConverter.toPostgresSql(
@@ -100,10 +99,10 @@ describe('CriteriaConverter', () => {
       ],
       10,
       undefined,
-      [
-        { field: 'createdAt', value: new Date('2024-01-01') },
-        { field: 'score', value: 50 },
-      ],
+      {
+        createdAt: new Date('2024-01-01'),
+        score: 50,
+      },
     );
     const { sql, parameters } = CriteriaConverter.toPostgresSql(
       criteria,

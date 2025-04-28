@@ -7,6 +7,7 @@ import { NewTrackingVisitorOnVisitorAccountCreate } from '../application/events/
 import { FindAllPaginatedByCursorTrackingVisitorQueryHandler } from '../application/find-all/find-all-paginated-by-cursor-tracking-visitor-query.handler';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { TrackingVisitorController } from './tracking-visitor.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([TrackingVisitorEntity]), HttpModule],
@@ -22,5 +23,6 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
     // Services
     TokenVerifyService,
   ],
+  controllers: [TrackingVisitorController],
 })
 export class TrackingVisitorModule {}

@@ -42,26 +42,24 @@ export interface OrderBy<T> {
 export type OrderByList<T> = OrderBy<T>[];
 
 export interface Cursor<T> {
-  field: keyof T;
-  value: unknown;
+  [key: string]: string | number;
 }
 
 // Permite múltiples cursores para paginación compuesta
-export type CursorList<T> = Cursor<T>[];
 
 export class Criteria<T> {
   readonly filters: (Filter<T> | FilterGroup<T>)[];
   readonly orderBy?: OrderBy<T> | OrderByList<T>;
   readonly limit?: number;
   readonly offset?: number;
-  readonly cursor?: Cursor<T> | CursorList<T>;
+  readonly cursor?: Cursor<T>;
 
   constructor(
     filters: (Filter<T> | FilterGroup<T>)[] = [],
     orderBy?: OrderBy<T> | OrderByList<T>,
     limit?: number,
     offset?: number,
-    cursor?: Cursor<T> | CursorList<T>,
+    cursor?: Cursor<T>,
   ) {
     this.filters = [...filters];
     this.orderBy = orderBy;
@@ -164,7 +162,7 @@ export class Criteria<T> {
     );
   }
 
-  public setCursor(cursor: Cursor<T> | CursorList<T>): Criteria<T> {
+  public setCursor(cursor: Cursor<T>): Criteria<T> {
     return new Criteria(
       this.filters,
       this.orderBy,
