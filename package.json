@@ -17,8 +17,9 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:int": "jest --config ./jest-int.json",
+    "test:e2e": "NODE_ENV=e2e jest --config ./test/jest-e2e.json",
+    "test:unit": "NODE_ENV=test jest --config ./jest-unit.json",
+    "test:int": "NODE_ENV=test jest --config ./jest-int.json",
     "test:int:dev": "NODE_ENV=development jest --config ./jest-int.json"
   },
   "dependencies": {
@@ -46,6 +47,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "typeorm": "^0.3.21"
   },
   "devDependencies": {
