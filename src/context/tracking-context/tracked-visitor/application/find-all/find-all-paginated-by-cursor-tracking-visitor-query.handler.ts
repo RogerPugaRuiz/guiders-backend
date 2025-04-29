@@ -10,6 +10,7 @@ import {
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { TrackingVisitor } from '../../domain/tracking-visitor';
 import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-cursor.util';
+import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base64.util';
 
 @QueryHandler(FindAllPaginatedByCursorTrackingVisitorQuery)
 export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
@@ -26,7 +27,7 @@ export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
   ): Promise<TrackingVisitorPaginationResponseDto> {
     // Convertir el cursor de Base64 a un objeto Cursor
     const cursor = query.cursor
-      ? base64ToCursor<TrackingVisitor>(query.cursor as string)
+      ? base64ToCursor<TrackingVisitor>(query.cursor)
       : undefined;
 
     // Crear un Criteria basado en el cursor y los filtros de orden
@@ -49,12 +50,21 @@ export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
 
     // Construir la respuesta de paginación
     const hasMore = items.length === query.limit;
-    const nextCursor = hasMore ? items[items.length - 1] : null;
+    const lastItem = items[items.length - 1];
+
+    // Convertir el cursor a Base64
+    const newCursor: Record<string, unknown> = {};
+    for (const order of query.orderBy) {
+      newCursor[order.field] = lastItem?.[order.field];
+    }
+    const newCursorBase64 = cursorToBase64(newCursor);
+
+    console.log(JSON.stringify(newCursor));
 
     return {
       items: items.map((item) => item.toPrimitives()),
       total: items.length,
-      nextCursor: '',
+      nextCursor: newCursorBase64,
       hasMore,
     };
   }

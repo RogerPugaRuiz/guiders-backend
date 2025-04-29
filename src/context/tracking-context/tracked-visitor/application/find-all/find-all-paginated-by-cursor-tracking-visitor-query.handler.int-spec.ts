@@ -106,7 +106,8 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
         updatedAt: now,
       },
     ];
-    await repository.save(visitors);
+
+    await repository.save([...visitors]);
 
     // Primera página, ordena por createdAt DESC, id DESC, limit 2
     const query = new FindAllPaginatedByCursorTrackingVisitorQuery({
@@ -115,14 +116,16 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
         { field: 'createdAt', direction: 'DESC' },
         { field: 'id', direction: 'DESC' },
       ],
-      cursors: null,
+      cursor: null, // Cambiado de 'cursors' a 'cursor'
     });
     const result: TrackingVisitorPaginationResponseDto =
       await handler.execute(query);
     expect(result.items.length).toBe(2);
     expect(result.hasMore).toBe(true);
     expect(result.nextCursor).toBeDefined();
-    expect(Array.isArray(result.nextCursor)).toBe(true);
+    expect(typeof result.nextCursor).toBe('string'); // Validar que nextCursor es un string
+
+    console.log(JSON.stringify(visitors));
     // Segunda página usando el nextCursor
     const nextQuery = new FindAllPaginatedByCursorTrackingVisitorQuery({
       limit: 2,
@@ -130,7 +133,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
         { field: 'createdAt', direction: 'DESC' },
         { field: 'id', direction: 'DESC' },
       ],
-      cursors: result.nextCursor,
+      cursor: result.nextCursor, // Cambiado de 'cursors' a 'cursor'
     });
     const nextResult: TrackingVisitorPaginationResponseDto =
       await handler.execute(nextQuery);
