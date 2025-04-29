@@ -14,7 +14,6 @@ import { StartChatCommandHandler } from '../application/create/pending/start-cha
 import { ParticipantsEntity } from './participants.entity';
 import { ChatService } from './chat.service';
 import { FindOneChatByIdQueryHandler } from '../application/read/find-one-chat-by-id.query-handler';
-import { SaveMessageCommand } from '../application/create/message/save-message.command';
 import { USER_FINDER } from '../application/read/get-username-by-id';
 import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../application/update/participants/assigne/update-chat-participants-on-commercials-assigned.event-handler';
 import { FindChatListByParticipantQueryHandler } from '../application/read/find-chat-list-by-participant.query-handler';
@@ -24,7 +23,6 @@ import { SaveMessageCommandHandler } from '../application/create/message/save-me
 import { UserFinderAdapterService } from './finders/user-finder-adapter.service';
 import { VISITOR_FINDER } from '../application/read/visitor-finder';
 import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.service';
-import { ParticipantSeenAtEvent } from '../domain/chat/events/participant-seen-at.event';
 import { ParticipantSeenChatCommandHandler } from '../application/update/participants/seen-chat/participant-seen-chat.command-handler';
 import { ParticipantUnseenChatCommandHandler } from '../application/update/participants/unseen-chat/participant-unseen-chat.command-handler';
 
