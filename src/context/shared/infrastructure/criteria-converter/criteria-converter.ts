@@ -84,38 +84,52 @@ export class CriteriaConverter {
     // Construcción de paginación por cursor
     let cursorClause = '';
     if (criteria.cursor && criteria.orderBy) {
-      // Solo un cursor, pero considerar todos los campos de orderBy
+      // Soporta múltiples campos de ordenamiento para paginación compuesta
       const cursor = criteria.cursor;
       const orderBys = Array.isArray(criteria.orderBy)
         ? criteria.orderBy
         : [criteria.orderBy];
-      // Generar expresión compuesta para el cursor
-      const cursorExprs: string[] = [];
-      // Para cada campo de orden, construir la comparación correspondiente
+      // Genera condiciones lexicográficas para el cursor
+      const buildCursorCondition = (index: number): string => {
+        // Genera la condición para los primeros 'index + 1' campos
+        const andParts: string[] = [];
+        for (let i = 0; i < index; i++) {
+          const prevOrder = orderBys[i];
+          const prevColumn = getColumnName(String(prevOrder.field));
+          const prevParam = `cursor_${String(prevOrder.field)}`;
+          andParts.push(`${alias}.${prevColumn} = :${prevParam}`);
+        }
+        const currentOrder = orderBys[index];
+        const currentColumn = getColumnName(String(currentOrder.field));
+        const currentParam = `cursor_${String(currentOrder.field)}`;
+        const op = currentOrder.direction.toUpperCase() === 'DESC' ? '<' : '>';
+        andParts.push(`${alias}.${currentColumn} ${op} :${currentParam}`);
+        return `(${andParts.join(' AND ')})`;
+      };
+      // Asigna los valores de los parámetros del cursor
       orderBys.forEach((order) => {
-        const cursorColumn = getColumnName(String(order.field));
         const paramName = `cursor_${String(order.field)}`;
-        // El valor del cursor debe ser un objeto con los valores de los campos de orden
         const cursorValue = cursor[order.field as string];
         if (cursorValue !== undefined) {
           parameters[paramName] = cursorValue;
-          const op = order.direction.toUpperCase() === 'DESC' ? '<' : '>';
-          cursorExprs.push(`${alias}.${cursorColumn} ${op} :${paramName}`);
         }
       });
-      if (cursorExprs.length > 0) {
-        // Se combinan las expresiones con AND para paginación compuesta
-        cursorClause = `AND (${cursorExprs.join(' AND ')})`;
+      // Combina las condiciones con OR para paginación compuesta
+      if (orderBys.length > 0) {
+        const orConditions = orderBys.map((_, idx) => buildCursorCondition(idx));
+        cursorClause = `AND (${orConditions.join(' OR ')})`;
       }
     }
 
     // Unir todos los fragmentos
-    const where =
-      whereClauses.length > 0
-        ? `WHERE ${whereClauses.join(' AND ')} ${cursorClause}`.trim()
-        : cursorClause
-          ? `WHERE 1=1 ${cursorClause}`
-          : '';
+    let where = '';
+    if (whereClauses.length > 0 && cursorClause) {
+      where = `WHERE ${whereClauses.join(' AND ')} ${cursorClause}`.trim();
+    } else if (whereClauses.length > 0) {
+      where = `WHERE ${whereClauses.join(' AND ')}`;
+    } else if (cursorClause) {
+      where = `WHERE 1=1 ${cursorClause}`;
+    } // Si no hay filtros ni cursor, no se agrega WHERE
     const sql = [where, orderByClause, limitClause, offsetClause]
       .filter(Boolean)
       .join(' ');

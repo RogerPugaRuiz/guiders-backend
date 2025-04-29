@@ -7,15 +7,16 @@ import {
   ITrackingVisitorRepository,
   TRACKING_VISITOR_REPOSITORY,
 } from '../../domain/tracking-visitor.repository';
-import { Criteria } from 'src/context/shared/domain/criteria';
 import { TrackingVisitor } from '../../domain/tracking-visitor';
 import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-cursor.util';
 import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base64.util';
+import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
 
 @QueryHandler(FindAllPaginatedByCursorTrackingVisitorQuery)
 export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
   implements IQueryHandler<FindAllPaginatedByCursorTrackingVisitorQuery>
 {
+  private criteriaBuilder = new CriteriaBuilder<TrackingVisitor>();
   constructor(
     @Inject(TRACKING_VISITOR_REPOSITORY)
     private readonly trackingVisitorRepository: ITrackingVisitorRepository,
@@ -31,40 +32,58 @@ export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
       : undefined;
 
     // Crear un Criteria basado en el cursor y los filtros de orden
-    const criteria = new Criteria<TrackingVisitor>().setLimit(query.limit);
+    // let criteria = new Criteria<TrackingVisitor>().setLimit(query.limit);
     if (Array.isArray(query.orderBy)) {
+      console.log('orderBy', query.orderBy);
       for (const order of query.orderBy) {
-        criteria.orderByField(
+        this.criteriaBuilder.addOrderBy(
           order.field as keyof TrackingVisitor,
           order.direction,
         );
       }
+    } else {
+      // Si no hay orderBy, usar el orden por defecto
     }
     if (cursor) {
       // Si hay cursor, añadirlo a los criterios
-      criteria.setCursor(cursor);
+      this.criteriaBuilder.setCursor(cursor);
     }
 
-    // Usar el repositorio para obtener los resultados
+    // Usar el repositorio para obtener los resultados con un límite aumentado en 1
+    this.criteriaBuilder.setLimit(query.limit + 1);
+    const criteria = this.criteriaBuilder.build();
     const items = await this.trackingVisitorRepository.matcher(criteria);
+    console.log('itmes', JSON.stringify(items, null, 2));
+
+    // Ajustar el cálculo de hasMore para verificar si hay más elementos
+    const hasMore = items.length > query.limit;
+
+    console.log(
+      `hasMore: ${hasMore}, items.length: ${items.length}, query.limit: ${query.limit}`,
+    );
+
+    // Si hay más elementos, recortar la lista al límite original
+    const paginatedItems = hasMore ? items.slice(0, query.limit) : items;
 
     // Construir la respuesta de paginación
-    const hasMore = items.length === query.limit;
-    const lastItem = items[items.length - 1];
+    const lastItem = paginatedItems[paginatedItems.length - 1];
 
     // Convertir el cursor a Base64
     const newCursor: Record<string, unknown> = {};
     for (const order of query.orderBy) {
-      newCursor[order.field] = lastItem?.[order.field];
+      if (!lastItem) {
+        newCursor[order.field] = null;
+        continue;
+      }
+      newCursor[order.field] = lastItem.toPrimitives()[order.field];
     }
+    console.log('newCursor', newCursor);
     const newCursorBase64 = cursorToBase64(newCursor);
 
-    console.log(JSON.stringify(newCursor));
-
     return {
-      items: items.map((item) => item.toPrimitives()),
-      total: items.length,
-      nextCursor: newCursorBase64,
+      items: paginatedItems.map((item) => item.toPrimitives()),
+      total: paginatedItems.length,
+      nextCursor: hasMore ? newCursorBase64 : null,
       hasMore,
     };
   }

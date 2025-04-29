@@ -78,7 +78,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
         pageViews: 5,
         sessionDurationSeconds: 100,
         ultimateConnectionDate: now,
-        createdAt: new Date(now.getTime() - 3000),
+        createdAt: new Date(now.getTime() - 3000 * 1000), // 3 segundos antes
         updatedAt: now,
       },
       {
@@ -90,7 +90,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
         pageViews: 10,
         sessionDurationSeconds: 200,
         ultimateConnectionDate: now,
-        createdAt: new Date(now.getTime() - 2000),
+        createdAt: new Date(now.getTime() - 2000 * 1000), // 2 segundos antes
         updatedAt: now,
       },
       {
@@ -102,7 +102,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
         pageViews: 15,
         sessionDurationSeconds: 300,
         ultimateConnectionDate: now,
-        createdAt: new Date(now.getTime() - 1000),
+        createdAt: new Date(now.getTime() - 1000 * 1000), // 1 segundo antes
         updatedAt: now,
       },
     ];
@@ -125,7 +125,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
     expect(result.nextCursor).toBeDefined();
     expect(typeof result.nextCursor).toBe('string'); // Validar que nextCursor es un string
 
-    console.log(JSON.stringify(visitors));
+    console.log('First page result:', JSON.stringify(result, null, 2));
     // Segunda página usando el nextCursor
     const nextQuery = new FindAllPaginatedByCursorTrackingVisitorQuery({
       limit: 2,
@@ -137,6 +137,8 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
     });
     const nextResult: TrackingVisitorPaginationResponseDto =
       await handler.execute(nextQuery);
+
+    console.log('Second page result:', JSON.stringify(nextResult, null, 2));
     expect(nextResult.items.length).toBe(1);
     expect(nextResult.hasMore).toBe(false);
     expect(nextResult.nextCursor).toBeNull();
