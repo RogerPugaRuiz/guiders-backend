@@ -1,7 +1,7 @@
-// Preparativos para el test del VisitorUnseenChatCommandHandler
+// Preparativos para el test del ParticipantUnseenChatCommandHandler
 import { Test, TestingModule } from '@nestjs/testing';
-import { VisitorUnseenChatCommandHandler } from './visitor-unseen-chat.command-handler';
-import { VisitorUnseenChatCommand } from './visitor-unseen-chat.command';
+import { ParticipantUnseenChatCommandHandler } from './participant-unseen-chat.command-handler';
+import { ParticipantUnseenChatCommand } from './participant-unseen-chat.command';
 import { UUID } from 'src/context/shared/domain/value-objects/uuid';
 import {
   CHAT_REPOSITORY,
@@ -14,15 +14,15 @@ import { EventPublisher, IEventPublisher } from '@nestjs/cqrs';
 // Estructura básica del describe para el handler
 // No se implementan pruebas, solo los preparativos
 
-describe('VisitorUnseenChatCommandHandler', () => {
-  let commandHandler: VisitorUnseenChatCommandHandler;
+describe('ParticipantUnseenChatCommandHandler', () => {
+  let commandHandler: ParticipantUnseenChatCommandHandler;
   let chatRepository: IChatRepository; // Repositorio de chat simulado
 
   beforeEach(async () => {
     // Configuración del módulo de testing de NestJS
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        VisitorUnseenChatCommandHandler,
+        ParticipantUnseenChatCommandHandler,
         {
           provide: CHAT_REPOSITORY,
           useValue: {
@@ -45,8 +45,8 @@ describe('VisitorUnseenChatCommandHandler', () => {
     }).compile();
 
     // Instancia del handler a probar
-    commandHandler = module.get<VisitorUnseenChatCommandHandler>(
-      VisitorUnseenChatCommandHandler,
+    commandHandler = module.get<ParticipantUnseenChatCommandHandler>(
+      ParticipantUnseenChatCommandHandler,
     );
     chatRepository = module.get<IChatRepository>(CHAT_REPOSITORY);
 
@@ -55,14 +55,14 @@ describe('VisitorUnseenChatCommandHandler', () => {
 
   // Aquí irán las pruebas
 
-  it('should throw error if visitorId is invalid', async () => {
-    const command = new VisitorUnseenChatCommand({
-      visitorId: UUID.generate(),
+  it('should throw error if participantId is invalid', async () => {
+    const command = new ParticipantUnseenChatCommand({
+      participantId: UUID.generate(),
       chatId: UUID.generate(),
       unseenAt: new Date(),
     });
 
-    // Simula que el chat existe y el visitorId no
+    // Simula que el chat existe y el participantId no
     const chat = Chat.fromPrimitives({
       id: command.params.chatId,
       participants: [
@@ -86,8 +86,8 @@ describe('VisitorUnseenChatCommandHandler', () => {
   });
 
   it('should throw error if chatId is invalid', async () => {
-    const command = new VisitorUnseenChatCommand({
-      visitorId: UUID.generate(),
+    const command = new ParticipantUnseenChatCommand({
+      participantId: UUID.generate(),
       chatId: UUID.generate(),
       unseenAt: new Date(),
     });
@@ -99,13 +99,13 @@ describe('VisitorUnseenChatCommandHandler', () => {
     await expect(commandHandler.execute(command)).rejects.toThrow();
   });
 
-  it('should update lastSeenAt for the participant visitorId in the chat', async () => {
-    const visitorId = UUID.generate();
+  it('should update lastSeenAt for the participant participantId in the chat', async () => {
+    const participantId = UUID.generate();
     const chatId = UUID.generate();
     const unseenAt = new Date();
 
-    const command = new VisitorUnseenChatCommand({
-      visitorId,
+    const command = new ParticipantUnseenChatCommand({
+      participantId,
       chatId,
       unseenAt,
     });
@@ -114,7 +114,7 @@ describe('VisitorUnseenChatCommandHandler', () => {
       id: command.params.chatId,
       participants: [
         {
-          id: command.params.visitorId,
+          id: command.params.participantId,
           name: 'Visitor',
           isCommercial: false,
           isVisitor: true,

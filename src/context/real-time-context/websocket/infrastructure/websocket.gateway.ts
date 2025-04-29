@@ -36,8 +36,8 @@ import { ConnectionUser } from '../domain/connection-user';
 import { PaginatedCursorTrackingVisitorQuery } from 'src/context/tracking-context/tracked-visitor/application/paginate/paginated-cursor-tracking-visitor.query';
 import { TrackingVisitorPrimitives } from 'src/context/tracking-context/tracked-visitor/domain/tracking-visitor-primitives';
 import { TrackingVisitorPaginationResponseDto } from 'src/context/tracking-context/tracked-visitor/application/paginate/tracking-visitor-pagination-response.dto';
-import { VisitorUnseenChatCommand } from 'src/context/chat-context/chat/application/update/participants/unseen-chat/visitor-unseen-chat.command';
-import { VisitorSeenChatCommand } from 'src/context/chat-context/chat/application/update/participants/seen-chat/visitor-seen-chat.command';
+import { ParticipantUnseenChatCommand } from 'src/context/chat-context/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
+import { ParticipantSeenChatCommand } from 'src/context/chat-context/chat/application/update/participants/seen-chat/participant-seen-chat.command';
 
 export interface Event {
   type?: string;
@@ -233,6 +233,44 @@ export class RealTimeWebSocketGateway
     );
   }
 
+  @Roles(['commercial', 'visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('user:connected')
+  async handleUserConnected(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<any>> {
+    const user = client.user;
+    const socketId = client.id;
+    const connectionId = user.sub;
+    const roles = user.role;
+    await this.commandBus.execute(
+      new ConnectUserCommand(connectionId, roles, socketId),
+    );
+
+    return new ResponseBuilder<any>()
+      .addSuccess(true)
+      .addMessage('User connected')
+      .build();
+  }
+
+  @Roles(['commercial', 'visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('user:disconnected')
+  async handleUserDisconnected(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<any>> {
+    const user = client.user;
+    const connectionId = user.sub;
+    await this.commandBus.execute(new DisconnectUserCommand(connectionId));
+
+    return new ResponseBuilder<any>()
+      .addSuccess(true)
+      .addMessage('User disconnected')
+      .build();
+  }
+
   @SubscribeMessage('test')
   handleTest(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -301,9 +339,9 @@ export class RealTimeWebSocketGateway
     const { chatId } = event.data as {
       chatId: string;
     };
-    const visitorId = client.user.sub;
+    const participantId = client.user.sub;
     const visitorName = client.user.email || client.user.sub;
-    const command = new StartChatCommand(chatId, visitorId, visitorName);
+    const command = new StartChatCommand(chatId, participantId, visitorName);
     await this.commandBus.execute<StartChatCommand, void>(command);
     return Promise.resolve(
       ResponseBuilder.create()
@@ -460,13 +498,13 @@ export class RealTimeWebSocketGateway
       timestamp: number;
     };
 
-    const command = new VisitorSeenChatCommand({
+    const command = new ParticipantSeenChatCommand({
       chatId,
-      visitorId: client.user.sub,
+      participantId: client.user.sub,
       seenAt: new Date(timestamp),
     });
 
-    await this.commandBus.execute<VisitorSeenChatCommand, void>(command);
+    await this.commandBus.execute<ParticipantSeenChatCommand, void>(command);
 
     return new ResponseBuilder<any>()
       .addSuccess(true)
@@ -485,13 +523,13 @@ export class RealTimeWebSocketGateway
       chatId: string;
       timestamp: number;
     };
-    const command = new VisitorUnseenChatCommand({
+    const command = new ParticipantUnseenChatCommand({
       chatId,
-      visitorId: client.user.sub,
+      participantId: client.user.sub,
       unseenAt: new Date(timestamp),
     });
 
-    await this.commandBus.execute<VisitorUnseenChatCommand, void>(command);
+    await this.commandBus.execute<ParticipantUnseenChatCommand, void>(command);
     return new ResponseBuilder<any>()
       .addSuccess(true)
       .addMessage('Chat closed')

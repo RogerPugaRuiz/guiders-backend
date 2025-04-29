@@ -24,6 +24,9 @@ import { SaveMessageCommandHandler } from '../application/create/message/save-me
 import { UserFinderAdapterService } from './finders/user-finder-adapter.service';
 import { VISITOR_FINDER } from '../application/read/visitor-finder';
 import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.service';
+import { ParticipantSeenAtEvent } from '../domain/chat/events/participant-seen-at.event';
+import { ParticipantSeenChatCommandHandler } from '../application/update/participants/seen-chat/participant-seen-chat.command-handler';
+import { ParticipantUnseenChatCommandHandler } from '../application/update/participants/unseen-chat/participant-unseen-chat.command-handler';
 
 @Module({
   imports: [
@@ -40,7 +43,8 @@ import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.se
 
     // commands
     StartChatCommandHandler,
-    SaveMessageCommand,
+    ParticipantSeenChatCommandHandler,
+    ParticipantUnseenChatCommandHandler,
 
     // queries
     MessagePaginateQueryHandler,

@@ -1,11 +1,11 @@
 import { ICommand } from '@nestjs/cqrs';
 
-export class VisitorUnseenChatCommand implements ICommand {
+export class ParticipantSeenChatCommand implements ICommand {
   constructor(
     readonly params: {
       chatId: string;
-      visitorId: string;
-      unseenAt: Date;
+      participantId: string;
+      seenAt: Date;
     },
   ) {}
 }

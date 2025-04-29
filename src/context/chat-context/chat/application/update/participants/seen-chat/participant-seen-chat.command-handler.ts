@@ -1,5 +1,5 @@
 import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
-import { VisitorSeenChatCommand } from './visitor-seen-chat.command';
+import { ParticipantSeenChatCommand } from './participant-seen-chat.command';
 import { Inject } from '@nestjs/common';
 import {
   CHAT_REPOSITORY,
@@ -9,17 +9,17 @@ import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
 import { Chat } from 'src/context/chat-context/chat/domain/chat/chat';
 import { Operator } from 'src/context/shared/domain/criteria';
 
-@CommandHandler(VisitorSeenChatCommand)
-export class VisitorSeenChatCommandHandler
-  implements ICommandHandler<VisitorSeenChatCommand>
+@CommandHandler(ParticipantSeenChatCommand)
+export class ParticipantSeenChatCommandHandler
+  implements ICommandHandler<ParticipantSeenChatCommand>
 {
   private readonly criteriaBuilder = new CriteriaBuilder<Chat>();
   constructor(
     @Inject(CHAT_REPOSITORY) private readonly chatRepository: IChatRepository,
     private readonly publisher: EventPublisher,
   ) {}
-  async execute(command: VisitorSeenChatCommand): Promise<void> {
-    const { chatId, visitorId, seenAt } = command.params;
+  async execute(command: ParticipantSeenChatCommand): Promise<void> {
+    const { chatId, participantId, seenAt } = command.params;
 
     const criteria = this.criteriaBuilder
       .addFilter('id', Operator.EQUALS, chatId)
@@ -32,7 +32,7 @@ export class VisitorSeenChatCommandHandler
         throw new Error('Chat not found');
       },
       async ({ chat }) => {
-        const newChat = chat.participantSeenAt(visitorId, seenAt);
+        const newChat = chat.participantSeenAt(participantId, seenAt);
         await this.chatRepository.save(newChat);
         const chatWithEvents = this.publisher.mergeObjectContext(newChat);
         chatWithEvents.commit();

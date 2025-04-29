@@ -7,19 +7,19 @@ import {
 import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
 import { Chat } from 'src/context/chat-context/chat/domain/chat/chat';
 import { Operator } from 'src/context/shared/domain/criteria';
-import { VisitorUnseenChatCommand } from './visitor-unseen-chat.command';
+import { ParticipantUnseenChatCommand } from './participant-unseen-chat.command';
 
-@CommandHandler(VisitorUnseenChatCommand)
-export class VisitorUnseenChatCommandHandler
-  implements ICommandHandler<VisitorUnseenChatCommand>
+@CommandHandler(ParticipantUnseenChatCommand)
+export class ParticipantUnseenChatCommandHandler
+  implements ICommandHandler<ParticipantUnseenChatCommand>
 {
   private readonly criteriaBuilder = new CriteriaBuilder<Chat>();
   constructor(
     @Inject(CHAT_REPOSITORY) private readonly chatRepository: IChatRepository,
     private readonly publisher: EventPublisher,
   ) {}
-  async execute(command: VisitorUnseenChatCommand): Promise<void> {
-    const { chatId, visitorId, unseenAt } = command.params;
+  async execute(command: ParticipantUnseenChatCommand): Promise<void> {
+    const { chatId, participantId, unseenAt } = command.params;
 
     const criteria = this.criteriaBuilder
       .addFilter('id', Operator.EQUALS, chatId)
@@ -32,7 +32,7 @@ export class VisitorUnseenChatCommandHandler
         throw new Error('Chat not found');
       },
       async ({ chat }) => {
-        const newChat = chat.participantUnseenAt(visitorId, unseenAt);
+        const newChat = chat.participantUnseenAt(participantId, unseenAt);
         await this.chatRepository.save(newChat);
         const chatWithEvents = this.publisher.mergeObjectContext(newChat);
         chatWithEvents.commit();
