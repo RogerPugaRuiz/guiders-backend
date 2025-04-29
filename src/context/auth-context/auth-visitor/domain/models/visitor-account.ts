@@ -1,4 +1,3 @@
-import { Optional } from 'src/context/shared/domain/optional';
 import { VisitorAccountCreatedAt } from './visitor-account-created-at';
 import { VisitorAccountId } from './visitor-account-id';
 import { VisitorAccountLastLoginAt } from './visitor-account-last-login-at';
@@ -7,6 +6,7 @@ import { VisitorAccountUserAgent } from './visitor-account-user-agent';
 import { VisitorAccountApiKey } from './visitor-account-api-key';
 import { VisitorAccountCreatedEvent } from '../events/visitor-account-created.event';
 import { AggregateRoot } from '@nestjs/cqrs';
+import { Optional } from '../../../../shared/domain/optional';
 
 export interface VisitorAccountPrimitives {
   id: string;

@@ -2,7 +2,7 @@
 // Los comentarios explican el propósito de cada campo
 import { IQuery } from '@nestjs/cqrs';
 
-export class FindAllPaginatedByCursorTrackingVisitorQuery implements IQuery {
+export class PaginatedCursorTrackingVisitorQuery implements IQuery {
   // Número máximo de resultados a devolver
   readonly limit: number;
   // Lista de campos y direcciones para ordenar (soporta múltiples ordenamientos)

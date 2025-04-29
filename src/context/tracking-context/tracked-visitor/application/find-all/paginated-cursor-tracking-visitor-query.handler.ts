@@ -1,6 +1,6 @@
 // Handler para la query de paginación por cursor de tracking-visitor
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { FindAllPaginatedByCursorTrackingVisitorQuery } from './find-all-paginated-by-cursor-tracking-visitor.query';
+import { PaginatedCursorTrackingVisitorQuery } from './paginated-cursor-tracking-visitor.query';
 import { TrackingVisitorPaginationResponseDto } from './tracking-visitor-pagination-response.dto';
 import { Inject } from '@nestjs/common';
 import {
@@ -12,9 +12,9 @@ import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-curso
 import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base64.util';
 import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
 
-@QueryHandler(FindAllPaginatedByCursorTrackingVisitorQuery)
-export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
-  implements IQueryHandler<FindAllPaginatedByCursorTrackingVisitorQuery>
+@QueryHandler(PaginatedCursorTrackingVisitorQuery)
+export class PaginatedCursorTrackingVisitorQueryHandler
+  implements IQueryHandler<PaginatedCursorTrackingVisitorQuery>
 {
   private criteriaBuilder = new CriteriaBuilder<TrackingVisitor>();
   constructor(
@@ -24,7 +24,7 @@ export class FindAllPaginatedByCursorTrackingVisitorQueryHandler
 
   // Maneja la query de paginación por cursor
   async execute(
-    query: FindAllPaginatedByCursorTrackingVisitorQuery,
+    query: PaginatedCursorTrackingVisitorQuery,
   ): Promise<TrackingVisitorPaginationResponseDto> {
     // Convertir el cursor de Base64 a un objeto Cursor
     const cursor = query.cursor

@@ -5,7 +5,7 @@ import {
   RequiredRoles,
   RolesGuard,
 } from 'src/context/shared/infrastructure/guards/role.guard';
-import { FindAllPaginatedByCursorTrackingVisitorQuery } from '../application/find-all/find-all-paginated-by-cursor-tracking-visitor.query';
+import { PaginatedCursorTrackingVisitorQuery } from '../application/find-all/paginated-cursor-tracking-visitor.query';
 
 @Controller('visitors')
 export class TrackingVisitorController {
@@ -25,7 +25,7 @@ export class TrackingVisitorController {
       nextCursor: null,
       hasMore: false,
     });
-    // const query = new FindAllPaginatedByCursorTrackingVisitorQuery({
+    // const query = new PaginatedCursorTrackingVisitorQuery({
     //   limit: limitNumber,
     //   cursor: cursor ? new Date(cursor) : undefined,
     // });

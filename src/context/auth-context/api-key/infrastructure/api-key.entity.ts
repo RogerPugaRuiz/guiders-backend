@@ -1,5 +1,5 @@
-import { VisitorAccountEntity } from 'src/context/auth-context/auth-visitor/infrastructure/visitor-account.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { VisitorAccountEntity } from '../../auth-visitor/infrastructure/visitor-account.entity';
 
 @Entity()
 export class ApiKeyEntity {

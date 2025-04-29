@@ -1,4 +1,3 @@
-import { ApiKeyEntity } from 'src/context/auth-context/api-key/infrastructure/api-key.entity';
 import {
   Entity,
   Column,
@@ -6,6 +5,7 @@ import {
   JoinColumn,
   ManyToOne,
 } from 'typeorm';
+import { ApiKeyEntity } from '../../api-key/infrastructure/api-key.entity';
 
 @Entity()
 export class VisitorAccountEntity {

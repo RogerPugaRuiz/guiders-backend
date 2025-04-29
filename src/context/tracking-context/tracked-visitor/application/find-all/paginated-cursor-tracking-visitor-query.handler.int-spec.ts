@@ -2,8 +2,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import { Test, TestingModule } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FindAllPaginatedByCursorTrackingVisitorQueryHandler } from './find-all-paginated-by-cursor-tracking-visitor-query.handler';
-import { FindAllPaginatedByCursorTrackingVisitorQuery } from './find-all-paginated-by-cursor-tracking-visitor.query';
+import { PaginatedCursorTrackingVisitorQueryHandler } from './paginated-cursor-tracking-visitor-query.handler';
+import { PaginatedCursorTrackingVisitorQuery } from './paginated-cursor-tracking-visitor.query';
 import { TrackingVisitorEntity } from '../../infrastructure/tracking-visitor.entity';
 import { TrackingVisitorService } from '../../infrastructure/tracking-visitor.service';
 import { TrackingVisitorPaginationResponseDto } from './tracking-visitor-pagination-response.dto';
@@ -25,9 +25,9 @@ const dbConfig = {
   synchronize: true,
 };
 
-describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', () => {
+describe('PaginatedCursorTrackingVisitorQueryHandler (integration)', () => {
   let app: INestApplication;
-  let handler: FindAllPaginatedByCursorTrackingVisitorQueryHandler;
+  let handler: PaginatedCursorTrackingVisitorQueryHandler;
   let repository: Repository<TrackingVisitorEntity>;
 
   beforeAll(async () => {
@@ -42,15 +42,13 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
           provide: TRACKING_VISITOR_REPOSITORY,
           useExisting: TrackingVisitorService,
         },
-        FindAllPaginatedByCursorTrackingVisitorQueryHandler,
+        PaginatedCursorTrackingVisitorQueryHandler,
       ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
-    handler = moduleFixture.get(
-      FindAllPaginatedByCursorTrackingVisitorQueryHandler,
-    );
+    handler = moduleFixture.get(PaginatedCursorTrackingVisitorQueryHandler);
     repository = moduleFixture.get<Repository<TrackingVisitorEntity>>(
       getRepositoryToken(TrackingVisitorEntity),
     );
@@ -110,7 +108,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
     await repository.save([...visitors]);
 
     // Primera página, ordena por createdAt DESC, id DESC, limit 2
-    const query = new FindAllPaginatedByCursorTrackingVisitorQuery({
+    const query = new PaginatedCursorTrackingVisitorQuery({
       limit: 2,
       orderBy: [
         { field: 'createdAt', direction: 'DESC' },
@@ -127,7 +125,7 @@ describe('FindAllPaginatedByCursorTrackingVisitorQueryHandler (integration)', ()
 
     console.log('First page result:', JSON.stringify(result, null, 2));
     // Segunda página usando el nextCursor
-    const nextQuery = new FindAllPaginatedByCursorTrackingVisitorQuery({
+    const nextQuery = new PaginatedCursorTrackingVisitorQuery({
       limit: 2,
       orderBy: [
         { field: 'createdAt', direction: 'DESC' },
