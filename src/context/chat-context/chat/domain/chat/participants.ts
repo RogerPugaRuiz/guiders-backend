@@ -36,6 +36,9 @@ export class Participants {
       name: string;
       isCommercial: boolean;
       isVisitor: boolean;
+      isOnline?: boolean;
+      assignedAt?: Date;
+      lastSeenAt?: Date | null;
     }[],
   ): Participants {
     const participantObjects = participants.map((participant) =>
@@ -91,5 +94,9 @@ export class Participants {
       throw new Error(`Participant with id ${updatedParticipant.id} not found`);
     }
     this._participants[index] = updatedParticipant;
+  }
+
+  public hasParticipant(id: string): boolean {
+    return this._participants.some((participant) => participant.id === id);
   }
 }

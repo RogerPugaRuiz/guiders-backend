@@ -48,22 +48,22 @@ import { MessageModule } from './context/chat-context/message/infrastructure/mes
       useFactory: (configService: ConfigService) => {
         // Selección dinámica de variables según NODE_ENV
         const nodeEnv = configService.get<string>('NODE_ENV');
-        const isE2e = nodeEnv === 'e2e';
+        const isTest = nodeEnv === 'test';
         return {
           type: 'postgres',
-          host: isE2e
+          host: isTest
             ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
             : configService.get<string>('DATABASE_HOST', 'localhost'),
-          port: isE2e
+          port: isTest
             ? Number(configService.get<string>('TEST_DATABASE_PORT', '5432'))
             : Number(configService.get<string>('DATABASE_PORT', '5432')),
-          username: isE2e
+          username: isTest
             ? configService.get<string>('TEST_DATABASE_USERNAME', 'postgres')
             : configService.get<string>('DATABASE_USERNAME', 'postgres'),
-          password: isE2e
+          password: isTest
             ? configService.get<string>('TEST_DATABASE_PASSWORD', 'password')
             : configService.get<string>('DATABASE_PASSWORD', 'password'),
-          database: isE2e
+          database: isTest
             ? configService.get<string>('TEST_DATABASE', 'mydb')
             : configService.get<string>('DATABASE', 'mydb'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],

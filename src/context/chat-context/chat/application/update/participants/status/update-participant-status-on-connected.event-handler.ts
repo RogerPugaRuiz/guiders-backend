@@ -1,23 +1,23 @@
 import { Inject } from '@nestjs/common';
 import { EventPublisher, EventsHandler, IEventHandler } from '@nestjs/cqrs';
+import { ConnectedEvent } from 'src/context/real-time-context/websocket/domain/events/connected.event';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from '../../domain/chat/chat.repository';
+} from '../../../../domain/chat/chat.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { Chat } from '../../domain/chat/chat';
-import { DisconnectedEvent } from 'src/context/real-time-context/websocket/domain/events/disconnected.event';
+import { Chat } from '../../../../domain/chat/chat';
 
-@EventsHandler(DisconnectedEvent)
-export class UpdateParticipantStatusOnDisconnectedEventHandler
-  implements IEventHandler<DisconnectedEvent>
+@EventsHandler(ConnectedEvent)
+export class UpdateParticipantStatusOnConnectedEventHandler
+  implements IEventHandler<ConnectedEvent>
 {
   constructor(
     @Inject(CHAT_REPOSITORY)
     private readonly chatRepository: IChatRepository,
     private readonly publisher: EventPublisher,
   ) {}
-  async handle(event: DisconnectedEvent): Promise<void> {
+  async handle(event: ConnectedEvent): Promise<void> {
     const { connection } = event;
 
     const criteria = new Criteria<Chat>().addFilter(
@@ -31,7 +31,7 @@ export class UpdateParticipantStatusOnDisconnectedEventHandler
     for (const chat of chats) {
       const updatedChat = chat.updateParticipantOnlineStatus(
         connection.userId,
-        false,
+        true,
       );
       const chatWithEvents = this.publisher.mergeObjectContext(updatedChat);
       await this.chatRepository.save(updatedChat);

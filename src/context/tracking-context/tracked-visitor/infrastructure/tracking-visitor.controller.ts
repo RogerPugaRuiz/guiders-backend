@@ -5,7 +5,7 @@ import {
   RequiredRoles,
   RolesGuard,
 } from 'src/context/shared/infrastructure/guards/role.guard';
-import { PaginatedCursorTrackingVisitorQuery } from '../application/find-all/paginated-cursor-tracking-visitor.query';
+import { PaginatedCursorTrackingVisitorQuery } from '../application/paginate/paginated-cursor-tracking-visitor.query';
 
 @Controller('visitors')
 export class TrackingVisitorController {

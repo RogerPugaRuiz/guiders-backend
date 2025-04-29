@@ -4,10 +4,10 @@ import { ChatCommercialsAssignedEvent } from 'src/context/real-time-context/webs
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from '../../domain/chat/chat.repository';
+} from '../../../../domain/chat/chat.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { Chat } from '../../domain/chat/chat';
-import { IUserFinder, USER_FINDER } from '../read/get-username-by-id';
+import { Chat } from '../../../../domain/chat/chat';
+import { IUserFinder, USER_FINDER } from '../../../read/get-username-by-id';
 
 @EventsHandler(ChatCommercialsAssignedEvent)
 export class UpdateChatParticipantsOnCommercialsAssignedEventHandler

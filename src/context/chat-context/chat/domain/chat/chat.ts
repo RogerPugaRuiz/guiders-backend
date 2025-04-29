@@ -11,6 +11,8 @@ import { ParticipantAssignedEvent } from './events/participant-assigned.event';
 import { ParticipantOnlineStatusUpdatedEvent } from './events/participant-online-status-updated.event';
 import { MessagePrimitives } from 'src/context/chat-context/message/domain/message';
 import { ChatUpdatedWithNewMessageEvent } from './events/chat-updated-with-new-message.event';
+import { ParticipantSeenAtEvent } from './events/participant-seen-at.event';
+import { ParticipantUnseenAtEvent } from './events/participant-unseen-at.event';
 
 export interface ParticipantPrimitives {
   id: string;
@@ -50,6 +52,9 @@ export class Chat extends AggregateRoot {
       name: string;
       isCommercial: boolean;
       isVisitor: boolean;
+      isOnline?: boolean;
+      assignedAt?: Date;
+      lastSeenAt?: Date | null;
     }[];
     status: string;
     lastMessage: string | null | undefined;
@@ -101,6 +106,55 @@ export class Chat extends AggregateRoot {
     );
 
     return pendingChat;
+  }
+
+  public hasParticipant(participantId: string): boolean {
+    return this.participants.hasParticipant(participantId);
+  }
+
+  public participantSeenAt(participantId: string, lastSeenAt: Date): Chat {
+    const participantOptional = this.participants.getParticipant(participantId);
+
+    if (participantOptional.isEmpty()) {
+      throw new Error('Participant not found');
+    }
+
+    this.participants.setLastSeenAt(participantId, lastSeenAt);
+
+    this.apply(
+      new ParticipantSeenAtEvent({
+        attributes: {
+          chatId: this.id.value,
+          id: participantId,
+          seenAt: lastSeenAt,
+        },
+        timestamp: new Date().getTime(),
+      }),
+    );
+
+    return this;
+  }
+
+  public participantUnseenAt(participantId: string, lastSeenAt: Date): Chat {
+    const participantOptional = this.participants.getParticipant(participantId);
+    if (participantOptional.isEmpty()) {
+      throw new Error('Participant not found');
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setLastSeenAt(lastSeenAt);
+    this.participants.updateParticipant(updatedParticipant);
+    this.apply(
+      new ParticipantUnseenAtEvent({
+        attributes: {
+          chatId: this.id.value,
+          id: participantId,
+          unseenAt: lastSeenAt,
+        },
+        timestamp: new Date().getTime(),
+      }),
+    );
+
+    return this;
   }
 
   public asignCommercial(commercial: { id: string; name: string }): Chat {

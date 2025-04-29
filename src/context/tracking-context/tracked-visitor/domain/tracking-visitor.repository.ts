@@ -8,4 +8,5 @@ export interface ITrackingVisitorRepository {
   matcher(criteria: Criteria<TrackingVisitor>): Promise<TrackingVisitor[]>;
   findOne(id: TrackingVisitorId): Promise<TrackingVisitor | null>;
   save(trackingVisitor: TrackingVisitor): Promise<void>;
+  total(criteria: Criteria<TrackingVisitor>): Promise<number>;
 }

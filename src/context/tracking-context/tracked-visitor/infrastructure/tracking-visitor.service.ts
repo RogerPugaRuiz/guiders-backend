@@ -86,4 +86,27 @@ export class TrackingVisitorService implements ITrackingVisitorRepository {
       TrackingVisitorMapper.toEntity(trackingVisitor),
     );
   }
+
+  async total(criteria: Criteria<TrackingVisitor>): Promise<number> {
+    console.log('Total criteria:', criteria);
+    // Convierte el objeto Criteria a SQL y parámetros usando CriteriaConverter
+    const { sql, parameters } = CriteriaConverter.toPostgresSql(
+      criteria,
+      'visitor',
+    );
+
+    // Extrae la cláusula WHERE del SQL generado
+    const whereMatch = sql.match(/WHERE (.*?)(ORDER BY|LIMIT|OFFSET|$)/s);
+
+    const queryBuilder =
+      this.trackingVisitorRepository.createQueryBuilder('visitor');
+
+    // Aplica la condición WHERE si existe
+    if (whereMatch) {
+      queryBuilder.where(whereMatch[1].trim(), parameters);
+    }
+
+    // Ejecuta la consulta y cuenta los resultados
+    return await queryBuilder.getCount();
+  }
 }

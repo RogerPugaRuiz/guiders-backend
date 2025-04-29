@@ -119,6 +119,7 @@ describe('PaginatedCursorTrackingVisitorQueryHandler (integration)', () => {
     const result: TrackingVisitorPaginationResponseDto =
       await handler.execute(query);
     expect(result.items.length).toBe(2);
+    expect(result.total).toBe(3); // Total de elementos en la base de datos
     expect(result.hasMore).toBe(true);
     expect(result.nextCursor).toBeDefined();
     expect(typeof result.nextCursor).toBe('string'); // Validar que nextCursor es un string
@@ -138,6 +139,7 @@ describe('PaginatedCursorTrackingVisitorQueryHandler (integration)', () => {
 
     console.log('Second page result:', JSON.stringify(nextResult, null, 2));
     expect(nextResult.items.length).toBe(1);
+    expect(nextResult.total).toBe(3); // Total de elementos en la base de datos
     expect(nextResult.hasMore).toBe(false);
     expect(nextResult.nextCursor).toBeNull();
   });

@@ -12,6 +12,7 @@ const mockTrackingVisitorRepository: ITrackingVisitorRepository = {
   matcher: jest.fn(),
   findOne: jest.fn(),
   save: jest.fn(),
+  total: jest.fn(),
 };
 
 describe('PaginatedCursorTrackingVisitorQueryHandler', () => {
@@ -55,6 +56,7 @@ describe('PaginatedCursorTrackingVisitorQueryHandler', () => {
       mockTrackingVisitor({ id: '3', name: 'C' }),
     ];
     (repository.matcher as jest.Mock).mockResolvedValue(items);
+    (repository.total as jest.Mock).mockResolvedValue(3);
 
     const result = await handler.execute(query);
 
@@ -64,7 +66,7 @@ describe('PaginatedCursorTrackingVisitorQueryHandler', () => {
     ]);
     expect(result.hasMore).toBe(true);
     expect(result.nextCursor).not.toBeNull();
-    expect(result.total).toBe(2);
+    expect(result.total).toBe(3);
   });
 
   it('should return paginated items with hasMore false and nextCursor null when items <= limit', async () => {
@@ -78,6 +80,7 @@ describe('PaginatedCursorTrackingVisitorQueryHandler', () => {
       mockTrackingVisitor({ id: '2', name: 'B' }),
     ];
     (repository.matcher as jest.Mock).mockResolvedValue(items);
+    (repository.total as jest.Mock).mockResolvedValue(2);
 
     const result = await handler.execute(query);
 
@@ -97,6 +100,7 @@ describe('PaginatedCursorTrackingVisitorQueryHandler', () => {
       orderBy: [{ field: 'id', direction: 'ASC' }],
     };
     (repository.matcher as jest.Mock).mockResolvedValue([]);
+    (repository.total as jest.Mock).mockResolvedValue(0);
 
     const result = await handler.execute(query);
 

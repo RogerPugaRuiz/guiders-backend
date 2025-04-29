@@ -25,6 +25,8 @@ export class Participant {
     isCommercial: boolean;
     isVisitor: boolean;
     isOnline?: boolean;
+    assignedAt?: Date;
+    lastSeenAt?: Date | null;
   }): Participant {
     return new Participant(
       params.id,
@@ -32,6 +34,8 @@ export class Participant {
       params.isCommercial,
       params.isVisitor,
       params.isOnline ?? true,
+      params.assignedAt ?? new Date(),
+      params.lastSeenAt ?? null,
     );
   }
 

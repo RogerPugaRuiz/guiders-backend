@@ -11,6 +11,7 @@ import { TrackingVisitor } from '../../domain/tracking-visitor';
 import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-cursor.util';
 import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base64.util';
 import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
+import { Criteria } from 'src/context/shared/domain/criteria';
 
 @QueryHandler(PaginatedCursorTrackingVisitorQuery)
 export class PaginatedCursorTrackingVisitorQueryHandler
@@ -34,7 +35,6 @@ export class PaginatedCursorTrackingVisitorQueryHandler
     // Crear un Criteria basado en el cursor y los filtros de orden
     // let criteria = new Criteria<TrackingVisitor>().setLimit(query.limit);
     if (Array.isArray(query.orderBy)) {
-      console.log('orderBy', query.orderBy);
       for (const order of query.orderBy) {
         this.criteriaBuilder.addOrderBy(
           order.field as keyof TrackingVisitor,
@@ -53,14 +53,9 @@ export class PaginatedCursorTrackingVisitorQueryHandler
     this.criteriaBuilder.setLimit(query.limit + 1);
     const criteria = this.criteriaBuilder.build();
     const items = await this.trackingVisitorRepository.matcher(criteria);
-    console.log('itmes', JSON.stringify(items, null, 2));
 
     // Ajustar el cálculo de hasMore para verificar si hay más elementos
     const hasMore = items.length > query.limit;
-
-    console.log(
-      `hasMore: ${hasMore}, items.length: ${items.length}, query.limit: ${query.limit}`,
-    );
 
     // Si hay más elementos, recortar la lista al límite original
     const paginatedItems = hasMore ? items.slice(0, query.limit) : items;
@@ -77,12 +72,14 @@ export class PaginatedCursorTrackingVisitorQueryHandler
       }
       newCursor[order.field] = lastItem.toPrimitives()[order.field];
     }
-    console.log('newCursor', newCursor);
     const newCursorBase64 = cursorToBase64(newCursor);
+
+    const totalCriteria = new Criteria<TrackingVisitor>();
+    const total = await this.trackingVisitorRepository.total(totalCriteria);
 
     return {
       items: paginatedItems.map((item) => item.toPrimitives()),
-      total: paginatedItems.length,
+      total,
       nextCursor: hasMore ? newCursorBase64 : null,
       hasMore,
     };

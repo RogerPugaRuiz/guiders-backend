@@ -4,7 +4,7 @@ import { TrackingVisitorEntity } from './tracking-visitor.entity';
 import { TRACKING_VISITOR_REPOSITORY } from '../domain/tracking-visitor.repository';
 import { TrackingVisitorService } from './tracking-visitor.service';
 import { NewTrackingVisitorOnVisitorAccountCreate } from '../application/events/new-tracking-visitor-on-visitor-account-create';
-import { PaginatedCursorTrackingVisitorQueryHandler } from '../application/find-all/paginated-cursor-tracking-visitor-query.handler';
+import { PaginatedCursorTrackingVisitorQueryHandler } from '../application/paginate/paginated-cursor-tracking-visitor-query.handler';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { TrackingVisitorController } from './tracking-visitor.controller';

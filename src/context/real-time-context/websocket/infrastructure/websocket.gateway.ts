@@ -33,6 +33,11 @@ import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
 import { FindChatListByParticipantQuery } from 'src/context/chat-context/chat/application/read/find-chat-list-by-participant.query';
 import { StartChatCommand } from 'src/context/chat-context/chat/application/create/pending/start-chat.command';
 import { ConnectionUser } from '../domain/connection-user';
+import { PaginatedCursorTrackingVisitorQuery } from 'src/context/tracking-context/tracked-visitor/application/paginate/paginated-cursor-tracking-visitor.query';
+import { TrackingVisitorPrimitives } from 'src/context/tracking-context/tracked-visitor/domain/tracking-visitor-primitives';
+import { TrackingVisitorPaginationResponseDto } from 'src/context/tracking-context/tracked-visitor/application/paginate/tracking-visitor-pagination-response.dto';
+import { VisitorUnseenChatCommand } from 'src/context/chat-context/chat/application/update/participants/unseen-chat/visitor-unseen-chat.command';
+import { VisitorSeenChatCommand } from 'src/context/chat-context/chat/application/update/participants/seen-chat/visitor-seen-chat.command';
 
 export interface Event {
   type?: string;
@@ -228,6 +233,21 @@ export class RealTimeWebSocketGateway
     );
   }
 
+  @SubscribeMessage('test')
+  handleTest(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    this.logger.log(`User ${client.user.sub} is sending test message`);
+    return Promise.resolve(
+      ResponseBuilder.create()
+        .addMessage('Test message received')
+        .addData(event.data)
+        .addType('test')
+        .build(),
+    );
+  }
+
   @Roles(['visitor'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:send-message')
@@ -373,6 +393,109 @@ export class RealTimeWebSocketGateway
         .addData(response)
         .build(),
     );
+  }
+
+  @Roles(['commercial'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('commercial:get-visitors')
+  async handleGetCommercialVisitors(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<
+    Response<{
+      items: TrackingVisitorPrimitives[];
+      total: number;
+      hasMore: boolean;
+      nextCursor: string | null;
+    }>
+  > {
+    this.logger.log(event.data);
+    const { limit, cursor } = event.data as {
+      limit: number;
+      cursor: string | null;
+    };
+
+    const query = new PaginatedCursorTrackingVisitorQuery({
+      limit: limit || 10,
+      cursor: cursor || null,
+      orderBy: [
+        { field: 'createdAt', direction: 'DESC' },
+        { field: 'id', direction: 'DESC' },
+      ],
+    });
+
+    const result = await this.queryBus.execute<
+      PaginatedCursorTrackingVisitorQuery,
+      TrackingVisitorPaginationResponseDto
+    >(query);
+
+    return Promise.resolve(
+      new ResponseBuilder<{
+        items: TrackingVisitorPrimitives[];
+        total: number;
+        hasMore: boolean;
+        nextCursor: string | null;
+      }>()
+        .addData({
+          items: result.items,
+          total: result.total,
+          hasMore: result.hasMore,
+          nextCursor: result.nextCursor,
+        })
+        .addMessage('Lista de visitantes obtenida')
+        .addType('commercial:get-visitors')
+        .build(),
+    );
+  }
+
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('visitor:open-chat')
+  async handleVisitorOpenChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<{ chatId: string; timestamp: number }>> {
+    const { chatId, timestamp } = event.data as {
+      chatId: string;
+      timestamp: number;
+    };
+
+    const command = new VisitorSeenChatCommand({
+      chatId,
+      visitorId: client.user.sub,
+      seenAt: new Date(timestamp),
+    });
+
+    await this.commandBus.execute<VisitorSeenChatCommand, void>(command);
+
+    return new ResponseBuilder<any>()
+      .addSuccess(true)
+      .addMessage('Chat opened')
+      .build();
+  }
+
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('visitor:close-chat')
+  async handleVisitorCloseChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<{ chatId: string; timestamp: number }>> {
+    const { chatId, timestamp } = event.data as {
+      chatId: string;
+      timestamp: number;
+    };
+    const command = new VisitorUnseenChatCommand({
+      chatId,
+      visitorId: client.user.sub,
+      unseenAt: new Date(timestamp),
+    });
+
+    await this.commandBus.execute<VisitorUnseenChatCommand, void>(command);
+    return new ResponseBuilder<any>()
+      .addSuccess(true)
+      .addMessage('Chat closed')
+      .build();
   }
 
   @Roles(['visitor', 'commercial'])
