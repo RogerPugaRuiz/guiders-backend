@@ -19,6 +19,8 @@ import { WsNotificationService } from './services/ws-notification.service';
 import { NotifyOnParticipantOnlineStatusUpdatedEventHandler } from '../application/event/notify-on-participant-online-status-updated.event-handler';
 import { NotifyOnChatStateUpdatedEventHandler } from '../application/event/notify-on-chat-state-updated.event-handler';
 import { NotifyOnChatLastMessageUpdatedEventHandler } from '../application/event/notify-on-chat-last-message-updated.event-handler';
+import { NotifyOnParticipantSeenChatEventHandler } from '../application/event/notify-on-participant-seen-chat.event-handler';
+import { NotifyOnParticipantUnseenChatEventHandler } from '../application/event/notify-on-participant-unseen-chat.event-handler';
 
 @Module({
   imports: [HttpModule],
@@ -44,11 +46,15 @@ import { NotifyOnChatLastMessageUpdatedEventHandler } from '../application/event
     DisconnectUserCommandHandler,
     FindOneUserBySocketIdQueryHandler,
     RealTimeMessageSenderCommandHandler,
+
+    // events
     AssignOnPendingChatEventHandler,
     NotifyOnParticipantAssignedToChatEventHandler,
     NotifyOnParticipantOnlineStatusUpdatedEventHandler,
     NotifyOnChatStateUpdatedEventHandler,
     NotifyOnChatLastMessageUpdatedEventHandler,
+    NotifyOnParticipantSeenChatEventHandler,
+    NotifyOnParticipantUnseenChatEventHandler,
   ],
   exports: [],
 })

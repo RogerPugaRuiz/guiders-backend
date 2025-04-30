@@ -39,6 +39,8 @@ export class Participants {
       isOnline?: boolean;
       assignedAt?: Date;
       lastSeenAt?: Date | null;
+      isViewing?: boolean;
+      isTyping?: boolean;
     }[],
   ): Participants {
     const participantObjects = participants.map((participant) =>
@@ -74,13 +76,59 @@ export class Participants {
     );
   }
 
-  public setLastSeenAt(id: string, lastSeenAt: Date): void {
+  public setSeenAt(id: string, lastSeenAt: Date): void {
     const participantOptional = this.getParticipant(id);
     if (participantOptional.isEmpty()) {
       throw new Error(`Participant with id ${id} not found`);
     }
     const participant = participantOptional.get();
-    const updatedParticipant = participant.setLastSeenAt(lastSeenAt);
+    const updatedParticipant = participant.setSeenAt(lastSeenAt);
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
+
+  public setUnseenAt(id: string, lastSeenAt: Date): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setUnseenAt(lastSeenAt);
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
+  public setTyping(id: string, isTyping: boolean): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setTyping(isTyping);
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
+  public setViewing(id: string, isViewing: boolean): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setViewing(isViewing);
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
+
+  public setOnline(id: string, isOnline: boolean): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setOnline(isOnline);
     this._participants = this._participants.map((p) =>
       p.id === id ? updatedParticipant : p,
     );

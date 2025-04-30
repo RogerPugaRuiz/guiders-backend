@@ -22,6 +22,8 @@ export interface ParticipantPrimitives {
   isOnline: boolean;
   assignedAt: Date;
   lastSeenAt: Date | null;
+  isViewing: boolean;
+  isTyping: boolean;
 }
 
 export interface ChatPrimitives {
@@ -55,6 +57,8 @@ export class Chat extends AggregateRoot {
       isOnline?: boolean;
       assignedAt?: Date;
       lastSeenAt?: Date | null;
+      isViewing?: boolean;
+      isTyping?: boolean;
     }[];
     status: string;
     lastMessage: string | null | undefined;
@@ -118,15 +122,20 @@ export class Chat extends AggregateRoot {
     if (participantOptional.isEmpty()) {
       throw new Error('Participant not found');
     }
-
-    this.participants.setLastSeenAt(participantId, lastSeenAt);
+    const participant = participantOptional.get();
+    const previousSeenAt = participant.lastSeenAt;
+    const previousIsViewing = participant.isViewing;
+    this.participants.setSeenAt(participantId, lastSeenAt);
 
     this.apply(
       new ParticipantSeenAtEvent({
         attributes: {
-          chatId: this.id.value,
-          id: participantId,
-          seenAt: lastSeenAt,
+          chat: this.toPrimitives(),
+          participantUpdate: {
+            id: participantId,
+            previousSeen: previousSeenAt,
+            previousIsViewing: previousIsViewing,
+          },
         },
         timestamp: new Date().getTime(),
       }),
@@ -140,15 +149,18 @@ export class Chat extends AggregateRoot {
     if (participantOptional.isEmpty()) {
       throw new Error('Participant not found');
     }
-    const participant = participantOptional.get();
-    const updatedParticipant = participant.setLastSeenAt(lastSeenAt);
-    this.participants.updateParticipant(updatedParticipant);
+    const previousSeenAt = participantOptional.get().lastSeenAt;
+    const previousIsViewing = participantOptional.get().isViewing;
+    this.participants.setUnseenAt(participantId, lastSeenAt);
     this.apply(
       new ParticipantUnseenAtEvent({
         attributes: {
-          chatId: this.id.value,
-          id: participantId,
-          unseenAt: lastSeenAt,
+          chat: this.toPrimitives(),
+          participantUpdate: {
+            id: participantId,
+            previousSeen: previousSeenAt,
+            previousIsViewing: previousIsViewing,
+          },
         },
         timestamp: new Date().getTime(),
       }),
@@ -184,6 +196,8 @@ export class Chat extends AggregateRoot {
           isOnline: participant.isOnline,
           assignedAt: participant.assignedAt,
           lastSeenAt: participant.lastSeenAt,
+          isViewing: participant.isViewing,
+          isTyping: participant.isTyping,
         },
       }),
     );
@@ -202,7 +216,7 @@ export class Chat extends AggregateRoot {
 
     const lastMessage = LastMessage.create(message.content);
     const lastMessageAt = LastMessageAt.create(message.createdAt);
-    this.participants.setLastSeenAt(message.senderId, message.createdAt);
+    this.participants.setSeenAt(message.senderId, message.createdAt);
 
     const isPendingWithCommercial =
       this.status.equals(Status.PENDING) &&
@@ -271,29 +285,40 @@ export class Chat extends AggregateRoot {
     return updatedChat;
   }
 
-  public updateParticipantOnlineStatus(
-    participantId: string,
-    isOnline: boolean,
-  ): Chat {
+  public participantOnline(participantId: string, isOnline: boolean): Chat {
     const participantOptional = this.participants.getParticipant(participantId);
-
     if (participantOptional.isEmpty()) {
       throw new Error('Participant not found');
     }
 
-    const participant = participantOptional.get();
-    const updatedParticipant = participant.updateOnlineStatus(isOnline);
+    const previousSeenAt = participantOptional.get().lastSeenAt;
+    const previousIsViewing = participantOptional.get().isViewing;
+    const previousOnlineStatus = participantOptional.get().isOnline;
 
-    this.participants.updateParticipant(updatedParticipant);
+    this.participants.setOnline(participantId, isOnline);
+    this.participants.setViewing(participantId, false);
 
     const attributes = {
       updatedParticipant: {
-        id: updatedParticipant.id,
-        isOnline: updatedParticipant.isOnline,
+        id: participantId,
+        previousOnlineStatus: previousOnlineStatus,
       },
       chat: this.toPrimitives(),
     };
     this.apply(new ParticipantOnlineStatusUpdatedEvent(attributes));
+    this.apply(
+      new ParticipantUnseenAtEvent({
+        attributes: {
+          participantUpdate: {
+            id: participantId,
+            previousSeen: previousSeenAt,
+            previousIsViewing: previousIsViewing,
+          },
+          chat: this.toPrimitives(),
+        },
+        timestamp: new Date().getTime(),
+      }),
+    );
 
     return this;
   }
@@ -309,6 +334,8 @@ export class Chat extends AggregateRoot {
         isOnline: participant.isOnline,
         assignedAt: participant.assignedAt,
         lastSeenAt: participant.lastSeenAt,
+        isViewing: participant.isViewing,
+        isTyping: participant.isTyping,
       })),
       status: this.status.value,
       lastMessage: this.lastMessage ? this.lastMessage.value : null,

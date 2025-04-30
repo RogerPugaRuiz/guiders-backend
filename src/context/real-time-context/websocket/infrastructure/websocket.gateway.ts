@@ -121,6 +121,7 @@ export class RealTimeWebSocketGateway
 {
   private logger = new Logger('RealTimeWebSocketGateway');
   @WebSocketServer() server: Server;
+  private disconnectTimeouts: Map<string, NodeJS.Timeout> = new Map(); // Almacena los timeouts de desconexión por usuario
 
   afterInit(server: Server) {
     this.server = server;
@@ -145,6 +146,15 @@ export class RealTimeWebSocketGateway
       const socketId = client.id;
       const { sub: connectionId, role: roles } =
         await this.tokenVerifyService.verifyToken(token);
+
+      // Si existe un timeout de desconexión pendiente para este usuario, lo cancelamos
+      if (this.disconnectTimeouts.has(connectionId)) {
+        clearTimeout(this.disconnectTimeouts.get(connectionId));
+        this.disconnectTimeouts.delete(connectionId);
+        this.logger.log(
+          `Cancelado periodo de gracia de desconexión para usuario ${connectionId}`,
+        );
+      }
 
       await this.commandBus.execute(
         new ConnectUserCommand(connectionId, roles, socketId),
@@ -173,7 +183,27 @@ export class RealTimeWebSocketGateway
       FindOneUserBySocketIdQueryResult
     >(new FindOneUserBySocketIdQuery(socketId));
     if (user) {
-      await this.commandBus.execute(new DisconnectUserCommand(user.userId));
+      // Iniciamos un periodo de gracia de 3 segundos antes de desconectar al usuario
+      const timeout = setTimeout(() => {
+        // Lógica async dentro de una función normal usando then
+        this.commandBus
+          .execute(new DisconnectUserCommand(user.userId))
+          .then(() => {
+            this.disconnectTimeouts.delete(user.userId);
+            this.logger.log(
+              `Usuario ${user.userId} desconectado tras periodo de gracia`,
+            );
+          })
+          .catch((error) => {
+            if (error instanceof Error) {
+              this.logger.error(
+                `Error al desconectar al usuario ${user.userId}: ${error.message}`,
+              );
+            }
+          });
+      }, 3000);
+      this.disconnectTimeouts.set(user.userId, timeout);
+      this.logger.log(`Periodo de gracia iniciado para usuario ${user.userId}`);
     }
   }
 
@@ -231,44 +261,6 @@ export class RealTimeWebSocketGateway
         .addType(type || 'notification')
         .build(),
     );
-  }
-
-  @Roles(['commercial', 'visitor'])
-  @UseGuards(WsAuthGuard, WsRolesGuard)
-  @SubscribeMessage('user:connected')
-  async handleUserConnected(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() event: Event,
-  ): Promise<Response<any>> {
-    const user = client.user;
-    const socketId = client.id;
-    const connectionId = user.sub;
-    const roles = user.role;
-    await this.commandBus.execute(
-      new ConnectUserCommand(connectionId, roles, socketId),
-    );
-
-    return new ResponseBuilder<any>()
-      .addSuccess(true)
-      .addMessage('User connected')
-      .build();
-  }
-
-  @Roles(['commercial', 'visitor'])
-  @UseGuards(WsAuthGuard, WsRolesGuard)
-  @SubscribeMessage('user:disconnected')
-  async handleUserDisconnected(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() event: Event,
-  ): Promise<Response<any>> {
-    const user = client.user;
-    const connectionId = user.sub;
-    await this.commandBus.execute(new DisconnectUserCommand(connectionId));
-
-    return new ResponseBuilder<any>()
-      .addSuccess(true)
-      .addMessage('User disconnected')
-      .build();
   }
 
   @SubscribeMessage('test')
@@ -533,6 +525,29 @@ export class RealTimeWebSocketGateway
     return new ResponseBuilder<any>()
       .addSuccess(true)
       .addMessage('Chat closed')
+      .build();
+  }
+
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('visitor:chat-active')
+  async handleVisitorChatActive(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<{ chatId: string; timestamp: number }>> {
+    const { chatId, timestamp } = event.data as {
+      chatId: string;
+      timestamp: number;
+    };
+    const command = new ParticipantSeenChatCommand({
+      chatId,
+      participantId: client.user.sub,
+      seenAt: new Date(timestamp),
+    });
+    await this.commandBus.execute<ParticipantSeenChatCommand, void>(command);
+    return new ResponseBuilder<any>()
+      .addSuccess(true)
+      .addMessage('Chat active')
       .build();
   }
 

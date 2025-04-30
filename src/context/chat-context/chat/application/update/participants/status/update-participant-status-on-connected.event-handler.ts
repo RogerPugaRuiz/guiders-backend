@@ -29,10 +29,7 @@ export class UpdateParticipantStatusOnConnectedEventHandler
     const { chats } = await this.chatRepository.find(criteria);
 
     for (const chat of chats) {
-      const updatedChat = chat.updateParticipantOnlineStatus(
-        connection.userId,
-        true,
-      );
+      const updatedChat = chat.participantOnline(connection.userId, true);
       const chatWithEvents = this.publisher.mergeObjectContext(updatedChat);
       await this.chatRepository.save(updatedChat);
       chatWithEvents.commit();

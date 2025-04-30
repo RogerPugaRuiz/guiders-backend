@@ -6,7 +6,7 @@ export class ParticipantOnlineStatusUpdatedEvent implements IEvent {
     public readonly attributes: {
       updatedParticipant: {
         id: string;
-        isOnline: boolean;
+        previousOnlineStatus: boolean;
       };
       chat: ChatPrimitives;
     },

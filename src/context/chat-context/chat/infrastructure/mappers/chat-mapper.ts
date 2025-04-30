@@ -13,6 +13,8 @@ export class ChatMapper {
       isOnline: participant.isOnline,
       assignedAt: participant.assignedAt,
       lastSeenAt: participant.lastSeenAt,
+      isViewing: participant.isViewing,
+      isTyping: participant.isTyping,
     }));
     entity.status = chat.status.value;
     entity.lastMessage = chat.lastMessage ? chat.lastMessage.value : null;
@@ -33,6 +35,8 @@ export class ChatMapper {
             isOnline: participant.isOnline,
             assignedAt: participant.assignedAt,
             lastSeenAt: participant.lastSeenAt,
+            isViewing: participant.isViewing,
+            isTyping: participant.isTyping,
           }))
         : [],
       status: entity.status,

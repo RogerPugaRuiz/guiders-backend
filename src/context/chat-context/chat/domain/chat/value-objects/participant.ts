@@ -7,6 +7,8 @@ export class Participant {
     readonly isOnline: boolean = false,
     readonly assignedAt: Date = new Date(),
     readonly lastSeenAt: Date | null = null,
+    readonly isViewing: boolean = false,
+    readonly isTyping: boolean = false,
   ) {
     if (!id) {
       throw new Error('Participant id is required');
@@ -27,6 +29,8 @@ export class Participant {
     isOnline?: boolean;
     assignedAt?: Date;
     lastSeenAt?: Date | null;
+    isViewing?: boolean;
+    isTyping?: boolean;
   }): Participant {
     return new Participant(
       params.id,
@@ -36,10 +40,12 @@ export class Participant {
       params.isOnline ?? true,
       params.assignedAt ?? new Date(),
       params.lastSeenAt ?? null,
+      params.isViewing ?? false,
+      params.isTyping ?? false,
     );
   }
 
-  public setLastSeenAt(lastSeenAt: Date): Participant {
+  public setSeenAt(lastSeenAt: Date): Participant {
     return new Participant(
       this.id,
       this.name,
@@ -48,6 +54,63 @@ export class Participant {
       this.isOnline,
       this.assignedAt,
       lastSeenAt,
+      true,
+      this.isTyping,
+    );
+  }
+
+  public setUnseenAt(lastSeenAt: Date): Participant {
+    return new Participant(
+      this.id,
+      this.name,
+      this.isCommercial,
+      this.isVisitor,
+      this.isOnline,
+      this.assignedAt,
+      lastSeenAt,
+      false,
+      this.isTyping,
+    );
+  }
+  public setViewing(isViewing: boolean): Participant {
+    return new Participant(
+      this.id,
+      this.name,
+      this.isCommercial,
+      this.isVisitor,
+      this.isOnline,
+      this.assignedAt,
+      this.lastSeenAt,
+      isViewing,
+      this.isTyping,
+    );
+  }
+
+  public setTyping(isTyping: boolean): Participant {
+    return new Participant(
+      this.id,
+      this.name,
+      this.isCommercial,
+      this.isVisitor,
+      this.isOnline,
+      this.assignedAt,
+      this.lastSeenAt,
+      this.isViewing,
+      isTyping,
+    );
+  }
+
+  public setOnline(isOnline: boolean): Participant {
+    return new Participant(
+      this.id,
+      this.name,
+      this.isCommercial,
+      this.isVisitor,
+      isOnline,
+      this.assignedAt,
+      this.lastSeenAt,
+      this.isViewing,
+      this.isTyping,
     );
   }
 

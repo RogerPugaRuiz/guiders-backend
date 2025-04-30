@@ -1,12 +1,16 @@
 import { IEvent } from '@nestjs/cqrs';
+import { ChatPrimitives } from '../chat';
 
 export class ParticipantSeenAtEvent implements IEvent {
   constructor(
     public readonly params: {
       attributes: {
-        id: string;
-        seenAt: Date;
-        chatId: string;
+        participantUpdate: {
+          id: string;
+          previousSeen: Date | null;
+          previousIsViewing: boolean;
+        };
+        chat: ChatPrimitives;
       };
       timestamp: number;
     },
