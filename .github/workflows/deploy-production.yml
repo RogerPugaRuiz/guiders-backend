@@ -42,11 +42,6 @@ jobs:
             echo 'DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE=${{ secrets.DATABASE }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'OPENSEARCH_INITIAL_ADMIN_PASSWORD=${{ secrets.OPENSEARCH_INITIAL_ADMIN_PASSWORD }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'APP_URL=${{ secrets.APP_URL }}' >> ${{ secrets.PROD_PATH }}/.env.production
           "
 
