@@ -10,11 +10,6 @@ services:
       - .env.production # Archivo de variables de entorno para producción
     environment:
       NODE_ENV: production
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USERNAME: ${DATABASE_USERNAME}
-      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE: ${DATABASE}
     depends_on:
       - postgres
     networks:
@@ -26,6 +21,8 @@ services:
     image: postgres:14-alpine
     container_name: postgres-prod
     restart: always
+    env_file:
+      - .env.production # Archivo de variables de entorno para producción
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
