@@ -50,6 +50,12 @@ import { MessageModule } from './context/chat-context/message/infrastructure/mes
         // Selección dinámica de variables según NODE_ENV
         const nodeEnv = configService.get<string>('NODE_ENV');
         const isTest = nodeEnv === 'test';
+        const isProduction = nodeEnv === 'production';
+        const synchronize = isTest || isProduction ? false : true;
+
+        console.log(
+          `NODE_ENV: ${nodeEnv}, isTest: ${isTest}, isProduction: ${isProduction}, synchronize: ${synchronize}`,
+        );
         return {
           type: 'postgres',
           host: isTest
@@ -68,7 +74,7 @@ import { MessageModule } from './context/chat-context/message/infrastructure/mes
             ? configService.get<string>('TEST_DATABASE', 'mydb')
             : configService.get<string>('DATABASE', 'mydb'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: true, // Solo para desarrollo
+          synchronize: synchronize,
         };
       },
     }),
