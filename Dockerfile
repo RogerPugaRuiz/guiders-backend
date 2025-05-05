@@ -28,6 +28,9 @@ COPY --from=builder /app/dist ./dist
 # Instalar solo dependencias de producción
 RUN npm install --omit=dev --legacy-peer-deps
 
+# Copiar el archivo de entorno de producción al contenedor
+COPY .env.production .env.production
+
 # Copiar el archivo de entorno si existe (opcional, se puede montar desde fuera)
 # COPY .env.production .env.production
 
