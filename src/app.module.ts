@@ -91,6 +91,7 @@ export class AppModule {
     const DATABASE_PASSWORD =
       this.configService.get<string>('DATABASE_PASSWORD');
     const DATABASE = this.configService.get<string>('DATABASE');
+    this.logger.log(`NODE_ENV: ${process.env.NODE_ENV}`);
     this.logger.log(`ENCRYPTION_KEY: ${ENCRYPTION_KEY}`);
     this.logger.log(`GLOBAL_TOKEN_SECRET: ${GLOBAL_TOKEN_SECRET}`);
     this.logger.log(`DATABASE_HOST: ${DATABASE_HOST}`);
