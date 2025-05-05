@@ -26,7 +26,7 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 
 # Instalar solo dependencias de producción
-RUN npm install --only=production --legacy-peer-deps
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Copiar el archivo de entorno si existe (opcional, se puede montar desde fuera)
 # COPY .env.production .env.production
