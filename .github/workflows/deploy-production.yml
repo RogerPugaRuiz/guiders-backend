@@ -18,6 +18,21 @@ jobs:
         with:
           node-version: '14'
 
+      - name: Install OpenVPN
+        run: sudo apt-get update && sudo apt-get install -y openvpn
+
+      - name: Setup OpenVPN config
+        run: |
+          echo "${{ secrets.OVPN_CONFIG }}" > vpn.conf
+        shell: bash
+
+      - name: Connect to VPN
+        run: sudo openvpn --config vpn.conf --daemon && sleep 15
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan 10.8.0.1 >> ~/.ssh/known_hosts
       - name: Install dependencies
         run: npm install
 
@@ -35,15 +50,19 @@ jobs:
 
       - name: Generate .env.production on server
         run: |
-          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             echo 'PORT=${{ secrets.PORT }}' > ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE=${{ secrets.DATABASE }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'APP_URL=${{ secrets.APP_URL }}' >> ${{ secrets.PROD_PATH }}/.env.production
-          "
+            echo 'APP_URL=${{ secrets.APP_URL }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+            echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+            echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+            echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+            echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production
+            "
 
       - name: Deploy with docker-compose-prod.yml
         run: |
