@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
     container_name: nestjs-prod
     restart: always
-    env_file: .env.production
     environment:
       NODE_ENV: production
       DATABASE_HOST: postgres
@@ -26,7 +25,6 @@ services:
     image: postgres:14-alpine
     container_name: postgres-prod
     restart: always
-    env_file: .env.production
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
