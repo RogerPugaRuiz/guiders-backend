@@ -24,13 +24,18 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Set up SSH key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa
+          chmod 600 id_rsa
+
       - name: Copy files to production server
         run: |
-          rsync -avz --exclude='.git*' --exclude='node_modules' ./ ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_PATH }}
+          rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" --exclude='.git*' --exclude='node_modules' ./ ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_PATH }}
 
       - name: Generate .env.production on server
         run: |
-          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             echo 'PORT=${{ secrets.PORT }}' > ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
@@ -47,4 +52,4 @@ jobs:
 
       - name: Deploy with docker-compose-prod.yml
         run: |
-          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "cd ${{ secrets.PROD_PATH }} && docker compose -f docker-compose-prod.yml pull && docker compose -f docker-compose-prod.yml up -d --remove-orphans"
+          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "cd ${{ secrets.PROD_PATH }} && docker compose -f docker-compose-prod.yml pull && docker compose -f docker-compose-prod.yml up -d --remove-orphans"
