@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install OpenVPN
+      - name: Install OpenVPNhttps://chatgpt.com/c/6819ace4-5954-8009-88c9-6550590ac7ed
         run: sudo apt-get update && sudo apt-get install -y openvpn
 
       - name: Setup OpenVPN config
