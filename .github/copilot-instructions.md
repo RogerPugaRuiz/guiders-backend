@@ -14,7 +14,7 @@ kebab-case para archivos.
 
 Los EventHandlers deben seguir el patrón <NewAction>On<OldAction>EventHandler (ejemplo: CreateUserOnCreateUserEventHandler).
 
-Estructura la carpeta application en subcarpetas: create, delete, update, find, find-all, events.
+Estructura la carpeta application en subcarpetas: commands, events, queries y dtos.
 
 Evita carpetas técnicas como utils o helpers. Prefiere nombres basados en propósito (ejemplo: email, auth).
 

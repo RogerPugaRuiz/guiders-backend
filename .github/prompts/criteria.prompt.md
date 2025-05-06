@@ -53,10 +53,3 @@ No mutar instancias de Criteria directamente.
 No omitir tipado en filtros o criteria (deben ser siempre Filter<T>, Criteria<T>).
 
 No usar lógica adicional fuera de la definición de filtros, grupos, ordenaciones o paginación.
-
-## Archivos relacionados
-
-- [Guía de Result + Optional](result+optional.prompt.md)
-- [Guía de Value Object](value-object.prompt.md)
-- [Guía de Domain Event](domain-event.prompt.md)
-- [Guía de Entity](entity.prompt.md)
