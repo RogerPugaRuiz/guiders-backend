@@ -9,9 +9,9 @@ import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
 export class MessageMother {
   public static random(): Message {
     return Message.fromPrimitives({
-      id: MessageId.create().value,
-      chatId: ChatId.create().value,
-      senderId: SenderId.create().value,
+      id: MessageId.random().value,
+      chatId: ChatId.random().value,
+      senderId: SenderId.random().value,
       content: Content.create(faker.lorem.sentence()).value,
       createdAt: CreatedAt.create(faker.date.past()).value,
     });
@@ -25,9 +25,9 @@ export class MessageMother {
     createdAt?: Date;
   }): Message {
     return Message.fromPrimitives({
-      id: MessageId.create(params?.id).value,
-      chatId: ChatId.create(params?.chatId).value,
-      senderId: SenderId.create(params?.senderId).value,
+      id: params?.id ?? MessageId.random().value,
+      chatId: params?.chatId ?? ChatId.random().value,
+      senderId: params?.senderId ?? SenderId.random().value,
       content: params?.content ?? Content.create(faker.lorem.sentence()).value,
       createdAt: params?.createdAt ?? CreatedAt.create(faker.date.past()).value,
     });

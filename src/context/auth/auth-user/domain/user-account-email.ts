@@ -4,7 +4,7 @@ export class UserAccountEmail extends PrimitiveValueObject<string> {
   private static readonly EMAIL_REGEX =
     /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
 
-  private constructor(value: string) {
+  constructor(value: string) {
     super(
       value.toLowerCase(),
       (value: string) => UserAccountEmail.EMAIL_REGEX.test(value),
@@ -14,9 +14,5 @@ export class UserAccountEmail extends PrimitiveValueObject<string> {
 
   public static validate(value: string): boolean {
     return UserAccountEmail.EMAIL_REGEX.test(value);
-  }
-
-  public static create(value: string): UserAccountEmail {
-    return new UserAccountEmail(value);
   }
 }

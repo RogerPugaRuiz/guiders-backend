@@ -7,17 +7,13 @@ export enum ConnectionRoleEnum {
 }
 
 export class ConnectionRole extends PrimitiveValueObject<string> {
-  private constructor(value: string) {
+  constructor(value: string) {
     super(value);
     if (
       !Object.values(ConnectionRoleEnum).includes(value as ConnectionRoleEnum)
     ) {
       throw new ValidationError(`Invalid ConnectionRole value: ${value}`);
     }
-  }
-
-  static create(value: string): ConnectionRole {
-    return new ConnectionRole(value);
   }
 
   static visitor(): ConnectionRole {

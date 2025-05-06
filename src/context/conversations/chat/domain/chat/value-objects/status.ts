@@ -1,23 +1,17 @@
 import { PrimitiveValueObject } from '../../../../../shared/domain/primitive-value-object';
 
 export class Status extends PrimitiveValueObject<string> {
-  private constructor(value: string) {
-    super(value);
-  }
-
-  public static create(value: string): Status {
-    // Validar el valor del estado
-    const validStatuses = [
-      'active',
-      'inactive',
-      'closed',
-      'archived',
-      'pending',
-    ];
-    if (!validStatuses.includes(value)) {
-      throw new Error('Invalid status value');
-    }
-    return new Status(value);
+  constructor(value: string) {
+    super(value, (v) => {
+      const validStatuses = [
+        'active',
+        'inactive',
+        'closed',
+        'archived',
+        'pending',
+      ];
+      return typeof v === 'string' && validStatuses.includes(v);
+    });
   }
 
   public static get DEFAULT(): Status {

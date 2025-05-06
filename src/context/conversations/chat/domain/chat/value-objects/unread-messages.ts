@@ -5,10 +5,6 @@ export class UnreadMessages extends PrimitiveValueObject<number> {
     super(value < 0 ? 0 : value);
   }
 
-  static create(value: number): UnreadMessages {
-    return new UnreadMessages(value);
-  }
-
   public increment(): UnreadMessages {
     return new UnreadMessages(this.value + 1);
   }

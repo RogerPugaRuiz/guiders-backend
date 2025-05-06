@@ -2,31 +2,20 @@ import { ValidationError } from 'src/context/shared/domain/validation.error';
 import { PrimitiveValueObject } from '../../../../shared/domain/primitive-value-object';
 
 export class CreatedAt extends PrimitiveValueObject<Date> {
-  private constructor(value: Date) {
-    super(
-      value,
-      (v) => v instanceof Date && !isNaN(v.getTime()),
-      'Fecha inválida',
-    );
-  }
-
-  public static create(value: number | Date | string): CreatedAt {
-    if (typeof value === 'number') {
-      try {
-        return new CreatedAt(new Date(value));
-      } catch (error) {
-        throw new ValidationError(`Fecha inválida: ${value}`);
-      }
+  /**
+   * Recibe un valor Date, string o number y valida que sea una fecha válida.
+   */
+  constructor(value: Date | string | number) {
+    let dateValue: Date;
+    if (value instanceof Date) {
+      dateValue = value;
+    } else {
+      dateValue = new Date(value);
     }
-    if (typeof value === 'string') {
-      try {
-        return new CreatedAt(new Date(value));
-      } catch (error) {
-        throw new ValidationError(`Fecha inválida: ${value}`);
-      }
+    if (!(dateValue instanceof Date) || isNaN(dateValue.getTime())) {
+      throw new ValidationError('Fecha inválida');
     }
-
-    return new CreatedAt(value);
+    super(dateValue);
   }
 
   public static now(): CreatedAt {

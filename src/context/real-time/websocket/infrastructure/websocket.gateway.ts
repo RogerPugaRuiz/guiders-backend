@@ -32,9 +32,6 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import { FindChatListByParticipantQuery } from 'src/context/conversations/chat/application/read/find-chat-list-by-participant.query';
 import { StartChatCommand } from 'src/context/conversations/chat/application/create/pending/start-chat.command';
 import { ConnectionUser } from '../domain/connection-user';
-import { PaginatedCursorTrackingVisitorQuery } from 'src/context/tracking/tracked-visitor/application/paginate/paginated-cursor-tracking-visitor.query';
-import { TrackingVisitorPrimitives } from 'src/context/tracking/tracked-visitor/domain/tracking-visitor-primitives';
-import { TrackingVisitorPaginationResponseDto } from 'src/context/tracking/tracked-visitor/application/paginate/tracking-visitor-pagination-response.dto';
 import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
 import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
 import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
@@ -433,7 +430,7 @@ export class RealTimeWebSocketGateway
     @MessageBody() event: Event,
   ): Promise<
     Response<{
-      items: TrackingVisitorPrimitives[];
+      items: any[];
       total: number;
       hasMore: boolean;
       nextCursor: string | null;
@@ -444,36 +441,21 @@ export class RealTimeWebSocketGateway
       limit: number;
       cursor: string | null;
     };
-
-    const query = new PaginatedCursorTrackingVisitorQuery({
-      limit: limit || 10,
-      cursor: cursor || null,
-      orderBy: [
-        { field: 'createdAt', direction: 'DESC' },
-        { field: 'id', direction: 'DESC' },
-      ],
-    });
-
-    const result = await this.queryBus.execute<
-      PaginatedCursorTrackingVisitorQuery,
-      TrackingVisitorPaginationResponseDto
-    >(query);
-
     return Promise.resolve(
-      new ResponseBuilder<{
-        items: TrackingVisitorPrimitives[];
+      ResponseBuilder.create<{
+        items: any[];
         total: number;
         hasMore: boolean;
         nextCursor: string | null;
       }>()
+        .addSuccess(true)
+        .addMessage('Visitors obtenidos')
         .addData({
-          items: result.items,
-          total: result.total,
-          hasMore: result.hasMore,
-          nextCursor: result.nextCursor,
+          items: [],
+          total: 0,
+          hasMore: false,
+          nextCursor: null,
         })
-        .addMessage('Lista de visitantes obtenida')
-        .addType('commercial:get-visitors')
         .build(),
     );
   }

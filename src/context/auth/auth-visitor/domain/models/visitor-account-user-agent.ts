@@ -8,8 +8,4 @@ export class VisitorAccountUserAgent extends PrimitiveValueObject<string> {
       'Invalid User Agent',
     );
   }
-
-  static create(value: string): VisitorAccountUserAgent {
-    return new VisitorAccountUserAgent(value);
-  }
 }

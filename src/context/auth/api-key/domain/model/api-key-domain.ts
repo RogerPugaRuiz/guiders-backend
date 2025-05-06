@@ -1,7 +1,7 @@
 import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-object';
 
 export class ApiKeyDomain extends PrimitiveValueObject<string> {
-  private constructor(value: string) {
+  constructor(value: string) {
     super(
       value,
       (value: string) => {
@@ -10,9 +10,5 @@ export class ApiKeyDomain extends PrimitiveValueObject<string> {
       },
       'Invalid API key domain format',
     );
-  }
-
-  static create(value: string): ApiKeyDomain {
-    return new ApiKeyDomain(value);
   }
 }
