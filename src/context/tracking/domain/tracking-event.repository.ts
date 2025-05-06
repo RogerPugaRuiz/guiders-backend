@@ -4,7 +4,7 @@ import { Criteria } from 'src/context/shared/domain/criteria';
 import { Result } from 'src/context/shared/domain/result';
 import { Optional } from 'src/context/shared/domain/optional';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-
+export const TRACKING_EVENT_REPOSITORY = Symbol('TrackingEventRepository');
 // Repositorio de TrackingEvent siguiendo DDD y CQRS
 export interface ITrackingEventRepository {
   /**

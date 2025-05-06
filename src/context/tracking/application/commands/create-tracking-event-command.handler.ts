@@ -1,12 +1,16 @@
 import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
 import { CreateTrackingEventCommand } from './create-tracking-event.command';
-import { ITrackingEventRepository } from '../../domain/tracking-event.repository';
+import {
+  ITrackingEventRepository,
+  TRACKING_EVENT_REPOSITORY,
+} from '../../domain/tracking-event.repository';
 import { TrackingEvent } from '../../domain/tracking-event';
 import { TrackingEventId } from '../../domain/value-objects/tracking-event-id';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
 import { EventType } from '../../domain/value-objects/event-type';
 import { TrackingEventMetadata } from '../../domain/value-objects/tracking-event-metadata';
 import { TrackingEventOccurredAt } from '../../domain/value-objects/tracking-event-occurred-at';
+import { Inject } from '@nestjs/common';
 
 /**
  * Handler para el comando CreateTrackingEventCommand.
@@ -17,6 +21,7 @@ export class CreateTrackingEventCommandHandler
   implements ICommandHandler<CreateTrackingEventCommand>
 {
   constructor(
+    @Inject(TRACKING_EVENT_REPOSITORY)
     private readonly repository: ITrackingEventRepository,
     private readonly eventPublisher: EventPublisher,
   ) {}
