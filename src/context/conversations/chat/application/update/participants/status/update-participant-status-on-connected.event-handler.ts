@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { EventPublisher, EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { ConnectedEvent } from 'src/context/real-time/websocket/domain/events/connected.event';
+import { ConnectedEvent } from 'src/context/real-time/domain/events/connected.event';
 import {
   CHAT_REPOSITORY,
   IChatRepository,

@@ -15,7 +15,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { TokenVerifyService } from '../../../shared/infrastructure/token-verify.service';
+import { TokenVerifyService } from '../../shared/infrastructure/token-verify.service';
 import { WsAuthGuard } from './guards/ws-auth.guard';
 import { AuthenticatedSocket } from './authenticated-socket';
 import { WsRolesGuard } from './guards/ws-role.guard';
@@ -26,7 +26,7 @@ import { ConnectUserCommand } from '../application/command/connect/connect-user.
 import { FindOneUserBySocketIdQuery } from '../application/query/find-one/find-one-user-by-socket-id.query';
 import { FindOneUserBySocketIdQueryResult } from '../application/query/find-one/find-one-user-by-socket-id.query-handler';
 import { DisconnectUserCommand } from '../application/command/disconnect/disconnect-user.command';
-import { RealTimeMessageSenderCommand } from 'src/context/real-time/websocket/application/command/message/real-time-message-sender.command';
+import { RealTimeMessageSenderCommand } from 'src/context/real-time/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { FindChatListByParticipantQuery } from 'src/context/conversations/chat/application/read/find-chat-list-by-participant.query';
@@ -35,6 +35,7 @@ import { ConnectionUser } from '../domain/connection-user';
 import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
 import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
 import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
+import { CreateTrackingEventCommand } from 'src/context/tracking/application/commands/create-tracking-event.command';
 
 export interface Event {
   type?: string;
@@ -507,6 +508,32 @@ export class RealTimeWebSocketGateway
     return new ResponseBuilder<any>()
       .addSuccess(true)
       .addMessage('Chat closed')
+      .build();
+  }
+
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('tracking:tracking-event')
+  async handleTrackingEvent(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ): Promise<Response<{ trackingEventId: string }>> {
+    const { trackingEventId, metadata, eventType } = event.data as {
+      trackingEventId: string;
+      metadata: Record<string, unknown>;
+      eventType: string;
+    };
+    const command = new CreateTrackingEventCommand({
+      id: trackingEventId,
+      visitorId: client.user.sub,
+      eventType: eventType || 'unknown',
+      metadata: metadata || {},
+      occurredAt: new Date(event.timestamp),
+    });
+    await this.commandBus.execute<CreateTrackingEventCommand, void>(command);
+    return new ResponseBuilder<any>()
+      .addSuccess(true)
+      .addMessage('Tracking event created')
       .build();
   }
 

@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { EventPublisher, EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { ChatCommercialsAssignedEvent } from 'src/context/real-time/websocket/domain/events/chat-commercials-assigned.event';
+import { ChatCommercialsAssignedEvent } from 'src/context/real-time/domain/events/chat-commercials-assigned.event';
 import {
   CHAT_REPOSITORY,
   IChatRepository,

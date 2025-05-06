@@ -8,7 +8,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
 import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/auth-visitor.module';
 import { ApiKeyModule } from './context/auth/api-key/infrastructure/api-key.module';
-import { WebsocketModule } from './context/real-time/websocket/infrastructure/websocket.module';
+import { WebsocketModule } from './context/real-time/infrastructure/websocket.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-user.module';
 import { ChatModule } from './context/conversations/chat/infrastructure/chat.module';
