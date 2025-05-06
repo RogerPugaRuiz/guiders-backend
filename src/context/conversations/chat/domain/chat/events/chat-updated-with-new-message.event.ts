@@ -1,15 +1,3 @@
-import { IEvent } from '@nestjs/cqrs';
-import { ChatPrimitives } from '../chat';
-import { MessagePrimitives } from 'src/context/conversations/message/domain/message';
+import { DomainEvent } from 'src/context/shared/domain/domain-event';
 
-export class ChatUpdatedWithNewMessageEvent implements IEvent {
-  constructor(
-    readonly params: {
-      timestamp: Date;
-      attributes: {
-        chat: ChatPrimitives;
-        message: MessagePrimitives;
-      };
-    },
-  ) {}
-}
+export class ChatUpdatedWithNewMessageEvent extends DomainEvent {}

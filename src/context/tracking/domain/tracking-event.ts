@@ -4,6 +4,7 @@ import { VisitorId } from './value-objects/visitor-id';
 import { EventType } from './value-objects/event-type';
 import { TrackingEventMetadata } from './value-objects/tracking-event-metadata';
 import { TrackingEventOccurredAt } from './value-objects/tracking-event-occurred-at';
+import { TrackingEventCreatedEvent } from './events/tracking-event-created-event';
 
 export interface TrackingEventPrimitives {
   id: string;
@@ -41,13 +42,28 @@ export class TrackingEvent extends AggregateRoot {
     } else {
       occurredAt = TrackingEventOccurredAt.create(params.occurredAt);
     }
-    return new TrackingEvent(
+    // Instancia la entidad
+    const trackingEvent = new TrackingEvent(
       params.id,
       params.visitorId,
       params.eventType,
       params.metadata,
       occurredAt,
     );
+    // Aplica el evento de dominio al crear la entidad
+    trackingEvent.apply(
+      new TrackingEventCreatedEvent({
+        timestamp: new Date(),
+        attributes: {
+          id: params.id.value,
+          visitorId: params.visitorId.value,
+          eventType: params.eventType.value,
+          metadata: params.metadata.value,
+          occurredAt: occurredAt.value,
+        },
+      }),
+    );
+    return trackingEvent;
   }
 
   // Método de fábrica para reconstruir la entidad desde datos primitivos

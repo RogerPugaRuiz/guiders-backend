@@ -13,6 +13,7 @@ import { MessagePrimitives } from 'src/context/conversations/message/domain/mess
 import { ChatUpdatedWithNewMessageEvent } from './events/chat-updated-with-new-message.event';
 import { ParticipantSeenAtEvent } from './events/participant-seen-at.event';
 import { ParticipantUnseenAtEvent } from './events/participant-unseen-at.event';
+import { UUID } from 'src/context/shared/domain/value-objects/uuid';
 
 export interface ParticipantPrimitives {
   id: string;
@@ -250,6 +251,7 @@ export class Chat extends AggregateRoot {
 
     updatedChat.apply(
       new ChatUpdatedWithNewMessageEvent({
+        id: UUID.random(),
         timestamp: new Date(),
         attributes: {
           chat: updatedChat.toPrimitives(),
