@@ -29,15 +29,15 @@ import { DisconnectUserCommand } from '../application/command/disconnect/disconn
 import { RealTimeMessageSenderCommand } from 'src/context/real-time/websocket/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { ChatPrimitives } from 'src/context/chat/chat/domain/chat/chat';
-import { FindChatListByParticipantQuery } from 'src/context/chat/chat/application/read/find-chat-list-by-participant.query';
-import { StartChatCommand } from 'src/context/chat/chat/application/create/pending/start-chat.command';
+import { FindChatListByParticipantQuery } from 'src/context/conversations/chat/application/read/find-chat-list-by-participant.query';
+import { StartChatCommand } from 'src/context/conversations/chat/application/create/pending/start-chat.command';
 import { ConnectionUser } from '../domain/connection-user';
 import { PaginatedCursorTrackingVisitorQuery } from 'src/context/tracking/tracked-visitor/application/paginate/paginated-cursor-tracking-visitor.query';
 import { TrackingVisitorPrimitives } from 'src/context/tracking/tracked-visitor/domain/tracking-visitor-primitives';
 import { TrackingVisitorPaginationResponseDto } from 'src/context/tracking/tracked-visitor/application/paginate/tracking-visitor-pagination-response.dto';
-import { ParticipantUnseenChatCommand } from 'src/context/chat/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
-import { ParticipantSeenChatCommand } from 'src/context/chat/chat/application/update/participants/seen-chat/participant-seen-chat.command';
+import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
+import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
+import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
 
 export interface Event {
   type?: string;

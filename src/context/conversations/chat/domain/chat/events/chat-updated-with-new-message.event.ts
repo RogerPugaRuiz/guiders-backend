@@ -1,6 +1,6 @@
 import { IEvent } from '@nestjs/cqrs';
 import { ChatPrimitives } from '../chat';
-import { MessagePrimitives } from 'src/context/chat/message/domain/message';
+import { MessagePrimitives } from 'src/context/conversations/message/domain/message';
 
 export class ChatUpdatedWithNewMessageEvent implements IEvent {
   constructor(

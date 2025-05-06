@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { SaveMessageOnChatUpdatedWithNewMessageEventHandler } from './save-message-on-chat-updated-with-new-message-event.handler';
 import { IMessageRepository } from '../../domain/message.repository';
-import { ChatUpdatedWithNewMessageEvent } from 'src/context/chat/chat/domain/chat/events/chat-updated-with-new-message.event';
+import { ChatUpdatedWithNewMessageEvent } from 'src/context/conversations/chat/domain/chat/events/chat-updated-with-new-message.event';
 import { Message } from '../../domain/message';
 import { okVoid } from 'src/context/shared/domain/result';
 import { UUID } from 'src/context/shared/domain/value-objects/uuid';
-import { ChatId } from 'src/context/chat/chat/domain/chat/value-objects/chat-id';
+import { ChatId } from 'src/context/conversations/chat/domain/chat/value-objects/chat-id';
 import { Content } from '../../domain/value-objects/content';
 import { SenderId } from '../../domain/value-objects/sender-id';
 import { CreatedAt } from '../../domain/value-objects/created-at';

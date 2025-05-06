@@ -4,7 +4,7 @@ import { Result } from 'src/context/shared/domain/result';
 import {
   Message,
   MessagePrimitives,
-} from 'src/context/chat/message/domain/message';
+} from 'src/context/conversations/message/domain/message';
 import {
   IMessageRepository,
   MESSAGE_REPOSITORY,
