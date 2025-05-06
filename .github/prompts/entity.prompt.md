@@ -1,95 +1,59 @@
-# Entidad en TypeScript
+📌 Prompt Base Ultra Preciso (Generación de Entidades en TypeScript - DDD + CQRS + Value Objects + Domain Events + Opcionales)
+Genera siempre entidades de dominio en TypeScript siguiendo estas reglas:
 
-Actúa como un desarrollador experto en arquitectura de software DDD (Domain-Driven Design) y programación orientada a objetos.
-Necesito que crees una entidad en TypeScript siguiendo buenas prácticas de diseño, como en este ejemplo de una clase Message que usa value objects, métodos estáticos como create y fromPrimitives, e implementación del método toPrimitives.
+📦 Diseño general
+Utiliza value objects para todas las propiedades importantes.
 
-Contexto: Esta entidad deberá representar [describir qué representa la nueva entidad que deseas, por ejemplo, "un Pedido de Compra"].
+Implementa métodos de fábrica estáticos:
+➡️ create para instanciar desde value objects directamente.
+➡️ fromPrimitives para reconstruir desde datos primitivos (ejemplo: al cargar de una base de datos).
 
-Requisitos:
+Implementa toPrimitives para convertir la entidad a un objeto plano serializable.
 
-Usa value objects para cada propiedad importante (ejemplo: OrderId, CustomerId, OrderDate, TotalAmount).
+Encapsula las propiedades. Expón solo métodos o propiedades de lectura si es estrictamente necesario.
 
-Implementa un método create que permita crear la entidad desde value objects directamente.
+Incluye eventos de dominio (apply) en las operaciones relevantes que modifiquen el estado (ejemplo: cambios de estado, adición de participantes).
 
-Implementa un método fromPrimitives que permita reconstruir la entidad desde datos primitivos (como strings o números).
+Extiende AggregateRoot de @nestjs/cqrs para entidades raíz.
 
-Implementa un método toPrimitives que permita serializar la entidad en un objeto plano para almacenamiento o transporte.
+🚨 Manejo de propiedades opcionales (muy importante)
+No uses Optional para propiedades internas.
 
-Mantén las propiedades encapsuladas y sólo expón métodos y propiedades de lectura si es necesario.
+En su lugar, usa value objects que internamente admitan null para representar la ausencia.
 
-Ejemplo de entidad de referencia (no la copies, solo úsala como inspiración):
+Al exponer valores opcionales (en getters u operaciones públicas), utiliza Optional.ofNullable(value) para forzar el manejo explícito de la ausencia.
 
-```typescript
-import { MessageId } from './value-objects/message-id';
-import { SenderId } from './value-objects/sender-id';
-import { Content } from './value-objects/content';
-import { CreatedAt } from './value-objects/created-at';
-import { ChatId } from '../../chat/domain/chat/value-objects/chat-id';
+Ejemplo patrón:
 
-export interface MessagePrimitives {
-  id: string;
-  chatId: string;
-  senderId: string;
-  content: string;
-  createdAt: Date;
+typescript
+Copiar
+Editar
+private readonly lastMessage: LastMessage; // value object que admite null internamente
+
+public getLastMessage(): Optional<string> {
+  return Optional.ofNullable(this.lastMessage.valueOrNull);
 }
+📁 Organización y nomenclatura
+Usa nombres de clases, métodos y archivos siguiendo las reglas: camelCase para métodos/propiedades, PascalCase para clases, kebab-case para archivos.
 
-export class Message {
-  private constructor(
-    readonly id: MessageId,
-    readonly chatId: ChatId,
-    readonly senderId: SenderId,
-    readonly content: Content,
-    readonly createdAt: CreatedAt,
-  ) {}
+Escribe comentarios claros en español que expliquen la intención del código.
 
-  public static fromPrimitives(params: {
-    id: string;
-    chatId: string;
-    senderId: string;
-    content: string;
-    createdAt: number | Date | string;
-  }): Message {
-    return new Message(
-      MessageId.create(params.id),
-      ChatId.create(params.chatId),
-      SenderId.create(params.senderId),
-      Content.create(params.content),
-      CreatedAt.create(params.createdAt),
-    );
-  }
+🧹 Buenas prácticas
+No uses null ni undefined directamente fuera del value object.
 
-  public static create(params: {
-    id: MessageId;
-    chatId: ChatId;
-    senderId: SenderId;
-    content: Content;
-    createdAt?: CreatedAt;
-  }): Message {
-    const id = params.id;
-    const createdAt = params.createdAt
-      ? CreatedAt.create(params.createdAt.value)
-      : CreatedAt.create(new Date());
-    const message = new Message(
-      id,
-      params.chatId,
-      params.senderId,
-      params.content,
-      createdAt,
-    );
-    return message;
-  }
+No uses throw salvo en casos absolutamente necesarios de invariantes.
 
-  public toPrimitives(): MessagePrimitives {
-    return {
-      id: this.id.value,
-      chatId: this.chatId.value,
-      senderId: this.senderId.value,
-      content: this.content.value,
-      createdAt: this.createdAt.value,
-    };
-  }
-}
-```
+Modela ausencia con value objects + null + Optional.
 
-Entrega como resultado el código completo de la nueva entidad.
+Modela errores de negocio con Result.
+
+Genera el código completo de la entidad, incluyendo métodos de negocio relevantes.
+
+Contexto adicional: La entidad representará [describir qué representa la nueva entidad que deseas, por ejemplo, "un Pedido de Compra"].
+
+## archivos relacionados
+
+- [Guia patron result + optional](result+optional.prompt.md)
+- [Guia patron value object](value-object.prompt.md)
+- [Guia patron domain event](domain-event.prompt.md)
+- [Guia de objetos de valor](value-object.prompt.md)
