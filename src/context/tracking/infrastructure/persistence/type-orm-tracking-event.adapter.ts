@@ -47,7 +47,10 @@ export class TypeOrmTrackingEventAdapter implements ITrackingEventRepository {
       return ok(Optional.of(event));
     } catch (error) {
       return err(
-        new TrackingEventPersistenceError('Error al buscar TrackingEvent: '),
+        new TrackingEventPersistenceError(
+          'Error al buscar TrackingEvent: ' +
+            (error instanceof Error ? error.message : String(error)),
+        ),
       );
     }
   }
@@ -69,7 +72,7 @@ export class TypeOrmTrackingEventAdapter implements ITrackingEventRepository {
       const { sql, parameters } = CriteriaConverter.toPostgresSql(
         criteria,
         'tracking_events',
-        fieldNameMap
+        fieldNameMap,
       );
       // Utiliza QueryBuilder para mayor seguridad y flexibilidad
       const entities = await this.trackingEventRepository
