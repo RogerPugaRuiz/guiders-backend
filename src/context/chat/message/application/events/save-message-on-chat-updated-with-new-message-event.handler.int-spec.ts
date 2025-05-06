@@ -6,7 +6,7 @@ import { SaveMessageOnChatUpdatedWithNewMessageEventHandler } from './save-messa
 import { TypeOrmMessageService } from '../../infrastructure/typeORM-message.service';
 import { MESSAGE_REPOSITORY } from '../../domain/message.repository';
 import { MessageEntity } from '../../infrastructure/entities/message.entity';
-import { ChatUpdatedWithNewMessageEvent } from 'src/context/chat-context/chat/domain/chat/events/chat-updated-with-new-message.event';
+import { ChatUpdatedWithNewMessageEvent } from 'src/context/chat/chat/domain/chat/events/chat-updated-with-new-message.event';
 import { UUID } from 'src/context/shared/domain/value-objects/uuid';
 
 // Prueba de integración para SaveMessageOnChatUpdatedWithNewMessageEventHandler

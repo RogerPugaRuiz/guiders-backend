@@ -8,9 +8,9 @@ import {
   TokenExpiredError,
 } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ApiKeyEntity } from 'src/context/auth-context/api-key/infrastructure/api-key.entity';
+import { ApiKeyEntity } from 'src/context/auth/api-key/infrastructure/api-key.entity';
 import { Repository } from 'typeorm';
-import { EncryptAdapter } from 'src/context/auth-context/api-key/infrastructure/encrypt-adapter';
+import { EncryptAdapter } from 'src/context/auth/api-key/infrastructure/encrypt-adapter';
 import { v4 as uuidv4 } from 'uuid';
 import { InvalidTokenError, ApiKeyNotFoundError } from './errors';
 import { ConfigService } from '@nestjs/config';

@@ -4,7 +4,7 @@ import { VisitorAccountApiKey } from '../../domain/models/visitor-account-api-ke
 import {
   API_KEY_REPOSITORY,
   ApiKeyRepository,
-} from 'src/context/auth-context/api-key/domain/repository/api-key.repository';
+} from 'src/context/auth/api-key/domain/repository/api-key.repository';
 
 @Injectable()
 export class ValidateDomainApiKeyAdapter implements ValidateDomainApiKey {

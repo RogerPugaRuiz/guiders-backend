@@ -6,16 +6,16 @@ import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
-import { AuthVisitorModule } from './context/auth-context/auth-visitor/infrastructure/auth-visitor.module';
-import { ApiKeyModule } from './context/auth-context/api-key/infrastructure/api-key.module';
-import { WebsocketModule } from './context/real-time-context/websocket/infrastructure/websocket.module';
+import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/auth-visitor.module';
+import { ApiKeyModule } from './context/auth/api-key/infrastructure/api-key.module';
+import { WebsocketModule } from './context/real-time/websocket/infrastructure/websocket.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
-import { AuthUserModule } from './context/auth-context/auth-user/infrastructure/auth-user.module';
-import { ChatModule } from './context/chat-context/chat/infrastructure/chat.module';
+import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-user.module';
+import { ChatModule } from './context/chat/chat/infrastructure/chat.module';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
-import { TrackingModule } from './context/tracking-context/tracking.module';
-import { MessageModule } from './context/chat-context/message/infrastructure/message.module';
+import { TrackingModule } from './context/tracking/tracking.module';
+import { MessageModule } from './context/chat/message/infrastructure/message.module';
 
 @Module({
   imports: [

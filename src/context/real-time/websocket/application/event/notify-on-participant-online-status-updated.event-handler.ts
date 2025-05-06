@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { ParticipantOnlineStatusUpdatedEvent } from 'src/context/chat-context/chat/domain/chat/events/participant-online-status-updated.event';
+import { ParticipantOnlineStatusUpdatedEvent } from 'src/context/chat/chat/domain/chat/events/participant-online-status-updated.event';
 import { INotification, NOTIFICATION } from '../../domain/notification';
 
 @EventsHandler(ParticipantOnlineStatusUpdatedEvent)

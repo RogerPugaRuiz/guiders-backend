@@ -6,9 +6,9 @@ import { UUID } from 'src/context/shared/domain/value-objects/uuid';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from 'src/context/chat-context/chat/domain/chat/chat.repository';
+} from 'src/context/chat/chat/domain/chat/chat.repository';
 import { Optional } from 'src/context/shared/domain/optional';
-import { Chat } from 'src/context/chat-context/chat/domain/chat/chat';
+import { Chat } from 'src/context/chat/chat/domain/chat/chat';
 import { EventPublisher, IEventPublisher } from '@nestjs/cqrs';
 
 // Estructura básica del describe para el handler

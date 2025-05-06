@@ -3,9 +3,9 @@ import { Inject } from '@nestjs/common';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from 'src/context/chat-context/chat/domain/chat/chat.repository';
+} from 'src/context/chat/chat/domain/chat/chat.repository';
 import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
-import { Chat } from 'src/context/chat-context/chat/domain/chat/chat';
+import { Chat } from 'src/context/chat/chat/domain/chat/chat';
 import { Operator } from 'src/context/shared/domain/criteria';
 import { ParticipantUnseenChatCommand } from './participant-unseen-chat.command';
 

@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { EventPublisher, EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { VisitorAccountCreatedEvent } from 'src/context/auth-context/auth-visitor/domain/events/visitor-account-created.event';
+import { VisitorAccountCreatedEvent } from 'src/context/auth/auth-visitor/domain/events/visitor-account-created.event';
 import {
   ITrackingVisitorRepository,
   TRACKING_VISITOR_REPOSITORY,

@@ -5,8 +5,8 @@ import {
   MESSAGE_REPOSITORY,
 } from '../../domain/message.repository';
 import { Message } from '../../domain/message';
-import { ChatUpdatedWithNewMessageEvent } from 'src/context/chat-context/chat/domain/chat/events/chat-updated-with-new-message.event';
-import { ChatId } from 'src/context/chat-context/chat/domain/chat/value-objects/chat-id';
+import { ChatUpdatedWithNewMessageEvent } from 'src/context/chat/chat/domain/chat/events/chat-updated-with-new-message.event';
+import { ChatId } from 'src/context/chat/chat/domain/chat/value-objects/chat-id';
 import { Content } from '../../domain/value-objects/content';
 import { SenderId } from '../../domain/value-objects/sender-id';
 import { CreatedAt } from '../../domain/value-objects/created-at';

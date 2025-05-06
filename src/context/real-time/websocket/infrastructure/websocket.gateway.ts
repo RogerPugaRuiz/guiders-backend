@@ -26,18 +26,18 @@ import { ConnectUserCommand } from '../application/command/connect/connect-user.
 import { FindOneUserBySocketIdQuery } from '../application/query/find-one/find-one-user-by-socket-id.query';
 import { FindOneUserBySocketIdQueryResult } from '../application/query/find-one/find-one-user-by-socket-id.query-handler';
 import { DisconnectUserCommand } from '../application/command/disconnect/disconnect-user.command';
-import { RealTimeMessageSenderCommand } from 'src/context/real-time-context/websocket/application/command/message/real-time-message-sender.command';
+import { RealTimeMessageSenderCommand } from 'src/context/real-time/websocket/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
-import { FindChatListByParticipantQuery } from 'src/context/chat-context/chat/application/read/find-chat-list-by-participant.query';
-import { StartChatCommand } from 'src/context/chat-context/chat/application/create/pending/start-chat.command';
+import { ChatPrimitives } from 'src/context/chat/chat/domain/chat/chat';
+import { FindChatListByParticipantQuery } from 'src/context/chat/chat/application/read/find-chat-list-by-participant.query';
+import { StartChatCommand } from 'src/context/chat/chat/application/create/pending/start-chat.command';
 import { ConnectionUser } from '../domain/connection-user';
-import { PaginatedCursorTrackingVisitorQuery } from 'src/context/tracking-context/tracked-visitor/application/paginate/paginated-cursor-tracking-visitor.query';
-import { TrackingVisitorPrimitives } from 'src/context/tracking-context/tracked-visitor/domain/tracking-visitor-primitives';
-import { TrackingVisitorPaginationResponseDto } from 'src/context/tracking-context/tracked-visitor/application/paginate/tracking-visitor-pagination-response.dto';
-import { ParticipantUnseenChatCommand } from 'src/context/chat-context/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
-import { ParticipantSeenChatCommand } from 'src/context/chat-context/chat/application/update/participants/seen-chat/participant-seen-chat.command';
+import { PaginatedCursorTrackingVisitorQuery } from 'src/context/tracking/tracked-visitor/application/paginate/paginated-cursor-tracking-visitor.query';
+import { TrackingVisitorPrimitives } from 'src/context/tracking/tracked-visitor/domain/tracking-visitor-primitives';
+import { TrackingVisitorPaginationResponseDto } from 'src/context/tracking/tracked-visitor/application/paginate/tracking-visitor-pagination-response.dto';
+import { ParticipantUnseenChatCommand } from 'src/context/chat/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
+import { ParticipantSeenChatCommand } from 'src/context/chat/chat/application/update/participants/seen-chat/participant-seen-chat.command';
 
 export interface Event {
   type?: string;

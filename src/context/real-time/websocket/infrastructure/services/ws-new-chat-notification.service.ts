@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { RealTimeWebSocketGateway } from '../websocket.gateway';
-import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
+import { ChatPrimitives } from 'src/context/chat/chat/domain/chat/chat';
 import {
   CONNECTION_REPOSITORY,
   ConnectionRepository,

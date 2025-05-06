@@ -6,7 +6,7 @@ import {
 } from '../../../../domain/chat/chat.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { Chat } from '../../../../domain/chat/chat';
-import { DisconnectedEvent } from 'src/context/real-time-context/websocket/domain/events/disconnected.event';
+import { DisconnectedEvent } from 'src/context/real-time/websocket/domain/events/disconnected.event';
 
 @EventsHandler(DisconnectedEvent)
 export class UpdateParticipantStatusOnDisconnectedEventHandler

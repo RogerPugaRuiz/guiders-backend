@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { EventBus, EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { NewChatCreatedEvent } from 'src/context/chat-context/chat/domain/chat/events/new-chat-created.event';
+import { NewChatCreatedEvent } from 'src/context/chat/chat/domain/chat/events/new-chat-created.event';
 import {
   CONNECTION_REPOSITORY,
   ConnectionRepository,

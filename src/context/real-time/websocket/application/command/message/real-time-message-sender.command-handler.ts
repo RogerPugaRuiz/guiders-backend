@@ -16,10 +16,10 @@ import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { ConnectionUser } from '../../../domain/connection-user';
 import { Optional } from 'src/context/shared/domain/optional';
 import { RealTimeMessageSenderError } from '../../../domain/errors/connection-user-not-found';
-import { ChatPrimitives } from 'src/context/chat-context/chat/domain/chat/chat';
-import { FindOneChatByIdQuery } from 'src/context/chat-context/chat/application/read/find-one-chat-by-id.query';
-import { ChatNotFoundError } from 'src/context/chat-context/chat/domain/chat/errors/errors';
-import { SaveMessageCommand } from 'src/context/chat-context/chat/application/create/message/save-message.command';
+import { ChatPrimitives } from 'src/context/chat/chat/domain/chat/chat';
+import { FindOneChatByIdQuery } from 'src/context/chat/chat/application/read/find-one-chat-by-id.query';
+import { ChatNotFoundError } from 'src/context/chat/chat/domain/chat/errors/errors';
+import { SaveMessageCommand } from 'src/context/chat/chat/application/create/message/save-message.command';
 import {
   DomainErrorWrapper,
   DomainErrorWrapperBuilder,

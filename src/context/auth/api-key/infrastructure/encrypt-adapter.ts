@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
-import { ApiKeyEncryptPrivateKey } from 'src/context/auth-context/api-key/application/services/api-key-encrypt-private-key';
+import { ApiKeyEncryptPrivateKey } from 'src/context/auth/api-key/application/services/api-key-encrypt-private-key';
 
 @Injectable()
 export class EncryptAdapter implements ApiKeyEncryptPrivateKey {
