@@ -1,10 +1,5 @@
 import { TrackingEvent } from '../../domain/tracking-event';
 import { TrackingEventTypeOrmEntity } from './tracking-event.typeorm-entity';
-import { TrackingEventId } from '../../domain/value-objects/tracking-event-id';
-import { VisitorId } from '../../domain/value-objects/visitor-id';
-import { EventType } from '../../domain/value-objects/event-type';
-import { TrackingEventMetadata } from '../../domain/value-objects/tracking-event-metadata';
-import { TrackingEventOccurredAt } from '../../domain/value-objects/tracking-event-occurred-at';
 
 // Mapper para convertir entre la entidad de dominio TrackingEvent y la entidad de infraestructura TrackingEventTypeOrmEntity
 export class TrackingEventTypeOrmMapper {
