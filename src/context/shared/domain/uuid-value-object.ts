@@ -3,7 +3,7 @@ import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
 export abstract class UuidValueObject extends PrimitiveValueObject<string> {
   constructor(value: string) {
-    super(value, uuidValidate, 'Invalid UUID format');
+    super(value, uuidValidate, 'Invalid Uuid format');
   }
 
   public static generate(): string {

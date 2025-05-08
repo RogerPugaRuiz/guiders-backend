@@ -1,9 +1,9 @@
 import { PrimitiveValueObject } from '../primitive-value-object';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
-export class UUID extends PrimitiveValueObject<string> {
+export class Uuid extends PrimitiveValueObject<string> {
   constructor(readonly value: string) {
-    super(value, uuidValidate, 'Invalid UUID format');
+    super(value, uuidValidate, 'Invalid Uuid format');
   }
 
   public static generate(): string {
@@ -14,7 +14,7 @@ export class UUID extends PrimitiveValueObject<string> {
     return uuidValidate(value);
   }
 
-  public static random(): UUID {
-    return new UUID(UUID.generate());
+  public static random(): Uuid {
+    return new Uuid(Uuid.generate());
   }
 }
