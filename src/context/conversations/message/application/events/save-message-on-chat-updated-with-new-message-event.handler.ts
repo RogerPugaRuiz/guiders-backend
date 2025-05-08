@@ -27,7 +27,7 @@ export class SaveMessageOnChatUpdatedWithNewMessageEventHandler
   async handle(event: ChatUpdatedWithNewMessageEvent): Promise<void> {
     this.logger.log('Handling ChatUpdatedWithNewMessageEvent');
     // Extraemos los datos del mensaje del evento
-    const { message } = event.params.attributes;
+    const { message } = event.attributes;
     // Creamos la entidad Message a partir de los primitivos
     const messageEntity = Message.create({
       id: MessageId.create(message.id),

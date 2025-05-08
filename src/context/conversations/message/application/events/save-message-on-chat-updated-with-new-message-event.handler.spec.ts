@@ -10,6 +10,7 @@ import { Content } from '../../domain/value-objects/content';
 import { SenderId } from '../../domain/value-objects/sender-id';
 import { CreatedAt } from '../../domain/value-objects/created-at';
 import { MessageId } from '../../domain/value-objects/message-id';
+import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
 
 // Mock para el repositorio de mensajes
 const messageRepositoryMock: jest.Mocked<IMessageRepository> = {
@@ -41,9 +42,10 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
       content: 'Hola mundo',
       createdAt: new Date(),
     };
-    const event = {
-      params: { attributes: { message: messagePrimitives } },
-    } as unknown as ChatUpdatedWithNewMessageEvent;
+    const event = new ChatUpdatedWithNewMessageEvent({
+      message: messagePrimitives,
+      chat: { id: messagePrimitives.chatId } as ChatPrimitives,
+    });
     // Creamos la entidad Message igual que el handler (usando value objects, incluyendo el id)
     const messageEntity = Message.create({
       id: MessageId.create(messagePrimitives.id),
@@ -70,9 +72,10 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
       content: 'Mensaje de error',
       createdAt: new Date(),
     };
-    const event = {
-      params: { attributes: { message: messagePrimitives } },
-    } as unknown as ChatUpdatedWithNewMessageEvent;
+    const event = new ChatUpdatedWithNewMessageEvent({
+      message: messagePrimitives,
+      chat: { id: messagePrimitives.chatId } as ChatPrimitives,
+    });
     messageRepositoryMock.save.mockRejectedValue(new Error('Repo error'));
 
     // Act & Assert
@@ -88,9 +91,10 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
       content: 'Mensaje de prueba',
       createdAt: new Date(),
     };
-    const event = {
-      params: { attributes: { message: messagePrimitives } },
-    } as unknown as ChatUpdatedWithNewMessageEvent;
+    const event = new ChatUpdatedWithNewMessageEvent({
+      message: messagePrimitives,
+      chat: { id: messagePrimitives.chatId } as ChatPrimitives,
+    });
     // Espiamos Message.create en vez de fromPrimitives
     const spy = jest.spyOn(Message, 'create');
     messageRepositoryMock.save.mockResolvedValue(resultOk);

@@ -250,11 +250,8 @@ export class Chat extends AggregateRoot {
 
     updatedChat.apply(
       new ChatUpdatedWithNewMessageEvent({
-        timestamp: new Date(),
-        attributes: {
-          chat: updatedChat.toPrimitives(),
-          message,
-        },
+        chat: updatedChat.toPrimitives(),
+        message,
       }),
     );
 

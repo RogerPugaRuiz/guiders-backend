@@ -53,14 +53,11 @@ export class TrackingEvent extends AggregateRoot {
     // Aplica el evento de dominio al crear la entidad
     trackingEvent.apply(
       new TrackingEventCreatedEvent({
-        timestamp: new Date(),
-        attributes: {
-          id: params.id.value,
-          visitorId: params.visitorId.value,
-          eventType: params.eventType.value,
-          metadata: params.metadata.value,
-          occurredAt: occurredAt.value,
-        },
+        id: params.id.value,
+        visitorId: params.visitorId.value,
+        eventType: params.eventType.value,
+        metadata: params.metadata.value,
+        occurredAt: occurredAt.value,
       }),
     );
     return trackingEvent;
