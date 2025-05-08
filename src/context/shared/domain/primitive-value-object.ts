@@ -29,7 +29,7 @@ export abstract class PrimitiveValueObject<T> {
    * @param errorMessage Mensaje de error opcional
    */
   public static create<
-    T extends string | number | Date | Record<string, unknown>,
+    T extends string | number | Date | Record<string, unknown> | Array<unknown>,
     V extends PrimitiveValueObject<T>,
   >(
     this: new (

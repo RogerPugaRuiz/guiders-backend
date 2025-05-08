@@ -4,7 +4,7 @@ import { IMessageRepository } from '../../domain/message.repository';
 import { ChatUpdatedWithNewMessageEvent } from 'src/context/conversations/chat/domain/chat/events/chat-updated-with-new-message.event';
 import { Message } from '../../domain/message';
 import { okVoid } from 'src/context/shared/domain/result';
-import { UUID } from 'src/context/shared/domain/value-objects/uuid';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { ChatId } from 'src/context/conversations/chat/domain/chat/value-objects/chat-id';
 import { Content } from '../../domain/value-objects/content';
 import { SenderId } from '../../domain/value-objects/sender-id';
@@ -35,9 +35,9 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
   it('debe guardar el mensaje recibido en el evento', async () => {
     // Arrange: datos de mensaje simulados
     const messagePrimitives = {
-      id: UUID.generate(),
-      chatId: UUID.generate(),
-      senderId: UUID.generate(),
+      id: Uuid.generate(),
+      chatId: Uuid.generate(),
+      senderId: Uuid.generate(),
       content: 'Hola mundo',
       createdAt: new Date(),
     };
@@ -64,9 +64,9 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
   it('debe manejar errores del repositorio correctamente', async () => {
     // Arrange
     const messagePrimitives = {
-      id: UUID.generate(),
-      chatId: UUID.generate(),
-      senderId: UUID.generate(),
+      id: Uuid.generate(),
+      chatId: Uuid.generate(),
+      senderId: Uuid.generate(),
       content: 'Mensaje de error',
       createdAt: new Date(),
     };
@@ -82,9 +82,9 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler', () => {
   it('debe crear la entidad Message correctamente', async () => {
     // Arrange
     const messagePrimitives = {
-      id: UUID.generate(),
-      chatId: UUID.generate(),
-      senderId: UUID.generate(),
+      id: Uuid.generate(),
+      chatId: Uuid.generate(),
+      senderId: Uuid.generate(),
       content: 'Mensaje de prueba',
       createdAt: new Date(),
     };

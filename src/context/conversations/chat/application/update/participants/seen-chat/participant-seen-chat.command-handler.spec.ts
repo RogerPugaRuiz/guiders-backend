@@ -2,7 +2,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ParticipantSeenChatCommandHandler } from './participant-seen-chat.command-handler';
 import { ParticipantSeenChatCommand } from './participant-seen-chat.command';
-import { UUID } from 'src/context/shared/domain/value-objects/uuid';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
@@ -57,8 +57,8 @@ describe('ParticipantSeenChatCommandHandler', () => {
 
   it('should throw error if participantId is invalid', async () => {
     const command = new ParticipantSeenChatCommand({
-      participantId: UUID.generate(),
-      chatId: UUID.generate(),
+      participantId: Uuid.generate(),
+      chatId: Uuid.generate(),
       seenAt: new Date(),
     });
 
@@ -67,7 +67,7 @@ describe('ParticipantSeenChatCommandHandler', () => {
       id: command.params.chatId,
       participants: [
         {
-          id: UUID.generate(),
+          id: Uuid.generate(),
           name: 'Visitor',
           isCommercial: false,
           isVisitor: true,
@@ -87,8 +87,8 @@ describe('ParticipantSeenChatCommandHandler', () => {
 
   it('should throw error if chatId is invalid', async () => {
     const command = new ParticipantSeenChatCommand({
-      participantId: UUID.generate(),
-      chatId: UUID.generate(),
+      participantId: Uuid.generate(),
+      chatId: Uuid.generate(),
       seenAt: new Date(),
     });
 
@@ -100,8 +100,8 @@ describe('ParticipantSeenChatCommandHandler', () => {
   });
 
   it('should update lastSeenAt for the participant participantId in the chat', async () => {
-    const participantId = UUID.generate();
-    const chatId = UUID.generate();
+    const participantId = Uuid.generate();
+    const chatId = Uuid.generate();
     const seenAt = new Date();
 
     const command = new ParticipantSeenChatCommand({

@@ -7,7 +7,7 @@ import {
   ITrackingEventRepository,
   TRACKING_EVENT_REPOSITORY,
 } from '../../../domain/tracking-event.repository';
-import { UUID } from 'src/context/shared/domain/value-objects/uuid';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { okVoid } from 'src/context/shared/domain/result';
 
 // Pruebas unitarias para CreateTrackingEventCommandHandler
@@ -54,9 +54,9 @@ describe('CreateTrackingEventCommandHandler', () => {
   });
 
   it('debe crear y persistir un TrackingEvent correctamente', async () => {
-    // Arrange: datos de entrada usando UUID
-    const id = UUID.random().value;
-    const visitorId = UUID.random().value;
+    // Arrange: datos de entrada usando Uuid
+    const id = Uuid.random().value;
+    const visitorId = Uuid.random().value;
     const eventType = 'click';
     const metadata = { foo: 'bar' };
     const occurredAt = new Date();

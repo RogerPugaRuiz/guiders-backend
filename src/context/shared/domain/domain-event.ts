@@ -1,9 +1,9 @@
 import { IEvent } from '@nestjs/cqrs';
-import { UUID } from './value-objects/uuid';
+import { Uuid } from './value-objects/uuid';
 
 export class DomainEvent implements IEvent {
   private readonly _eventName: string;
-  private readonly _id: UUID;
+  private readonly _id: Uuid;
   private readonly _timestamp: Date;
   private readonly _attributes: { [key: string]: any };
   constructor(
@@ -15,12 +15,12 @@ export class DomainEvent implements IEvent {
     },
   ) {
     this._eventName = this.constructor.name;
-    this._id = UUID.random();
+    this._id = Uuid.random();
     this._timestamp = params.timestamp;
     this._attributes = params.attributes;
   }
 
-  get id(): UUID {
+  get id(): Uuid {
     return this._id;
   }
 

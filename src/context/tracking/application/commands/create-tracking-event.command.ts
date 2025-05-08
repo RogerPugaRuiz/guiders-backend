@@ -7,7 +7,7 @@ import { ICommand } from '@nestjs/cqrs';
 export class CreateTrackingEventCommand implements ICommand {
   /**
    * Contiene los datos necesarios para crear un TrackingEvent.
-   * - id: Identificador único del evento (string, UUID)
+   * - id: Identificador único del evento (string, Uuid)
    * - visitorId: Identificador del visitante (string)
    * - eventType: Tipo de evento (string)
    * - metadata: Información adicional del evento (Record<string, any>)

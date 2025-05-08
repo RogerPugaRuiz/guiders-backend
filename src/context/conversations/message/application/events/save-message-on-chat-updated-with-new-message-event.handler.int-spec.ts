@@ -7,7 +7,7 @@ import { TypeOrmMessageService } from '../../infrastructure/typeORM-message.serv
 import { MESSAGE_REPOSITORY } from '../../domain/message.repository';
 import { MessageEntity } from '../../infrastructure/entities/message.entity';
 import { ChatUpdatedWithNewMessageEvent } from 'src/context/conversations/chat/domain/chat/events/chat-updated-with-new-message.event';
-import { UUID } from 'src/context/shared/domain/value-objects/uuid';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 // Prueba de integración para SaveMessageOnChatUpdatedWithNewMessageEventHandler
 // Verifica que el handler guarda correctamente el mensaje en la base de datos
@@ -58,10 +58,10 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
   });
 
   it('should save the message in the database when event is handled', async () => {
-    // Generamos UUIDs válidos para los campos requeridos
-    const messageId = UUID.generate();
-    const chatId = UUID.generate();
-    const senderId = UUID.generate();
+    // Generamos Uuids válidos para los campos requeridos
+    const messageId = Uuid.generate();
+    const chatId = Uuid.generate();
+    const senderId = Uuid.generate();
     // Creamos un mensaje de prueba en formato primitivo
     const messagePrimitives = {
       id: messageId,
