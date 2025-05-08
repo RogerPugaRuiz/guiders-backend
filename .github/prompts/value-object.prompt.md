@@ -18,6 +18,6 @@ Ejemplos:
 
 Validación personalizada → PositiveNumber.
 
-Extender otro VO → TrackingEventId extiende UUID.
+Extender otro VO → TrackingEventId extiende Uuid.
 
 Prohibido: crear Value Objects sin validación, sin pruebas o sin seguir las convenciones de nombres.
