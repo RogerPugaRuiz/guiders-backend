@@ -1,4 +1,7 @@
 import { DomainEvent } from 'src/context/shared/domain/domain-event';
+import { VisitorPrimitives } from '../visitor';
 
 // Evento de dominio que representa la creación de un visitante
-export class VisitorCreatedEvent extends DomainEvent {}
+export class VisitorCreatedEvent extends DomainEvent<{
+  visitor: VisitorPrimitives;
+}> {}

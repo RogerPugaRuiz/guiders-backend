@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ITrackingEventRepository } from '../../domain/tracking-event.repository';
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { Optional } from 'src/context/shared/domain/optional';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { TrackingEvent } from '../../domain/tracking-event';
 import { TrackingEventId } from '../../domain/value-objects/tracking-event-id';
@@ -26,15 +25,17 @@ export class TypeOrmTrackingEventAdapter implements ITrackingEventRepository {
   ) {}
 
   // Busca un TrackingEvent por su ID
-  async find(
+  async findById(
     id: TrackingEventId,
-  ): Promise<Result<Optional<TrackingEvent>, DomainError>> {
+  ): Promise<Result<TrackingEvent, DomainError>> {
     try {
       const entity = await this.trackingEventRepository.findOne({
         where: { id: id.value },
       });
       if (!entity) {
-        return ok(Optional.empty<TrackingEvent>());
+        return err(
+          new TrackingEventPersistenceError('TrackingEvent no encontrado'),
+        );
       }
       // Reconstruye la entidad de dominio desde la entidad de infraestructura
       const event = TrackingEvent.fromPrimitives({
@@ -44,7 +45,7 @@ export class TypeOrmTrackingEventAdapter implements ITrackingEventRepository {
         metadata: entity.metadata,
         occurredAt: entity.occurredAt,
       });
-      return ok(Optional.of(event));
+      return ok(event);
     } catch (error) {
       return err(
         new TrackingEventPersistenceError(

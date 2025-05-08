@@ -51,12 +51,7 @@ export class Visitor extends AggregateRoot {
     // Aplica el evento de dominio al crear el visitante
     visitor.apply(
       new VisitorCreatedEvent({
-        id: params.id.value,
-        name: params.name.value,
-        email: params.email.value,
-        tel: params.tel.value,
-        tags: params.tags.value,
-        notes: params.notes.toPrimitives(), // Serializa como string[]
+        visitor: visitor.toPrimitives(),
       }),
     );
     return visitor;

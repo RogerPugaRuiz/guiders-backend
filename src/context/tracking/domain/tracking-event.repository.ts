@@ -2,7 +2,6 @@ import { TrackingEvent } from './tracking-event';
 import { TrackingEventId } from './value-objects/tracking-event-id';
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { Result } from 'src/context/shared/domain/result';
-import { Optional } from 'src/context/shared/domain/optional';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 export const TRACKING_EVENT_REPOSITORY = Symbol('TrackingEventRepository');
 // Repositorio de TrackingEvent siguiendo DDD y CQRS
@@ -12,9 +11,7 @@ export interface ITrackingEventRepository {
    * @returns Devuelve un Result con el TrackingEvent o un DomainError.
    * @param id Identificador del TrackingEvent.
    */
-  find(
-    id: TrackingEventId,
-  ): Promise<Result<Optional<TrackingEvent>, DomainError>>;
+  findById(id: TrackingEventId): Promise<Result<TrackingEvent, DomainError>>;
 
   /**
    * Busca TrackingEvents en el repositorio según criterios.

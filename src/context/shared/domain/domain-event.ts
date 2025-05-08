@@ -1,7 +1,7 @@
 import { IEvent } from '@nestjs/cqrs';
 import { Uuid } from './value-objects/uuid';
 
-export class DomainEvent<T = Record<string, any>> implements IEvent {
+export abstract class DomainEvent<T = Record<string, any>> implements IEvent {
   private readonly _eventName: string;
   private readonly _id: Uuid;
   private readonly _timestamp: Date;

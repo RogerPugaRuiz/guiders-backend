@@ -22,7 +22,7 @@ describe('CreateTrackingEventCommandHandler', () => {
     // Configuración del mock para el repositorio
     repository = {
       save: jest.fn().mockResolvedValue(okVoid()),
-      find: jest.fn(),
+      findById: jest.fn(),
       match: jest.fn(),
     } as jest.Mocked<ITrackingEventRepository>;
 
