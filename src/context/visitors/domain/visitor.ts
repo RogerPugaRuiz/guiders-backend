@@ -72,8 +72,12 @@ export class Visitor extends AggregateRoot {
       params.name ? VisitorName.create(params.name) : null,
       params.email ? VisitorEmail.create(params.email) : null,
       params.tel ? VisitorTel.create(params.tel) : null,
-      params.tags ? VisitorTags.fromPrimitives(params.tags) : VisitorTags.fromPrimitives([]),
-      params.notes ? VisitorNotes.fromPrimitives(params.notes) : VisitorNotes.fromPrimitives([]), // Reconstruye desde string[]
+      params.tags
+        ? VisitorTags.fromPrimitives(params.tags)
+        : VisitorTags.fromPrimitives([]),
+      params.notes
+        ? VisitorNotes.fromPrimitives(params.notes)
+        : VisitorNotes.fromPrimitives([]), // Reconstruye desde string[]
     );
   }
 
