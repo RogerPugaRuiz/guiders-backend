@@ -76,7 +76,7 @@ import { VisitorsModule } from './context/visitors/infrastructure/visitors.modul
             ? configService.get<string>('TEST_DATABASE', 'mydb')
             : configService.get<string>('DATABASE', 'mydb'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: synchronize,
+          synchronize: true,
         };
       },
     }),
