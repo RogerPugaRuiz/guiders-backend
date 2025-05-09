@@ -17,3 +17,8 @@ export const validateEmail = (value: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(value);
 };
+
+// Valida la fecha de un objeto Date
+export const validateDate = (value: Date): boolean => {
+  return value instanceof Date && !isNaN(value.getTime());
+};

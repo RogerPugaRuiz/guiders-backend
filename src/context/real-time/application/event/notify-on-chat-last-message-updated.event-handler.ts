@@ -11,11 +11,9 @@ export class NotifyOnChatLastMessageUpdatedEventHandler
     @Inject(NOTIFICATION) private readonly notificationService: INotification,
   ) {}
   async handle(event: ChatUpdatedWithNewMessageEvent) {
-    const lastMessage = event.params.attributes.chat.lastMessage;
-    const lastMessageAt = event.params.attributes.chat.lastMessageAt;
-    const chatId = event.params.attributes.chat.id;
-    const senderId = event.params.attributes.message.senderId;
-    for (const participant of event.params.attributes.chat.participants) {
+    const { lastMessage, lastMessageAt } = event.attributes.chat;
+    const { chatId, senderId } = event.attributes.message;
+    for (const participant of event.attributes.chat.participants) {
       await this.notificationService.notify({
         recipientId: participant.id,
         payload: {
