@@ -132,7 +132,9 @@ export class RealTimeWebSocketGateway
   ) {}
 
   onModuleDestroy() {
-    this.server.removeAllListeners();
+    if (this.server) {
+      this.server.removeAllListeners();
+    }
   }
 
   async handleConnection(@ConnectedSocket() client: Socket) {
