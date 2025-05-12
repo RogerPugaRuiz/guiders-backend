@@ -4,10 +4,6 @@
     "rootDir": ".",
     "outDir": "./dist"
   },
-  "include": [
-    "src/**/*",
-    "tools/**/*"
-  ],
   "exclude": [
     "node_modules",
     "test",
