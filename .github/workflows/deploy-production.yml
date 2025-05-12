@@ -81,4 +81,4 @@ jobs:
             -o ServerAliveCountMax=5 \
             -o StrictHostKeyChecking=no \
             ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
-            "export CACHE_BUSTER=$CACHE_BUSTER && cd ${{ secrets.PROD_PATH }} && CACHE_BUSTER=$CACHE_BUSTER docker compose --verbose -f docker-compose-prod.yml up -d --build --remove-orphans"
+            "export CACHE_BUSTER=$CACHE_BUSTER && cd ${{ secrets.PROD_PATH }} && CACHE_BUSTER=$CACHE_BUSTER docker compose --verbose -f docker-compose-prod.yml up -d --remove-orphans"
