@@ -21,7 +21,8 @@
     "test:unit": "NODE_ENV=test jest --config ./jest-unit.json",
     "test:int": "NODE_ENV=test jest --config ./jest-int.json",
     "test:int:dev": "NODE_ENV=test jest --config ./jest-int.json",
-    "cli": "NODE_ENV=development ts-node -r tsconfig-paths/register tools/cli.ts"
+    "cli:dev": "NODE_ENV=development ts-node -r tsconfig-paths/register tools/cli.ts",
+    "cli:prod": "NODE_ENV=production ts-node -r tsconfig-paths/register tools/cli.ts"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.0",
