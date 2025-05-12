@@ -121,5 +121,5 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             cd /var/www/guiders-backend/ && \
             pm2 delete guiders-backend || true && \
-            pm2 start dist/src/main.js --name guiders-backend --env production \
+            NODE_ENV=production pm2 start dist/src/main.js --name guiders-backend \
           "
