@@ -15,6 +15,8 @@ export interface AuthenticatedRequest extends Request {
     username: string;
     email?: string;
   };
+  // Aseguramos que headers esté correctamente tipado
+  headers: Record<string, any>;
 }
 
 @Injectable()
@@ -29,8 +31,9 @@ export class AuthGuard implements CanActivate {
       if (!request.headers.authorization) {
         throw new UnauthorizedException('No se a encontrado el token');
       }
+      // Forzamos el tipo string para evitar problemas de tipado
       const { prefix, token } = this.extractToken(
-        request.headers.authorization,
+        String(request.headers.authorization),
       );
       if (prefix !== 'Bearer') {
         throw new UnauthorizedException('No se permite el tipo de token');
