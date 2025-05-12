@@ -1,41 +1,42 @@
+# --------------------------
 # Stage 1: Build
-FROM node:slim AS builder
+# --------------------------
+  FROM node:18-slim AS builder
 
-# Directorio de trabajo
-WORKDIR /app
-
-# Copiar package.json y package-lock.json
-COPY package*.json ./
-
-# Instalar dependencias de desarrollo y producción
-RUN npm install --legacy-peer-deps
-
-# Copiar el resto del código fuente
-COPY . .
-
-# Compilar la aplicación NestJS
-RUN npm run build
-
-# Stage 2: Producción
-FROM node:slim AS production
-
-WORKDIR /app
-
-# Copiar solo los archivos necesarios desde el builder
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/dist ./dist
-
-# Instalar solo dependencias de producción
-RUN npm install --omit=dev --legacy-peer-deps
-
-# Copiar el archivo de entorno de producción al contenedor
-COPY .env.production .env.production
-
-# Copiar el archivo de entorno si existe (opcional, se puede montar desde fuera)
-# COPY .env.production .env.production
-
-# Exponer el puerto de la app
-EXPOSE 3000
-
-# Comando de inicio
-CMD ["npm", "run", "start:prod"]
+  WORKDIR /app
+  
+  # Copiar package.json y lock
+  COPY package*.json ./
+  
+  # Instalar TODAS las dependencias (incluyendo dev)
+  RUN npm install --legacy-peer-deps
+  
+  # Copiar todo el código fuente
+  COPY . .
+  
+  # ✅ Compilar incluyendo src/ y tools/
+  RUN npm run build
+  
+  # --------------------------
+  # Stage 2: Producción
+  # --------------------------
+  FROM node:18-slim AS production
+  
+  WORKDIR /app
+  
+  # Copiar solo lo necesario del builder
+  COPY --from=builder /app/package*.json ./
+  COPY --from=builder /app/dist ./dist
+  COPY --from=builder /app/.env.production .env.production
+  COPY --from=builder /app/tsconfig.json ./tsconfig.json
+  COPY --from=builder /app/tsconfig.build.json ./tsconfig.build.json
+  
+  # Instalar solo dependencias de producción
+  RUN npm install --omit=dev --legacy-peer-deps
+  
+  # Exponer puerto
+  EXPOSE 3000
+  
+  # Comando de inicio (NestJS)
+  CMD ["npm", "run", "start:prod"]
+  
