@@ -41,5 +41,5 @@
   EXPOSE 3000
   
   # Comando de inicio (NestJS)
-  CMD ["node", "--experimental-global-webcrypto", "dist/main"]
+  CMD ["npm", "run", "start:prod"]
   
