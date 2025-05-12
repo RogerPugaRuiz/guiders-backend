@@ -2,7 +2,7 @@ version: '3.9'   # usa la última spec, aunque podrías omitir esta línea
 
 services:
   postgres:
-    image: postgres:14.21-alpine3.18   # pincha versión y Alpine exactos
+    image: postgres:14.11-alpine   # versión válida y estable
     container_name: postgres-prod
     restart: always
 
