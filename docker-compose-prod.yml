@@ -1,38 +1,41 @@
-version: '3.8'
+version: '3.9'   # usa la última spec, aunque podrías omitir esta línea
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        CACHE_BUSTER: ${CACHE_BUSTER}
-    container_name: nestjs-prod
-    restart: always
-    environment:
-      NODE_ENV: production
-    depends_on:
-      - postgres
-    networks:
-      - postgres-net
-    ports:
-      - "3000:3000"
-
   postgres:
-    image: postgres:14-alpine
+    image: postgres:14.21-alpine3.18   # pincha versión y Alpine exactos
     container_name: postgres-prod
     restart: always
+
+    # credenciales via env vars en .env
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE}
+
+    # salud: para que otros servicios esperen al DB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # logs rotados, para no crecer sin control
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data:rw
     networks:
       - postgres-net
 
 volumes:
   pgdata:
+    driver: local
 
 networks:
   postgres-net:
+    driver: bridge

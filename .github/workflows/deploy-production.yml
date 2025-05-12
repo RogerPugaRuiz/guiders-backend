@@ -26,8 +26,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install OpenVPNhttps://chatgpt.com/c/6819ace4-5954-8009-88c9-6550590ac7ed
-        run: sudo apt-get update && sudo apt-get install -y openvpn
+      - name: Install OpenVPN
+        run: sudo apt-get update && sudo apt-get install -y openvpn sshpass
 
       - name: Setup OpenVPN config
         run: |
@@ -41,25 +41,24 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan 10.8.0.1 >> ~/.ssh/known_hosts
-          
-      # - name: Install dependencies
-      #   run: npm install
 
-      # - name: Build project
-      #   run: npm run build
-
-      - name: Set up SSH key
+      - name: Test SSH connection with password
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > id_rsa
-          chmod 600 id_rsa
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "echo '✔️ SSH OK with password'"
 
       - name: Copy files to production server
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          rsync -avz -e "ssh -i id_rsa -o StrictHostKeyChecking=no" --exclude='.git*' --exclude='node_modules' ./ ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_PATH }}
+          sshpass -p "$SSH_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude='.git*' --exclude='node_modules' ./ ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_PATH }}
 
       - name: Generate .env.production on server
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-            ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             echo 'PORT=${{ secrets.PORT }}' > ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
@@ -70,15 +69,34 @@ jobs:
             echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
             echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production
-            "
+            echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production \
+          "
 
-      - name: Deploy with docker-compose-prod.yml
+      - name: Install dependencies and build on server
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          export CACHE_BUSTER=$(date +%s)
-          timeout 10m ssh -i id_rsa \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=5 \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
-            "export CACHE_BUSTER=$CACHE_BUSTER && cd ${{ secrets.PROD_PATH }} && CACHE_BUSTER=$CACHE_BUSTER docker compose --verbose -f docker-compose-prod.yml up -d --remove-orphans"
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd ${{ secrets.PROD_PATH }} && \
+            npm ci && \
+            npm run build \
+          "
+
+      - name: Start database with docker-compose
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd ${{ secrets.PROD_PATH }} && \
+            docker compose -f docker-compose-prod.yml up -d --remove-orphans \
+          "
+
+      - name: Restart app with pm2
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd ${{ secrets.PROD_PATH }} && \
+            pm2 delete all || true && \
+            pm2 start dist/main.js --name guiders-backend --env production \
+          "
