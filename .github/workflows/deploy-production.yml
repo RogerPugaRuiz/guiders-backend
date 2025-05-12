@@ -53,20 +53,29 @@ jobs:
 
       - name: Generate .env.production on server
         run: |
-            ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo 'PORT=${{ secrets.PORT }}' > ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE=${{ secrets.DATABASE }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'APP_URL=${{ secrets.APP_URL }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production
-            "
+          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+          echo 'PORT=${{ secrets.PORT }}' > ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'DATABASE=${{ secrets.DATABASE }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'APP_URL=${{ secrets.APP_URL }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
+          echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production
+          "
 
       - name: Deploy with docker-compose-prod.yml
         run: |
-          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "cd ${{ secrets.PROD_PATH }} && docker compose -f docker-compose-prod.yml pull && docker compose -f docker-compose-prod.yml up -d --remove-orphans"
+          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} <<'EOF'
+            set -e
+            cd ${{ secrets.PROD_PATH }}
+
+            # 1. Reconstruir la imagen SIN caché y con bases frescas
+            docker compose -f docker-compose-prod.yml build --no-cache --pull
+
+            # 2. Levantar todo recreando contenedores y limpiando huérfanos
+            docker compose -f docker-compose-prod.yml up -d --force-recreate --remove-orphans
+          EOF

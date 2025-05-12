@@ -12,6 +12,7 @@
   RUN npm install --legacy-peer-deps
   
   # Copiar todo el código fuente
+  COPY tsconfig.build.json ./
   COPY . .
   
   # ✅ Compilar incluyendo src/ y tools/
