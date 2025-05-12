@@ -74,4 +74,10 @@ jobs:
 
       - name: Deploy with docker-compose-prod.yml
         run: |
-          timeout 10m ssh -i id_rsa -o ServerAliveInterval=30 -o ServerAliveCountMax=5 -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "cd ${{ secrets.PROD_PATH }} && docker compose -f docker-compose-prod.yml pull && docker compose --verbose -f docker-compose-prod.yml up -d --build --remove-orphans"
+          export CACHE_BUSTER=$(date +%s)
+          timeout 10m ssh -i id_rsa \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=5 \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
+            "export CACHE_BUSTER=$CACHE_BUSTER && cd ${{ secrets.PROD_PATH }} && CACHE_BUSTER=$CACHE_BUSTER docker compose --verbose -f docker-compose-prod.yml up -d --build --remove-orphans"

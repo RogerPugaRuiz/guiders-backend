@@ -3,6 +3,8 @@
 # --------------------------
   FROM node:18-slim AS builder
 
+  ARG CACHE_BUSTER
+
   WORKDIR /app
   
   # Copiar package.json y lock
