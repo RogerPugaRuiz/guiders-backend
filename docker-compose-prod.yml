@@ -27,6 +27,9 @@ services:
         max-size: "10m"
         max-file: "3"
 
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+
     volumes:
       - pgdata:/var/lib/postgresql/data:rw
     networks:
