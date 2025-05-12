@@ -68,14 +68,24 @@ jobs:
           "
 
       - name: Deploy with docker-compose-prod.yml
+        timeout-minutes: 30               # ← freno de seguridad
         run: |
-          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} <<'EOF'
-            set -e
-            cd ${{ secrets.PROD_PATH }}
-
-            # 1. Reconstruir la imagen SIN caché y con bases frescas
-            docker compose -f docker-compose-prod.yml build --no-cache --pull
-
-            # 2. Levantar todo recreando contenedores y limpiando huérfanos
-            docker compose -f docker-compose-prod.yml up -d --force-recreate --remove-orphans
+          set -e
+          ssh -i id_rsa -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=5 \
+              ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} <<'EOF'
+            set -euo pipefail
+            cd "$HOME/app"                # usa ruta literal, no ${{…}} dentro
+            echo "♻️  Re‑build sin caché…"
+            docker compose -f docker-compose-prod.yml \
+              build --no-cache --pull --progress plain
+        
+            echo "🚀  Levantando contenedores…"
+            docker compose -f docker-compose-prod.yml \
+              up -d --force-recreate --remove-orphans
+        
+            echo "✅  Deploy terminado"
           EOF
+
