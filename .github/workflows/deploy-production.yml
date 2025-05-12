@@ -26,7 +26,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install OpenVPN
+      - name: Install OpenVPN and sshpass
         run: sudo apt-get update && sudo apt-get install -y openvpn sshpass
 
       - name: Setup OpenVPN config
@@ -48,55 +48,66 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "echo '✔️ SSH OK with password'"
 
-      - name: Copy files to production server
+      # Instala dependencias de producción y compila el proyecto localmente
+      - name: Install prod dependencies and build
+        run: |
+          npm install --omit=dev
+          npm run build
+
+      # Empaqueta dist, package.json, package-lock.json para enviar al server
+      - name: Prepare dist for deploy
+        run: |
+          tar czf deploy-dist.tar.gz dist package.json package-lock.json
+
+      # Genera .env.production localmente y copia todo a /var/www/guiders-app/ en el server
+      - name: Copy dist and .env.production to server
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASSWORD" rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude='.git*' --exclude='node_modules' ./ ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:${{ secrets.PROD_PATH }}
+          echo 'PORT=${{ secrets.PORT }}' > .env.production
+          echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> .env.production
+          echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> .env.production
+          echo 'DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}' >> .env.production
+          echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> .env.production
+          echo 'DATABASE=${{ secrets.DATABASE }}' >> .env.production
+          echo 'APP_URL=${{ secrets.APP_URL }}' >> .env.production
+          echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> .env.production
+          echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> .env.production
+          echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> .env.production
+          echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> .env.production
 
-      - name: Generate .env.production on server
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-app/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-dist.tar.gz .env.production ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-app/
+
+      # Descomprime y prepara entorno en el server
+      - name: Unpack dist and install on server
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo 'PORT=${{ secrets.PORT }}' > ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_USERNAME=${{ secrets.DATABASE_USERNAME }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'DATABASE=${{ secrets.DATABASE }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'APP_URL=${{ secrets.APP_URL }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production && \
-            echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production \
+            cd /var/www/guiders-app/ && \
+            tar xzf deploy-dist.tar.gz && \
+            rm -rf node_modules && \
+            npm install --omit=dev \
           "
 
-      - name: Install dependencies and build on server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd ${{ secrets.PROD_PATH }} && \
-            npm ci && \
-            npm run build \
-          "
-
+      # Levanta la base de datos con docker-compose
       - name: Start database with docker-compose
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd ${{ secrets.PROD_PATH }} && \
+            cd /var/www/guiders-app/ && \
             docker compose -f docker-compose-prod.yml up -d --remove-orphans \
           "
 
+      # Reinicia la app con pm2 del sistema
       - name: Restart app with pm2
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd ${{ secrets.PROD_PATH }} && \
-            pm2 delete all || true && \
+            cd /var/www/guiders-app/ && \
+            pm2 delete guiders-backend || true && \
             pm2 start dist/main.js --name guiders-backend --env production \
           "
