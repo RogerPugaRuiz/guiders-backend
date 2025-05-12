@@ -47,7 +47,12 @@ jobs:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "echo '✔️ SSH OK with password'"
-
+      
+      #Instala nestJs CLI en el server
+      - name: Install nestJs CLI
+        run: |
+          npm install -g @nestjs/cli
+          
       # Instala dependencias de producción y compila el proyecto localmente
       - name: Install prod dependencies and build
         run: |
