@@ -73,12 +73,12 @@ jobs:
             echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> ${{ secrets.PROD_PATH }}/.env.production
             "
 
-      - name: Deploy with docker-compose-prod.yml
+      - name: Deploy in background with nohup
         run: |
           export CACHE_BUSTER=$(date +%s)
-          timeout 10m ssh -i id_rsa \
-            -o ServerAliveInterval=30 \
-            -o ServerAliveCountMax=5 \
-            -o StrictHostKeyChecking=no \
-            ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
-            "export CACHE_BUSTER=$CACHE_BUSTER && cd ${{ secrets.PROD_PATH }} && CACHE_BUSTER=$CACHE_BUSTER docker compose --verbose -f docker-compose-prod.yml up -d --build --remove-orphans"
+          ssh -i id_rsa \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=5 \
+              -o StrictHostKeyChecking=no \
+              ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} \
+              "cd ${{ secrets.PROD_PATH }} && nohup bash -c 'CACHE_BUSTER=$CACHE_BUSTER docker compose --verbose -f docker-compose-prod.yml up -d --build --remove-orphans' > deploy.log 2>&1 &"
