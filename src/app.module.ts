@@ -17,6 +17,7 @@ import { TokenVerifyService } from './context/shared/infrastructure/token-verify
 import { TrackingModule } from './context/tracking/tracking.module';
 import { MessageModule } from './context/conversations/message/infrastructure/message.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
+import { CompanyModule } from './context/company/company.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { VisitorsModule } from './context/visitors/infrastructure/visitors.modul
     ChatModule,
     MessageModule,
     TrackingModule,
+    CompanyModule,
     // OpenSearchModule,
     CqrsModule.forRoot(),
     HttpModule,
