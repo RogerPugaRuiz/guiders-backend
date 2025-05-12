@@ -110,7 +110,7 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             cd /var/www/guiders-backend/ && \
-            docker compose -f docker-compose-prod.yml up -d --remove-orphans \
+            docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans \
           "
 
       # Reinicia la app con pm2 del sistema
