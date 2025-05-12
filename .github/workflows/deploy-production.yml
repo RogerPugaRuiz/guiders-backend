@@ -66,4 +66,4 @@ jobs:
 
       - name: Deploy with docker-compose-prod.yml
         run: |
-          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "cd ${{ secrets.PROD_PATH }} && docker compose -f docker-compose-prod.yml pull && docker compose -f docker-compose-prod.yml up -d --remove-orphans"
+          ssh -i id_rsa -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "cd ${{ secrets.PROD_PATH }} && docker compose -f docker-compose-prod.yml pull && docker compose -f docker-compose-prod.yml up -d --build --remove-orphans"
