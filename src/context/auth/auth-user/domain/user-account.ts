@@ -82,10 +82,10 @@ export class UserAccount {
     return this._email;
   }
   // Getter que expone password como Optional
-  get password(): Optional<UserAccountPassword> {
+  get password(): Optional<string> {
     return this._password.value === null
       ? Optional.empty()
-      : Optional.of(this._password);
+      : Optional.of(this._password.getValue()!);
   }
 
   get createdAt(): UserAccountCreatedAt {
@@ -95,10 +95,10 @@ export class UserAccount {
     return this._updatedAt;
   }
   // Getter que expone lastLoginAt como Optional
-  get lastLoginAt(): Optional<UserAccountLastLogin> {
+  get lastLoginAt(): Optional<Date> {
     return this._lastLoginAt.value === null
       ? Optional.empty()
-      : Optional.of(this._lastLoginAt);
+      : Optional.of(this._lastLoginAt.getValue()!);
   }
 
   // Métodos públicos

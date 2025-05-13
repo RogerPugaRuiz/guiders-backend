@@ -22,12 +22,10 @@ export class UserAccountMapper {
     const userAccountEntity = new UserAccountEntity();
     userAccountEntity.id = userAccount.id.getValue();
     userAccountEntity.email = userAccount.email.getValue();
-    userAccountEntity.password = userAccount.password.getValue();
+    userAccountEntity.password = userAccount.password.getOrNull();
     userAccountEntity.createdAt = userAccount.createdAt.getValue();
     userAccountEntity.updatedAt = userAccount.updatedAt.getValue();
-    userAccountEntity.lastLoginAt = userAccount.lastLoginAt
-      .map((value) => value.getValue())
-      .getOrNull();
+    userAccountEntity.lastLoginAt = userAccount.lastLoginAt.getOrNull();
     return userAccountEntity;
   }
 }

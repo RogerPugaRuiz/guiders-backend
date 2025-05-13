@@ -33,9 +33,13 @@ export class UserLoginUseCase {
     if (!user) {
       throw new UnauthorizedError('User not found');
     }
+
+    if (user.password.isEmpty()) {
+      throw new UnauthorizedError('User not found');
+    }
     const isValidPassword = await this.hasherService.compare(
       password,
-      user.password.getValue(),
+      user.password.get(),
     );
     if (!isValidPassword) {
       throw new UnauthorizedError('Invalid password');

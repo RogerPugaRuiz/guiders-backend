@@ -15,6 +15,7 @@ export class TokenService implements UserTokenService {
     id: string;
     username: string;
     email: string;
+    roles?: string[];
   }): Promise<{ accessToken: string; refreshToken: string }> {
     const accessToken = this.createAccessToken(data);
     const refreshToken = this.createRefreshToken(data);
@@ -51,12 +52,13 @@ export class TokenService implements UserTokenService {
     id: string;
     email: string;
     username: string;
+    roles?: string[];
   }) {
     const accessToken = this.jwtService.sign(
       {
         username: data.username,
         email: data.email,
-        role: ['commercial'],
+        role: data.roles ?? ['commercial'],
         typ: 'access',
       },
       {
@@ -71,12 +73,13 @@ export class TokenService implements UserTokenService {
     id: string;
     email: string;
     username: string;
+    roles?: string[];
   }) {
     const refreshToken = this.jwtService.sign(
       {
         username: data.username,
         email: data.email,
-        role: ['commercial'],
+        role: data.roles ?? ['commercial'],
         typ: 'refresh',
       },
       {

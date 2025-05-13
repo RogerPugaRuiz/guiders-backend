@@ -8,8 +8,8 @@ export class UserAccountEntity {
   @Column({ unique: true })
   email: string;
 
-  @Column()
-  password: string;
+  @Column({ nullable: true })
+  password: string | null;
 
   @Column({
     type: 'timestamptz',
