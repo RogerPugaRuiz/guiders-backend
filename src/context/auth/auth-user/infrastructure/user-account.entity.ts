@@ -29,4 +29,10 @@ export class UserAccountEntity {
     nullable: true,
   })
   lastLoginAt: Date | null | undefined;
+
+  @Column({
+    type: 'simple-array',
+    default: '',
+  })
+  roles: string[];
 }

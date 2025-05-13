@@ -15,6 +15,7 @@ export class UserAccountMapper {
       createdAt: userAccountEntity.createdAt,
       updatedAt: userAccountEntity.updatedAt,
       lastLoginAt: userAccountEntity.lastLoginAt,
+      roles: userAccountEntity.roles ?? [],
     });
   }
 
@@ -26,6 +27,7 @@ export class UserAccountMapper {
     userAccountEntity.createdAt = userAccount.createdAt.getValue();
     userAccountEntity.updatedAt = userAccount.updatedAt.getValue();
     userAccountEntity.lastLoginAt = userAccount.lastLoginAt.getOrNull();
+    userAccountEntity.roles = userAccount.roles.toPrimitives();
     return userAccountEntity;
   }
 }

@@ -5,6 +5,8 @@ import { UserAccountLastLogin } from './user-account-last-login';
 import { UserAccountPassword } from './user-account-password';
 import { UserAccountUpdatedAt } from './user-account-updated-at';
 import { Optional } from 'src/context/shared/domain/optional';
+import { UserAccountRoles } from './value-objects/user-account-roles';
+import { Role } from './value-objects/role';
 
 export interface UserAccountPrimitives {
   id: string;
@@ -13,6 +15,7 @@ export interface UserAccountPrimitives {
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date | null;
+  roles: string[];
 }
 
 export class UserAccount {
@@ -23,6 +26,7 @@ export class UserAccount {
   private readonly _createdAt: UserAccountCreatedAt;
   private readonly _updatedAt: UserAccountUpdatedAt;
   private readonly _lastLoginAt: UserAccountLastLogin;
+  private readonly _roles: UserAccountRoles;
 
   private constructor(
     id: UserAccountId,
@@ -31,6 +35,7 @@ export class UserAccount {
     createdAt: UserAccountCreatedAt,
     updatedAt: UserAccountUpdatedAt,
     lastLoginAt: UserAccountLastLogin,
+    roles: UserAccountRoles,
   ) {
     this._id = id;
     this._email = email;
@@ -38,12 +43,14 @@ export class UserAccount {
     this._createdAt = createdAt;
     this._updatedAt = updatedAt;
     this._lastLoginAt = lastLoginAt;
+    this._roles = roles;
   }
 
   // Métodos estáticos de fábrica
   public static create(params: {
     email: UserAccountEmail;
     password: UserAccountPassword;
+    roles?: UserAccountRoles;
   }): UserAccount {
     const now = new Date();
     return new UserAccount(
@@ -53,6 +60,7 @@ export class UserAccount {
       UserAccountCreatedAt.create(now),
       UserAccountUpdatedAt.create(now),
       new UserAccountLastLogin(null),
+      params.roles ?? UserAccountRoles.fromRoles([Role.admin()]), // Por defecto admin
     );
   }
 
@@ -63,6 +71,7 @@ export class UserAccount {
     createdAt: Date;
     updatedAt: Date;
     lastLoginAt?: Date | null;
+    roles: string[];
   }): UserAccount {
     return new UserAccount(
       UserAccountId.create(params.id),
@@ -71,6 +80,7 @@ export class UserAccount {
       UserAccountCreatedAt.create(params.createdAt),
       UserAccountUpdatedAt.create(params.updatedAt),
       new UserAccountLastLogin(params.lastLoginAt ?? null),
+      UserAccountRoles.fromPrimitives(params.roles),
     );
   }
 
@@ -101,6 +111,11 @@ export class UserAccount {
       : Optional.of(this._lastLoginAt.getValue()!);
   }
 
+  // Getter para roles
+  get roles(): UserAccountRoles {
+    return this._roles;
+  }
+
   // Métodos públicos
   public equals(userAccount: UserAccount): boolean {
     return (
@@ -109,7 +124,9 @@ export class UserAccount {
       this._password.equals(userAccount._password) &&
       this._createdAt.equals(userAccount._createdAt) &&
       this._updatedAt.equals(userAccount._updatedAt) &&
-      this._lastLoginAt.equals(userAccount._lastLoginAt)
+      this._lastLoginAt.equals(userAccount._lastLoginAt) &&
+      JSON.stringify(this._roles.toPrimitives()) ===
+        JSON.stringify(userAccount._roles.toPrimitives())
     );
   }
 
@@ -121,17 +138,19 @@ export class UserAccount {
       this._createdAt,
       this._updatedAt,
       new UserAccountLastLogin(new Date()),
+      this._roles,
     );
   }
 
   public toPrimitives(): UserAccountPrimitives {
     return {
-      id: this._id.getValue(),
       email: this._email.getValue(),
       password: this._password.getValue(),
       createdAt: this._createdAt.getValue(),
       updatedAt: this._updatedAt.getValue(),
       lastLoginAt: this._lastLoginAt.getValue(),
+      roles: this._roles.toPrimitives(),
+      id: this._id.getValue(),
     };
   }
 }
