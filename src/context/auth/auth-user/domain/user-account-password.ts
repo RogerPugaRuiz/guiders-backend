@@ -11,4 +11,8 @@ export class UserAccountPassword extends PrimitiveValueObject<string | null> {
   public isEmpty(): boolean {
     return this.value === null || this.value === '';
   }
+
+  public static empty(): UserAccountPassword {
+    return new UserAccountPassword(null);
+  }
 }

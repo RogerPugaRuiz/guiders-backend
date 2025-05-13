@@ -20,6 +20,7 @@ import { InviteTypeOrmEntity } from './persistence/entity/invite-typeorm.entity'
 import { InviteRepositoryImpl } from './persistence/impl/invite.repository.impl';
 import { INVITE_REPOSITORY } from '../domain/invite.repository';
 import { CreateInviteCommandHandler } from '../application/commands/create-invite-command.handler';
+import { CreateSuperadminOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-superadmin-on-company-created-with-admin-event.handler';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CreateInviteCommandHandler } from '../application/commands/create-invit
     // handlers
     FindOneUserByIdQueryHandler,
     CreateInviteCommandHandler,
+    CreateSuperadminOnCompanyCreatedWithAdminEventHandler,
   ],
 })
 export class AuthUserModule {}
