@@ -24,6 +24,10 @@ export class CreateCompanyDto {
   @IsString({ message: 'El nombre de la empresa es obligatorio' })
   companyName: string;
 
+  @ApiProperty({ description: 'Dominio de la empresa' })
+  @IsString({ message: 'El dominio de la empresa es obligatorio' })
+  domain: string;
+
   @ApiProperty({ type: AdminDto, description: 'Datos del administrador' })
   @ValidateNested()
   @Type(() => AdminDto)

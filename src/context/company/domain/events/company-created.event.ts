@@ -2,9 +2,9 @@ import { DomainEvent } from 'src/context/shared/domain/domain-event';
 export class Payload {
   id: string;
   companyName: string;
-  adminName: string;
-  adminEmail: string | null;
-  adminTel: string | null;
+  domain: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Representa el evento de creación de una empresa

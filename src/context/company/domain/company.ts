@@ -1,9 +1,7 @@
 // Entidad de dominio Company siguiendo DDD y CQRS
 import { AggregateRoot } from '@nestjs/cqrs';
 import { CompanyName } from './value-objects/company-name';
-import { AdminName } from './value-objects/admin-name';
-import { AdminEmail } from './value-objects/admin-email';
-import { AdminTel } from './value-objects/admin-tel';
+import { CompanyDomain } from './value-objects/company-domain';
 import { CompanyCreatedEvent } from './events/company-created.event';
 import { Uuid } from '../../shared/domain/value-objects/uuid';
 
@@ -12,43 +10,43 @@ export class Company extends AggregateRoot {
   // Propiedades encapsuladas
   private readonly id: Uuid;
   private readonly companyName: CompanyName;
-  private readonly adminName: AdminName;
-  private readonly adminEmail: AdminEmail;
-  private readonly adminTel: AdminTel;
+  private readonly domain: CompanyDomain;
+  private readonly createdAt: Date;
+  private readonly updatedAt: Date;
 
   // Constructor privado para forzar el uso de los métodos de fábrica
   private constructor(props: {
     id: Uuid;
     companyName: CompanyName;
-    adminName: AdminName;
-    adminEmail: AdminEmail;
-    adminTel: AdminTel;
+    domain: CompanyDomain;
+    createdAt: Date;
+    updatedAt: Date;
   }) {
     super();
     this.id = props.id;
     this.companyName = props.companyName;
-    this.adminName = props.adminName;
-    this.adminEmail = props.adminEmail;
-    this.adminTel = props.adminTel;
+    this.domain = props.domain;
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
   }
 
   // Método de fábrica para crear una nueva empresa (desde value objects)
   public static create(props: {
     id: Uuid;
     companyName: CompanyName;
-    adminName: AdminName;
-    adminEmail: AdminEmail;
-    adminTel: AdminTel;
+    domain: CompanyDomain;
+    createdAt: Date;
+    updatedAt: Date;
   }): Company {
     const company = new Company(props);
     // Aplica el evento de dominio de creación
     company.apply(
       new CompanyCreatedEvent({
-        adminEmail: props.adminEmail.getValue(),
-        adminName: props.adminName.getValue(),
-        adminTel: props.adminTel.getValue(),
-        companyName: props.companyName.getValue(),
         id: props.id.getValue(),
+        companyName: props.companyName.getValue(),
+        domain: props.domain.getValue(),
+        createdAt: props.createdAt.toISOString(),
+        updatedAt: props.updatedAt.toISOString(),
       }),
     );
     return company;
@@ -58,16 +56,16 @@ export class Company extends AggregateRoot {
   public static fromPrimitives(primitives: {
     id: string;
     companyName: string;
-    adminName: string;
-    adminEmail: string | null;
-    adminTel: string | null;
+    domain: string;
+    createdAt: string;
+    updatedAt: string;
   }): Company {
     return new Company({
       id: new Uuid(primitives.id),
       companyName: new CompanyName(primitives.companyName),
-      adminName: new AdminName(primitives.adminName),
-      adminEmail: new AdminEmail(primitives.adminEmail),
-      adminTel: new AdminTel(primitives.adminTel),
+      domain: new CompanyDomain(primitives.domain),
+      createdAt: new Date(primitives.createdAt),
+      updatedAt: new Date(primitives.updatedAt),
     });
   }
 
@@ -75,16 +73,16 @@ export class Company extends AggregateRoot {
   public toPrimitives(): {
     id: string;
     companyName: string;
-    adminName: string;
-    adminEmail: string | null;
-    adminTel: string | null;
+    domain: string;
+    createdAt: string;
+    updatedAt: string;
   } {
     return {
       id: this.id.getValue(),
       companyName: this.companyName.getValue(),
-      adminName: this.adminName.getValue(),
-      adminEmail: this.adminEmail.getValue(),
-      adminTel: this.adminTel.getValue(),
+      domain: this.domain.getValue(),
+      createdAt: this.createdAt.toISOString(),
+      updatedAt: this.updatedAt.toISOString(),
     };
   }
 
@@ -95,13 +93,13 @@ export class Company extends AggregateRoot {
   public getCompanyName(): CompanyName {
     return this.companyName;
   }
-  public getAdminName(): AdminName {
-    return this.adminName;
+  public getDomain(): CompanyDomain {
+    return this.domain;
   }
-  public getAdminEmail(): AdminEmail {
-    return this.adminEmail;
+  public getCreatedAt(): Date {
+    return this.createdAt;
   }
-  public getAdminTel(): AdminTel {
-    return this.adminTel;
+  public getUpdatedAt(): Date {
+    return this.updatedAt;
   }
 }
