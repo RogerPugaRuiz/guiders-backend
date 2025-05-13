@@ -1,5 +1,5 @@
-// Handler para CompanyCreatedWithAdminEvent que registra un usuario superadmin
-// Ubicación: src/context/auth/auth-user/application/events/create-superadmin-on-company-created-with-admin-event.handler.ts
+// Handler para CompanyCreatedWithAdminEvent que registra un usuario admin
+// Ubicación: src/context/auth/auth-user/application/events/create-admin-on-company-created-with-admin-event.handler.ts
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
 import { Inject } from '@nestjs/common';
@@ -13,9 +13,9 @@ import { UserAccountPassword } from '../../domain/user-account-password';
 import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';
 import { Role } from '../../domain/value-objects/role';
 
-// Este handler escucha el evento de creación de compañía con admin y crea un usuario superadmin en el contexto de auth
+// Este handler escucha el evento de creación de compañía con admin y crea un usuario admin en el contexto de auth
 @EventsHandler(CompanyCreatedWithAdminEvent)
-export class CreateSuperadminOnCompanyCreatedWithAdminEventHandler
+export class CreateAdminOnCompanyCreatedWithAdminEventHandler
   implements IEventHandler<CompanyCreatedWithAdminEvent>
 {
   constructor(
@@ -32,9 +32,9 @@ export class CreateSuperadminOnCompanyCreatedWithAdminEventHandler
     const user = UserAccount.create({
       email: UserAccountEmail.create(adminEmail),
       password: UserAccountPassword.empty(),
-      roles: UserAccountRoles.create([Role.superadmin()]), // Rol superadmin
+      roles: UserAccountRoles.create([Role.admin()]), // Rol admin
     });
-    // Guardar el usuario superadmin
+    // Guardar el usuario admin
     await this.userRepository.save(user);
   }
 }
