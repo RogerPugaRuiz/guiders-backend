@@ -116,7 +116,9 @@ export class CriteriaConverter {
       });
       // Combina las condiciones con OR para paginación compuesta
       if (orderBys.length > 0) {
-        const orConditions = orderBys.map((_, idx) => buildCursorCondition(idx));
+        const orConditions = orderBys.map((_, idx) =>
+          buildCursorCondition(idx),
+        );
         cursorClause = `AND (${orConditions.join(' OR ')})`;
       }
     }

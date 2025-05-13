@@ -1,12 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { CreateCompanyDto } from '../../application/dtos/create-company.dto';
-import { CompanyService } from '../services/company.service';
+import { Controller } from '@nestjs/common';
 
 @Controller('company')
 export class CompanyController {
-  constructor(private readonly companyService: CompanyService) {}
-  @Post()
-  async createCompany(@Body() createCompanyDto: CreateCompanyDto) {
-    await this.companyService.createCompany(createCompanyDto);
-  }
+  // constructor(
+  //   private readonly commandBus: CommandBus,
+  //   private readonly queryBus: QueryBus,
+  // ) {}
 }
