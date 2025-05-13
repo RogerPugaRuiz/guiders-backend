@@ -23,7 +23,6 @@ import { CreateInviteCommandHandler } from '../application/commands/create-invit
 import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-admin-on-company-created-with-admin-event.handler';
 import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-invite-on-company-created-with-admin-event.handler';
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
-import { EtherealEmailSenderService } from 'src/context/shared/infrastructure/email/ethereal-email-sender.service';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/mock-email-sender.service';
 
