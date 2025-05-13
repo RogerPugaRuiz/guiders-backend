@@ -6,12 +6,9 @@ Eres un experto en TypeScript y DDD.
 
 # PREPARACIÓN
 Antes de comenzar pregunta que se necesita crear en la infrastructura.
-Si necesita crear un repositorio, pregunta:
-  - Si ya existe la interfaz del repositorio y el símbolo para la inyección de dependencias. Si no existen, crea la interfaz y el símbolo. usando la guia de [Dominio](./domain.instructions.md).
+Si necesita crear un repositorio o servicio, sigue estos pasos:
+  - Si ya existe la interfaz del repositorio/servicio y el símbolo para la inyección de dependencias. Si no existen, crea la interfaz y el símbolo. usando la guia de Guia de Dominio.
   - Pregunta el tipo de base de datos que se va a usar. Si es Postgres, crea el repositorio usando TypeORM. Si es MongoDB, crea el repositorio usando Mongoose.
-Si necesita crear un servicio, pregunta:
-  dile al desarrollador que ahora mismo no le puedes ayudar con eso, pero que lo haga él.
-
 
 # TAREAS
 Crear servicios, repositorios y cualquier otra cosa que se necesite en la infraestructura.
