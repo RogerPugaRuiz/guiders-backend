@@ -7,6 +7,8 @@ import { UserAlreadyExistsError } from '../errors/user-already-exists.error';
 import { UserAccount } from '../../domain/user-account';
 import { UserAccountEmail } from '../../domain/user-account-email';
 import { UserAccountPassword } from '../../domain/user-account-password';
+import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';
+import { Role } from '../../domain/value-objects/role';
 
 import { ValidationError } from 'src/context/shared/domain/validation.error';
 import {
@@ -35,9 +37,11 @@ export class UserRegisterUseCase {
     }
 
     const hash = await this.hasherService.hash(password);
+    // Creamos el usuario incluyendo el value object de roles, por defecto solo 'commercial'
     const newUser = UserAccount.create({
       email: UserAccountEmail.create(email),
-      password: UserAccountPassword.create(hash),
+      password: new UserAccountPassword(hash),
+      roles: UserAccountRoles.create([Role.create('commercial')]),
     });
 
     return await this.userRepository.save(newUser);
