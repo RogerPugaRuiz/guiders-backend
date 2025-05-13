@@ -16,23 +16,31 @@ import { RefreshTokenUseCase } from '../application/usecases/refresh-token.useca
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
 import { FindOneUserByIdQueryHandler } from '../application/read/find-one-user-by-id.query-handler';
+import { InviteTypeOrmEntity } from './persistence/entity/invite-typeorm.entity';
+import { InviteRepositoryImpl } from './persistence/impl/invite.repository.impl';
+import { INVITE_REPOSITORY } from '../domain/invite.repository';
+import { CreateInviteCommandHandler } from '../application/commands/create-invite-command.handler';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UserAccountEntity]), HttpModule],
+  imports: [
+    TypeOrmModule.forFeature([UserAccountEntity, InviteTypeOrmEntity]),
+    HttpModule,
+  ],
   controllers: [AuthUserController],
   providers: [
     { provide: USER_ACCOUNT_REPOSITORY, useClass: UserAccountService },
     { provide: USER_PASSWORD_HASHER, useClass: BcryptHashService },
     { provide: USER_TOKEN_SERVICE, useClass: TokenService },
+    { provide: INVITE_REPOSITORY, useClass: InviteRepositoryImpl },
     AuthUserService,
     UserAccountMapper,
     UserRegisterUseCase,
     UserLoginUseCase,
     RefreshTokenUseCase,
     TokenVerifyService,
-
     // handlers
     FindOneUserByIdQueryHandler,
+    CreateInviteCommandHandler,
   ],
 })
 export class AuthUserModule {}
