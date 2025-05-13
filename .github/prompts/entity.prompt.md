@@ -50,10 +50,3 @@ Modela errores de negocio con Result.
 Genera el código completo de la entidad, incluyendo métodos de negocio relevantes.
 
 Contexto adicional: La entidad representará [describir qué representa la nueva entidad que deseas, por ejemplo, "un Pedido de Compra"].
-
-## archivos relacionados
-
-- [Guia patron result + optional](result+optional.prompt.md)
-- [Guia patron value object](value-object.prompt.md)
-- [Guia patron domain event](domain-event.prompt.md)
-- [Guia de objetos de valor](value-object.prompt.md)
