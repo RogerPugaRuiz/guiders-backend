@@ -56,6 +56,8 @@ program
       domain: String(options.domain),
     });
     await commandBus.execute(command);
+    // Espera explícita para asegurar que los eventos de dominio CQRS se procesen correctamente
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // Ajusta el tiempo según sea necesario
     console.log('Compañía y admin creados correctamente');
     await app.close();
   });

@@ -22,11 +22,16 @@ import { INVITE_REPOSITORY } from '../domain/invite.repository';
 import { CreateInviteCommandHandler } from '../application/commands/create-invite-command.handler';
 import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-admin-on-company-created-with-admin-event.handler';
 import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-invite-on-company-created-with-admin-event.handler';
+import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
+import { EtherealEmailSenderService } from 'src/context/shared/infrastructure/email/ethereal-email-sender.service';
+import { CqrsModule } from '@nestjs/cqrs';
+import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/mock-email-sender.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserAccountEntity, InviteTypeOrmEntity]),
     HttpModule,
+    CqrsModule,
   ],
   controllers: [AuthUserController],
   providers: [
@@ -34,6 +39,7 @@ import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../applicatio
     { provide: USER_PASSWORD_HASHER, useClass: BcryptHashService },
     { provide: USER_TOKEN_SERVICE, useClass: TokenService },
     { provide: INVITE_REPOSITORY, useClass: InviteRepositoryImpl },
+    { provide: EMAIL_SENDER_SERVICE, useClass: MockEmailSenderService },
     AuthUserService,
     UserAccountMapper,
     UserRegisterUseCase,

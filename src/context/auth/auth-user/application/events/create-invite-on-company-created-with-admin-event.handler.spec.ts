@@ -5,12 +5,17 @@ import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/
 import { INVITE_REPOSITORY } from '../../domain/invite.repository';
 import { Invite } from '../../domain/invite';
 import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../events/create-invite-on-company-created-with-admin-event.handler';
+import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
 
 // Mock del repositorio tipado
 const inviteRepositoryMock: {
   save: jest.MockedFunction<(invite: Invite) => Promise<any>>;
 } = {
   save: jest.fn(),
+};
+
+const emailSenderServiceMock = {
+  sendEmail: jest.fn(),
 };
 
 describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
@@ -24,11 +29,16 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
           provide: INVITE_REPOSITORY,
           useValue: inviteRepositoryMock,
         },
+        {
+          provide: EMAIL_SENDER_SERVICE,
+          useValue: emailSenderServiceMock,
+        },
       ],
     }).compile();
 
     handler = module.get(CreateInviteOnCompanyCreatedWithAdminEventHandler);
     inviteRepositoryMock.save.mockReset();
+    emailSenderServiceMock.sendEmail.mockReset();
   });
 
   it('debe crear y guardar una invitación válida para el admin', async () => {
@@ -52,6 +62,17 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
     expect(inviteArg).toBeInstanceOf(Invite);
     expect(inviteArg.email.value).toBe('admin@test.com');
     expect(inviteArg.token.value).toHaveLength(43);
+
+    // Verifica que se haya enviado el email correctamente
+    expect(emailSenderServiceMock.sendEmail).toHaveBeenCalledTimes(1);
+    const emailParams = emailSenderServiceMock.sendEmail.mock.calls[0][0] as {
+      to: string;
+      subject: string;
+      html: string;
+    };
+    expect(emailParams.to).toBe('admin@test.com');
+    expect(emailParams.subject).toContain('Invitación');
+    expect(emailParams.html).toContain(inviteArg.token.value);
   });
 
   it('no debe crear invitación si no hay adminEmail', async () => {

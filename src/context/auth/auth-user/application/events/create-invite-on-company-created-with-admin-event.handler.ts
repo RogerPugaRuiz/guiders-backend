@@ -15,6 +15,10 @@ import {
 } from '../../domain/invite.repository';
 import { v4 as uuidv4 } from 'uuid';
 import { randomBytes } from 'crypto';
+import {
+  EMAIL_SENDER_SERVICE,
+  EmailSenderService,
+} from 'src/context/shared/domain/email/email-sender.service';
 
 // Este handler escucha el evento de creación de compañía con admin y crea una invitación para el admin
 @EventsHandler(CompanyCreatedWithAdminEvent)
@@ -24,6 +28,8 @@ export class CreateInviteOnCompanyCreatedWithAdminEventHandler
   constructor(
     @Inject(INVITE_REPOSITORY)
     private readonly inviteRepository: InviteRepository,
+    @Inject(EMAIL_SENDER_SERVICE)
+    private readonly emailSenderService: EmailSenderService,
   ) {}
 
   async handle(event: CompanyCreatedWithAdminEvent): Promise<void> {
@@ -42,5 +48,13 @@ export class CreateInviteOnCompanyCreatedWithAdminEventHandler
     });
     // Guardar la invitación
     await this.inviteRepository.save(invite);
+
+    // Enviar email con el enlace de registro de contraseña
+    const registrationUrl = `https://app.guiders.io/register-password?token=${invite.token.value}`;
+    await this.emailSenderService.sendEmail({
+      to: adminEmail,
+      subject: 'Invitación para crear tu contraseña de acceso',
+      html: `<p>Hola,</p><p>Has sido invitado como administrador. Haz clic en el siguiente enlace para crear tu contraseña:</p><p><a href="${registrationUrl}">${registrationUrl}</a></p><p>Este enlace expirará en 24 horas.</p>`,
+    });
   }
 }

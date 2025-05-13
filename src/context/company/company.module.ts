@@ -3,10 +3,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CompanyTypeOrmEntity } from './infrastructure/persistence/entity/company-typeorm.entity';
 import { companyRepositoryProvider } from './infrastructure/persistence/impl/company.repository.impl';
 import { CreateCompanyCommandHandler } from './application/commands/create-company-command.handler';
+import { CreateCompanyWithAdminCommandHandler } from './application/commands/create-company-with-admin-command.handler';
+import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CompanyTypeOrmEntity])],
+  imports: [TypeOrmModule.forFeature([CompanyTypeOrmEntity]), CqrsModule],
   controllers: [],
-  providers: [companyRepositoryProvider, CreateCompanyCommandHandler],
+  providers: [
+    companyRepositoryProvider,
+    CreateCompanyCommandHandler,
+    CreateCompanyWithAdminCommandHandler,
+  ],
 })
 export class CompanyModule {}
