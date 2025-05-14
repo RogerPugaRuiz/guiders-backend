@@ -51,6 +51,9 @@ export class UserLoginUseCase {
     const tokens = await this.tokenService.generate({
       id: newUserUpdateLastLogin.id.getValue(),
       email: newUserUpdateLastLogin.email.getValue(),
+      roles: newUserUpdateLastLogin.roles
+        .getValue()
+        .map((role) => role.getValue()),
     });
     return tokens;
   }

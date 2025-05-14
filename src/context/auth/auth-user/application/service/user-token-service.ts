@@ -1,6 +1,11 @@
 export const USER_TOKEN_SERVICE = 'UserTokenService';
 export interface UserTokenService {
-  generate(data: { id: string; email: string }): Promise<{
+  generate(data: {
+    id: string;
+    email: string;
+    username?: string;
+    roles?: string[];
+  }): Promise<{
     accessToken: string;
     refreshToken: string;
   }>;
