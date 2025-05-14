@@ -6,7 +6,7 @@ import { INVITE_REPOSITORY } from '../../domain/invite.repository';
 import { Invite } from '../../domain/invite';
 import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../events/create-invite-on-company-created-with-admin-event.handler';
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
-
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 // Mock del repositorio tipado
 const inviteRepositoryMock: {
   save: jest.MockedFunction<(invite: Invite) => Promise<any>>;
@@ -42,14 +42,17 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
   });
 
   it('debe crear y guardar una invitación válida para el admin', async () => {
+    // Usar Uuid del dominio para generar un UUID válido
+    const userId = Uuid.random().value;
     const event = new CompanyCreatedWithAdminEvent({
-      companyId: 'company-uuid',
+      companyId: Uuid.random().value,
       companyName: 'Test Company',
       domain: 'test.com',
       adminName: 'Admin',
       adminEmail: 'admin@test.com',
       adminTel: null,
       createdAt: new Date().toISOString(),
+      userId,
     });
 
     inviteRepositoryMock.save.mockResolvedValue({ isOk: () => true });
@@ -77,14 +80,17 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
   });
 
   it('no debe crear invitación si no hay adminEmail', async () => {
+    // Usar Uuid del dominio para generar un UUID válido
+    const userId = Uuid.random().value;
     const event = new CompanyCreatedWithAdminEvent({
-      companyId: 'company-uuid',
+      companyId: Uuid.random().value,
       companyName: 'Test Company',
       domain: 'test.com',
       adminName: 'Admin',
       adminEmail: null,
       adminTel: null,
       createdAt: new Date().toISOString(),
+      userId,
     });
 
     await handler.handle(event);

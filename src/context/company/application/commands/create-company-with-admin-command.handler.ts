@@ -40,6 +40,7 @@ export class CreateCompanyWithAdminCommandHandler
       command.props;
     // 1. Crear la compañía
     const companyId = Uuid.random();
+    const userId = Uuid.random();
     const now = new Date();
     const company = Company.create({
       id: companyId,
@@ -55,13 +56,14 @@ export class CreateCompanyWithAdminCommandHandler
     this.publisher.mergeObjectContext(company).commit();
     this.eventBus.publish(
       new CompanyCreatedWithAdminEvent({
-        companyId: companyId.value,
+        companyId: companyId.getValue(),
         companyName,
         domain,
         adminName,
         adminEmail: adminEmail ?? null,
         adminTel: adminTel ?? null,
         createdAt: now.toISOString(),
+        userId: userId.getValue(),
       }),
     );
     return ok(undefined);

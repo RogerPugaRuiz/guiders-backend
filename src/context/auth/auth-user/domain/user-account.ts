@@ -53,11 +53,12 @@ export class UserAccount extends AggregateRoot {
   public static create(params: {
     email: UserAccountEmail;
     password: UserAccountPassword;
+    id?: UserAccountId;
     roles?: UserAccountRoles;
   }): UserAccount {
     const now = new Date();
     return new UserAccount(
-      UserAccountId.random(),
+      params.id ?? UserAccountId.random(),
       params.email,
       params.password,
       UserAccountCreatedAt.create(now),

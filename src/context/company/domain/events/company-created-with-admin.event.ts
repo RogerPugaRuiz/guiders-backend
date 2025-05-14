@@ -10,6 +10,7 @@ export interface CompanyCreatedWithAdminPayload {
   adminEmail: string | null;
   adminTel: string | null;
   createdAt: string;
+  userId: string;
 }
 
 export class CompanyCreatedWithAdminEvent extends DomainEvent<CompanyCreatedWithAdminPayload> {}

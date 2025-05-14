@@ -44,6 +44,7 @@ export class AcceptInviteCommandHandler
       new Filter<Invite>('token', Operator.EQUALS, token.value),
     ]);
     const inviteResult = await this.inviteRepository.match(criteria);
+    console.log('inviteResult', inviteResult);
     if (inviteResult.isErr() || !inviteResult.value.length) {
       throw new Error('Invitación no encontrada o token inválido');
     }
@@ -57,18 +58,20 @@ export class AcceptInviteCommandHandler
 
     // 3. Establecer la nueva contraseña en el usuario
     const userId = invite.userId.value;
+    console.log('userId', userId);
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error('Usuario no encontrado para la invitación');
     }
     // Integra el contexto de eventos al usuario (AggregateRoot)
     const userWithContext = this.publisher.mergeObjectContext(user);
-    // Actualiza el usuario con la nueva contraseña
+    // Actualiza el usuario con la nueva contraseña (devuelve un nuevo objeto)
     const hashedPassword = await this.hasherService.hash(command.password);
-    userWithContext.updatePassword(hashedPassword);
-    await this.userRepository.save(userWithContext);
+    const updatedUser = userWithContext.updatePassword(hashedPassword);
+    // Guardar el nuevo usuario modificado
+    await this.userRepository.save(updatedUser);
     // Publica los eventos de dominio generados
-    userWithContext.commit();
+    updatedUser.commit();
     // Aquí podrías actualizar el estado de la invitación si aplica
   }
 }

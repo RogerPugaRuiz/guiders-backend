@@ -33,15 +33,15 @@ export class CreateInviteOnCompanyCreatedWithAdminEventHandler
   ) {}
 
   async handle(event: CompanyCreatedWithAdminEvent): Promise<void> {
-    const { adminEmail } = event.attributes;
-    if (!adminEmail) return;
+    const { adminEmail, userId } = event.attributes;
+    if (!adminEmail || !userId) return;
     // Generar token hash seguro y expiración (24h)
     const token = randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     // Crear la invitación (Invite)
     const invite = Invite.create({
       id: new InviteId(uuidv4()),
-      userId: new UserId(uuidv4()), // En este punto, si tienes el userId real, úsalo
+      userId: new UserId(userId),
       email: new InviteEmail(adminEmail),
       token: new InviteToken(token),
       expiresAt: new InviteExpiration(expiresAt),

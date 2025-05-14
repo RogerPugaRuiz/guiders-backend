@@ -156,6 +156,9 @@ export class InviteRepositoryImpl implements InviteRepository {
         .where(sql.replace(/^WHERE /, ''))
         .setParameters(parameters)
         .getMany();
+      console.log('sql', sql);
+      console.log('parameters', parameters);
+      console.log('entities', entities);
       return ok(entities.map((e) => InviteMapper.fromPersistence(e)));
     } catch (error) {
       return err(

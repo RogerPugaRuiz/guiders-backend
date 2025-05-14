@@ -6,6 +6,7 @@ import { UserAccountEmail } from '../../domain/user-account-email';
 import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';
 import { Role } from '../../domain/value-objects/role';
 import { UserAccount } from '../../domain/user-account';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 // Mock del repositorio tipado
 const userRepositoryMock: {
@@ -41,6 +42,7 @@ describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
       adminEmail: 'admin@email.com',
       adminTel: '123456789',
       createdAt: new Date().toISOString(),
+      userId: Uuid.random().value,
     });
     await handler.handle(event);
     // Acceso seguro al usuario guardado
@@ -62,6 +64,7 @@ describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
       adminEmail: null, // null explícito para cumplir con el tipo
       adminTel: '123456789',
       createdAt: new Date().toISOString(),
+      userId: Uuid.random().value,
     });
     await handler.handle(event);
     expect(userRepositoryMock.save).not.toHaveBeenCalled();
