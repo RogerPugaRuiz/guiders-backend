@@ -5,10 +5,16 @@ export class ApiKeyDomain extends PrimitiveValueObject<string> {
     super(
       value,
       (value: string) => {
-        const regex = new RegExp(/^[a-zA-Z0-9._-]+$/);
-        return regex.test(value);
+        // Permite dominios con o sin www. y solo letras, números, guiones, puntos y guion bajo
+        const clean = value.startsWith('www.') ? value.substring(4) : value;
+        const regex = /^[a-zA-Z0-9._-]+$/;
+        return regex.test(clean);
       },
       'Invalid API key domain format',
     );
+  }
+
+  public equals(valueObject: PrimitiveValueObject<string>): boolean {
+    return this.value === valueObject.value;
   }
 }
