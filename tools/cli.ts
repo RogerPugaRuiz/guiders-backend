@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env node
 // tools/cli.ts
 import { Command } from 'commander';
 import { NestFactory } from '@nestjs/core';
