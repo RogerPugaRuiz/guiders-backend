@@ -25,6 +25,7 @@ import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../applicatio
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/mock-email-sender.service';
+import { AcceptInviteCommandHandler } from '../application/commands/accept-invite-command.handler';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/
     CreateInviteCommandHandler,
     CreateAdminOnCompanyCreatedWithAdminEventHandler,
     CreateInviteOnCompanyCreatedWithAdminEventHandler,
+    AcceptInviteCommandHandler,
   ],
 })
 export class AuthUserModule {}

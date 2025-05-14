@@ -10,15 +10,19 @@ import {
   UnauthorizedException,
   HttpCode,
 } from '@nestjs/common';
-import { AuthUserService } from './services/auth-user.service';
+import { AuthUserService } from '../services/auth-user.service';
 import { ValidationError } from 'src/context/shared/domain/validation.error';
-import { UserAlreadyExistsError } from '../application/errors/user-already-exists.error';
-import { UnauthorizedError } from '../application/errors/unauthorized.error';
+import { UserAlreadyExistsError } from '../../application/errors/user-already-exists.error';
+import { UnauthorizedError } from '../../application/errors/unauthorized.error';
+import { CommandBus } from '@nestjs/cqrs';
 
 @Controller('user/auth')
 export class AuthUserController {
   private readonly logger = new Logger(AuthUserController.name);
-  constructor(private readonly authUserService: AuthUserService) {}
+  constructor(
+    private readonly authUserService: AuthUserService,
+    private readonly commandBus: CommandBus,
+  ) {}
 
   @Post('login')
   async login(
@@ -132,6 +136,30 @@ export class AuthUserController {
         throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
       if (error instanceof UnauthorizedException) {
+        throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
+      }
+
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('accept-invite')
+  async acceptInvite(
+    @Body('token') token: string,
+    @Body('password') password: string,
+  ) {
+    try {
+      const command = new AcceptInviteCommand(token, password);
+      await this.commandBus.execute(command);
+    } catch (error) {
+      this.logger.error('Error accepting invite', error);
+      if (error instanceof ValidationError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+      if (error instanceof UnauthorizedError) {
         throw new HttpException(error.message, HttpStatus.UNAUTHORIZED);
       }
 

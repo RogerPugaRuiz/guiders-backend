@@ -7,6 +7,8 @@ import { UserAccountUpdatedAt } from './user-account-updated-at';
 import { Optional } from 'src/context/shared/domain/optional';
 import { UserAccountRoles } from './value-objects/user-account-roles';
 import { Role } from './value-objects/role';
+import { AggregateRoot } from '@nestjs/cqrs';
+import { UserPasswordUpdatedEvent } from './events/user-password-updated-event';
 
 export interface UserAccountPrimitives {
   id: string;
@@ -18,7 +20,7 @@ export interface UserAccountPrimitives {
   roles: string[];
 }
 
-export class UserAccount {
+export class UserAccount extends AggregateRoot {
   // Propiedades privadas siguiendo convención _xxxx
   private readonly _id: UserAccountId;
   private readonly _email: UserAccountEmail;
@@ -37,6 +39,7 @@ export class UserAccount {
     lastLoginAt: UserAccountLastLogin,
     roles: UserAccountRoles,
   ) {
+    super();
     this._id = id;
     this._email = email;
     this._password = password;
@@ -140,6 +143,21 @@ export class UserAccount {
       new UserAccountLastLogin(new Date()),
       this._roles,
     );
+  }
+
+  public updatePassword(password: string): UserAccount {
+    // Actualiza la contraseña y aplica el evento de dominio
+    const updatedUser = new UserAccount(
+      this._id,
+      this._email,
+      new UserAccountPassword(password),
+      this._createdAt,
+      this._updatedAt,
+      this._lastLoginAt,
+      this._roles,
+    );
+    this.apply(new UserPasswordUpdatedEvent(this._id.value));
+    return updatedUser;
   }
 
   public toPrimitives(): UserAccountPrimitives {
