@@ -16,7 +16,7 @@ import { Company } from '../../domain/company';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { CompanyName } from '../../domain/value-objects/company-name';
 import { CompanyDomain } from '../../domain/value-objects/company-domain';
-import { Result, ok } from 'src/context/shared/domain/result';
+import { Result, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { CompanyCreatedWithAdminEvent } from '../../domain/events/company-created-with-admin.event';
 import { CompanyDomains } from '../../domain/value-objects/company-domains';
@@ -69,6 +69,6 @@ export class CreateCompanyWithAdminCommandHandler
         userId: userId.getValue(),
       }),
     );
-    return ok(undefined);
+    return okVoid();
   }
 }
