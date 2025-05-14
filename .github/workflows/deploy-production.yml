@@ -123,3 +123,11 @@ jobs:
             pm2 delete guiders-backend || true && \
             NODE_ENV=production pm2 start dist/src/main.js --name guiders-backend \
           "
+      # dar permisos de ejecución a /dist/tools/cli.js
+      - name: Set execute permissions for cli.js
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            chmod +x /var/www/guiders-backend/dist/tools/cli.js \
+          "

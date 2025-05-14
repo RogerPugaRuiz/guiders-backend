@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 // tools/cli.ts
+import { config } from 'dotenv';
+import { resolve } from 'path';
+
+// Siempre carga el .env.production basado en la ubicación física del script
+config({ path: resolve(__dirname, '..', '..', '.env.production') });
+
 import { Command } from 'commander';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
