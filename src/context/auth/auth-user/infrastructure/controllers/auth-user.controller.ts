@@ -15,6 +15,7 @@ import { ValidationError } from 'src/context/shared/domain/validation.error';
 import { UserAlreadyExistsError } from '../../application/errors/user-already-exists.error';
 import { UnauthorizedError } from '../../application/errors/unauthorized.error';
 import { CommandBus } from '@nestjs/cqrs';
+import { AcceptInviteCommand } from '../../application/commands/accept-invite.command';
 
 @Controller('user/auth')
 export class AuthUserController {

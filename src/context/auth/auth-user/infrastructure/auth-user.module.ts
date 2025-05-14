@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AuthUserController } from './auth-user.controller';
 import { AuthUserService } from './services/auth-user.service';
 import { UserAccountService } from './services/user-account.service';
 import { UserAccountEntity } from './user-account.entity';
@@ -26,6 +25,7 @@ import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-send
 import { CqrsModule } from '@nestjs/cqrs';
 import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/mock-email-sender.service';
 import { AcceptInviteCommandHandler } from '../application/commands/accept-invite-command.handler';
+import { AuthUserController } from './controllers/auth-user.controller';
 
 @Module({
   imports: [
