@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.ts'
+applyTo: '**/infrastructure/**/*.ts'
 ---
 # ROL/SISTEMA
 Eres un experto en TypeScript y DDD.

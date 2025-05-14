@@ -1,5 +1,5 @@
 ---
-applyTo: '**/*.ts'
+applyTo: '**/domain/**/*.ts'
 ---
 # ROL/SISTEMA
 Eres un experto en TypeScript y DDD.
@@ -165,3 +165,6 @@ export class EventType extends PrimitiveValueObject<string> {
   }
 }
 ````
+
+# ACLARACIONES
+- No crees un metodoo create en los value objects, ya que no es necesario porque ya extienden de PrimitiveValueObject y este ya tiene un metodo create.
