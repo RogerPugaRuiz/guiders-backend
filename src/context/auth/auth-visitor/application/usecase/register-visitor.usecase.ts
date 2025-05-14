@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AUTH_VISITOR_REPOSITORY,
   AuthVisitorRepository,
@@ -19,6 +19,7 @@ import { EventPublisher } from '@nestjs/cqrs';
 
 @Injectable()
 export class RegisterVisitor {
+  private readonly logger = new Logger(RegisterVisitor.name);
   constructor(
     @Inject(AUTH_VISITOR_REPOSITORY)
     private readonly repository: AuthVisitorRepository,
@@ -37,6 +38,7 @@ export class RegisterVisitor {
     const clientIDValue = VisitorAccountClientID.create(client);
     const userAgentValue = VisitorAccountUserAgent.create(userAgent);
 
+    this.logger.log('domain: ' + domain);
     const isValid = await this.validateDomainApiKey.validate({
       apiKey: apiKeyValue,
       domain,
