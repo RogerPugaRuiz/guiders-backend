@@ -1,7 +1,7 @@
 // npm install socket.io-client
 const { io } = require('socket.io-client');
 
-const socket = io('http://localhost:3000', {
+const socket = io('https://guiders.ancoradual.com', {
   path: '/socket.io',
   transports: ['websocket'],
   reconnection: false

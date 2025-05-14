@@ -279,7 +279,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['visitor'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:send-message')
   async handleVisitorSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -322,7 +322,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['visitor'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:start-chat')
   async handleStartChat(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -344,7 +344,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['commercial'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:notifications')
   handleCommercialNotification(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -357,7 +357,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['commercial'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:send-message')
   async handleCommercialSendMessage(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -407,7 +407,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['commercial'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:get-chats')
   async handleGetCommercialChats(client: AuthenticatedSocket) {
     this.logger.log(`User ${client.user.sub} is getting chat list`);
@@ -426,7 +426,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['commercial'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:get-visitors')
   async handleGetCommercialVisitors(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -464,7 +464,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['visitor'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:open-chat')
   async handleVisitorOpenChat(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -490,7 +490,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['visitor'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:close-chat')
   async handleVisitorCloseChat(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -514,7 +514,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['visitor'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('tracking:tracking-event')
   async handleTrackingEvent(
     @ConnectedSocket() client: AuthenticatedSocket,
@@ -540,7 +540,7 @@ export class RealTimeWebSocketGateway
   }
 
   @Roles(['visitor'])
-  // @UseGuards(WsAuthGuard, WsRolesGuard)
+  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('visitor:chat-active')
   async handleVisitorChatActive(
     @ConnectedSocket() client: AuthenticatedSocket,
