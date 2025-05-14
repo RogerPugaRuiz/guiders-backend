@@ -9,8 +9,8 @@ export class CompanyTypeOrmEntity {
   @Column({ name: 'company_name', type: 'varchar', length: 255 })
   companyName: string;
 
-  @Column({ name: 'domain', type: 'varchar', length: 255 })
-  domain: string;
+  @Column('text', { name: 'domains', array: true })
+  domains: string[];
 
   @Column({
     name: 'created_at',

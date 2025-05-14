@@ -22,6 +22,10 @@ export class ApiKeyEntity {
   @Column({ unique: true })
   kid: string; // Identificador único de la clave usada para JWTs
 
+  // Relación con la compañía propietaria de la API Key
+  @Column({ type: 'uuid', nullable: false })
+  companyId: string;
+
   @Column({
     type: 'timestamptz',
     default: () => 'CURRENT_TIMESTAMP',

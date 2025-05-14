@@ -16,6 +16,7 @@ import { Sha256HashStrategy } from '../../../shared/infrastructure/sha-256-hash-
 import { API_KEY_ENCRYPT_PRIVATE_KEY } from '../application/services/api-key-encrypt-private-key';
 import { API_KEY_HASHER } from '../application/services/api-key-hasher';
 import { API_KEY_GENERATE_KEYS } from '../application/services/api-key-generate-keys';
+import { CreateApiKeyOnCompanyCreatedEventHandler } from '../application/events/create-api-key-on-company-created-event.handler';
 
 @Module({
   imports: [TypeOrmModule.forFeature([ApiKeyEntity])],
@@ -32,6 +33,9 @@ import { API_KEY_GENERATE_KEYS } from '../application/services/api-key-generate-
     CreateApiKeyForDomainUseCase,
     GetAllApiKeysUseCase,
     JwksService,
+
+    // handlers
+    CreateApiKeyOnCompanyCreatedEventHandler,
   ],
   controllers: [ApiKeyController, JwksController],
 })

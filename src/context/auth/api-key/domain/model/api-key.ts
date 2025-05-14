@@ -5,6 +5,7 @@ import { ApiKeyKid } from './api-key-kid';
 import { ApiKeyPrivateKey } from './api-key-private-key';
 import { ApiKeyPublicKey } from './api-key-public-key';
 import { ApiKeyValue } from './api-key-value';
+import { ApiKeyCompanyId } from './api-key-company-id';
 
 export class ApiKey {
   private constructor(
@@ -14,6 +15,7 @@ export class ApiKey {
     public readonly domain: ApiKeyDomain,
     public readonly publicKey: ApiKeyPublicKey,
     public readonly privateKey: ApiKeyPrivateKey,
+    public readonly companyId: ApiKeyCompanyId,
     public readonly createdAt: ApiKeyCreatedAt,
   ) {}
 
@@ -23,6 +25,7 @@ export class ApiKey {
     privateKey: ApiKeyPrivateKey;
     apiKey: ApiKeyValue;
     kid: ApiKeyKid;
+    companyId: ApiKeyCompanyId;
   }): ApiKey {
     return new ApiKey(
       ApiKeyId.random(),
@@ -31,6 +34,7 @@ export class ApiKey {
       params.domain,
       params.publicKey,
       params.privateKey,
+      params.companyId,
       ApiKeyCreatedAt.now(),
     );
   }
@@ -42,6 +46,7 @@ export class ApiKey {
     publicKey: string;
     privateKey: string;
     kid: string;
+    companyId: string;
     createdAt: Date;
   }): ApiKey {
     return new ApiKey(
@@ -51,6 +56,7 @@ export class ApiKey {
       ApiKeyDomain.create(params.domain),
       ApiKeyPublicKey.create(params.publicKey),
       ApiKeyPrivateKey.create(params.privateKey),
+      ApiKeyCompanyId.create(params.companyId),
       ApiKeyCreatedAt.create(params.createdAt),
     );
   }
@@ -63,6 +69,7 @@ export class ApiKey {
       domain: this.domain.getValue(),
       publicKey: this.publicKey.getValue(),
       privateKey: this.privateKey.getValue(),
+      companyId: this.companyId.getValue(),
       createdAt: this.createdAt.getValue(),
     };
   }

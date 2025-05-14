@@ -8,7 +8,7 @@ export class CompanyMapper {
     return Company.fromPrimitives({
       id: entity.id,
       companyName: entity.companyName,
-      domain: entity.domain,
+      domains: entity.domains,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
     });
@@ -20,7 +20,7 @@ export class CompanyMapper {
     const entity = new CompanyTypeOrmEntity();
     entity.id = primitives.id;
     entity.companyName = primitives.companyName;
-    entity.domain = primitives.domain;
+    entity.domains = primitives.domains;
     entity.createdAt = new Date(primitives.createdAt);
     entity.updatedAt = new Date(primitives.updatedAt);
     return entity;

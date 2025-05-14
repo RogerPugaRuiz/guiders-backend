@@ -10,6 +10,7 @@ import { CompanyName } from '../../domain/value-objects/company-name';
 import { CompanyDomain } from '../../domain/value-objects/company-domain';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { Inject } from '@nestjs/common';
+import { CompanyDomains } from '../../domain/value-objects/company-domains';
 
 @CommandHandler(CreateCompanyCommand)
 export class CreateCompanyCommandHandler
@@ -29,7 +30,9 @@ export class CreateCompanyCommandHandler
     const company = Company.create({
       id: Uuid.random(),
       companyName: new CompanyName(companyName),
-      domain: new CompanyDomain(domain),
+      domains: CompanyDomains.fromCompanyDomainArray([
+        new CompanyDomain(domain),
+      ]),
       createdAt: new Date(),
       updatedAt: new Date(),
     });

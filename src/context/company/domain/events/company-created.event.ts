@@ -2,7 +2,7 @@ import { DomainEvent } from 'src/context/shared/domain/domain-event';
 export class Payload {
   id: string;
   companyName: string;
-  domain: string;
+  domains: string[];
   createdAt: string;
   updatedAt: string;
 }

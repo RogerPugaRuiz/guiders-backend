@@ -12,6 +12,7 @@ export class ApiKeyMapper {
     apiKeyEntity.domain = apiKey.domain.getValue();
     apiKeyEntity.publicKey = apiKey.publicKey.getValue();
     apiKeyEntity.privateKey = apiKey.privateKey.getValue();
+    apiKeyEntity.companyId = apiKey.companyId.getValue(); // Mapeo seguro de companyId
     apiKeyEntity.createdAt = apiKey.createdAt.getValue();
     return apiKeyEntity;
   }
@@ -24,6 +25,7 @@ export class ApiKeyMapper {
       domain: apiKeyEntity.domain,
       publicKey: apiKeyEntity.publicKey,
       privateKey: apiKeyEntity.privateKey,
+      companyId: apiKeyEntity.companyId, // Mapeo seguro de companyId
       createdAt: apiKeyEntity.createdAt,
     });
   }

@@ -19,6 +19,7 @@ import { CompanyDomain } from '../../domain/value-objects/company-domain';
 import { Result, ok } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { CompanyCreatedWithAdminEvent } from '../../domain/events/company-created-with-admin.event';
+import { CompanyDomains } from '../../domain/value-objects/company-domains';
 
 @CommandHandler(CreateCompanyWithAdminCommand)
 export class CreateCompanyWithAdminCommandHandler
@@ -45,7 +46,9 @@ export class CreateCompanyWithAdminCommandHandler
     const company = Company.create({
       id: companyId,
       companyName: CompanyName.create(companyName),
-      domain: CompanyDomain.create(domain),
+      domains: CompanyDomains.fromCompanyDomainArray([
+        CompanyDomain.create(domain),
+      ]),
       createdAt: now,
       updatedAt: now,
     });

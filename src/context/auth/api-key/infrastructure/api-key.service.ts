@@ -6,7 +6,10 @@ export class ApiKeyService {
   constructor(
     private readonly createApiKeyForDomainUseCase: CreateApiKeyForDomainUseCase,
   ) {}
-  async createApiKeyForDomain(domain: string): Promise<{ apiKey: string }> {
-    return await this.createApiKeyForDomainUseCase.execute(domain);
+  async createApiKeyForDomain(
+    domain: string,
+    companyId: string,
+  ): Promise<{ apiKey: string }> {
+    return await this.createApiKeyForDomainUseCase.execute(domain, companyId);
   }
 }

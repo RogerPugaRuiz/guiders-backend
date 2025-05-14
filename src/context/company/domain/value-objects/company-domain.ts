@@ -15,4 +15,8 @@ export class CompanyDomain extends PrimitiveValueObject<string> {
       'El dominio de la empresa no es válido',
     );
   }
+
+  public static isValid(value: string): boolean {
+    return validateCompanyDomain(value);
+  }
 }

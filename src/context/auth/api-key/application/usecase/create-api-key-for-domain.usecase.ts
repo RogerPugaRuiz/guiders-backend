@@ -17,6 +17,7 @@ import {
   API_KEY_GENERATE_KEYS,
   ApiKeyGenerateKeys,
 } from '../services/api-key-generate-keys';
+import { ApiKeyCompanyId } from '../../domain/model/api-key-company-id';
 
 @Injectable()
 export class CreateApiKeyForDomainUseCase {
@@ -30,7 +31,10 @@ export class CreateApiKeyForDomainUseCase {
     @Inject(API_KEY_HASHER)
     private readonly hashService: ApiKeyHasher,
   ) {}
-  async execute(domain: string): Promise<{ apiKey: string }> {
+  async execute(
+    domain: string,
+    companyId: string,
+  ): Promise<{ apiKey: string }> {
     const domainValue = ApiKeyDomain.create(domain);
     const apiKeyValue = ApiKeyValue.create(await this.hashService.hash(domain));
 
@@ -47,13 +51,14 @@ export class CreateApiKeyForDomainUseCase {
       this.encryptService.encrypt(value),
     );
     const kidValue = ApiKeyValue.create(await this.hashService.hash(publicKey));
-
+    const companyIdValue = ApiKeyCompanyId.create(companyId);
     const newApiKey = ApiKey.create({
       domain: domainValue,
       publicKey: publicKeyValue,
       privateKey: encryptedPrivateKey,
       apiKey: apiKeyValue,
       kid: kidValue,
+      companyId: companyIdValue,
     });
 
     await this.apiKeyRepository.save(newApiKey);
