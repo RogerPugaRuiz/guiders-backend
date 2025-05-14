@@ -562,8 +562,6 @@ export class RealTimeWebSocketGateway
       .build();
   }
 
-  @Roles(['visitor', 'commercial'])
-  @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('health-check')
   handleHealthCheck(
     @ConnectedSocket() client: AuthenticatedSocket,
