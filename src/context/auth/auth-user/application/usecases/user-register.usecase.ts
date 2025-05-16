@@ -11,7 +11,6 @@ import { UserAccountRoles } from '../../domain/value-objects/user-account-roles'
 import { Role } from '../../domain/value-objects/role';
 import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
 
-import { ValidationError } from 'src/context/shared/domain/validation.error';
 import {
   USER_PASSWORD_HASHER,
   UserPasswordHasher,
