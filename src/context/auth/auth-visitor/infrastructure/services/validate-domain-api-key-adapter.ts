@@ -5,12 +5,14 @@ import {
   API_KEY_REPOSITORY,
   ApiKeyRepository,
 } from 'src/context/auth/api-key/domain/repository/api-key.repository';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ValidateDomainApiKeyAdapter implements ValidateDomainApiKey {
   private readonly logger = new Logger(ValidateDomainApiKeyAdapter.name);
   constructor(
     @Inject(API_KEY_REPOSITORY) private readonly repository: ApiKeyRepository,
+    private readonly configService: ConfigService,
   ) {}
 
   async validate(params: {

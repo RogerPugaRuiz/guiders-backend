@@ -27,6 +27,7 @@ import { AcceptInviteCommandHandler } from '../application/commands/accept-invit
 import { AuthUserController } from './controllers/auth-user.controller';
 import { FindUsersByCompanyIdQueryHandler } from '../application/queries/find-users-by-company-id.query-handler';
 import { CreateInviteOnUserAccountCreatedEventHandler } from '../application/events/create-invite-on-user-account-created-event.handler';
+import { ResendEmailSenderService } from 'src/context/shared/infrastructure/email/resend-email-sender.service';
 
 @Module({
   imports: [

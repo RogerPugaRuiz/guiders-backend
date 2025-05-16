@@ -8,7 +8,6 @@ import { MessageEntity } from '../../message/infrastructure/entities/message.ent
 import { MESSAGE_REPOSITORY } from '../../message/domain/message.repository';
 import { TypeOrmMessageService } from '../../message/infrastructure/typeORM-message.service';
 import { ChatController } from './chat.controller';
-import { MessagePaginateQueryHandler } from '../../message/application/paginate/message-paginate.query-handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { StartChatCommandHandler } from '../application/create/pending/start-chat.command-handler';
 import { ParticipantsEntity } from './participants.entity';
@@ -45,7 +44,7 @@ import { ParticipantUnseenChatCommandHandler } from '../application/update/parti
     ParticipantUnseenChatCommandHandler,
 
     // queries
-    MessagePaginateQueryHandler,
+    // MessagePaginateQueryHandler,
     FindOneChatByIdQueryHandler,
     FindChatListByParticipantQueryHandler,
 
