@@ -6,7 +6,7 @@ import { join } from 'path';
 // __dirname está disponible y no requiere hacks de ES modules
 
 dotenv.config({
-  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
+  path: process.env.NODE_ENV === 'development' ? '.env' : '.env.production',
 });
 
 // Configuración de DataSource para TypeORM CLI y generación de migraciones
