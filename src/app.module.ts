@@ -78,7 +78,7 @@ import { CompanyModule } from './context/company/company.module';
             ? configService.get<string>('TEST_DATABASE', 'mydb')
             : configService.get<string>('DATABASE', 'mydb'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
+          synchronize: true,
         };
       },
     }),

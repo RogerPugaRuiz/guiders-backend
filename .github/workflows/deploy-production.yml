@@ -120,7 +120,7 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             cd /var/www/guiders-backend/ && \
-            npx typeorm migration:run -d dist/src/data-source.js \
+            NODE_ENV=production npx typeorm migration:run -d dist/src/data-source.js \
           "
 
       # Reinicia la app con pm2 del sistema
