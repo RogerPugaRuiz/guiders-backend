@@ -9,6 +9,7 @@ import { UserAccountRoles } from './value-objects/user-account-roles';
 import { Role } from './value-objects/role';
 import { AggregateRoot } from '@nestjs/cqrs';
 import { UserPasswordUpdatedEvent } from './events/user-password-updated-event';
+import { UserAccountCompanyId } from './value-objects/user-account-company-id';
 
 export interface UserAccountPrimitives {
   id: string;
@@ -18,6 +19,7 @@ export interface UserAccountPrimitives {
   updatedAt: Date;
   lastLoginAt?: Date | null;
   roles: string[];
+  companyId: string; // Asociación a compañía
 }
 
 export class UserAccount extends AggregateRoot {
@@ -29,6 +31,7 @@ export class UserAccount extends AggregateRoot {
   private readonly _updatedAt: UserAccountUpdatedAt;
   private readonly _lastLoginAt: UserAccountLastLogin;
   private readonly _roles: UserAccountRoles;
+  private readonly _companyId: UserAccountCompanyId;
 
   private constructor(
     id: UserAccountId,
@@ -38,6 +41,7 @@ export class UserAccount extends AggregateRoot {
     updatedAt: UserAccountUpdatedAt,
     lastLoginAt: UserAccountLastLogin,
     roles: UserAccountRoles,
+    companyId: UserAccountCompanyId,
   ) {
     super();
     this._id = id;
@@ -47,6 +51,7 @@ export class UserAccount extends AggregateRoot {
     this._updatedAt = updatedAt;
     this._lastLoginAt = lastLoginAt;
     this._roles = roles;
+    this._companyId = companyId;
   }
 
   // Métodos estáticos de fábrica
@@ -55,6 +60,7 @@ export class UserAccount extends AggregateRoot {
     password: UserAccountPassword;
     id?: UserAccountId;
     roles?: UserAccountRoles;
+    companyId: UserAccountCompanyId;
   }): UserAccount {
     const now = new Date();
     return new UserAccount(
@@ -65,6 +71,7 @@ export class UserAccount extends AggregateRoot {
       UserAccountUpdatedAt.create(now),
       new UserAccountLastLogin(null),
       params.roles ?? UserAccountRoles.fromRoles([Role.admin()]), // Por defecto admin
+      params.companyId,
     );
   }
 
@@ -76,6 +83,7 @@ export class UserAccount extends AggregateRoot {
     updatedAt: Date;
     lastLoginAt?: Date | null;
     roles: string[];
+    companyId: string;
   }): UserAccount {
     return new UserAccount(
       UserAccountId.create(params.id),
@@ -85,6 +93,7 @@ export class UserAccount extends AggregateRoot {
       UserAccountUpdatedAt.create(params.updatedAt),
       new UserAccountLastLogin(params.lastLoginAt ?? null),
       UserAccountRoles.fromPrimitives(params.roles),
+      UserAccountCompanyId.create(params.companyId),
     );
   }
 
@@ -120,6 +129,10 @@ export class UserAccount extends AggregateRoot {
     return this._roles;
   }
 
+  get companyId(): UserAccountCompanyId {
+    return this._companyId;
+  }
+
   // Métodos públicos
   public equals(userAccount: UserAccount): boolean {
     return (
@@ -130,7 +143,8 @@ export class UserAccount extends AggregateRoot {
       this._updatedAt.equals(userAccount._updatedAt) &&
       this._lastLoginAt.equals(userAccount._lastLoginAt) &&
       JSON.stringify(this._roles.toPrimitives()) ===
-        JSON.stringify(userAccount._roles.toPrimitives())
+        JSON.stringify(userAccount._roles.toPrimitives()) &&
+      this._companyId.equals(userAccount._companyId)
     );
   }
 
@@ -143,6 +157,7 @@ export class UserAccount extends AggregateRoot {
       this._updatedAt,
       new UserAccountLastLogin(new Date()),
       this._roles,
+      this._companyId,
     );
   }
 
@@ -156,6 +171,7 @@ export class UserAccount extends AggregateRoot {
       this._updatedAt,
       this._lastLoginAt,
       this._roles,
+      this._companyId,
     );
     this.apply(new UserPasswordUpdatedEvent(this._id.value));
     return updatedUser;
@@ -170,6 +186,7 @@ export class UserAccount extends AggregateRoot {
       lastLoginAt: this._lastLoginAt.getValue(),
       roles: this._roles.toPrimitives(),
       id: this._id.getValue(),
+      companyId: this._companyId.getValue(),
     };
   }
 }

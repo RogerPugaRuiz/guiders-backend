@@ -4,6 +4,7 @@ import { ValidationError } from 'src/context/shared/domain/validation.error';
 export enum ConnectionRoleEnum {
   VISITOR = 'visitor',
   COMMERCIAL = 'commercial',
+  ADMIN = 'admin',
 }
 
 export class ConnectionRole extends PrimitiveValueObject<string> {

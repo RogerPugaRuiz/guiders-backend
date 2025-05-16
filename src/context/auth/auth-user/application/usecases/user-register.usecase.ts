@@ -9,6 +9,7 @@ import { UserAccountEmail } from '../../domain/user-account-email';
 import { UserAccountPassword } from '../../domain/user-account-password';
 import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';
 import { Role } from '../../domain/value-objects/role';
+import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
 
 import { ValidationError } from 'src/context/shared/domain/validation.error';
 import {
@@ -25,7 +26,12 @@ export class UserRegisterUseCase {
     private readonly hasherService: UserPasswordHasher,
   ) {}
 
-  async execute(email: string, password: string): Promise<void> {
+  async execute(
+    email: string,
+    password: string,
+    companyId: string, // Se agrega companyId como argumento
+    roles: string[],
+  ): Promise<void> {
     const user = await this.userRepository.findByEmail(email);
     if (user) {
       throw new UserAlreadyExistsError();
@@ -36,12 +42,17 @@ export class UserRegisterUseCase {
       );
     }
 
+    if (roles.length === 0) {
+      roles = ['commercial'];
+    }
+
     const hash = await this.hasherService.hash(password);
     // Creamos el usuario incluyendo el value object de roles, por defecto solo 'commercial'
     const newUser = UserAccount.create({
       email: UserAccountEmail.create(email),
       password: new UserAccountPassword(hash),
-      roles: UserAccountRoles.create([Role.create('commercial')]),
+      roles: UserAccountRoles.create(roles.map((role) => Role.create(role))),
+      companyId: UserAccountCompanyId.create(companyId),
     });
 
     return await this.userRepository.save(newUser);

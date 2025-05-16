@@ -35,7 +35,7 @@ describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
 
   it('debe crear un usuario admin cuando el evento tiene adminEmail', async () => {
     const event = new CompanyCreatedWithAdminEvent({
-      companyId: 'company-uuid',
+      companyId: Uuid.random().value, // Usa un UUID válido
       companyName: 'Test Company',
       domain: 'test.com',
       adminName: 'Admin User',

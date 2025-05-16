@@ -428,10 +428,7 @@ export class RealTimeWebSocketGateway
   @Roles(['commercial'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:get-visitors')
-  async handleGetCommercialVisitors(
-    @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() event: Event,
-  ): Promise<
+  async handleGetCommercialVisitors(): Promise<
     Response<{
       items: any[];
       total: number;
@@ -439,11 +436,6 @@ export class RealTimeWebSocketGateway
       nextCursor: string | null;
     }>
   > {
-    this.logger.log(event.data);
-    const { limit, cursor } = event.data as {
-      limit: number;
-      cursor: string | null;
-    };
     return Promise.resolve(
       ResponseBuilder.create<{
         items: any[];
@@ -565,7 +557,7 @@ export class RealTimeWebSocketGateway
   @SubscribeMessage('health-check')
   handleHealthCheck(
     @ConnectedSocket() client: AuthenticatedSocket,
-    @MessageBody() event: Event,
+    // Se elimina el parámetro event ya que no se usa
   ): Promise<Response<Record<string, unknown>>> {
     const token = client.handshake.auth.token as string;
     return Promise.resolve(

@@ -14,6 +14,7 @@ export interface AuthenticatedRequest extends Request {
     roles: string[];
     username: string;
     email?: string;
+    companyId?: string; // Añadimos companyId al tipado del usuario autenticado
   };
   // Aseguramos que headers esté correctamente tipado
   headers: Record<string, any>;
@@ -39,7 +40,8 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException('No se permite el tipo de token');
       }
       try {
-        const { sub, typ, role, username, email } =
+        // Extraemos companyId del payload del token
+        const { sub, typ, role, username, email, companyId } =
           await this.service.verifyToken(token);
         if (typ !== 'access') {
           throw new UnauthorizedException('Token inválido');
@@ -49,6 +51,7 @@ export class AuthGuard implements CanActivate {
           roles: role,
           username: (username as string) ?? '',
           email: (email as string) ?? '',
+          companyId: (companyId as string) ?? undefined, // Inyectamos companyId si está presente
         };
       } catch (error) {
         if (error instanceof Error) {

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,6 +11,16 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Referer'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+
+  // Configuración de Swagger
+  const config = new DocumentBuilder()
+    .setTitle('API Guiders Backend')
+    .setDescription('Documentación de la API del backend de Guiders')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('docs', app, document);
 
   const logger = new Logger('bootstrap');
   logger.log(`Application is running in ${process.env.NODE_ENV} mode`);

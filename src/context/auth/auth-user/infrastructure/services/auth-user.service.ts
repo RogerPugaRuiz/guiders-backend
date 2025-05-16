@@ -26,8 +26,21 @@ export class AuthUserService {
     return await this.userLogin.execute(email, password);
   }
 
-  async register(email: string, password: string): Promise<void> {
-    return await this.userRegister.execute(email, password);
+  async register(
+    email: string,
+    password: string,
+    companyId: string,
+    roles?: string[], // roles es opcional para compatibilidad con llamadas antiguas
+  ): Promise<void> {
+    // Si roles no está definido, se pasa un array vacío por defecto
+    return await this.userRegister.execute(email, password, companyId, roles ?? []);
+  }
+
+  async update(
+    email: string,
+    roles: string[],
+  ): Promise<void> {
+    // Implementación de la lógica de actualización de usuario
   }
 
   async refresh(refreshToken: string): Promise<{ accessToken: string }> {
@@ -39,7 +52,8 @@ export class AuthUserService {
   }
 
   // TODO: Implement logout
-  logout(refreshToken: string): Promise<void> {
+  // Se omite el parámetro hasta implementar la lógica real para evitar advertencias
+  logout(): Promise<void> {
     return Promise.resolve();
   }
 }

@@ -1,5 +1,7 @@
+## Rol
 Actúa como un arquitecto de software experto en NestJS v11, DDD y CQRS.
 
+## Instrucciones
 Quiero que generes código limpio siguiendo las siguientes reglas estrictas:
 
 Aplica patrones DDD + CQRS usando @nestjs/cqrs.

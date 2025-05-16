@@ -16,6 +16,7 @@ export class UserAccountMapper {
       updatedAt: userAccountEntity.updatedAt,
       lastLoginAt: userAccountEntity.lastLoginAt,
       roles: userAccountEntity.roles ?? [],
+      companyId: userAccountEntity.companyId,
     });
   }
 
@@ -28,6 +29,7 @@ export class UserAccountMapper {
     userAccountEntity.updatedAt = userAccount.updatedAt.getValue();
     userAccountEntity.lastLoginAt = userAccount.lastLoginAt.getOrNull();
     userAccountEntity.roles = userAccount.roles.toPrimitives();
+    userAccountEntity.companyId = userAccount.companyId.getValue();
     return userAccountEntity;
   }
 }

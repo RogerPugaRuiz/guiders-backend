@@ -35,4 +35,7 @@ export class UserAccountEntity {
     default: '',
   })
   roles: string[];
+
+  @Column({ type: 'uuid', nullable: false })
+  companyId: string;
 }
