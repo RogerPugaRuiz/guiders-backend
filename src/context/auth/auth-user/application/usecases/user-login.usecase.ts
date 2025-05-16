@@ -54,6 +54,7 @@ export class UserLoginUseCase {
       roles: newUserUpdateLastLogin.roles
         .getValue()
         .map((role) => role.getValue()),
+      companyId: newUserUpdateLastLogin.companyId.getValue(),
     });
     return tokens;
   }

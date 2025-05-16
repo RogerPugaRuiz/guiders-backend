@@ -20,13 +20,13 @@ import { InviteRepositoryImpl } from './persistence/impl/invite.repository.impl'
 import { INVITE_REPOSITORY } from '../domain/invite.repository';
 import { CreateInviteCommandHandler } from '../application/commands/create-invite-command.handler';
 import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-admin-on-company-created-with-admin-event.handler';
-import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../application/events/create-invite-on-company-created-with-admin-event.handler';
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/mock-email-sender.service';
 import { AcceptInviteCommandHandler } from '../application/commands/accept-invite-command.handler';
 import { AuthUserController } from './controllers/auth-user.controller';
 import { FindUsersByCompanyIdQueryHandler } from '../application/queries/find-users-by-company-id.query-handler';
+import { CreateInviteOnUserAccountCreatedEventHandler } from '../application/events/create-invite-on-user-account-created-event.handler';
 
 @Module({
   imports: [
@@ -51,7 +51,7 @@ import { FindUsersByCompanyIdQueryHandler } from '../application/queries/find-us
     FindOneUserByIdQueryHandler,
     CreateInviteCommandHandler,
     CreateAdminOnCompanyCreatedWithAdminEventHandler,
-    CreateInviteOnCompanyCreatedWithAdminEventHandler,
+    CreateInviteOnUserAccountCreatedEventHandler,
     AcceptInviteCommandHandler,
     FindUsersByCompanyIdQueryHandler,
   ],

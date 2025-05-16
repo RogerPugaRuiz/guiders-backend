@@ -38,4 +38,7 @@ export class UserAccountEntity {
 
   @Column({ type: 'uuid', nullable: false })
   companyId: string;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
 }

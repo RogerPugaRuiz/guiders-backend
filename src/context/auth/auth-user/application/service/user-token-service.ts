@@ -5,6 +5,7 @@ export interface UserTokenService {
     email: string;
     username?: string;
     roles?: string[];
+    companyId?: string;
   }): Promise<{
     accessToken: string;
     refreshToken: string;

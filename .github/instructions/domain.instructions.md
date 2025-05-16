@@ -164,7 +164,16 @@ export class EventType extends PrimitiveValueObject<string> {
     super(value, validateEventType, 'El tipo de evento no puede estar vacío');
   }
 }
-````
+```
+- Ejemplo de un evento de dominio:
+```typescript
+  import { DomainEvent } from 'src/context/shared/domain/domain-event';
+  import { UserAccountPrimitives } from '../user-account';
+
+  export class UserAccountCreatedEvent extends DomainEvent<{
+    user: UserAccountPrimitives;
+  }> {}
+```
 
 # ACLARACIONES
 - No crees un metodoo create en los value objects, ya que no es necesario porque ya extienden de PrimitiveValueObject y este ya tiene un metodo create.

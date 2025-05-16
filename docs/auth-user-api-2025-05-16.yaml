@@ -1,0 +1,230 @@
+# Estructura de la API AuthUserController (16-05-2025)
+# Documenta los endpoints expuestos por el controlador de autenticación de usuario
+
+openapi: 3.0.0
+info:
+  title: Auth User API
+  version: '1.0.0'
+  description: API para autenticación y gestión de usuarios
+paths:
+  /user/auth/login:
+    post:
+      summary: Iniciar sesión de usuario
+      description: Verifica las credenciales y devuelve tokens de acceso y actualización
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestDto'
+      responses:
+        '200':
+          description: Usuario autenticado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponseDto'
+        '400':
+          description: Error de validación (formato de email incorrecto)
+        '401':
+          description: Credenciales inválidas
+        '500':
+          description: Error interno del servidor
+  /user/auth/register:
+    post:
+      summary: Registrar un nuevo usuario
+      description: Crea un nuevo usuario en el sistema con el rol especificado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequestDto'
+      responses:
+        '200':
+          description: Usuario registrado correctamente
+        '400':
+          description: Error de validación
+        '409':
+          description: El usuario ya existe
+        '500':
+          description: Error interno del servidor
+  /user/auth/refresh:
+    post:
+      summary: Renovar token de acceso
+      description: Utiliza un token de actualización para obtener un nuevo token de acceso
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequestDto'
+      responses:
+        '200':
+          description: Token renovado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponseDto'
+        '400':
+          description: Error de validación
+        '401':
+          description: Token de actualización inválido o expirado
+        '500':
+          description: Error interno del servidor
+  /user/auth/logout:
+    post:
+      summary: Cerrar sesión
+      description: Cierra la sesión del usuario y revoca sus tokens
+      responses:
+        '200':
+          description: Sesión cerrada correctamente
+        '401':
+          description: No autorizado
+        '500':
+          description: Error interno del servidor
+  /user/auth/validate:
+    get:
+      summary: Validar token de acceso
+      description: Verifica que el token de acceso sea válido
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            default: 'Bearer <token>'
+      responses:
+        '204':
+          description: Token válido
+        '400':
+          description: Error de validación
+        '401':
+          description: Token inválido o expirado
+        '500':
+          description: Error interno del servidor
+  /user/auth/accept-invite:
+    post:
+      summary: Aceptar invitación
+      description: Acepta una invitación para unirse a una compañía y establece la contraseña
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInviteRequestDto'
+      responses:
+        '200':
+          description: Invitación aceptada correctamente
+        '400':
+          description: Error de validación
+        '401':
+          description: Token de invitación inválido o expirado
+        '500':
+          description: Error interno del servidor
+  /user/auth/company-users:
+    get:
+      summary: Listar usuarios de la compañía
+      description: Devuelve los usuarios asociados a la compañía del token JWT
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Listado de usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponseDto'
+        '401':
+          description: No autorizado
+        '500':
+          description: Error interno del servidor
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequestDto:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+    TokenResponseDto:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+    RegisterRequestDto:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        password:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+      required:
+        - email
+        - name
+        - password
+        - roles
+    RefreshTokenRequestDto:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+      required:
+        - refresh_token
+    RefreshTokenResponseDto:
+      type: object
+      properties:
+        access_token:
+          type: string
+    AcceptInviteRequestDto:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+      required:
+        - token
+        - password
+    UserListResponseDto:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              email:
+                type: string
+              roles:
+                type: array
+                items:
+                  type: string
+              companyId:
+                type: string
+              isActive:
+                type: boolean
+                description: Indica si el usuario está activo o inactivo

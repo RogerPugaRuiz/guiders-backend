@@ -1,6 +1,6 @@
 // Handler para CompanyCreatedWithAdminEvent que registra un usuario admin
 // Ubicación: src/context/auth/auth-user/application/events/create-admin-on-company-created-with-admin-event.handler.ts
-import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
+import { EventsHandler, IEventHandler, EventPublisher } from '@nestjs/cqrs';
 import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
 import { Inject } from '@nestjs/common';
 import {
@@ -23,6 +23,7 @@ export class CreateAdminOnCompanyCreatedWithAdminEventHandler
   constructor(
     @Inject(USER_ACCOUNT_REPOSITORY)
     private readonly userRepository: UserAccountRepository,
+    private readonly publisher: EventPublisher,
   ) {}
 
   async handle(event: CompanyCreatedWithAdminEvent): Promise<void> {
@@ -38,7 +39,9 @@ export class CreateAdminOnCompanyCreatedWithAdminEventHandler
       roles: UserAccountRoles.create([Role.admin()]), // Rol admin
       companyId: UserAccountCompanyId.create(companyId), // Asocia el usuario admin a la compañía creada
     });
-    // Guardar el usuario admin
-    await this.userRepository.save(user);
+    // Publica los eventos de dominio aplicados en el aggregate
+    const userContext = this.publisher.mergeObjectContext(user);
+    await this.userRepository.save(userContext);
+    userContext.commit();
   }
 }

@@ -39,6 +39,10 @@ import {
   RefreshTokenResponseDto,
   AcceptInviteRequestDto,
 } from '../dtos/auth-user.dto';
+import {
+  RequiredRoles,
+  RolesGuard,
+} from 'src/context/shared/infrastructure/guards/role.guard';
 
 @ApiTags('Autenticación de Usuarios')
 @Controller('user/auth')
@@ -126,21 +130,16 @@ export class AuthUserController {
     status: 500,
     description: 'Error interno del servidor',
   })
-  @UseGuards(AuthGuard)
+  @RequiredRoles('admin')
+  @UseGuards(AuthGuard, RolesGuard)
   async register(
     @Body('email') email: string,
     @Body('name') name: string,
-    @Body('password') password: string,
     @Body('roles') roles: string[],
     @Req() req: { user: { companyId: string } },
   ): Promise<void> {
     try {
-      await this.authUserService.register(
-        email,
-        password,
-        req.user.companyId,
-        roles,
-      );
+      await this.authUserService.register(email, req.user.companyId, roles);
     } catch (error) {
       this.logger.error('Error registering user', error);
       if (error instanceof ValidationError) {
@@ -340,7 +339,6 @@ export class AuthUserController {
   }
 
   @Get('company-users')
-  @UseGuards(AuthGuard)
   @ApiOperation({
     summary: 'Listar usuarios de la compañía',
     description: 'Devuelve los usuarios asociados a la compañía del token JWT',
@@ -351,6 +349,8 @@ export class AuthUserController {
     description: 'Listado de usuarios',
     type: UserListResponseDto,
   })
+  @RequiredRoles('admin')
+  @UseGuards(AuthGuard, RolesGuard)
   async listCompanyUsers(@Req() req: any): Promise<UserListResponseDto> {
     // Extrae el companyId del payload del token (req.user)
     const companyId = (req as { user?: { companyId?: string } }).user
@@ -368,6 +368,7 @@ export class AuthUserController {
         email: u.email,
         roles: u.roles,
         companyId: u.companyId,
+        isActive: u.isActive, // Exponer el estado activo/inactivo
       })),
     };
   }

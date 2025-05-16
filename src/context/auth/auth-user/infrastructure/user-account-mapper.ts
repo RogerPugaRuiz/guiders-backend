@@ -17,6 +17,7 @@ export class UserAccountMapper {
       lastLoginAt: userAccountEntity.lastLoginAt,
       roles: userAccountEntity.roles ?? [],
       companyId: userAccountEntity.companyId,
+      isActive: userAccountEntity.isActive ?? true,
     });
   }
 
@@ -30,6 +31,7 @@ export class UserAccountMapper {
     userAccountEntity.lastLoginAt = userAccount.lastLoginAt.getOrNull();
     userAccountEntity.roles = userAccount.roles.toPrimitives();
     userAccountEntity.companyId = userAccount.companyId.getValue();
+    userAccountEntity.isActive = userAccount.isActive; // Getter devuelve el booleano
     return userAccountEntity;
   }
 }

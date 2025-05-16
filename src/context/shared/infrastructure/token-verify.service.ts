@@ -10,6 +10,7 @@ export interface TokenPayload {
   sub: string;
   typ: string;
   role: string[];
+  companyId?: string; // Añadido para incluir companyId si está presente
   iat: number;
   exp: number;
   [key: string]: unknown; // Permite incluir otros elementos no definidos explícitamente
@@ -29,7 +30,12 @@ export class TokenVerifyService {
     try {
       const decoded = this.jwtservice.decode<{
         header: { kid?: string };
-        payload: { sub: string; typ: string; role: string[] };
+        payload: {
+          sub: string;
+          typ: string;
+          role: string[];
+          companyId?: string;
+        };
       }>(token, { complete: true });
 
       if (!decoded) {

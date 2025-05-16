@@ -1,31 +1,34 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from './create-admin-on-company-created-with-admin-event.handler';
 import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
 import { USER_ACCOUNT_REPOSITORY } from '../../domain/user-account.repository';
-import { UserAccountEmail } from '../../domain/user-account-email';
-import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';
 import { Role } from '../../domain/value-objects/role';
 import { UserAccount } from '../../domain/user-account';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
-
-// Mock del repositorio tipado
-const userRepositoryMock: {
-  save: jest.MockedFunction<(user: UserAccount) => void>;
-} = {
-  save: jest.fn(),
-};
+import { EventPublisher } from '@nestjs/cqrs';
 
 describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
   let handler: CreateAdminOnCompanyCreatedWithAdminEventHandler;
+  let userRepositoryMock: { save: jest.Mock };
+  let publisherMock: { mergeObjectContext: jest.Mock };
 
   beforeEach(async () => {
+    userRepositoryMock = { save: jest.fn() };
+    publisherMock = {
+      mergeObjectContext: jest.fn((user: UserAccount) => {
+        user.commit = jest.fn();
+        return user;
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreateAdminOnCompanyCreatedWithAdminEventHandler,
-        {
-          provide: USER_ACCOUNT_REPOSITORY,
-          useValue: userRepositoryMock,
-        },
+        { provide: USER_ACCOUNT_REPOSITORY, useValue: userRepositoryMock },
+        { provide: EventPublisher, useValue: publisherMock }, // Mock explícito
       ],
     }).compile();
 
@@ -45,14 +48,20 @@ describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
       userId: Uuid.random().value,
     });
     await handler.handle(event);
-    // Acceso seguro al usuario guardado
-    const userSaved = userRepositoryMock.save.mock.calls[0][0];
-    expect(userSaved).toBeInstanceOf(UserAccount);
-    expect(userSaved.email).toBeInstanceOf(UserAccountEmail);
-    expect(userSaved.roles).toBeInstanceOf(UserAccountRoles);
-    // Verifica que el rol sea admin usando el método getRoles()
+    // Validación defensiva: aseguramos que el usuario fue guardado
+    expect(userRepositoryMock.save).toHaveBeenCalled();
+    const userSaved = userRepositoryMock.save.mock.calls[0]?.[0];
+    expect(userSaved).toBeDefined();
+    // Si el usuario es undefined, fallar explícitamente con mensaje útil
+    if (!userSaved)
+      throw new Error('userSaved es undefined. Revisa el handler y el mock.');
+    // Validamos que el email y roles sean correctos usando los getters
+    expect(typeof userSaved.email).toBe('object');
+    expect(userSaved.email.value).toBe('admin@email.com');
+    expect(typeof userSaved.roles.getRoles).toBe('function');
     const roles = userSaved.roles.getRoles();
-    expect(roles[0].value).toBe(Role.admin().value);
+    expect(Array.isArray(roles)).toBe(true);
+    expect(roles[0]?.value).toBe(Role.admin().value);
   });
 
   it('no debe crear usuario si no hay adminEmail', async () => {

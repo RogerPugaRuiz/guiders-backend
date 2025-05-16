@@ -16,6 +16,7 @@ import {
   USER_PASSWORD_HASHER,
   UserPasswordHasher,
 } from '../service/user-password-hasher';
+import { EventPublisher } from '@nestjs/cqrs';
 
 @Injectable()
 export class UserRegisterUseCase {
@@ -24,11 +25,11 @@ export class UserRegisterUseCase {
     private readonly userRepository: UserAccountRepository,
     @Inject(USER_PASSWORD_HASHER)
     private readonly hasherService: UserPasswordHasher,
+    private readonly publisher: EventPublisher, // Inyectamos el publisher para publicar eventos de dominio
   ) {}
 
   async execute(
     email: string,
-    password: string,
     companyId: string, // Se agrega companyId como argumento
     roles: string[],
   ): Promise<void> {
@@ -36,26 +37,24 @@ export class UserRegisterUseCase {
     if (user) {
       throw new UserAlreadyExistsError();
     }
-    if (!this.validatePassword(password)) {
-      throw new ValidationError(
-        'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character',
-      );
-    }
 
     if (roles.length === 0) {
       roles = ['commercial'];
     }
 
-    const hash = await this.hasherService.hash(password);
     // Creamos el usuario incluyendo el value object de roles, por defecto solo 'commercial'
     const newUser = UserAccount.create({
       email: UserAccountEmail.create(email),
-      password: new UserAccountPassword(hash),
       roles: UserAccountRoles.create(roles.map((role) => Role.create(role))),
       companyId: UserAccountCompanyId.create(companyId),
+      password: UserAccountPassword.empty(),
     });
 
-    return await this.userRepository.save(newUser);
+    // Publicamos los eventos de dominio aplicados en el aggregate
+    // Esto permite que los event handlers reaccionen a los eventos generados por el usuario
+    const userContext = this.publisher.mergeObjectContext(newUser);
+    await this.userRepository.save(userContext);
+    userContext.commit();
   }
 
   private validatePassword(value: string): boolean {

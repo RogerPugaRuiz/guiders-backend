@@ -14,6 +14,9 @@ export class UserListItemDto {
 
   @ApiProperty()
   companyId: string;
+
+  @ApiProperty({ default: true })
+  isActive: boolean;
 }
 
 export class UserListResponseDto {

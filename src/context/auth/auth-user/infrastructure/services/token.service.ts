@@ -53,12 +53,14 @@ export class TokenService implements UserTokenService {
     email: string;
     username: string;
     roles?: string[];
+    companyId?: string;
   }) {
     const accessToken = this.jwtService.sign(
       {
         username: data.username,
         email: data.email,
         role: data.roles ?? ['commercial'],
+        companyId: data.companyId,
         typ: 'access',
       },
       {
@@ -74,12 +76,14 @@ export class TokenService implements UserTokenService {
     email: string;
     username: string;
     roles?: string[];
+    companyId?: string;
   }) {
     const refreshToken = this.jwtService.sign(
       {
         username: data.username,
         email: data.email,
         role: data.roles ?? ['commercial'],
+        companyId: data.companyId,
         typ: 'refresh',
       },
       {
