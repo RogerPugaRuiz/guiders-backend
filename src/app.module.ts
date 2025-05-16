@@ -74,7 +74,7 @@ import { CompanyModule } from './context/company/company.module';
             : configService.get<string>('DATABASE', 'mydb'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           synchronize: false,
-          autoLoadEntities: true, // Permite la carga automática de entidades
+          autoLoadEntities: false, // Permite la carga automática de entidades
         };
       },
     }),
