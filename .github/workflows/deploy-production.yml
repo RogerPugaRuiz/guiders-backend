@@ -114,14 +114,14 @@ jobs:
           "
 
       # Ejecuta migraciones de TypeORM en el servidor antes de reiniciar la app
-      - name: Run TypeORM migrations on server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            NODE_ENV=production npx typeorm migration:run -d dist/src/data-source.js \
-          "
+      # - name: Run TypeORM migrations on server
+      #   env:
+      #     SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+      #   run: |
+      #     sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+      #       cd /var/www/guiders-backend/ && \
+      #       NODE_ENV=production npx typeorm migration:run -d dist/src/data-source.js \
+      #     "
 
       # Reinicia la app con pm2 del sistema
       - name: Restart app with pm2
