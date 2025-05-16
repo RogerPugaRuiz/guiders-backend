@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
 import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/auth-visitor.module';
@@ -50,18 +50,13 @@ import { CompanyModule } from './context/company/company.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
         // Selección dinámica de variables según NODE_ENV
         const nodeEnv = configService.get<string>('NODE_ENV');
         const isTest = nodeEnv === 'test';
-        const isProduction = nodeEnv === 'production';
-        const synchronize = isTest || isProduction ? false : true;
-
-        console.log(
-          `NODE_ENV: ${nodeEnv}, isTest: ${isTest}, isProduction: ${isProduction}, synchronize: ${synchronize}`,
-        );
+        // Se retorna un objeto estrictamente tipado para TypeOrmModuleOptions
         return {
-          type: 'postgres',
+          type: 'postgres', // Tipo de base de datos explícito
           host: isTest
             ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
             : configService.get<string>('DATABASE_HOST', 'localhost'),
@@ -78,7 +73,8 @@ import { CompanyModule } from './context/company/company.module';
             ? configService.get<string>('TEST_DATABASE', 'mydb')
             : configService.get<string>('DATABASE', 'mydb'),
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: true,
+          synchronize: false,
+          autoLoadEntities: true, // Permite la carga automática de entidades
         };
       },
     }),
