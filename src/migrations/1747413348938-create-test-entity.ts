@@ -1,0 +1,14 @@
+import { MigrationInterface, QueryRunner } from "typeorm";
+
+export class CreateTestEntity1747413348938 implements MigrationInterface {
+    name = 'CreateTestEntity1747413348938'
+
+    public async up(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "test_entity" ADD "createdAt" TIMESTAMP NOT NULL DEFAULT now()`);
+    }
+
+    public async down(queryRunner: QueryRunner): Promise<void> {
+        await queryRunner.query(`ALTER TABLE "test_entity" DROP COLUMN "createdAt"`);
+    }
+
+}
