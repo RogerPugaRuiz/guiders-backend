@@ -59,7 +59,7 @@ export class TokenService implements UserTokenService {
       {
         username: data.username,
         email: data.email,
-        role: data.roles ?? ['commercial'],
+        role: data.roles ?? [],
         companyId: data.companyId,
         typ: 'access',
       },
@@ -82,7 +82,7 @@ export class TokenService implements UserTokenService {
       {
         username: data.username,
         email: data.email,
-        role: data.roles ?? ['commercial'],
+        role: data.roles ?? [],
         companyId: data.companyId,
         typ: 'refresh',
       },
