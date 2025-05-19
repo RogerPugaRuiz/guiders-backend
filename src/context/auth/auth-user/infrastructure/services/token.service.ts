@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserTokenService } from '../../application/service/user-token-service';
 import { ConfigService } from '@nestjs/config';
@@ -6,6 +6,7 @@ import { UnauthorizedError } from '../../application/errors/unauthorized.error';
 
 @Injectable()
 export class TokenService implements UserTokenService {
+  private readonly logger = new Logger(TokenService.name);
   constructor(
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
@@ -37,17 +38,31 @@ export class TokenService implements UserTokenService {
 
   async refresh(refreshToken: string): Promise<{ accessToken: string }> {
     const payload = await this.verify(refreshToken);
+    this.logger.debug(
+      'Refresh Token Payload:',
+      JSON.stringify(payload, null, 2),
+    );
+
     if (payload.typ !== 'refresh') {
       throw new UnauthorizedError('Token inválido');
     }
+
+    // Asegurarse de que roles y companyId se pasen correctamente
+    const userData = {
+      id: payload.sub.toString(),
+      email: payload.email,
+      username: payload.username,
+      roles: Array.isArray(payload.role) ? payload.role : [],
+      companyId: payload.companyId || '',
+    };
+
+    this.logger.debug(
+      'User data for new access token:',
+      JSON.stringify(userData, null, 2),
+    );
+
     return {
-      accessToken: this.createAccessToken({
-        id: payload.sub.toString(),
-        email: payload.email,
-        username: payload.username,
-        roles: payload.role,
-        companyId: payload.companyId,
-      }),
+      accessToken: this.createAccessToken(userData),
     };
   }
 
