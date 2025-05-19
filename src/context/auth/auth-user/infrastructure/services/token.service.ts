@@ -27,6 +27,7 @@ export class TokenService implements UserTokenService {
     username: string;
     email: string;
     role: string[];
+    companyId: string;
     typ: string;
   }> {
     return this.jwtService.verify(token, {
@@ -44,6 +45,8 @@ export class TokenService implements UserTokenService {
         id: payload.sub.toString(),
         email: payload.email,
         username: payload.username,
+        roles: payload.role,
+        companyId: payload.companyId,
       }),
     };
   }
