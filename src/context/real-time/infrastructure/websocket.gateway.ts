@@ -285,40 +285,62 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
+    // Validar que event y event.data existan
+    if (!event || !event.data) {
+      this.logger.warn('Payload inválido en visitor:send-message', event);
+      return Promise.resolve(
+        ResponseBuilder.create()
+          .addSuccess(false)
+          .addMessage('Payload inválido: faltan datos del mensaje')
+          .build(),
+      );
+    }
     const { id, message, timestamp, chatId } = event.data as {
       id: string;
       message: string;
       timestamp: number;
       chatId: string;
     };
+    try {
+      const command = new RealTimeMessageSenderCommand(
+        id,
+        chatId,
+        client.user.sub,
+        message,
+        new Date(timestamp),
+      );
 
-    const command = new RealTimeMessageSenderCommand(
-      id,
-      chatId,
-      client.user.sub,
-      message,
-      new Date(timestamp),
-    );
+      const result = await this.commandBus.execute<
+        RealTimeMessageSenderCommand,
+        Result<void, DomainError>
+      >(command);
 
-    const result = await this.commandBus.execute<
-      RealTimeMessageSenderCommand,
-      Result<void, DomainError>
-    >(command);
+      if (result.isErr()) {
+        return Promise.resolve(
+          ResponseBuilder.create()
+            .addSuccess(false)
+            .addMessage(result.error.message)
+            .build(),
+        );
+      }
 
-    if (result.isErr()) {
+      return Promise.resolve(
+        ResponseBuilder.create()
+          .addMessage('Mensaje enviado al comercial')
+          .build(),
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      const errorStack = error instanceof Error ? error.stack : '';
+      this.logger.error(`Error al enviar mensaje: ${errorMessage}`, errorStack);
       return Promise.resolve(
         ResponseBuilder.create()
           .addSuccess(false)
-          .addMessage(result.error.message)
+          .addMessage('Error al enviar el mensaje')
           .build(),
       );
     }
-
-    return Promise.resolve(
-      ResponseBuilder.create()
-        .addMessage('Mensaje enviado al comercial')
-        .build(),
-    );
   }
 
   @Roles(['visitor'])
