@@ -31,6 +31,8 @@ export class FindChatListByParticipantQueryHandler
 
     const { chats } = await this.chatRepository.find(criteria);
 
-    return { chats: chats.map((chat) => chat.toPrimitives()) };
+    return {
+      chats: chats.map((chat) => chat.toPrimitives()),
+    };
   }
 }

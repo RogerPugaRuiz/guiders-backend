@@ -320,6 +320,12 @@ export class Chat extends AggregateRoot {
     return this;
   }
 
+  public isVisitorOnline(): boolean {
+    return this.participants.value.some(
+      (participant) => participant.isVisitor && participant.isOnline,
+    );
+  }
+
   public toPrimitives(): ChatPrimitives {
     return {
       id: this.id.value,
