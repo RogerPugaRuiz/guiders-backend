@@ -6,7 +6,7 @@ import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { TrackingEvent } from '../../domain/tracking-event';
 import { TrackingEventId } from '../../domain/value-objects/tracking-event-id';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TrackingEventTypeOrmEntity } from './tracking-event.typeorm.entity';
+import { TrackingEventTypeOrmEntity } from './entity/tracking-event.typeorm.entity';
 import { Repository } from 'typeorm';
 import { CriteriaConverter } from 'src/context/shared/infrastructure/criteria-converter/criteria-converter';
 
