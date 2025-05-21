@@ -17,4 +17,16 @@ export class VisitorIntentEntity {
 
   @Column({ type: 'timestamp' })
   detectedAt!: Date;
+
+  @Column({ type: 'jsonb', nullable: true })
+  tags?: string[];
+
+  @Column({ type: 'jsonb', nullable: true })
+  priceRange?: { min: number; max: number };
+
+  @Column({ type: 'jsonb', nullable: true })
+  navigationPath?: string[];
+
+  @Column({ type: 'varchar', length: 512, nullable: true })
+  description?: string;
 }

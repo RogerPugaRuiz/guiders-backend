@@ -11,6 +11,10 @@ export class VisitorIntentTypeOrmMapper {
       type: p.type,
       confidence: p.confidence,
       detectedAt: new Date(p.detectedAt),
+      tags: p.tags,
+      priceRange: p.priceRange,
+      navigationPath: p.navigationPath,
+      description: p.description,
     };
   }
 
@@ -21,6 +25,10 @@ export class VisitorIntentTypeOrmMapper {
       type: entity.type,
       confidence: entity.confidence,
       detectedAt: entity.detectedAt.toISOString(),
+      tags: entity.tags,
+      priceRange: entity.priceRange,
+      navigationPath: entity.navigationPath,
+      description: entity.description,
     });
   }
 }

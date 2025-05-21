@@ -3,6 +3,9 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { VisitorId } from './value-objects/visitor-id';
 import { IntentType } from './value-objects/intent-type';
 import { IntentConfidence } from './value-objects/intent-confidence';
+import { IntentTag } from './value-objects/intent-tag';
+import { IntentPriceRange } from './value-objects/intent-price-range';
+import { NavigationPath } from './value-objects/navigation-path';
 // Ajuste de importación: ruta relativa correcta para el evento
 import { IntentDetectedEvent } from './events/intent-detected-event';
 
@@ -13,6 +16,10 @@ export interface VisitorIntentPrimitives {
   type: string;
   confidence: string;
   detectedAt: string; // ISO string
+  tags?: string[];
+  priceRange?: { min: number; max: number };
+  navigationPath?: string[];
+  description?: string;
 }
 
 export interface VisitorIntentProperties {
@@ -21,18 +28,53 @@ export interface VisitorIntentProperties {
   type: IntentType;
   confidence: IntentConfidence;
   detectedAt: Date;
+  tags?: IntentTag[];
+  priceRange?: IntentPriceRange;
+  navigationPath?: NavigationPath;
+  description?: string;
+}
+
+// Interfaz para serializar la entidad a primitivos extendidos
+export interface VisitorIntentDetailedPrimitives {
+  id: string;
+  visitorId: string;
+  type: string;
+  confidence: string;
+  detectedAt: string;
+  tags?: string[];
+  priceRange?: { min: number; max: number };
+  navigationPath?: string[];
+  description?: string;
 }
 
 // Entidad VisitorIntent como AggregateRoot siguiendo DDD
 export class VisitorIntent extends AggregateRoot {
+  private readonly _tags?: IntentTag[];
+  private readonly _priceRange?: IntentPriceRange;
+  private readonly _navigationPath?: NavigationPath;
+  private readonly _description?: string;
+
   private constructor(
     private readonly _id: Uuid,
     private readonly _visitorId: VisitorId,
     private readonly _type: IntentType,
     private readonly _confidence: IntentConfidence,
     private readonly _detectedAt: Date,
+    tags?: IntentTag[],
+    priceRange?: IntentPriceRange,
+    navigationPath?: NavigationPath,
+    description?: string,
   ) {
     super();
+    this._id = _id;
+    this._visitorId = _visitorId;
+    this._type = _type;
+    this._confidence = _confidence;
+    this._detectedAt = _detectedAt;
+    this._tags = tags;
+    this._priceRange = priceRange;
+    this._navigationPath = navigationPath;
+    this._description = description;
   }
 
   // Método de fábrica para crear una intención y emitir evento
@@ -43,6 +85,10 @@ export class VisitorIntent extends AggregateRoot {
       props.type,
       props.confidence,
       props.detectedAt,
+      props.tags,
+      props.priceRange,
+      props.navigationPath,
+      props.description,
     );
     intent.apply(
       new IntentDetectedEvent({
@@ -60,6 +106,12 @@ export class VisitorIntent extends AggregateRoot {
       new IntentType(params.type),
       new IntentConfidence(params.confidence),
       new Date(params.detectedAt),
+      params.tags ? params.tags.map((t) => new IntentTag(t)) : undefined,
+      params.priceRange ? new IntentPriceRange(params.priceRange) : undefined,
+      params.navigationPath
+        ? NavigationPath.fromPrimitives(params.navigationPath)
+        : undefined,
+      params.description,
     );
   }
 
@@ -71,6 +123,12 @@ export class VisitorIntent extends AggregateRoot {
       type: this._type.value,
       confidence: this._confidence.value,
       detectedAt: this._detectedAt.toISOString(),
+      tags: this._tags ? this._tags.map((t) => t.value) : undefined,
+      priceRange: this._priceRange ? this._priceRange.value : undefined,
+      navigationPath: this._navigationPath
+        ? this._navigationPath.toPrimitives()
+        : undefined,
+      description: this._description,
     };
   }
 
@@ -89,5 +147,17 @@ export class VisitorIntent extends AggregateRoot {
   }
   get detectedAt(): Date {
     return this._detectedAt;
+  }
+  get tags(): IntentTag[] | undefined {
+    return this._tags;
+  }
+  get priceRange(): IntentPriceRange | undefined {
+    return this._priceRange;
+  }
+  get navigationPath(): NavigationPath | undefined {
+    return this._navigationPath;
+  }
+  get description(): string | undefined {
+    return this._description;
   }
 }
