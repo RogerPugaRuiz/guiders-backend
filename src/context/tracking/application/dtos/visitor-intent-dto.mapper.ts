@@ -1,5 +1,5 @@
 import { VisitorIntent } from '../../domain/visitor-intent';
-import { VisitorIntentDto } from '../dto/visitor-intent.dto';
+import { VisitorIntentDto } from './visitor-intent.dto';
 
 // Mapper para convertir entre VisitorIntent y VisitorIntentDto
 export class VisitorIntentDtoMapper {
