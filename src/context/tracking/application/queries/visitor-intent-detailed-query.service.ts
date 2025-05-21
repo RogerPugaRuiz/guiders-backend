@@ -27,14 +27,18 @@ export class VisitorIntentDetailedQueryService {
     intent: VisitorIntent,
   ): Result<VisitorIntentDetailedResponseDto, DomainError> {
     try {
-      // Construir descripción si no existe
-      if (!intent.description) {
-        // @ts-expect-error: acceso controlado para set interno
-        intent._description =
-          VisitorIntentDescriptionService.buildDescription(intent);
-      }
+      // Construir descripción para el DTO, sin mutar la entidad
+      const description = intent.description
+        ? intent.description
+        : VisitorIntentDescriptionService.buildDescription(intent);
 
-      return ok(VisitorIntentDetailedDtoMapper.toDto(intent));
+      // Mapear a DTO pasando la descripción generada explícitamente
+      return ok(
+        VisitorIntentDetailedDtoMapper.toDtoWithDescription(
+          intent,
+          description,
+        ),
+      );
     } catch (error) {
       return err(
         new VisitorIntentDomainError(
