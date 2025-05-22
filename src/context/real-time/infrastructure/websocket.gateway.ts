@@ -36,6 +36,7 @@ import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/app
 import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
 import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
 import { CreateTrackingEventCommand } from 'src/context/tracking/application/commands/create-tracking-event.command';
+import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/application/command/update-visitor-current-page.command';
 
 export interface Event {
   type?: string;
@@ -574,6 +575,56 @@ export class RealTimeWebSocketGateway
       .addSuccess(true)
       .addMessage('Chat active')
       .build();
+  }
+
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('visitor:update-current-page')
+  async handleVisitorUpdateCurrentPage(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    // Validar que event y event.data existan
+    if (!event || !event.data || typeof event.data.currentPage !== 'string') {
+      this.logger.warn(
+        'Payload inválido en visitor:update-current-page',
+        event,
+      );
+      return ResponseBuilder.create()
+        .addSuccess(false)
+        .addMessage('Payload inválido: falta currentPage')
+        .build();
+    }
+    const { currentPage } = event.data as { currentPage: string };
+    try {
+      // El resultado del comando debe ser Result<void, DomainError>
+      const result: Result<void, DomainError> = await this.commandBus.execute(
+        new UpdateVisitorCurrentPageCommand(client.user.sub, currentPage),
+      );
+      if (result && result.isErr && result.isErr()) {
+        const errorMsg =
+          result.error && typeof result.error.message === 'string'
+            ? result.error.message
+            : 'Error de dominio';
+        return ResponseBuilder.create()
+          .addSuccess(false)
+          .addMessage(errorMsg)
+          .build();
+      }
+      return ResponseBuilder.create()
+        .addSuccess(true)
+        .addMessage('Página actualizada')
+        .addData({ currentPage })
+        .build();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(`Error al actualizar currentPage: ${errorMessage}`);
+      return ResponseBuilder.create()
+        .addSuccess(false)
+        .addMessage('Error al actualizar la página actual')
+        .build();
+    }
   }
 
   @SubscribeMessage('health-check')
