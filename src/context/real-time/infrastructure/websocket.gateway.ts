@@ -36,7 +36,7 @@ import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/app
 import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
 import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
 import { CreateTrackingEventCommand } from 'src/context/tracking/application/commands/create-tracking-event.command';
-import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/application/command/update-visitor-current-page.command';
+import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/application/commands/update-visitor-current-page.command';
 
 export interface Event {
   type?: string;

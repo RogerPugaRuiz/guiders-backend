@@ -1,6 +1,5 @@
 // Handler del comando para actualizar la página actual del visitante
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { UpdateVisitorCurrentPageCommand } from './update-visitor-current-page.command';
 import { Inject } from '@nestjs/common';
 import {
   IVisitorRepository,
@@ -10,6 +9,7 @@ import { VisitorCurrentPage } from 'src/context/visitors/domain/value-objects/vi
 import { VisitorId } from 'src/context/visitors/domain/value-objects/visitor-id';
 import { Result, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
+import { UpdateVisitorCurrentPageCommand } from './update-visitor-current-page.command';
 
 @CommandHandler(UpdateVisitorCurrentPageCommand)
 export class UpdateVisitorCurrentPageCommandHandler
