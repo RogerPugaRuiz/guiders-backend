@@ -7,11 +7,6 @@ import {
 } from '../../domain/visitor.repository';
 import { Visitor } from '../../domain/visitor';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
-import { VisitorName } from '../../domain/value-objects/visitor-name';
-import { VisitorEmail } from '../../domain/value-objects/visitor-email';
-import { VisitorTel } from '../../domain/value-objects/visitor-tel';
-import { VisitorTags } from '../../domain/value-objects/visitor-tags';
-import { VisitorNotes } from '../../domain/value-objects/visitor-notes';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { ok, err } from 'src/context/shared/domain/result';
@@ -58,11 +53,6 @@ export class CreateDefaultVisitorCommandHandler
       // Creamos un visitante con valores por defecto
       const defaultVisitor = Visitor.create({
         id: visitorId,
-        name: new VisitorName('Visitante Anónimo'),
-        email: new VisitorEmail('anonymous@visitor.com'), // Valor por defecto
-        tel: new VisitorTel('000000000'), // Valor por defecto
-        tags: VisitorTags.fromPrimitives([]),
-        notes: VisitorNotes.fromPrimitives([]),
       });
 
       // Guardamos el visitante en el repositorio

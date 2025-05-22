@@ -41,20 +41,20 @@ export class Visitor extends AggregateRoot {
   // Método de fábrica para crear un visitante desde value objects
   public static create(params: {
     id: VisitorId;
-    name: VisitorName;
-    email: VisitorEmail;
-    tel: VisitorTel;
-    tags: VisitorTags;
-    notes: VisitorNotes;
+    name?: VisitorName;
+    email?: VisitorEmail;
+    tel?: VisitorTel;
+    tags?: VisitorTags;
+    notes?: VisitorNotes;
     currentPage?: VisitorCurrentPage | null;
   }): Visitor {
     const visitor = new Visitor(
       params.id,
-      params.name,
-      params.email,
-      params.tel,
-      params.tags,
-      params.notes,
+      params.name ?? null,
+      params.email ?? null,
+      params.tel ?? null,
+      params.tags ?? VisitorTags.fromPrimitives([]),
+      params.notes ?? VisitorNotes.fromPrimitives([]),
       params.currentPage ?? null,
     );
     // Aplica el evento de dominio al crear el visitante
