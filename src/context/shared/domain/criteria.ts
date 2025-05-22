@@ -48,8 +48,11 @@ export interface OrderBy<T> {
 export type OrderByList<T> = OrderBy<T>[];
 
 // El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
-// El parámetro de tipo T ahora se usa para tipar las claves del cursor, eliminando el warning de linter.
-export type Cursor<T> = Partial<Record<keyof T, unknown>>;
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export interface Cursor<T = unknown> {
+  [key: string]: unknown;
+}
 
 // Permite múltiples cursores para paginación compuesta
 
