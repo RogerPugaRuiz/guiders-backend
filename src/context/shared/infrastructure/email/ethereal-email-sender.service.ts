@@ -49,8 +49,6 @@ export class EtherealEmailSenderService implements EmailSenderService {
     html: string;
   }): Promise<void> {
     const transporter = await this.transporterPromise;
-    // Tipado seguro: nodemailer.Transporter.sendMail devuelve Promise<any>, así que validamos el resultado y solo accedemos a lo necesario
-    // Se ignora el warning de tipado inseguro con comentario de eslint, ya que depende de la librería nodemailer
 
     const infoRaw: unknown = await transporter.sendMail({
       from: 'no-reply@guiders.io',

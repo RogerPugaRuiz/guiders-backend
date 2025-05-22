@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatController } from './chat.controller';
 import { QueryBus } from '@nestjs/cqrs';
-import { ChatService } from './chat.service';
 import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
 import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
 import { ok, err } from 'src/context/shared/domain/result';
 import { ChatPrimitives } from '../../chat/domain/chat/chat';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { ChatService } from './chat.service';
 
 // Mock para AuthGuard y RolesGuard
 jest.mock('src/context/shared/infrastructure/guards/auth.guard', () => ({
@@ -25,14 +25,13 @@ describe('ChatController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatController],
       providers: [
-        ChatService,
         {
           provide: QueryBus,
           useValue: { execute: jest.fn() },
         },
         {
           provide: ChatService,
-          useValue: {},
+          useValue: { startChat: jest.fn() },
         },
       ],
     }).compile();
