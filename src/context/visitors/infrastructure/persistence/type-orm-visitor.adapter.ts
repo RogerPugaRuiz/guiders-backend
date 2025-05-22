@@ -61,6 +61,7 @@ export class TypeOrmVisitorAdapter implements IVisitorRepository {
         tel: 'tel',
         tags: 'tags',
         notes: 'notes',
+        currentPage: 'currentPage', // Añadir mapeo para el nuevo campo
       };
       // Utiliza CriteriaConverter para construir la consulta SQL y los parámetros
       const { sql, parameters } = CriteriaConverter.toPostgresSql(

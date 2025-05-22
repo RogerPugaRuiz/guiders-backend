@@ -20,6 +20,10 @@ export class VisitorTypeOrmEntity {
   @Column({ type: 'varchar', length: 50, nullable: true })
   tel: string | null;
 
+  // Página actual del visitante (opcional)
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  currentPage: string | null;
+
   // Etiquetas asociadas al visitante (array de strings, opcional)
   @Column({ type: 'simple-array', nullable: true })
   tags: string[];

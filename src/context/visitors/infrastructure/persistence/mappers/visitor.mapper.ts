@@ -13,6 +13,7 @@ export class VisitorMapper {
       tel: entity.tel,
       tags: entity.tags,
       notes: entity.notes,
+      currentPage: entity.currentPage, // Mapeo del nuevo campo
     });
   }
 
@@ -26,6 +27,7 @@ export class VisitorMapper {
     entity.tel = primitives.tel;
     entity.tags = primitives.tags;
     entity.notes = primitives.notes;
+    entity.currentPage = primitives.currentPage; // Mapeo del nuevo campo
     return entity;
   }
 }
