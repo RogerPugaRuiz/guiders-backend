@@ -1,15 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
-import { CreateDefaultVisitorCommandHandler } from '../../src/context/visitors/application/commands/create-default-visitor.command-handler';
-import { CreateDefaultVisitorCommand } from '../../src/context/visitors/application/commands/create-default-visitor.command';
+import { CreateDefaultVisitorCommandHandler } from '../create-default-visitor.command-handler';
+import { CreateDefaultVisitorCommand } from '../create-default-visitor.command';
 import {
   IVisitorRepository,
   VISITOR_REPOSITORY,
-} from '../../src/context/visitors/domain/visitor.repository';
-import { Visitor } from '../../src/context/visitors/domain/visitor';
-import { DomainError } from '../../src/context/shared/domain/domain.error';
-import { Uuid } from '../../src/context/shared/domain/value-objects/uuid';
-import { ok, err } from '../../src/context/shared/domain/result';
+} from '../../../domain/visitor.repository';
+import { Visitor } from '../../../domain/visitor';
+import { DomainError } from '../../../../shared/domain/domain.error';
+import { Uuid } from '../../../../shared/domain/value-objects/uuid';
+import { ok, err } from '../../../../shared/domain/result';
 
 // Clase de error personalizada para las pruebas
 class TestRepositoryError extends DomainError {
@@ -69,9 +68,12 @@ describe('CreateDefaultVisitorCommandHandler', () => {
     expect(mockSave).toHaveBeenCalledTimes(1);
 
     // Verificar que el save se llamó con un objeto Visitor
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const visitor = mockSave.mock.calls[0][0] as Visitor;
     expect(visitor).toBeInstanceOf(Visitor);
-    expect(visitor.id.value).toBe(visitorAccountId);
+
+    const idValue = visitor.id.value;
+    expect(idValue).toBe(visitorAccountId);
   });
 
   it('should handle repository errors', async () => {
@@ -80,7 +82,9 @@ describe('CreateDefaultVisitorCommandHandler', () => {
     const command = new CreateDefaultVisitorCommand(visitorAccountId);
 
     // Mock para simular un error en el repositorio
-    const repoError = new TestRepositoryError('Error al guardar en el repositorio');
+    const repoError = new TestRepositoryError(
+      'Error al guardar en el repositorio',
+    );
     const mockSave = jest.fn().mockResolvedValue(err(repoError));
     mockVisitorRepository.save = mockSave;
 

@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommandBus } from '@nestjs/cqrs';
-import { OnVisitorAccountCreatedEventHandler } from '../../src/context/visitors/application/events/on-visitor-account-created.event-handler';
-import { VisitorAccountCreatedEvent } from '../../src/context/auth/auth-visitor/domain/events/visitor-account-created.event';
-import { CreateDefaultVisitorCommand } from '../../src/context/visitors/application/commands/create-default-visitor.command';
-import { Uuid } from '../../src/context/shared/domain/value-objects/uuid';
+import { OnVisitorAccountCreatedEventHandler } from '../on-visitor-account-created.event-handler';
+import { VisitorAccountCreatedEvent } from '../../../../auth/auth-visitor/domain/events/visitor-account-created.event';
+import { CreateDefaultVisitorCommand } from '../../commands/create-default-visitor.command';
+import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 
 describe('OnVisitorAccountCreatedEventHandler', () => {
   let handler: OnVisitorAccountCreatedEventHandler;
@@ -55,6 +55,7 @@ describe('OnVisitorAccountCreatedEventHandler', () => {
     await handler.handle(event);
 
     // Assert
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(commandBus.execute).toHaveBeenCalledTimes(1);
 
     // Verificar que se ejecuta el comando correcto con el ID de la cuenta
@@ -76,7 +77,9 @@ describe('OnVisitorAccountCreatedEventHandler', () => {
     });
 
     // Simular un error en el command bus
-    (commandBus.execute as jest.Mock).mockRejectedValue(new Error('Test error'));
+    (commandBus.execute as jest.Mock).mockRejectedValue(
+      new Error('Test error'),
+    );
 
     // Act & Assert - no debería lanzar excepción
     await expect(handler.handle(event)).resolves.not.toThrow();
