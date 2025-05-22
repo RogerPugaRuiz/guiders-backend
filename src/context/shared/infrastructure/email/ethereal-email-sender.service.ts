@@ -73,9 +73,8 @@ export class EtherealEmailSenderService implements EmailSenderService {
     }
     // Cast seguro a tipo SMTPTransport.SentMessageInfo para getTestMessageUrl
     // Se usa 'as SMTPTransport.SentMessageInfo' para evitar problemas de tipado cruzado entre nodemailer y sus subtipos
-    const previewUrl = nodemailer.getTestMessageUrl(
-      infoRaw as any, // eslint-disable-line @typescript-eslint/no-unsafe-argument
-    );
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const previewUrl = nodemailer.getTestMessageUrl(infoRaw as any);
     this.logger.log(
       `Email enviado a ${params.to}. Preview: ${previewUrl ?? 'no disponible'}`,
     );
