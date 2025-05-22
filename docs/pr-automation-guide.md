@@ -47,3 +47,24 @@ Automatizar la creación de Pull Requests para mejorar la eficiencia, trazabilid
 ---
 
 > Para dudas o mejoras, edita este archivo siguiendo las recomendaciones anteriores.
+
+## Ejemplo de estructura
+
+---
+
+**Título:** feat: implementar servicio de asignación de comerciales conectados
+
+**Descripción:**
+
+- Resumen de la funcionalidad implementada o corregida.
+- Lista de archivos clave modificados.
+- Cambios relevantes en lógica de negocio, infraestructura o tests.
+
+**Checklist:**
+
+- [x] Código revisado y formateado
+- [x] Pruebas unitarias actualizadas y ejecutadas
+- [x] Linter ejecutado sin errores
+- [x] Documentación/diagramas actualizados si aplica
+
+---
