@@ -28,6 +28,7 @@ Tu tarea es crear el dominio de un contexto específico de la aplicación.
 - Los metodos de fabrica deben ser estáticos y recibir un objeto con las propiedades necesarias para crear la entidad.
 - Las entidades deben extender de `AggregateRoot` de `@nestjs/cqrs`.
 - Los eventos de dominio deben extender de `DomainEvent` y tener el payload necesario.
+- Todas las propiedades de las entidades tiene que ser private readonly.
 
 # EJEMPLOS
 - Ejemplo de una agregate root:

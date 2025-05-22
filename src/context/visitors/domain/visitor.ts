@@ -24,7 +24,6 @@ export interface VisitorPrimitives {
 // Entidad Visitor como AggregateRoot siguiendo DDD
 export class Visitor extends AggregateRoot {
   // Propiedades encapsuladas
-  private readonly _currentPage: VisitorCurrentPage | null;
 
   private constructor(
     private readonly _id: VisitorId,
@@ -33,10 +32,10 @@ export class Visitor extends AggregateRoot {
     private readonly _tel: VisitorTel | null,
     private readonly _tags: VisitorTags,
     private readonly _notes: VisitorNotes, // Ahora VisitorNotes es un array de VisitorNote
-    currentPage: VisitorCurrentPage | null = null,
+    private readonly _currentPage: VisitorCurrentPage | null = null, // Nueva propiedad para la página actual
   ) {
     super();
-    this._currentPage = currentPage;
+    this._currentPage = _currentPage;
   }
 
   // Método de fábrica para crear un visitante desde value objects
