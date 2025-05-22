@@ -22,6 +22,11 @@ import {
 } from 'src/context/shared/infrastructure/guards/role.guard';
 import { PaginateEndOfStreamError } from '../../message/domain/errors';
 import { ChatService } from './chat.service';
+import { FindOneChatByIdQuery } from '../../chat/application/read/find-one-chat-by-id.query';
+import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
+import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
+import { Result } from 'src/context/shared/domain/result';
+import { ChatPrimitives } from '../../chat/domain/chat/chat';
 
 @Controller('chat')
 export class ChatController {
@@ -29,15 +34,6 @@ export class ChatController {
     private readonly queryBus: QueryBus,
     private readonly chatService: ChatService,
   ) {}
-
-  @Get('visitor')
-  @RequiredRoles('visitor')
-  @UseGuards(AuthGuard, RolesGuard)
-  async getChat(@Req() req: AuthenticatedRequest): Promise<any> {
-    const { id } = req.user;
-    return Promise.resolve({});
-  }
-
   @Post(':chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
@@ -91,6 +87,22 @@ export class ChatController {
         console.log('Fetched messages:', response);
         return response;
       },
+    );
+  }
+
+  @Get(':chatId')
+  @RequiredRoles('visitor')
+  @UseGuards(AuthGuard, RolesGuard)
+  async getChatById(@Param('chatId') chatId: string): Promise<ChatResponseDto> {
+    const result = await this.queryBus.execute<
+      FindOneChatByIdQuery,
+      Result<{ chat: ChatPrimitives }, ChatNotFoundError>
+    >(new FindOneChatByIdQuery(chatId));
+    return result.fold(
+      () => {
+        throw new HttpException('Chat not found', HttpStatus.NOT_FOUND);
+      },
+      (value) => new ChatResponseDto(value.chat),
     );
   }
 }

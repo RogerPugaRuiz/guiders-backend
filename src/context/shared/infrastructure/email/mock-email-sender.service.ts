@@ -11,7 +11,7 @@ export class MockEmailSenderService implements EmailSenderService {
     html: string;
   }): Promise<void> {
     // Simula el envío de email (en real, aquí iría la integración con SMTP, SendGrid, etc.)
-    // eslint-disable-next-line no-console
+
     console.log('[MOCK EMAIL]', params);
     return Promise.resolve();
   }

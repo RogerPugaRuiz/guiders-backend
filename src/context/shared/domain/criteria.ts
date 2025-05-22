@@ -13,6 +13,7 @@ export enum Operator {
 }
 export type LogicalOperator = 'AND' | 'OR';
 
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
 export class Filter<T> {
   constructor(
     public readonly field: keyof T,
@@ -21,6 +22,7 @@ export class Filter<T> {
   ) {}
 }
 
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
 export class FilterGroup<T> {
   constructor(
     public readonly operator: LogicalOperator,
@@ -28,25 +30,33 @@ export class FilterGroup<T> {
   ) {}
 }
 
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
 export interface Index<T> {
   field: keyof T;
   value: unknown;
 }
 
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
 export interface OrderBy<T> {
   field: keyof T;
   direction: 'ASC' | 'DESC';
 }
 
 // Permite múltiples ordenamientos
+
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
 export type OrderByList<T> = OrderBy<T>[];
 
-export interface Cursor<T> {
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export interface Cursor<T = unknown> {
   [key: string]: unknown;
 }
 
 // Permite múltiples cursores para paginación compuesta
 
+// El parámetro de tipo T es necesario para tipado, aunque no se use directamente en la implementación.
 export class Criteria<T> {
   readonly filters: (Filter<T> | FilterGroup<T>)[];
   readonly orderBy?: OrderBy<T> | OrderByList<T>;

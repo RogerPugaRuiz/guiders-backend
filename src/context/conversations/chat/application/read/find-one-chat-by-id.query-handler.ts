@@ -36,7 +36,7 @@ export class FindOneChatByIdQueryHandler
     const chatOptional = await this.chatRepository.findOne(criteria);
 
     if (chatOptional.isEmpty()) {
-      err(new ChatNotFoundError());
+      return err(new ChatNotFoundError());
     }
 
     const chat = chatOptional
