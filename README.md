@@ -34,6 +34,10 @@ Este proyecto es el backend de un producto orientado a comerciales, permitiendo 
 
 Tras iniciar el servidor, la API estará disponible en el puerto especificado (por defecto, 3000). Puedes consultar la documentación de los endpoints o integrar el backend con tu frontend para establecer la comunicación en tiempo real.
 
+## Documentación de procesos automatizados
+
+- [Guía de automatización de Pull Requests](docs/pr-automation-guide.md): Cómo configurar y mantener la automatización de PRs, asegurando compatibilidad con linters de Markdown.
+
 ## Autor
 
 - Roger Puga Ruiz
