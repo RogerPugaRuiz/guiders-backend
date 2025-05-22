@@ -7,6 +7,8 @@ import { VisitorTags } from './value-objects/visitor-tags';
 import { VisitorNotes } from './value-objects/visitor-notes';
 import { VisitorCreatedEvent } from './events/visitor-created-event';
 import { Optional } from 'src/context/shared/domain/optional';
+import { VisitorCurrentPage } from './value-objects/visitor-current-page';
+import { VisitorCurrentPageUpdatedEvent } from './events/visitor-current-page-updated-event';
 
 // Interfaz para serializar la entidad a primitivos
 export interface VisitorPrimitives {
@@ -16,11 +18,14 @@ export interface VisitorPrimitives {
   tel: string | null;
   tags: string[];
   notes: string[]; // Ahora es un array de strings
+  currentPage: string | null; // Nueva propiedad para la página actual
 }
 
 // Entidad Visitor como AggregateRoot siguiendo DDD
 export class Visitor extends AggregateRoot {
   // Propiedades encapsuladas
+  private readonly _currentPage: VisitorCurrentPage | null;
+
   private constructor(
     private readonly _id: VisitorId,
     private readonly _name: VisitorName | null,
@@ -28,8 +33,10 @@ export class Visitor extends AggregateRoot {
     private readonly _tel: VisitorTel | null,
     private readonly _tags: VisitorTags,
     private readonly _notes: VisitorNotes, // Ahora VisitorNotes es un array de VisitorNote
+    currentPage: VisitorCurrentPage | null = null,
   ) {
     super();
+    this._currentPage = currentPage;
   }
 
   // Método de fábrica para crear un visitante desde value objects
@@ -40,6 +47,7 @@ export class Visitor extends AggregateRoot {
     tel: VisitorTel;
     tags: VisitorTags;
     notes: VisitorNotes;
+    currentPage?: VisitorCurrentPage | null;
   }): Visitor {
     const visitor = new Visitor(
       params.id,
@@ -48,6 +56,7 @@ export class Visitor extends AggregateRoot {
       params.tel,
       params.tags,
       params.notes,
+      params.currentPage ?? null,
     );
     // Aplica el evento de dominio al crear el visitante
     visitor.apply(
@@ -66,6 +75,7 @@ export class Visitor extends AggregateRoot {
     tel?: string | null;
     tags?: string[];
     notes?: string[]; // Ahora es un array de strings
+    currentPage?: string | null;
   }): Visitor {
     return new Visitor(
       VisitorId.create(params.id),
@@ -78,6 +88,7 @@ export class Visitor extends AggregateRoot {
       params.notes
         ? VisitorNotes.fromPrimitives(params.notes)
         : VisitorNotes.fromPrimitives([]), // Reconstruye desde string[]
+      params.currentPage ? new VisitorCurrentPage(params.currentPage) : null,
     );
   }
 
@@ -90,6 +101,7 @@ export class Visitor extends AggregateRoot {
       tel: this._tel ? this._tel.value : null,
       tags: this._tags.toPrimitives(), // Serializa como string[]
       notes: this._notes.toPrimitives(), // Serializa como string[]
+      currentPage: this._currentPage ? this._currentPage.value : null,
     };
   }
 
@@ -111,5 +123,37 @@ export class Visitor extends AggregateRoot {
   }
   get notes(): VisitorNotes {
     return this._notes;
+  }
+  get currentPage(): Optional<VisitorCurrentPage> {
+    // Devuelve un Optional con la página actual si existe
+    if (this._currentPage) {
+      return Optional.of(this._currentPage);
+    }
+    return Optional.empty();
+  }
+
+  // Método para actualizar la página actual de forma inmutable
+  // Devuelve una nueva instancia de Visitor con el estado actualizado y aplica un evento de dominio
+  public updateCurrentPage(newPage: VisitorCurrentPage): Visitor {
+    // Si la página es la misma, retorna la misma instancia (idempotencia)
+    if (this._currentPage && this._currentPage.value === newPage.value) {
+      return this;
+    }
+    const updated = new Visitor(
+      this._id,
+      this._name,
+      this._email,
+      this._tel,
+      this._tags,
+      this._notes,
+      newPage,
+    );
+    updated.apply(
+      new VisitorCurrentPageUpdatedEvent({
+        visitorId: this._id.value,
+        currentPage: newPage.value,
+      }),
+    );
+    return updated;
   }
 }
