@@ -25,7 +25,6 @@ describe('ChatController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatController],
       providers: [
-        ChatService,
         {
           provide: QueryBus,
           useValue: { execute: jest.fn() },
