@@ -1,0 +1,105 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { UpdateVisitorTelCommandHandler } from '../update-visitor-tel-command.handler';
+import { UpdateVisitorTelCommand } from '../update-visitor-tel.command';
+import {
+  IVisitorRepository,
+  VISITOR_REPOSITORY,
+} from 'src/context/visitors/domain/visitor.repository';
+import { Visitor } from 'src/context/visitors/domain/visitor';
+import { ok, err } from 'src/context/shared/domain/result';
+import { DomainError } from 'src/context/shared/domain/domain.error';
+
+describe('UpdateVisitorTelCommandHandler', () => {
+  let handler: UpdateVisitorTelCommandHandler;
+  let mockVisitorRepository: Partial<IVisitorRepository>;
+
+  // Mock de visitante para pruebas
+  const mockVisitorId = 'visitor-123';
+  const mockVisitor = Visitor.fromPrimitives({
+    id: mockVisitorId,
+    tel: '123456789',
+  });
+
+  // Mock del resultado exitoso del repositorio
+  const mockSuccessResult = ok(undefined);
+
+  // Mock del error del repositorio
+  const mockDomainError = new DomainError('Visitor not found');
+
+  const mockErrorResult = err(mockDomainError);
+
+  beforeEach(async () => {
+    // Configuración de los mocks
+    mockVisitorRepository = {
+      findById: jest.fn(),
+      save: jest.fn(),
+    };
+
+    // Configuración del módulo de prueba
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UpdateVisitorTelCommandHandler,
+        {
+          provide: VISITOR_REPOSITORY,
+          useValue: mockVisitorRepository,
+        },
+      ],
+    }).compile();
+
+    handler = module.get<UpdateVisitorTelCommandHandler>(
+      UpdateVisitorTelCommandHandler,
+    );
+  });
+
+  it('debe actualizar correctamente el teléfono del visitante', async () => {
+    // Preparar los mocks
+    (mockVisitorRepository.findById as jest.Mock).mockResolvedValue(
+      ok(mockVisitor),
+    );
+    (mockVisitorRepository.save as jest.Mock).mockResolvedValue(
+      mockSuccessResult,
+    );
+
+    // Ejecutar el comando
+    const command = new UpdateVisitorTelCommand(mockVisitorId, '987654321');
+    const result = await handler.execute(command);
+
+    // Verificar que se llamó al método findById con el ID correcto
+    expect(mockVisitorRepository.findById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: mockVisitorId,
+      }),
+    );
+
+    // Verificar que se guardó el visitante actualizado
+    expect(mockVisitorRepository.save).toHaveBeenCalled();
+
+    // Verificar que el resultado es exitoso
+    expect(result.isOk()).toBeTruthy();
+  });
+
+  it('debe devolver error cuando el visitante no existe', async () => {
+    // Preparar los mocks para simular que no se encuentra el visitante
+    (mockVisitorRepository.findById as jest.Mock).mockResolvedValue(
+      mockErrorResult,
+    );
+
+    // Ejecutar el comando
+    const command = new UpdateVisitorTelCommand(mockVisitorId, '987654321');
+    const result = await handler.execute(command);
+
+    // Verificar que se llamó al método findById con el ID correcto
+    expect(mockVisitorRepository.findById).toHaveBeenCalledWith(
+      expect.objectContaining({
+        value: mockVisitorId,
+      }),
+    );
+
+    // Verificar que no se llamó al método save
+    expect(mockVisitorRepository.save).not.toHaveBeenCalled();
+
+    // Verificar que el resultado es un error
+    expect(result.isErr()).toBeTruthy();
+    expect(result.error).toBe(mockDomainError);
+  });
+});
