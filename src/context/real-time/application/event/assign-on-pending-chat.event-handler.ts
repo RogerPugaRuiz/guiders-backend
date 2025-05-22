@@ -1,29 +1,33 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { EventBus, EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { NewChatCreatedEvent } from 'src/context/conversations/chat/domain/chat/events/new-chat-created.event';
-import {
-  CONNECTION_REPOSITORY,
-  ConnectionRepository,
-} from '../../domain/connection.repository';
-import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { ConnectionUser } from '../../domain/connection-user';
-import { ConnectionRole } from '../../domain/value-objects/connection-role';
 import { ChatCommercialsAssignedEvent } from '../../domain/events/chat-commercials-assigned.event';
+import { CommercialAssignmentService } from '../../domain/commercial-assignment.service';
 
 @EventsHandler(NewChatCreatedEvent)
 export class AssignOnPendingChatEventHandler implements IEventHandler {
   private readonly logger = new Logger(AssignOnPendingChatEventHandler.name);
 
   constructor(
-    @Inject(CONNECTION_REPOSITORY)
-    private readonly connectionRepository: ConnectionRepository,
+    private readonly commercialAssignmentService: CommercialAssignmentService,
     private readonly eventBus: EventBus,
   ) {}
 
+  /**
+   * Maneja el evento NewChatCreatedEvent asignando comerciales al nuevo chat
+   * @param event Evento disparado cuando se crea un nuevo chat
+   */
   async handle(event: NewChatCreatedEvent): Promise<void> {
     const { id: chatId } = event.atributes.chat;
 
-    const connCommercialList = await this.getCommercialConnections();
+    // Utilizamos el servicio centralizado para obtener los comerciales conectados
+    const connCommercialList =
+      await this.commercialAssignmentService.getConnectedCommercials();
+
+    if (connCommercialList.length === 0) {
+      this.logger.warn('No hay comerciales conectados para asignar al chat');
+      return;
+    }
 
     this.eventBus.publish(
       new ChatCommercialsAssignedEvent(
@@ -31,23 +35,9 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
         connCommercialList.map((conn) => conn.userId.value),
       ),
     );
-  }
 
-  async getCommercialConnections() {
-    const criteria = new Criteria<ConnectionUser>().addFilter(
-      'roles',
-      Operator.IN,
-      [ConnectionRole.COMMERCIAL],
-    );
-
-    const connCommercialList = await this.connectionRepository.find(criteria);
-
-    if (connCommercialList.length === 0) {
-      throw new Error('No commercial connections found');
-    }
-
-    return connCommercialList.filter((conn) =>
-      conn.isConnected() ? conn : null,
+    this.logger.log(
+      `Chat ${chatId} asignado a ${connCommercialList.length} comerciales`,
     );
   }
 }

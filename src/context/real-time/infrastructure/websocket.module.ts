@@ -21,9 +21,12 @@ import { NotifyOnChatStateUpdatedEventHandler } from '../application/event/notif
 import { NotifyOnChatLastMessageUpdatedEventHandler } from '../application/event/notify-on-chat-last-message-updated.event-handler';
 import { NotifyOnParticipantSeenChatEventHandler } from '../application/event/notify-on-participant-seen-chat.event-handler';
 import { NotifyOnParticipantUnseenChatEventHandler } from '../application/event/notify-on-participant-unseen-chat.event-handler';
+import { RecalculateAssignmentOnCommercialConnectedEventHandler } from '../application/event/recalculate-assignment-on-commercial-connected.event-handler';
+import { CommercialAssignmentService } from '../domain/commercial-assignment.service';
+import { ChatModule } from 'src/context/conversations/chat/infrastructure/chat.module';
 
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule, ChatModule],
   providers: [
     RealTimeWebSocketGateway,
     TokenVerifyService,
@@ -55,6 +58,8 @@ import { NotifyOnParticipantUnseenChatEventHandler } from '../application/event/
     NotifyOnChatLastMessageUpdatedEventHandler,
     NotifyOnParticipantSeenChatEventHandler,
     NotifyOnParticipantUnseenChatEventHandler,
+    RecalculateAssignmentOnCommercialConnectedEventHandler,
+    CommercialAssignmentService,
   ],
   exports: [],
 })

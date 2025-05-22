@@ -3,6 +3,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 // Importación robusta de nodemailer para evitar problemas de undefined en entornos CommonJS/ESM
 import * as nodemailer from 'nodemailer';
+// Importar SMTPTransport para tipado seguro (comentado si no se usa)
+// import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { EmailSenderService } from '../../domain/email/email-sender.service';
 
 @Injectable()
@@ -70,8 +72,10 @@ export class EtherealEmailSenderService implements EmailSenderService {
       throw new Error('Respuesta inesperada de nodemailer.sendMail');
     }
     // Cast seguro a tipo SMTPTransport.SentMessageInfo para getTestMessageUrl
-    // Se usa 'as any' para evitar problemas de tipado cruzado entre nodemailer y sus subtipos
-    const previewUrl = nodemailer.getTestMessageUrl(infoRaw as any);
+    // Se usa 'as SMTPTransport.SentMessageInfo' para evitar problemas de tipado cruzado entre nodemailer y sus subtipos
+    const previewUrl = nodemailer.getTestMessageUrl(
+      infoRaw as any, // eslint-disable-line @typescript-eslint/no-unsafe-argument
+    );
     this.logger.log(
       `Email enviado a ${params.to}. Preview: ${previewUrl ?? 'no disponible'}`,
     );

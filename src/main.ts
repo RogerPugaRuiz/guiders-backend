@@ -27,6 +27,6 @@ async function bootstrap() {
   logger.log(`Application is running on ${process.env.PORT ?? 3000} port`);
   // Se ignora el warning de promesa no gestionada explícitamente, ya que main.ts es el entrypoint y está controlado por Nest
 
-  await app.listen(process.env.PORT ?? 3000);
+  void app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

@@ -1,4 +1,9 @@
-import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
+import {
+  CommandHandler,
+  EventPublisher,
+  ICommandHandler,
+  EventBus,
+} from '@nestjs/cqrs';
 import { ConnectUserCommand } from './connect-user.command';
 import { Inject, Logger } from '@nestjs/common';
 import {
@@ -11,6 +16,7 @@ import { ConnectionSocketId } from '../../../domain/value-objects/connection-soc
 import { ConnectionUserId } from '../../../domain/value-objects/connection-user-id';
 import { ConnectionRole } from '../../../domain/value-objects/connection-role';
 import { INotification, NOTIFICATION } from '../../../domain/notification';
+import { CommercialConnectedEvent } from '../../../domain/events/commercial-connected.event';
 
 @CommandHandler(ConnectUserCommand)
 export class ConnectUserCommandHandler
@@ -23,6 +29,7 @@ export class ConnectUserCommandHandler
     @Inject(NOTIFICATION)
     private readonly notification: INotification,
     private readonly publisher: EventPublisher,
+    private readonly eventBus: EventBus,
   ) {}
   async execute(command: ConnectUserCommand): Promise<void> {
     const { userId, socketId, roles } = command;
@@ -49,6 +56,28 @@ export class ConnectUserCommandHandler
         roles,
       },
     });
+
+    // Si el usuario conectado es un comercial, disparamos el evento CommercialConnectedEvent
+    if (roles.includes(ConnectionRole.COMMERCIAL)) {
+      // Obtenemos la conexión actualizada para asegurarnos de tener la última versión
+      const updatedResult = await this.repository.findOne(criteria);
+      updatedResult.fold(
+        () => {
+          this.logger.warn(
+            `No se pudo encontrar la conexión para el usuario ${userId} después de conectarlo`,
+          );
+        },
+        (connection) => {
+          // Publicamos el evento de comercial conectado
+          this.eventBus.publish(
+            new CommercialConnectedEvent(connection.toPrimitives()),
+          );
+          this.logger.log(
+            `Comercial ${userId} conectado - Evento CommercialConnectedEvent disparado`,
+          );
+        },
+      );
+    }
   }
 
   private async handleExistingConnection(
