@@ -59,6 +59,6 @@ import { ParticipantUnseenChatCommandHandler } from '../application/update/parti
 
     ChatService,
   ],
-  exports: [],
+  exports: [CHAT_REPOSITORY],
 })
 export class ChatModule {}

@@ -19,3 +19,4 @@ Si es necesario un diagrama, crea uno en formato Mermaid en docs, con nombre des
 Responde siempre con el código bien formateado y listo para usar.
 Si se modifica código existente, ajustar también las pruebas y luego ejecutarlas.
 Despues de cada modificación, ejecuta el linter para verificar que no haya errores de sintaxis.
+mira en el package.json los scripts de lint, test y migrate.
