@@ -601,7 +601,7 @@ export class RealTimeWebSocketGateway
       const result: Result<void, DomainError> = await this.commandBus.execute(
         new UpdateVisitorCurrentPageCommand(client.user.sub, currentPage),
       );
-      if (result && result.isErr && result.isErr()) {
+      if (result?.isErr()) {
         const errorMsg =
           result.error && typeof result.error.message === 'string'
             ? result.error.message
