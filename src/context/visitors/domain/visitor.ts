@@ -9,6 +9,9 @@ import { VisitorCreatedEvent } from './events/visitor-created-event';
 import { Optional } from 'src/context/shared/domain/optional';
 import { VisitorCurrentPage } from './value-objects/visitor-current-page';
 import { VisitorCurrentPageUpdatedEvent } from './events/visitor-current-page-updated-event';
+import { VisitorEmailUpdatedEvent } from './events/visitor-email-updated-event';
+import { VisitorNameUpdatedEvent } from './events/visitor-name-updated-event';
+import { VisitorTelUpdatedEvent } from './events/visitor-tel-updated-event';
 
 // Interfaz para serializar la entidad a primitivos
 export interface VisitorPrimitives {
@@ -151,6 +154,78 @@ export class Visitor extends AggregateRoot {
       new VisitorCurrentPageUpdatedEvent({
         visitorId: this._id.value,
         currentPage: newPage.value,
+      }),
+    );
+    return updated;
+  }
+
+  // Método para actualizar el email de forma inmutable
+  public updateEmail(newEmail: VisitorEmail): Visitor {
+    // Si el email es el mismo, retorna la misma instancia (idempotencia)
+    if (this._email && this._email.value === newEmail.value) {
+      return this;
+    }
+    const updated = new Visitor(
+      this._id,
+      this._name,
+      newEmail,
+      this._tel,
+      this._tags,
+      this._notes,
+      this._currentPage,
+    );
+    updated.apply(
+      new VisitorEmailUpdatedEvent({
+        visitorId: this._id.value,
+        email: newEmail.value,
+      }),
+    );
+    return updated;
+  }
+
+  // Método para actualizar el nombre de forma inmutable
+  public updateName(newName: VisitorName): Visitor {
+    // Si el nombre es el mismo, retorna la misma instancia (idempotencia)
+    if (this._name && this._name.value === newName.value) {
+      return this;
+    }
+    const updated = new Visitor(
+      this._id,
+      newName,
+      this._email,
+      this._tel,
+      this._tags,
+      this._notes,
+      this._currentPage,
+    );
+    updated.apply(
+      new VisitorNameUpdatedEvent({
+        visitorId: this._id.value,
+        name: newName.value,
+      }),
+    );
+    return updated;
+  }
+
+  // Método para actualizar el teléfono de forma inmutable
+  public updateTel(newTel: VisitorTel): Visitor {
+    // Si el teléfono es el mismo, retorna la misma instancia (idempotencia)
+    if (this._tel && this._tel.value === newTel.value) {
+      return this;
+    }
+    const updated = new Visitor(
+      this._id,
+      this._name,
+      this._email,
+      newTel,
+      this._tags,
+      this._notes,
+      this._currentPage,
+    );
+    updated.apply(
+      new VisitorTelUpdatedEvent({
+        visitorId: this._id.value,
+        tel: newTel.value,
       }),
     );
     return updated;
