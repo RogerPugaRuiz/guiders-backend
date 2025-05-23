@@ -17,6 +17,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import {
+  RolesGuard,
+  RequiredRoles,
+} from 'src/context/shared/infrastructure/guards/role.guard';
 import { GetVisitorByIdQuery } from '../../application/queries/get-visitor-by-id.query';
 import { VisitorResponseDto } from '../../application/dtos/visitor-response.dto';
 import { UpdateVisitorCurrentPageDto } from '../../application/dtos/update-visitor-current-page.dto';
@@ -42,7 +46,8 @@ export class VisitorController {
   ) {}
 
   @Get(':visitorId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener datos del visitante por ID',
@@ -60,6 +65,10 @@ export class VisitorController {
   @ApiResponse({
     status: 404,
     description: 'Visitante no encontrado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado: Se requiere rol commercial',
   })
   async getVisitor(
     @Param('visitorId') visitorId: string,
@@ -92,7 +101,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/current-page')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('visitor')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar página actual del visitante',
@@ -109,6 +119,10 @@ export class VisitorController {
   @ApiResponse({
     status: 401,
     description: 'No autorizado: token JWT inválido o ausente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado: Se requiere rol visitor',
   })
   @ApiResponse({
     status: 404,
@@ -141,7 +155,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/email')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar email del visitante',
@@ -158,6 +173,10 @@ export class VisitorController {
   @ApiResponse({
     status: 401,
     description: 'No autorizado: token JWT inválido o ausente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado: Se requiere rol commercial',
   })
   @ApiResponse({
     status: 404,
@@ -190,7 +209,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/name')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar nombre del visitante',
@@ -207,6 +227,10 @@ export class VisitorController {
   @ApiResponse({
     status: 401,
     description: 'No autorizado: token JWT inválido o ausente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado: Se requiere rol commercial',
   })
   @ApiResponse({
     status: 404,
@@ -239,7 +263,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/tel')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar teléfono del visitante',
@@ -256,6 +281,10 @@ export class VisitorController {
   @ApiResponse({
     status: 401,
     description: 'No autorizado: token JWT inválido o ausente',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Acceso denegado: Se requiere rol commercial',
   })
   @ApiResponse({
     status: 404,
