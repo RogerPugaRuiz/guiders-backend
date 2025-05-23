@@ -13,6 +13,7 @@ import { UpdateVisitorEmailCommandHandler } from '../application/commands/update
 import { UpdateVisitorNameCommandHandler } from '../application/commands/update-visitor-name-command.handler';
 import { UpdateVisitorTelCommandHandler } from '../application/commands/update-visitor-tel-command.handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { HttpModule } from '@nestjs/axios';
 
 // Definimos los manejadores de comandos y eventos
 const CommandHandlers = [
@@ -26,7 +27,11 @@ const EventHandlers = [OnVisitorAccountCreatedEventHandler];
 const QueryHandlers = [GetVisitorByIdQueryHandler];
 
 @Module({
-  imports: [TypeOrmModule.forFeature([VisitorTypeOrmEntity]), CqrsModule],
+  imports: [
+    TypeOrmModule.forFeature([VisitorTypeOrmEntity]),
+    CqrsModule,
+    HttpModule,
+  ],
   providers: [
     { provide: VISITOR_REPOSITORY, useClass: TypeOrmVisitorAdapter },
     TokenVerifyService,

@@ -8,13 +8,15 @@ import {
 import { Visitor } from 'src/context/visitors/domain/visitor';
 import { ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
+import { VisitorNotFoundError } from 'src/context/visitors/domain/errors/visitor.error';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 describe('GetVisitorByIdQueryHandler', () => {
   let handler: GetVisitorByIdQueryHandler;
   let mockVisitorRepository: Partial<IVisitorRepository>;
 
   // Mock de visitante para pruebas
-  const mockVisitorId = 'visitor-123';
+  const mockVisitorId = Uuid.generate();
   const mockVisitor = Visitor.fromPrimitives({
     id: mockVisitorId,
     name: 'Test Visitor',
@@ -26,9 +28,8 @@ describe('GetVisitorByIdQueryHandler', () => {
   });
 
   // Mock del error del repositorio
-  const mockDomainError = new DomainError('Visitor not found');
-
-  const mockErrorResult = err(mockDomainError);
+  const mockDomainError = new VisitorNotFoundError(mockVisitorId);
+  const mockErrorResult = err<Visitor, DomainError>(mockDomainError);
 
   beforeEach(async () => {
     // Configuración de los mocks

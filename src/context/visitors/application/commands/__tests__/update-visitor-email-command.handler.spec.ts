@@ -8,25 +8,28 @@ import {
 import { Visitor } from 'src/context/visitors/domain/visitor';
 import { ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
+import { VisitorNotFoundError } from 'src/context/visitors/domain/errors/visitor.error';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 describe('UpdateVisitorEmailCommandHandler', () => {
   let handler: UpdateVisitorEmailCommandHandler;
   let mockVisitorRepository: Partial<IVisitorRepository>;
 
   // Mock de visitante para pruebas
-  const mockVisitorId = 'visitor-123';
+  const mockVisitorId = Uuid.generate();
   const mockVisitor = Visitor.fromPrimitives({
     id: mockVisitorId,
     email: 'old-email@example.com',
   });
 
   // Mock del resultado exitoso del repositorio
-  const mockSuccessResult = ok(undefined);
+  const mockSuccessResult = ok<void, DomainError>(undefined);
 
   // Mock del error del repositorio
-  const mockDomainError = new DomainError('Visitor not found');
 
-  const mockErrorResult = err(mockDomainError);
+  const mockDomainError = new VisitorNotFoundError(mockVisitorId);
+
+  const mockErrorResult = err<void, DomainError>(mockDomainError);
 
   beforeEach(async () => {
     // Configuración de los mocks
@@ -106,6 +109,9 @@ describe('UpdateVisitorEmailCommandHandler', () => {
 
     // Verificar que el resultado es un error
     expect(result.isErr()).toBeTruthy();
-    expect(result.error).toBe(mockDomainError);
+    result.fold(
+      (error) => expect(error.message).toContain(mockVisitorId),
+      () => fail('Se esperaba un error pero se obtuvo un éxito'),
+    );
   });
 });
