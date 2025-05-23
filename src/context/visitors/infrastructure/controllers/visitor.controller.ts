@@ -46,8 +46,8 @@ export class VisitorController {
   ) {}
 
   @Get(':visitorId')
-  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener datos del visitante por ID',
@@ -101,8 +101,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/current-page')
-  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('visitor')
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar página actual del visitante',
@@ -155,8 +155,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/email')
-  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar email del visitante',
@@ -209,8 +209,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/name')
-  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar nombre del visitante',
@@ -263,8 +263,8 @@ export class VisitorController {
   }
 
   @Put(':visitorId/tel')
-  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Actualizar teléfono del visitante',
