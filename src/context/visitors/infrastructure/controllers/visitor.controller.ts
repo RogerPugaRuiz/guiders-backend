@@ -5,8 +5,8 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Param,
   Put,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -31,17 +31,6 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
 import { VisitorPrimitives } from '../../domain/visitor';
 
-// Tipo para el objeto req.user que proporciona el AuthGuard
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    roles: string[];
-    username: string;
-    email?: string;
-    companyId?: string;
-  };
-}
-
 @ApiTags('Visitantes')
 @Controller('visitor')
 export class VisitorController {
@@ -52,13 +41,12 @@ export class VisitorController {
     private readonly queryBus: QueryBus,
   ) {}
 
-  @Get()
+  @Get(':visitorId')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Obtener datos del visitante autenticado',
-    description:
-      'Obtiene los datos del visitante a partir del ID en el token JWT',
+    summary: 'Obtener datos del visitante por ID',
+    description: 'Obtiene los datos del visitante a partir del ID en la URL',
   })
   @ApiResponse({
     status: 200,
@@ -74,15 +62,13 @@ export class VisitorController {
     description: 'Visitante no encontrado',
   })
   async getVisitor(
-    @Req() req: AuthenticatedRequest,
+    @Param('visitorId') visitorId: string,
   ): Promise<VisitorResponseDto> {
     try {
-      // Obtener el ID del visitante desde el token JWT
-      const visitorId = req.user?.id;
       if (!visitorId) {
         throw new HttpException(
-          'ID de visitante no encontrado en el token',
-          HttpStatus.UNAUTHORIZED,
+          'ID de visitante no proporcionado',
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -105,7 +91,7 @@ export class VisitorController {
     }
   }
 
-  @Put('current-page')
+  @Put(':visitorId/current-page')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -129,16 +115,14 @@ export class VisitorController {
     description: 'Visitante no encontrado',
   })
   async updateCurrentPage(
-    @Req() req: AuthenticatedRequest,
+    @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorCurrentPageDto,
   ): Promise<void> {
     try {
-      // Obtener el ID del visitante desde el token JWT
-      const visitorId = req.user?.id;
       if (!visitorId) {
         throw new HttpException(
-          'ID de visitante no encontrado en el token',
-          HttpStatus.UNAUTHORIZED,
+          'ID de visitante no proporcionado',
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -156,7 +140,7 @@ export class VisitorController {
     }
   }
 
-  @Put('email')
+  @Put(':visitorId/email')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -180,16 +164,14 @@ export class VisitorController {
     description: 'Visitante no encontrado',
   })
   async updateEmail(
-    @Req() req: AuthenticatedRequest,
+    @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorEmailDto,
   ): Promise<void> {
     try {
-      // Obtener el ID del visitante desde el token JWT
-      const visitorId = req.user?.id;
       if (!visitorId) {
         throw new HttpException(
-          'ID de visitante no encontrado en el token',
-          HttpStatus.UNAUTHORIZED,
+          'ID de visitante no proporcionado',
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -207,7 +189,7 @@ export class VisitorController {
     }
   }
 
-  @Put('name')
+  @Put(':visitorId/name')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -231,16 +213,14 @@ export class VisitorController {
     description: 'Visitante no encontrado',
   })
   async updateName(
-    @Req() req: AuthenticatedRequest,
+    @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorNameDto,
   ): Promise<void> {
     try {
-      // Obtener el ID del visitante desde el token JWT
-      const visitorId = req.user?.id;
       if (!visitorId) {
         throw new HttpException(
-          'ID de visitante no encontrado en el token',
-          HttpStatus.UNAUTHORIZED,
+          'ID de visitante no proporcionado',
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -258,7 +238,7 @@ export class VisitorController {
     }
   }
 
-  @Put('tel')
+  @Put(':visitorId/tel')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
   @ApiOperation({
@@ -282,16 +262,14 @@ export class VisitorController {
     description: 'Visitante no encontrado',
   })
   async updateTel(
-    @Req() req: AuthenticatedRequest,
+    @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorTelDto,
   ): Promise<void> {
     try {
-      // Obtener el ID del visitante desde el token JWT
-      const visitorId = req.user?.id;
       if (!visitorId) {
         throw new HttpException(
-          'ID de visitante no encontrado en el token',
-          HttpStatus.UNAUTHORIZED,
+          'ID de visitante no proporcionado',
+          HttpStatus.BAD_REQUEST,
         );
       }
 
@@ -311,7 +289,7 @@ export class VisitorController {
 
   // Método para manejar errores de dominio
   private handleDomainError(error: DomainError): void {
-    this.logger.error(`Error de dominio: ${error.message}`, error.stack);
+    this.logger.error(`Error de dominio: ${error.message}`);
 
     // Si el error contiene 'no encontrado', devuelve 404
     if (error.message.includes('no encontrado')) {
