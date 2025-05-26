@@ -137,6 +137,11 @@ jobs:
           echo "NODE_ENV=test" >> $GITHUB_ENV
           echo "DATABASE_URL=postgresql://test:test@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+          echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
+          echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
+          echo "TEST_DATABASE_USERNAME=test" >> $GITHUB_ENV
+          echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
+          echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
       - name: Run integration tests
         run: npm run test:int
@@ -203,6 +208,11 @@ jobs:
           echo "NODE_ENV=test" >> $GITHUB_ENV
           echo "DATABASE_URL=postgresql://test:test@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+          echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
+          echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
+          echo "TEST_DATABASE_USERNAME=test" >> $GITHUB_ENV
+          echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
+          echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
       - name: Run E2E tests
         run: npm run test:e2e

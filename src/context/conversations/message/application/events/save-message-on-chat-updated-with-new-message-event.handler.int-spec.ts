@@ -63,22 +63,41 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
     const chatId = Uuid.generate();
     const senderId = Uuid.generate();
     // Creamos un mensaje de prueba en formato primitivo
+    const now = new Date();
     const messagePrimitives = {
       id: messageId,
       chatId: chatId,
       senderId: senderId,
       content: 'Hello integration!',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
-    // Creamos el evento con el mensaje
-    const event = {
-      params: {
-        attributes: {
-          message: messagePrimitives,
+    // Creamos un chat de prueba con los campos mínimos requeridos
+    const chatPrimitives = {
+      id: chatId,
+      participants: [
+        {
+          id: senderId,
+          name: 'Test User',
+          isCommercial: false,
+          isVisitor: true,
+          isOnline: true,
+          assignedAt: now,
+          lastSeenAt: now,
+          isViewing: false,
+          isTyping: false,
         },
-      },
-    } as unknown as ChatUpdatedWithNewMessageEvent;
+      ],
+      status: 'active',
+      lastMessage: null,
+      lastMessageAt: null,
+      createdAt: now,
+    };
+    // Creamos el evento usando la API real
+    const event = new ChatUpdatedWithNewMessageEvent({
+      message: messagePrimitives,
+      chat: chatPrimitives,
+    });
 
     // Ejecutamos el handler
     await handler.handle(event);
