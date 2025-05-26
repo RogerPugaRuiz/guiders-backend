@@ -134,8 +134,9 @@ jobs:
       
       - name: Setup test environment variables
         run: |
+          echo "CI=true" >> $GITHUB_ENV
           echo "NODE_ENV=test" >> $GITHUB_ENV
-          echo "DATABASE_URL=******postgres:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://test:test@postgres:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
@@ -207,8 +208,9 @@ jobs:
       
       - name: Setup test environment variables
         run: |
+          echo "CI=true" >> $GITHUB_ENV
           echo "NODE_ENV=test" >> $GITHUB_ENV
-          echo "DATABASE_URL=******postgres:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://test:test@postgres:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://redis:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
