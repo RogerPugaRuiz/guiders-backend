@@ -55,6 +55,7 @@ export class AuthUserController {
   ) {}
 
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Iniciar sesión de usuario',
     description:
