@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant C as Controller
+    participant CM as CommandBus
+    participant CH as CommandHandler
+    participant D as Domain
+    participant EP as Event Publisher
+    participant EH as EventHandler
+    participant R as Repository
+    participant QM as QueryBus
+    participant QH as QueryHandler
+
+    Note over C,QH: Flujo de Comando (Escritura)
+    C->>CM: dispatch(CreateUserCommand)
+    CM->>CH: handle(command)
+    CH->>D: create(params)
+    D-->>D: apply(DomainEvent)
+    CH->>EP: mergeObjectContext(domain)
+    CH->>R: save(domain)
+    CH->>EP: commit()
+    EP->>EH: handle(DomainEvent)
+    EH->>R: performSideEffect()
+
+    Note over C,QH: Flujo de Query (Lectura)
+    C->>QM: dispatch(GetUserQuery)
+    QM->>QH: handle(query)
+    QH->>R: findById(id)
+    R-->>QH: userData
+    QH-->>C: userDTO

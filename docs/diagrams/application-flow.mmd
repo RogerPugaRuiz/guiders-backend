@@ -1,0 +1,35 @@
+graph TD
+    A[Cliente Web] -->|1. Registro| B(Auth Context)
+    A -->|2. Conexión WebSocket| C(Real-Time Context)
+    A -->|3. Navegación| D(Tracking Context)
+    
+    B -->|Tokens JWT| A
+    B -->|Validación| C
+    
+    C -->|Eventos de conexión| E(Visitors Context)
+    C -->|Mensajes| F(Conversations Context)
+    
+    D -->|Eventos de tracking| E
+    
+    G[Panel Comercial] -->|Autenticación| B
+    G -->|Conexión WebSocket| C
+    G -->|Consulta visitantes| E
+    G -->|Conversaciones| F
+    
+    H[Company Context] -->|Registro empresas| B
+    H -->|Gestión comerciales| G
+    
+    I[Shared Context] -.->|Value Objects, Utilidades| B
+    I -.->|Value Objects, Utilidades| C
+    I -.->|Value Objects, Utilidades| D
+    I -.->|Value Objects, Utilidades| E
+    I -.->|Value Objects, Utilidades| F
+    I -.->|Value Objects, Utilidades| H
+    
+    subgraph "Flujo de visitante"
+        A -->|4. Interacción| G
+    end
+    
+    subgraph "Flujo de comercial"
+        G -->|Iniciar conversación| A
+    end
