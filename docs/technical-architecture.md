@@ -4,9 +4,16 @@
 
 El backend de Guiders está construido siguiendo una arquitectura hexagonal basada en los principios de Domain-Driven Design (DDD) y Command Query Responsibility Segregation (CQRS). Esta arquitectura permite un alto grado de desacoplamiento entre los diferentes componentes del sistema, facilita la escalabilidad y mejora la mantenibilidad del código.
 
-## Diagrama de Arquitectura General
+## Diagramas de Arquitectura
 
+### Arquitectura General
 ![Arquitectura General](/docs/diagrams/architecture-overview.mmd)
+
+### Flujo de la Aplicación
+![Flujo de la Aplicación](/docs/diagrams/application-flow.mmd)
+
+### Interacción entre Contextos
+![Interacción entre Contextos](/docs/diagrams/contexts-interaction-flow.mmd)
 
 ## Principios Arquitectónicos
 
@@ -36,6 +43,8 @@ El patrón CQRS separa las operaciones de lectura (Queries) de las operaciones d
 3. **Eventos de Dominio**: El Command Handler puede generar eventos de dominio que representan cambios significativos.
 4. **Event Handlers**: Reaccionan a los eventos de dominio para mantener vistas, enviar notificaciones, etc.
 5. **Queries**: Se ejecutan para obtener datos del sistema, posiblemente de vistas optimizadas.
+
+![Flujo CQRS](/docs/diagrams/cqrs-flow.mmd)
 
 ## Estructura de Carpetas
 

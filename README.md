@@ -112,6 +112,10 @@ El proyecto implementa el patrón CQRS con el siguiente flujo:
 4. Las entidades del **Dominio** pueden emitir eventos cuando cambian su estado.
 5. Los **EventHandlers** reaccionan a estos eventos para mantener la coherencia, actualizar proyecciones, etc.
 
+El flujo general de la aplicación se muestra en el siguiente diagrama:
+
+![Flujo de la Aplicación](/docs/diagrams/application-flow.mmd)
+
 Para más detalles sobre la arquitectura, consulta la [documentación técnica](/docs/technical-architecture.md).
 
 ### Estructura de carpetas
