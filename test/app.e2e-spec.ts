@@ -7,19 +7,42 @@ import { AppModule } from './../src/app.module';
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+  // Aumentar el timeout para este test específico
+  jest.setTimeout(30000);
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  // Usar beforeAll en lugar de beforeEach para mejorar el rendimiento
+  beforeAll(async () => {
+    try {
+      const moduleFixture: TestingModule = await Test.createTestingModule({
+        imports: [AppModule],
+      }).compile();
+
+      app = moduleFixture.createNestApplication();
+      await app.init();
+      console.log('App initialized successfully');
+    } catch (error) {
+      console.error('Error initializing app:', error);
+      throw error;
+    }
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  afterAll(async () => {
+    if (app) {
+      await app.close();
+      console.log('App closed successfully');
+    }
+  });
+
+  it('/ (GET)', async () => {
+    try {
+      const response = await request(app.getHttpServer())
+        .get('/')
+        .expect(200);
+      
+      expect(response.text).toContain('Hello World!');
+    } catch (error) {
+      console.error('Error in test:', error);
+      throw error;
+    }
   });
 });

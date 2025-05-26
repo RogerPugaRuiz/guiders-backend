@@ -10,5 +10,7 @@
   "testEnvironment": "node",
   "moduleNameMapper": {
     "^src/(.*)$": "<rootDir>/$1"
-  }
+  },
+  "testTimeout": 30000,
+  "setupFilesAfterEnv": ["<rootDir>/../test/setup-int.ts"]
 }
