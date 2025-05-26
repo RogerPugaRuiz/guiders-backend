@@ -1,0 +1,38 @@
+sequenceDiagram
+    participant Client
+    participant Auth
+    participant RealTime
+    participant Visitors
+    participant Conversations
+    participant Tracking
+    participant Company
+
+    Client->>Auth: Registro de visitante
+    Auth->>Auth: Validar API key y dominio
+    Auth-->>Client: Tokens JWT
+    
+    Client->>RealTime: Conectar WebSocket (con token)
+    RealTime->>Auth: Validar token
+    RealTime->>RealTime: Registrar conexión
+    
+    Client->>Tracking: Evento de página visitada
+    Tracking->>Auth: Validar token
+    Tracking->>Tracking: Registrar evento
+    Tracking->>Visitors: Actualizar actividad
+    
+    Client->>RealTime: Enviar mensaje
+    RealTime->>Conversations: Guardar mensaje
+    RealTime->>RealTime: Buscar destinatario
+    RealTime->>Client: Entregar mensaje
+    
+    Company->>RealTime: Conectar comercial
+    RealTime->>Auth: Validar credenciales
+    RealTime->>Company: Notificar conexión
+    
+    Company->>Visitors: Consultar visitantes activos
+    Visitors->>Tracking: Obtener actividad reciente
+    Visitors-->>Company: Lista de visitantes
+    
+    Company->>RealTime: Iniciar conversación
+    RealTime->>Conversations: Crear conversación
+    RealTime->>Client: Notificar nueva conversación

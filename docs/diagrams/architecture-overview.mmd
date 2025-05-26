@@ -1,0 +1,51 @@
+classDiagram
+    class AuthContext {
+        Gestión de autenticación
+        Validación de tokens
+        Registro de visitantes
+    }
+    
+    class CompanyContext {
+        Gestión de empresas
+        Configuración de cuentas
+    }
+    
+    class ConversationsContext {
+        Mensajes
+        Chats
+        Historial de conversaciones
+    }
+    
+    class RealTimeContext {
+        Conexiones WebSocket
+        Eventos en tiempo real
+        Notificaciones
+    }
+    
+    class TrackingContext {
+        Seguimiento de actividad
+        Analítica de visitantes
+    }
+    
+    class VisitorsContext {
+        Datos de visitantes
+        Información de navegación
+    }
+    
+    class SharedContext {
+        Value Objects comunes
+        Utilidades compartidas
+    }
+    
+    ConversationsContext --> AuthContext: Utiliza
+    RealTimeContext --> AuthContext: Validación
+    TrackingContext --> VisitorsContext: Registra actividad
+    ConversationsContext --> RealTimeContext: Envía mensajes
+    VisitorsContext --> CompanyContext: Pertenece
+    
+    SharedContext --> AuthContext: Utilizado por
+    SharedContext --> CompanyContext: Utilizado por
+    SharedContext --> ConversationsContext: Utilizado por
+    SharedContext --> RealTimeContext: Utilizado por
+    SharedContext --> TrackingContext: Utilizado por
+    SharedContext --> VisitorsContext: Utilizado por
