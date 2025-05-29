@@ -78,8 +78,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Ensure coverage directory
+        run: node src/scripts/ensure-coverage-dir.js
+      
+      - name: Run unit tests with coverage
+        run: npm run test:unit -- --coverage
+      
+      - name: Verify coverage directory
+        run: |
+          ls -la
+          ls -la coverage || echo "No coverage directory found"
       
       - name: Upload unit test coverage
         uses: actions/upload-artifact@v4
@@ -87,6 +95,7 @@ jobs:
           name: unit-test-coverage
           path: coverage/
           retention-days: 7
+          if-no-files-found: warn
 
   # Job para tests de integración
   test-integration:
@@ -131,6 +140,9 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
+        
+      - name: Ensure coverage directory
+        run: node src/scripts/ensure-coverage-dir.js
       
       - name: Setup test environment variables
         run: |
@@ -143,8 +155,13 @@ jobs:
           echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
-      - name: Run integration tests
-        run: npm run test:int
+      - name: Run integration tests with coverage
+        run: npm run test:int -- --coverage
+      
+      - name: Verify integration coverage directory
+        run: |
+          ls -la
+          ls -la coverage || echo "No coverage directory found"
       
       - name: Upload integration test coverage
         uses: actions/upload-artifact@v4
@@ -152,6 +169,7 @@ jobs:
           name: integration-test-coverage
           path: coverage/
           retention-days: 7
+          if-no-files-found: warn
 
   # Job para tests e2e
   test-e2e:
