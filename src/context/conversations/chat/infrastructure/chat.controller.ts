@@ -25,6 +25,8 @@ import { ChatService } from './chat.service';
 import { FindOneChatByIdQuery } from '../../chat/application/read/find-one-chat-by-id.query';
 import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
 import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
+import { ChatIdsResponseDto } from '../../chat/application/dtos/chat-ids-response.dto';
+import { FindChatListByParticipantQuery } from '../../chat/application/read/find-chat-list-by-participant.query';
 import { Result } from 'src/context/shared/domain/result';
 import { ChatPrimitives } from '../../chat/domain/chat/chat';
 
@@ -88,6 +90,22 @@ export class ChatController {
         return response;
       },
     );
+  }
+
+  @Get('ids')
+  @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
+  async getChatIds(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatIdsResponseDto> {
+    const participantId = req.user.id;
+    const result = await this.queryBus.execute<
+      FindChatListByParticipantQuery,
+      { chats: ChatPrimitives[] }
+    >(new FindChatListByParticipantQuery(participantId));
+
+    const chatIds = result.chats.map((chat) => chat.id);
+    return new ChatIdsResponseDto(chatIds);
   }
 
   @Get(':chatId')

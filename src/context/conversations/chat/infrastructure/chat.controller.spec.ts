@@ -3,10 +3,12 @@ import { ChatController } from './chat.controller';
 import { QueryBus } from '@nestjs/cqrs';
 import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
 import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
+import { ChatIdsResponseDto } from '../../chat/application/dtos/chat-ids-response.dto';
 import { ok, err } from 'src/context/shared/domain/result';
 import { ChatPrimitives } from '../../chat/domain/chat/chat';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import { AuthenticatedRequest } from 'src/context/shared/infrastructure/guards/auth.guard';
 
 // Mock para AuthGuard y RolesGuard
 jest.mock('src/context/shared/infrastructure/guards/auth.guard', () => ({
@@ -88,6 +90,69 @@ describe('ChatController', () => {
         'status',
         HttpStatus.NOT_FOUND,
       );
+    });
+  });
+
+  describe('getChatIds', () => {
+    it('debe devolver lista de IDs de chats del usuario autenticado', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const req: AuthenticatedRequest = {
+        user: {
+          id: userId,
+          roles: ['commercial'],
+          username: 'test-user',
+        },
+      } as AuthenticatedRequest;
+
+      const chats: ChatPrimitives[] = [
+        {
+          id: 'chat-1',
+          participants: [],
+          status: 'active',
+          lastMessage: null,
+          lastMessageAt: null,
+          createdAt: new Date(),
+        },
+        {
+          id: 'chat-2',
+          participants: [],
+          status: 'active',
+          lastMessage: null,
+          lastMessageAt: null,
+          createdAt: new Date(),
+        },
+      ];
+
+      jest.spyOn(queryBus, 'execute').mockResolvedValue({ chats });
+
+      // Act
+      const result = await controller.getChatIds(req);
+
+      // Assert
+      expect(result).toBeInstanceOf(ChatIdsResponseDto);
+      expect(result.chatIds).toEqual(['chat-1', 'chat-2']);
+    });
+
+    it('debe devolver lista vacía si el usuario no tiene chats', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const req: AuthenticatedRequest = {
+        user: {
+          id: userId,
+          roles: ['commercial'],
+          username: 'test-user',
+        },
+      } as AuthenticatedRequest;
+
+      jest.spyOn(queryBus, 'execute').mockResolvedValue({ chats: [] });
+
+      // Act
+      const result = await controller.getChatIds(req);
+
+      // Assert
+      expect(result).toBeInstanceOf(ChatIdsResponseDto);
+      expect(result.chatIds).toEqual([]);
     });
   });
 });
