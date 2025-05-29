@@ -23,20 +23,65 @@ import {
 import { PaginateEndOfStreamError } from '../../message/domain/errors';
 import { ChatService } from './chat.service';
 import { FindOneChatByIdQuery } from '../../chat/application/read/find-one-chat-by-id.query';
+import { FindChatListWithFiltersQuery } from '../../chat/application/read/find-chat-list-with-filters.query';
 import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
 import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
 import { Result } from 'src/context/shared/domain/result';
 import { ChatPrimitives } from '../../chat/domain/chat/chat';
+import {
+  ChatControllerSwagger,
+  GetChatListSwagger,
+  StartChatSwagger,
+  GetMessagesSwagger,
+  GetChatByIdSwagger,
+} from './docs/chat-controller.swagger';
 
-@Controller('chat')
+@ChatControllerSwagger()
+@Controller()
 export class ChatController {
   constructor(
     private readonly queryBus: QueryBus,
     private readonly chatService: ChatService,
   ) {}
-  @Post(':chatId')
+
+  // Listar chats del usuario autenticado (solo para usuarios con rol commercial)
+  @Get('chats')
+  @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
+  @GetChatListSwagger()
+  async getChatList(
+    @Req() req: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('include') include?: string,
+  ): Promise<{ chats: ChatPrimitives[] }> {
+    const { id: participantId } = req.user;
+
+    // Convertir limit a number de forma segura
+    const parsedLimit = limit ? Number(limit) || 50 : 50;
+
+    // Procesar parámetro include
+    const includeFields = include
+      ? include.split(',').map((field) => field.trim())
+      : [];
+
+    const query = FindChatListWithFiltersQuery.create({
+      participantId,
+      limit: parsedLimit,
+      include: includeFields,
+    });
+
+    const result = await this.queryBus.execute<
+      FindChatListWithFiltersQuery,
+      { chats: ChatPrimitives[] }
+    >(query);
+
+    return result;
+  }
+
+  @Post('chat/:chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
+  @StartChatSwagger()
   async startChat(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
@@ -45,10 +90,11 @@ export class ChatController {
     return await this.chatService.startChat(chatId, visitorId, visitorName);
   }
 
-  // get messages by chatId
-  @Get(':chatId/messages')
+  // Obtener mensajes paginados de un chat específico
+  @Get('chat/:chatId/messages')
   @RequiredRoles('visitor', 'commercial')
   @UseGuards(AuthGuard, RolesGuard)
+  @GetMessagesSwagger()
   async messagePaginate(
     @Param('chatId') chatId: string,
     @Query('limit') limit: string = '10',
@@ -90,9 +136,11 @@ export class ChatController {
     );
   }
 
-  @Get(':chatId')
+  // Obtener información de un chat específico por ID
+  @Get('chat/:chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
+  @GetChatByIdSwagger()
   async getChatById(@Param('chatId') chatId: string): Promise<ChatResponseDto> {
     const result = await this.queryBus.execute<
       FindOneChatByIdQuery,
