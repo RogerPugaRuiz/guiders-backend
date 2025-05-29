@@ -23,6 +23,7 @@ import {
 import { PaginateEndOfStreamError } from '../../message/domain/errors';
 import { ChatService } from './chat.service';
 import { FindOneChatByIdQuery } from '../../chat/application/read/find-one-chat-by-id.query';
+import { FindChatListWithFiltersQuery } from '../../chat/application/read/find-chat-list-with-filters.query';
 import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
 import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
 import { Result } from 'src/context/shared/domain/result';
@@ -34,6 +35,39 @@ export class ChatController {
     private readonly queryBus: QueryBus,
     private readonly chatService: ChatService,
   ) {}
+  // Listar chats del usuario autenticado (solo para usuarios con rol commercial)
+  @Get()
+  @RequiredRoles('commercial')
+  @UseGuards(AuthGuard, RolesGuard)
+  async getChatList(
+    @Req() req: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('include') include?: string,
+  ): Promise<{ chats: ChatPrimitives[] }> {
+    const { id: participantId } = req.user;
+
+    // Convertir limit a number de forma segura
+    const parsedLimit = limit ? Number(limit) || 50 : 50;
+
+    // Procesar parámetro include
+    const includeFields = include
+      ? include.split(',').map((field) => field.trim())
+      : [];
+
+    const query = FindChatListWithFiltersQuery.create({
+      participantId,
+      limit: parsedLimit,
+      include: includeFields,
+    });
+
+    const result = await this.queryBus.execute<
+      FindChatListWithFiltersQuery,
+      { chats: ChatPrimitives[] }
+    >(query);
+
+    return result;
+  }
+
   @Post(':chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
