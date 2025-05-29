@@ -24,6 +24,7 @@ import { PaginateEndOfStreamError } from '../../message/domain/errors';
 import { ChatService } from './chat.service';
 import { FindOneChatByIdQuery } from '../../chat/application/read/find-one-chat-by-id.query';
 import { FindChatListWithFiltersQuery } from '../../chat/application/read/find-chat-list-with-filters.query';
+import { ChatListResponse } from '../../chat/application/read/find-chat-list-with-filters.query-handler';
 import { ChatNotFoundError } from '../../chat/domain/chat/errors/errors';
 import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
 import { Result } from 'src/context/shared/domain/result';
@@ -53,7 +54,8 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
     @Query('limit') limit?: string,
     @Query('include') include?: string,
-  ): Promise<{ chats: ChatPrimitives[] }> {
+    @Query('cursor') cursor?: string,
+  ): Promise<ChatListResponse> {
     const { id: participantId } = req.user;
 
     // Convertir limit a number de forma segura
@@ -68,11 +70,12 @@ export class ChatController {
       participantId,
       limit: parsedLimit,
       include: includeFields,
+      cursor,
     });
 
     const result = await this.queryBus.execute<
       FindChatListWithFiltersQuery,
-      { chats: ChatPrimitives[] }
+      ChatListResponse
     >(query);
 
     return result;
