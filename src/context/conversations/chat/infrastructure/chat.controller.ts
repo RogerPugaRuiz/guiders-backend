@@ -29,14 +29,14 @@ import { ChatResponseDto } from '../../chat/application/dtos/chat-response.dto';
 import { Result } from 'src/context/shared/domain/result';
 import { ChatPrimitives } from '../../chat/domain/chat/chat';
 
-@Controller('chat')
+@Controller()
 export class ChatController {
   constructor(
     private readonly queryBus: QueryBus,
     private readonly chatService: ChatService,
   ) {}
   // Listar chats del usuario autenticado (solo para usuarios con rol commercial)
-  @Get()
+  @Get('chats')
   @RequiredRoles('commercial')
   @UseGuards(AuthGuard, RolesGuard)
   async getChatList(
@@ -68,7 +68,7 @@ export class ChatController {
     return result;
   }
 
-  @Post(':chatId')
+  @Post('chat/:chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
   async startChat(
@@ -80,7 +80,7 @@ export class ChatController {
   }
 
   // get messages by chatId
-  @Get(':chatId/messages')
+  @Get('chat/:chatId/messages')
   @RequiredRoles('visitor', 'commercial')
   @UseGuards(AuthGuard, RolesGuard)
   async messagePaginate(
@@ -124,7 +124,7 @@ export class ChatController {
     );
   }
 
-  @Get(':chatId')
+  @Get('chat/:chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
   async getChatById(@Param('chatId') chatId: string): Promise<ChatResponseDto> {
