@@ -15,6 +15,9 @@ import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.gua
 
 interface ChatListResponse {
   chats: unknown[];
+  total: number;
+  hasMore: boolean;
+  nextCursor: string | null;
 }
 
 interface MockUser {
@@ -89,7 +92,12 @@ describe('Chat Controller (e2e)', () => {
         {
           provide: QueryBus,
           useValue: {
-            execute: jest.fn().mockResolvedValue({ chats: [] }),
+            execute: jest.fn().mockResolvedValue({
+              chats: [],
+              total: 0,
+              hasMore: false,
+              nextCursor: null,
+            }),
           },
         },
         {
@@ -140,9 +148,14 @@ describe('Chat Controller (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('chats');
+          expect(res.body).toHaveProperty('total');
+          expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
           expect(Array.isArray((res.body as ChatListResponse).chats)).toBe(
             true,
           );
+          expect(typeof (res.body as ChatListResponse).total).toBe('number');
+          expect(typeof (res.body as ChatListResponse).hasMore).toBe('boolean');
         });
     });
 
@@ -155,6 +168,9 @@ describe('Chat Controller (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('chats');
+          expect(res.body).toHaveProperty('total');
+          expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
           expect(Array.isArray((res.body as ChatListResponse).chats)).toBe(
             true,
           );
@@ -170,6 +186,9 @@ describe('Chat Controller (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('chats');
+          expect(res.body).toHaveProperty('total');
+          expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
           expect(Array.isArray((res.body as ChatListResponse).chats)).toBe(
             true,
           );
@@ -185,9 +204,100 @@ describe('Chat Controller (e2e)', () => {
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('chats');
+          expect(res.body).toHaveProperty('total');
+          expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
           expect(Array.isArray((res.body as ChatListResponse).chats)).toBe(
             true,
           );
+        });
+    });
+
+    it('debe soportar parámetro cursor para paginación', async () => {
+      const mockToken = 'mock-commercial-token';
+      const mockCursor =
+        'eyJjcmVhdGVkQXQiOiIyMDIzLTEwLTE1VDEwOjAwOjAwLjAwMFoiLCJpZCI6InRlc3QtaWQifQ==';
+
+      return request(app.getHttpServer())
+        .get(`/chats?cursor=${mockCursor}`)
+        .set('Authorization', `Bearer ${mockToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('chats');
+          expect(res.body).toHaveProperty('total');
+          expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
+          expect(Array.isArray((res.body as ChatListResponse).chats)).toBe(
+            true,
+          );
+        });
+    });
+
+    it('debe soportar cursor con limit combinados', async () => {
+      const mockToken = 'mock-commercial-token';
+      const mockCursor =
+        'eyJjcmVhdGVkQXQiOiIyMDIzLTEwLTE1VDEwOjAwOjAwLjAwMFoiLCJpZCI6InRlc3QtaWQifQ==';
+
+      return request(app.getHttpServer())
+        .get(`/chats?cursor=${mockCursor}&limit=10`)
+        .set('Authorization', `Bearer ${mockToken}`)
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('chats');
+          expect(res.body).toHaveProperty('total');
+          expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
+          expect(Array.isArray((res.body as ChatListResponse).chats)).toBe(
+            true,
+          );
+        });
+    });
+
+    it('debe retornar nextCursor cuando hasMore es true', async () => {
+      const mockToken = 'mock-commercial-token';
+
+      // Configurar el mock para simular que hay más resultados
+      const queryBus = app.get(QueryBus);
+      jest.spyOn(queryBus, 'execute').mockResolvedValueOnce({
+        chats: [{ id: 'test-chat-1' }, { id: 'test-chat-2' }],
+        total: 10,
+        hasMore: true,
+        nextCursor:
+          'eyJjcmVhdGVkQXQiOiIyMDIzLTEwLTE1VDEwOjAwOjAwLjAwMFoiLCJpZCI6InRlc3QtaWQifQ==',
+      });
+
+      return request(app.getHttpServer())
+        .get('/chats?limit=2')
+        .set('Authorization', `Bearer ${mockToken}`)
+        .expect(200)
+        .expect((res) => {
+          const response = res.body as ChatListResponse;
+          expect(response.hasMore).toBe(true);
+          expect(response.nextCursor).toBeTruthy();
+          expect(typeof response.nextCursor).toBe('string');
+        });
+    });
+
+    it('debe retornar nextCursor null cuando hasMore es false', async () => {
+      const mockToken = 'mock-commercial-token';
+
+      // Configurar el mock para simular que no hay más resultados
+      const queryBus = app.get(QueryBus);
+      jest.spyOn(queryBus, 'execute').mockResolvedValueOnce({
+        chats: [{ id: 'test-chat-1' }],
+        total: 1,
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      return request(app.getHttpServer())
+        .get('/chats?limit=10')
+        .set('Authorization', `Bearer ${mockToken}`)
+        .expect(200)
+        .expect((res) => {
+          const response = res.body as ChatListResponse;
+          expect(response.hasMore).toBe(false);
+          expect(response.nextCursor).toBeNull();
         });
     });
   });
