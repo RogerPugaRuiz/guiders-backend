@@ -8,6 +8,7 @@ import { NewChatCreatedEvent } from './events/new-chat-created.event';
 import { StatusUpdatedEvent } from './events/status-updated.event';
 import { CreatedAt } from 'src/context/conversations/message/domain/value-objects/created-at';
 import { ParticipantAssignedEvent } from './events/participant-assigned.event';
+import { ParticipantUnassignedEvent } from './events/participant-unassigned.event';
 import { ParticipantOnlineStatusUpdatedEvent } from './events/participant-online-status-updated.event';
 import { MessagePrimitives } from 'src/context/conversations/message/domain/message';
 import { ChatUpdatedWithNewMessageEvent } from './events/chat-updated-with-new-message.event';
@@ -189,6 +190,50 @@ export class Chat extends AggregateRoot {
       new ParticipantAssignedEvent({
         chat: this.toPrimitives(),
         newParticipant: {
+          id: participant.id,
+          name: participant.name,
+          isCommercial: participant.isCommercial,
+          isVisitor: participant.isVisitor,
+          isOnline: participant.isOnline,
+          assignedAt: participant.assignedAt,
+          lastSeenAt: participant.lastSeenAt,
+          isViewing: participant.isViewing,
+          isTyping: participant.isTyping,
+        },
+      }),
+    );
+
+    return this;
+  }
+
+  public removeCommercial(commercialId: string): Chat {
+    // Verificamos que el participante existe y es comercial
+    const participantOptional = this.participants.getParticipant(commercialId);
+
+    if (participantOptional.isEmpty()) {
+      // Creamos un error estándar para cumplir con ESLint
+      const error = new Error('Participant not found');
+      error.name = 'ParticipantNotFoundError';
+      throw error;
+    }
+
+    const participant = participantOptional.get();
+
+    if (!participant.isCommercial) {
+      // Creamos un error estándar para cumplir con ESLint
+      const error = new Error('Participant is not a commercial');
+      error.name = 'ParticipantNotCommercialError';
+      throw error;
+    }
+
+    // Removemos el participante de la lista
+    this.participants.removeParticipant(commercialId);
+
+    // Aplicamos el evento de desasignación
+    this.apply(
+      new ParticipantUnassignedEvent({
+        chat: this.toPrimitives(),
+        removedParticipant: {
           id: participant.id,
           name: participant.name,
           isCommercial: participant.isCommercial,

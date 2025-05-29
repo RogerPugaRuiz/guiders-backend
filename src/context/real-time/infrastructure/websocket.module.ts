@@ -22,6 +22,8 @@ import { NotifyOnChatLastMessageUpdatedEventHandler } from '../application/event
 import { NotifyOnParticipantSeenChatEventHandler } from '../application/event/notify-on-participant-seen-chat.event-handler';
 import { NotifyOnParticipantUnseenChatEventHandler } from '../application/event/notify-on-participant-unseen-chat.event-handler';
 import { RecalculateAssignmentOnCommercialConnectedEventHandler } from '../application/event/recalculate-assignment-on-commercial-connected.event-handler';
+import { RecalculateAssignmentOnCommercialDisconnectedEventHandler } from '../application/event/recalculate-assignment-on-commercial-disconnected.event-handler';
+import { DetectCommercialDisconnectedEventHandler } from '../application/event/detect-commercial-disconnected.event-handler';
 import { CommercialAssignmentService } from '../domain/commercial-assignment.service';
 import { ChatModule } from 'src/context/conversations/chat/infrastructure/chat.module';
 
@@ -59,6 +61,8 @@ import { ChatModule } from 'src/context/conversations/chat/infrastructure/chat.m
     NotifyOnParticipantSeenChatEventHandler,
     NotifyOnParticipantUnseenChatEventHandler,
     RecalculateAssignmentOnCommercialConnectedEventHandler,
+    RecalculateAssignmentOnCommercialDisconnectedEventHandler,
+    DetectCommercialDisconnectedEventHandler,
     CommercialAssignmentService,
   ],
   exports: [],

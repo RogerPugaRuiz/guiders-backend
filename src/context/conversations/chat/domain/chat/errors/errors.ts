@@ -15,3 +15,17 @@ export class ChatCanNotSaveMessageError extends DomainError {
     super('Chat can not save message');
   }
 }
+
+export class ParticipantNotFoundError extends DomainError {
+  protected name: string = 'ParticipantNotFoundError';
+  constructor() {
+    super('Participant not found');
+  }
+}
+
+export class ParticipantNotCommercialError extends DomainError {
+  protected name: string = 'ParticipantNotCommercialError';
+  constructor() {
+    super('Participant is not a commercial');
+  }
+}

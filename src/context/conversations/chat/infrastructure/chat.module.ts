@@ -15,6 +15,7 @@ import { ChatService } from './chat.service';
 import { FindOneChatByIdQueryHandler } from '../application/read/find-one-chat-by-id.query-handler';
 import { USER_FINDER } from '../application/read/get-username-by-id';
 import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../application/update/participants/assigne/update-chat-participants-on-commercials-assigned.event-handler';
+import { UpdateChatParticipantsOnCommercialsUnassignedEventHandler } from '../application/update/participants/unassigne/update-chat-participants-on-commercials-unassigned.event-handler';
 import { FindChatListByParticipantQueryHandler } from '../application/read/find-chat-list-by-participant.query-handler';
 import { FindChatListWithFiltersQueryHandler } from '../application/read/find-chat-list-with-filters.query-handler';
 import { UpdateParticipantStatusOnConnectedEventHandler } from '../application/update/participants/status/update-participant-status-on-connected.event-handler';
@@ -52,6 +53,7 @@ import { ParticipantUnseenChatCommandHandler } from '../application/update/parti
 
     // events
     UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+    UpdateChatParticipantsOnCommercialsUnassignedEventHandler,
     UpdateParticipantStatusOnConnectedEventHandler,
     UpdateParticipantStatusOnDisconnectedEventHandler,
     SaveMessageCommandHandler,
