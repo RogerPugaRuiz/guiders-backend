@@ -21,7 +21,7 @@ export const GetChatListSwagger = () =>
     ApiOperation({
       summary: 'Obtener lista de chats del comercial',
       description:
-        'Devuelve la lista de chats asignados al comercial autenticado con filtros opcionales',
+        'Devuelve la lista de chats asignados al comercial autenticado con filtros opcionales y paginación por cursor',
     }),
     ApiQuery({
       name: 'limit',
@@ -37,6 +37,14 @@ export const GetChatListSwagger = () =>
       required: false,
       type: String,
       example: 'lastMessage,timestamp',
+    }),
+    ApiQuery({
+      name: 'cursor',
+      description: 'Cursor para paginación (base64 encoded)',
+      required: false,
+      type: String,
+      example:
+        'eyJjcmVhdGVkQXQiOiIyMDIzLTEwLTE1VDEwOjAwOjAwLjAwMFoiLCJpZCI6ImNoYXRfMTIzIn0=',
     }),
     ApiResponse({
       status: 200,
@@ -119,6 +127,19 @@ export const GetChatListSwagger = () =>
                 },
               },
             },
+          },
+          total: {
+            type: 'number',
+            description: 'Número total de chats disponibles',
+          },
+          hasMore: {
+            type: 'boolean',
+            description: 'Indica si hay más chats disponibles',
+          },
+          nextCursor: {
+            type: 'string',
+            nullable: true,
+            description: 'Cursor para la siguiente página (null si no hay más)',
           },
         },
       },
