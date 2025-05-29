@@ -181,11 +181,11 @@ export class AuthUserController {
     status: 500,
     description: 'Error interno del servidor',
   })
-  async refresh(@Body('refresh_token') refreshToken: string) {
+  async refresh(@Body('refreshToken') refreshToken: string) {
     try {
       const tokens = await this.authUserService.refresh(refreshToken);
       return {
-        access_token: tokens.accessToken,
+        accessToken: tokens.accessToken,
       };
     } catch (error) {
       this.logger.error('Error refreshing token', error);
