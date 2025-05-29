@@ -4,22 +4,22 @@ import { DetectCommercialDisconnectedEventHandler } from '../detect-commercial-d
 import { DisconnectedEvent } from '../../../domain/events/disconnected.event';
 import { CommercialDisconnectedEvent } from '../../../domain/events/commercial-disconnected.event';
 import { ConnectionRole } from '../../../domain/value-objects/connection-role';
+import { ConnectionUserPrimitive } from '../../../domain/connection-user';
 
 describe('DetectCommercialDisconnectedEventHandler', () => {
   let handler: DetectCommercialDisconnectedEventHandler;
-  let mockEventBus: Partial<EventBus>;
+  let eventBus: EventBus;
 
   beforeEach(async () => {
-    mockEventBus = {
-      publish: jest.fn(),
-    };
-
+    // Configuración del módulo de prueba
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DetectCommercialDisconnectedEventHandler,
         {
           provide: EventBus,
-          useValue: mockEventBus,
+          useValue: {
+            publish: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -27,6 +27,7 @@ describe('DetectCommercialDisconnectedEventHandler', () => {
     handler = module.get<DetectCommercialDisconnectedEventHandler>(
       DetectCommercialDisconnectedEventHandler,
     );
+    eventBus = module.get<EventBus>(EventBus);
   });
 
   it('debe estar definido', () => {
@@ -38,38 +39,70 @@ describe('DetectCommercialDisconnectedEventHandler', () => {
       // Arrange
       const userId = 'commercial-id';
       const socketId = 'socket-123';
-      const event = new DisconnectedEvent({
+      const connectionData: ConnectionUserPrimitive = {
         userId,
         roles: [ConnectionRole.COMMERCIAL, ConnectionRole.VISITOR],
         socketId,
-      });
+      };
+      const event = new DisconnectedEvent(connectionData);
+
+      // Espía para el método publish
+      const publishSpy = jest.spyOn(eventBus, 'publish');
 
       // Act
       handler.handle(event);
 
       // Assert
-      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      expect(publishSpy).toHaveBeenCalledTimes(1);
 
-      // Verificamos que el evento publicado contiene los datos esperados
-      const publishMock = mockEventBus.publish as jest.Mock;
-      const publishedEvent = publishMock.mock.calls[0][0] as CommercialDisconnectedEvent;
-      expect(publishedEvent).toBeInstanceOf(CommercialDisconnectedEvent);
-      expect(publishedEvent.connection.userId).toBe(userId);
+      // Verificamos que se llamó con un evento del tipo correcto
+      const calledWithEvent = publishSpy.mock.calls[0][0];
+      expect(calledWithEvent).toBeInstanceOf(CommercialDisconnectedEvent);
+
+      // Verificar propiedades específicas
+      const commercialEvent = calledWithEvent as CommercialDisconnectedEvent;
+      expect(commercialEvent.connection.userId).toBe(userId);
+      expect(commercialEvent.connection.socketId).toBe(socketId);
     });
 
     it('no debe publicar ningún evento si el usuario no es comercial', () => {
       // Arrange
-      const event = new DisconnectedEvent({
+      const visitorData: ConnectionUserPrimitive = {
         userId: 'visitor-id',
         roles: [ConnectionRole.VISITOR],
         socketId: 'socket-123',
-      });
+      };
+      const event = new DisconnectedEvent(visitorData);
+
+      // Espía para el método publish
+      const publishSpy = jest.spyOn(eventBus, 'publish');
 
       // Act
       handler.handle(event);
 
       // Assert
-      expect(mockEventBus.publish).not.toHaveBeenCalled();
+      expect(publishSpy).not.toHaveBeenCalled();
+    });
+
+    it('debe manejar correctamente cuando la lista de comerciales está vacía', () => {
+      // Este caso de prueba no aplica directamente a este handler,
+      // ya que este solo detecta si un usuario desconectado es comercial o no,
+      // pero lo incluimos para mantener la cobertura similar al test original
+      const emptyRoles: ConnectionUserPrimitive = {
+        userId: 'some-id',
+        roles: [],
+        socketId: 'socket-123',
+      };
+      const event = new DisconnectedEvent(emptyRoles);
+
+      // Espía para el método publish
+      const publishSpy = jest.spyOn(eventBus, 'publish');
+
+      // Act
+      handler.handle(event);
+
+      // Assert
+      expect(publishSpy).not.toHaveBeenCalled();
     });
   });
 });

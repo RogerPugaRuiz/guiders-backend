@@ -10,6 +10,7 @@ import { Chat } from 'src/context/conversations/chat/domain/chat/chat';
 import { Optional } from 'src/context/shared/domain/optional';
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { ChatId } from 'src/context/conversations/chat/domain/chat/value-objects/chat-id';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
   let handler: UpdateChatParticipantsOnCommercialsUnassignedEventHandler;
@@ -23,7 +24,7 @@ describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
 
     // Configuración de los mocks
     mockChat = {
-      id: new ChatId('chat-1'),
+      id: new ChatId(Uuid.random().value),
       removeCommercial: jest.fn().mockReturnThis(),
       commit: jest.fn(),
     };
@@ -70,8 +71,8 @@ describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
   describe('handle', () => {
     it('debe actualizar el chat removiendo los comerciales especificados', async () => {
       // Arrange
-      const chatId = 'chat-1';
-      const commercialIds = ['commercial-1', 'commercial-2'];
+      const chatId = Uuid.random().value;
+      const commercialIds = [Uuid.random().value, Uuid.random().value];
       const event = new ChatCommercialsUnassignedEvent(chatId, commercialIds);
 
       // Act
@@ -93,8 +94,8 @@ describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
 
     it('debe lanzar un error cuando el chat no existe', async () => {
       // Arrange
-      const chatId = 'non-existent-chat';
-      const commercialIds = ['commercial-1'];
+      const chatId = Uuid.random().value;
+      const commercialIds = [Uuid.random().value];
       const event = new ChatCommercialsUnassignedEvent(chatId, commercialIds);
 
       // Mock de findOne para devolver Optional vacío (chat no encontrado)
@@ -110,7 +111,7 @@ describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
 
     it('debe manejar correctamente cuando la lista de comerciales está vacía', async () => {
       // Arrange
-      const chatId = 'chat-1';
+      const chatId = Uuid.random().value;
       const commercialIds: string[] = []; // Lista vacía
       const event = new ChatCommercialsUnassignedEvent(chatId, commercialIds);
 
