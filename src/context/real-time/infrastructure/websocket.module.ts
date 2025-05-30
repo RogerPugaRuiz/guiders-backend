@@ -25,7 +25,7 @@ import { RecalculateAssignmentOnCommercialConnectedEventHandler } from '../appli
 import { RecalculateAssignmentOnCommercialDisconnectedEventHandler } from '../application/event/recalculate-assignment-on-commercial-disconnected.event-handler';
 import { DetectCommercialDisconnectedEventHandler } from '../application/event/detect-commercial-disconnected.event-handler';
 import { CommercialAssignmentService } from '../domain/commercial-assignment.service';
-import { ChatModule } from 'src/context/conversations/chat/infrastructure/chat.module';
+import { ChatModule } from 'src/context/conversations/features/chat/infrastructure/chat.module';
 
 @Module({
   imports: [HttpModule, ChatModule],

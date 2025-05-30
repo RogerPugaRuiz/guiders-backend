@@ -29,12 +29,12 @@ import { DisconnectUserCommand } from '../application/command/disconnect/disconn
 import { RealTimeMessageSenderCommand } from 'src/context/real-time/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { FindChatListByParticipantQuery } from 'src/context/conversations/chat/application/read/find-chat-list-by-participant.query';
-import { StartChatCommand } from 'src/context/conversations/chat/application/create/pending/start-chat.command';
+import { FindChatListByParticipantQuery } from 'src/context/conversations/features/chat/application/read/find-chat-list-by-participant.query';
+import { StartChatCommand } from 'src/context/conversations/features/chat/application/create/pending/start-chat.command';
 import { ConnectionUser } from '../domain/connection-user';
-import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
-import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
-import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
+import { ParticipantUnseenChatCommand } from 'src/context/conversations/features/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
+import { ParticipantSeenChatCommand } from 'src/context/conversations/features/chat/application/update/participants/seen-chat/participant-seen-chat.command';
+import { ChatPrimitives } from 'src/context/conversations/features/chat/domain/chat/chat';
 import { CreateTrackingEventCommand } from 'src/context/tracking/application/commands/create-tracking-event.command';
 import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/application/commands/update-visitor-current-page.command';
 

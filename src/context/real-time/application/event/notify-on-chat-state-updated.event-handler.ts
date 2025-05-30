@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { StatusUpdatedEvent } from 'src/context/conversations/chat/domain/chat/events/status-updated.event';
+import { StatusUpdatedEvent } from 'src/context/conversations/features/chat/domain/chat/events/status-updated.event';
 import { INotification, NOTIFICATION } from '../../domain/notification';
 
 @EventsHandler(StatusUpdatedEvent)

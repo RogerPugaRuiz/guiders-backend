@@ -1,6 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { ChatUpdatedWithNewMessageEvent } from 'src/context/conversations/chat/domain/chat/events/chat-updated-with-new-message.event';
+import { ChatUpdatedWithNewMessageEvent } from 'src/context/conversations/features/chat/domain/chat/events/chat-updated-with-new-message.event';
 import { NOTIFICATION, INotification } from '../../domain/notification';
 
 @EventsHandler(ChatUpdatedWithNewMessageEvent)

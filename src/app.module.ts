@@ -11,11 +11,11 @@ import { ApiKeyModule } from './context/auth/features/api-key/infrastructure/api
 import { WebsocketModule } from './context/real-time/infrastructure/websocket.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth/features/auth-user/infrastructure/auth-user.module';
-import { ChatModule } from './context/conversations/chat/infrastructure/chat.module';
+import { ChatModule } from './context/conversations/features/chat/infrastructure/chat.module';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 import { TrackingModule } from './context/tracking/tracking.module';
-import { MessageModule } from './context/conversations/message/infrastructure/message.module';
+import { MessageModule } from './context/conversations/features/message/infrastructure/message.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
 import { CompanyModule } from './context/company/company.module';
 

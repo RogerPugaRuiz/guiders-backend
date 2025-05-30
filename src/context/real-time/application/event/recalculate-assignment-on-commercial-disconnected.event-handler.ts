@@ -6,9 +6,9 @@ import { CommercialAssignmentService } from '../../domain/commercial-assignment.
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from 'src/context/conversations/chat/domain/chat/chat.repository';
+} from 'src/context/conversations/features/chat/domain/chat/chat.repository';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
-import { Chat } from 'src/context/conversations/chat/domain/chat/chat';
+import { Chat } from 'src/context/conversations/features/chat/domain/chat/chat';
 import { ConnectionRole } from '../../domain/value-objects/connection-role';
 
 /**

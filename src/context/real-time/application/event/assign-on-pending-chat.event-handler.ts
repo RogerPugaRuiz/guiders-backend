@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { EventBus, EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { NewChatCreatedEvent } from 'src/context/conversations/chat/domain/chat/events/new-chat-created.event';
+import { NewChatCreatedEvent } from 'src/context/conversations/features/chat/domain/chat/events/new-chat-created.event';
 import { ChatCommercialsAssignedEvent } from '../../domain/events/chat-commercials-assigned.event';
 import { CommercialAssignmentService } from '../../domain/commercial-assignment.service';
 

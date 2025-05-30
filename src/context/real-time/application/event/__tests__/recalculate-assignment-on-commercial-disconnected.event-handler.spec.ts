@@ -6,9 +6,9 @@ import { ConnectionRole } from '../../../domain/value-objects/connection-role';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
-} from 'src/context/conversations/chat/domain/chat/chat.repository';
+} from 'src/context/conversations/features/chat/domain/chat/chat.repository';
 import { CommercialAssignmentService } from '../../../domain/commercial-assignment.service';
-import { Chat } from 'src/context/conversations/chat/domain/chat/chat';
+import { Chat } from 'src/context/conversations/features/chat/domain/chat/chat';
 
 describe('RecalculateAssignmentOnCommercialDisconnectedEventHandler', () => {
   let handler: RecalculateAssignmentOnCommercialDisconnectedEventHandler;

@@ -7,7 +7,7 @@ import {
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { ConnectionUser } from '../../domain/connection-user';
 import { INewChatNotification } from '../../domain/new-chat-notification';
-import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
+import { ChatPrimitives } from 'src/context/conversations/features/chat/domain/chat/chat';
 
 @Injectable()
 export class WsNewChatNotificationService implements INewChatNotification {

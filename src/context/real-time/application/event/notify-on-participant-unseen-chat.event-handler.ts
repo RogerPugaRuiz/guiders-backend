@@ -1,6 +1,6 @@
 import { Inject, Logger } from '@nestjs/common';
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { ParticipantUnseenAtEvent } from 'src/context/conversations/chat/domain/chat/events/participant-unseen-at.event';
+import { ParticipantUnseenAtEvent } from 'src/context/conversations/features/chat/domain/chat/events/participant-unseen-at.event';
 import { INotification, NOTIFICATION } from '../../domain/notification';
 
 @EventsHandler(ParticipantUnseenAtEvent)
