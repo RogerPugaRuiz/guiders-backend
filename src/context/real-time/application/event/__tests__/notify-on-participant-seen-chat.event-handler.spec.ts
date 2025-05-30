@@ -55,22 +55,59 @@ describe('NotifyOnParticipantSeenChatEventHandler', () => {
       const otherParticipantId1 = Uuid.random().value;
       const otherParticipantId2 = Uuid.random().value;
       const seenAt = new Date();
+      const createdAt = new Date();
 
       const event = new ParticipantSeenAtEvent({
         attributes: {
           chat: {
             id: chatId,
             participants: [
-              { id: participantId, name: 'Participant 1' },
-              { id: otherParticipantId1, name: 'Participant 2' },
-              { id: otherParticipantId2, name: 'Participant 3' },
+              {
+                id: participantId,
+                name: 'Participant 1',
+                isCommercial: false,
+                isVisitor: true,
+                isOnline: true,
+                assignedAt: new Date(),
+                lastSeenAt: seenAt,
+                isViewing: false,
+                isTyping: false,
+              },
+              {
+                id: otherParticipantId1,
+                name: 'Participant 2',
+                isCommercial: true,
+                isVisitor: false,
+                isOnline: true,
+                assignedAt: new Date(),
+                lastSeenAt: null,
+                isViewing: false,
+                isTyping: false,
+              },
+              {
+                id: otherParticipantId2,
+                name: 'Participant 3',
+                isCommercial: true,
+                isVisitor: false,
+                isOnline: true,
+                assignedAt: new Date(),
+                lastSeenAt: null,
+                isViewing: false,
+                isTyping: false,
+              },
             ],
+            status: 'active',
+            lastMessage: null,
+            lastMessageAt: null,
+            createdAt: createdAt,
           },
           participantUpdate: {
             id: participantId,
-            lastSeenAt: seenAt,
+            previousSeen: null,
+            previousIsViewing: false,
           },
         },
+        timestamp: new Date().getTime(),
       });
 
       // Act: Ejecutar el handler
@@ -108,20 +145,37 @@ describe('NotifyOnParticipantSeenChatEventHandler', () => {
       const chatId = Uuid.random().value;
       const participantId = Uuid.random().value;
       const seenAt = new Date();
+      const createdAt = new Date();
 
       const event = new ParticipantSeenAtEvent({
         attributes: {
           chat: {
             id: chatId,
             participants: [
-              { id: participantId, name: 'Participant 1' },
+              {
+                id: participantId,
+                name: 'Participant 1',
+                isCommercial: false,
+                isVisitor: true,
+                isOnline: true,
+                assignedAt: new Date(),
+                lastSeenAt: seenAt,
+                isViewing: false,
+                isTyping: false,
+              },
             ],
+            status: 'active',
+            lastMessage: null,
+            lastMessageAt: null,
+            createdAt: createdAt,
           },
           participantUpdate: {
             id: participantId,
-            lastSeenAt: seenAt,
+            previousSeen: null,
+            previousIsViewing: false,
           },
         },
+        timestamp: new Date().getTime(),
       });
 
       // Act: Ejecutar el handler

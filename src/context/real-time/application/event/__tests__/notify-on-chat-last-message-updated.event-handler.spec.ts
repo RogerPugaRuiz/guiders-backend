@@ -44,21 +44,47 @@ describe('NotifyOnChatLastMessageUpdatedEventHandler', () => {
       const participant2Id = Uuid.random().value;
       const lastMessageContent = 'Este es el último mensaje';
       const lastMessageAt = new Date();
+      const messageId = Uuid.random().value;
+      const createdAt = new Date();
 
       const event = new ChatUpdatedWithNewMessageEvent({
         chat: {
           id: chatId,
           participants: [
-            { id: participant1Id, name: 'Usuario 1' },
-            { id: participant2Id, name: 'Usuario 2' },
+            {
+              id: participant1Id,
+              name: 'Usuario 1',
+              isCommercial: false,
+              isVisitor: true,
+              isOnline: true,
+              assignedAt: new Date(),
+              lastSeenAt: null,
+              isViewing: false,
+              isTyping: false,
+            },
+            {
+              id: participant2Id,
+              name: 'Usuario 2',
+              isCommercial: true,
+              isVisitor: false,
+              isOnline: true,
+              assignedAt: new Date(),
+              lastSeenAt: null,
+              isViewing: false,
+              isTyping: false,
+            },
           ],
           lastMessage: lastMessageContent,
           lastMessageAt: lastMessageAt,
+          status: 'active',
+          createdAt: createdAt,
         },
         message: {
+          id: messageId,
           chatId: chatId,
           senderId: senderId,
           content: lastMessageContent,
+          createdAt: createdAt,
         },
       });
 
@@ -103,6 +129,8 @@ describe('NotifyOnChatLastMessageUpdatedEventHandler', () => {
       const senderId = Uuid.random().value;
       const lastMessageContent = 'Este es el último mensaje';
       const lastMessageAt = new Date();
+      const messageId = Uuid.random().value;
+      const createdAt = new Date();
 
       const event = new ChatUpdatedWithNewMessageEvent({
         chat: {
@@ -110,11 +138,15 @@ describe('NotifyOnChatLastMessageUpdatedEventHandler', () => {
           participants: [],
           lastMessage: lastMessageContent,
           lastMessageAt: lastMessageAt,
+          status: 'active',
+          createdAt: createdAt,
         },
         message: {
+          id: messageId,
           chatId: chatId,
           senderId: senderId,
           content: lastMessageContent,
+          createdAt: createdAt,
         },
       });
 

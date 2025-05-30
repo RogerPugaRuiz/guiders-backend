@@ -42,17 +42,43 @@ describe('NotifyOnChatStateUpdatedEventHandler', () => {
       const participant1Id = Uuid.random().value;
       const participant2Id = Uuid.random().value;
       const status = 'closed';
+      const createdAt = new Date();
 
       const event = new StatusUpdatedEvent({
+        timestamp: new Date(),
         attributes: {
           chat: {
             id: chatId,
             status: status,
             participants: [
-              { id: participant1Id, name: 'Usuario 1' },
-              { id: participant2Id, name: 'Usuario 2' },
+              {
+                id: participant1Id,
+                name: 'Usuario 1',
+                isCommercial: false,
+                isVisitor: true,
+                isOnline: true,
+                assignedAt: new Date(),
+                lastSeenAt: null,
+                isViewing: false,
+                isTyping: false,
+              },
+              {
+                id: participant2Id,
+                name: 'Usuario 2',
+                isCommercial: true,
+                isVisitor: false,
+                isOnline: true,
+                assignedAt: new Date(),
+                lastSeenAt: null,
+                isViewing: false,
+                isTyping: false,
+              },
             ],
+            lastMessage: null,
+            lastMessageAt: null,
+            createdAt: createdAt,
           },
+          oldStatus: 'active',
         },
       });
 
@@ -91,14 +117,20 @@ describe('NotifyOnChatStateUpdatedEventHandler', () => {
       // Arrange: Preparar el evento sin participantes
       const chatId = Uuid.random().value;
       const status = 'closed';
+      const createdAt = new Date();
 
       const event = new StatusUpdatedEvent({
+        timestamp: new Date(),
         attributes: {
           chat: {
             id: chatId,
             status: status,
             participants: [],
+            lastMessage: null,
+            lastMessageAt: null,
+            createdAt: createdAt,
           },
+          oldStatus: 'active',
         },
       });
 

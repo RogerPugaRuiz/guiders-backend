@@ -49,25 +49,56 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
       // Arrange: Preparar el evento con datos de prueba
       const chatId = Uuid.random().value;
       const newParticipantId = Uuid.random().value;
+      const visitorId = Uuid.random().value;
+      const createdAt = new Date();
+      
       const chat = {
         id: chatId,
         participants: [
-          { id: newParticipantId, name: 'Nuevo Comercial', isCommercial: true },
-          { id: Uuid.random().value, name: 'Visitante', isVisitor: true },
+          {
+            id: newParticipantId,
+            name: 'Nuevo Comercial',
+            isCommercial: true,
+            isVisitor: false,
+            isOnline: true,
+            assignedAt: new Date(),
+            lastSeenAt: null,
+            isViewing: false,
+            isTyping: false,
+          },
+          {
+            id: visitorId,
+            name: 'Visitante',
+            isCommercial: false,
+            isVisitor: true,
+            isOnline: true,
+            assignedAt: new Date(),
+            lastSeenAt: null,
+            isViewing: false,
+            isTyping: false,
+          }
         ],
+        status: 'active',
+        lastMessage: null,
+        lastMessageAt: null,
+        createdAt: createdAt,
       };
       
       const newParticipant = {
         id: newParticipantId,
         name: 'Nuevo Comercial',
         isCommercial: true,
+        isVisitor: false,
+        isOnline: true,
+        assignedAt: new Date(),
+        lastSeenAt: null,
+        isViewing: false,
+        isTyping: false,
       };
 
       const event = new ParticipantAssignedEvent({
-        attributes: {
-          chat,
-          newParticipant,
-        },
+        chat,
+        newParticipant,
       });
 
       // Act: Ejecutar el handler
