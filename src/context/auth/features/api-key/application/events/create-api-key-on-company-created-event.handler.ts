@@ -1,5 +1,5 @@
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { CompanyCreatedEvent } from 'src/context/company/domain/events/company-created.event';
+import { CompanyCreatedEvent } from 'src/context/company/features/company-management/domain/events/company-created.event';
 import { CreateApiKeyForDomainUseCase } from '../usecase/create-api-key-for-domain.usecase';
 import { Injectable, Logger } from '@nestjs/common';
 

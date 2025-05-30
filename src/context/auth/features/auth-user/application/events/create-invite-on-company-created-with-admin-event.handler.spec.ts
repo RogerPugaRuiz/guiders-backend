@@ -1,7 +1,7 @@
 // Prueba unitaria para CreateInviteOnCompanyCreatedWithAdminEventHandler
 // Ubicación: src/context/auth/auth-user/application/events/create-invite-on-company-created-with-admin-event.handler.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
+import { CompanyCreatedWithAdminEvent } from 'src/context/company/features/company-management/domain/events/company-created-with-admin.event';
 import { INVITE_REPOSITORY } from '../../domain/invite.repository';
 import { Invite } from '../../domain/invite';
 import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../events/create-invite-on-company-created-with-admin-event.handler';

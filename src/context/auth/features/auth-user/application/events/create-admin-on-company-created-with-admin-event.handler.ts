@@ -1,7 +1,7 @@
 // Handler para CompanyCreatedWithAdminEvent que registra un usuario admin
 // Ubicación: src/context/auth/auth-user/application/events/create-admin-on-company-created-with-admin-event.handler.ts
 import { EventsHandler, IEventHandler, EventPublisher } from '@nestjs/cqrs';
-import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
+import { CompanyCreatedWithAdminEvent } from 'src/context/company/features/company-management/domain/events/company-created-with-admin.event';
 import { Inject } from '@nestjs/common';
 import {
   UserAccountRepository,

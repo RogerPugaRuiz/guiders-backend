@@ -4,7 +4,7 @@ import { CreateApiKeyForDomainUseCase } from '../usecase/create-api-key-for-doma
 import {
   CompanyCreatedEvent,
   Payload,
-} from 'src/context/company/domain/events/company-created.event';
+} from 'src/context/company/features/company-management/domain/events/company-created.event';
 
 describe('CreateApiKeyOnCompanyCreatedEventHandler', () => {
   let handler: CreateApiKeyOnCompanyCreatedEventHandler;

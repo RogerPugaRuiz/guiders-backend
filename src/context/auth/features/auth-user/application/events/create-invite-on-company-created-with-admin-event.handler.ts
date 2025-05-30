@@ -1,7 +1,7 @@
 // Handler para CompanyCreatedWithAdminEvent que crea una invitación (Invite) para el admin
 // Ubicación: src/context/auth/auth-user/application/events/create-invite-on-company-created-with-admin-event.handler.ts
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
-import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
+import { CompanyCreatedWithAdminEvent } from 'src/context/company/features/company-management/domain/events/company-created-with-admin.event';
 import { Inject } from '@nestjs/common';
 import { Invite } from '../../domain/invite';
 import { InviteId } from '../../domain/value-objects/invite-id';

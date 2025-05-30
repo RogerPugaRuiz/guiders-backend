@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from './create-admin-on-company-created-with-admin-event.handler';
-import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
+import { CompanyCreatedWithAdminEvent } from 'src/context/company/features/company-management/domain/events/company-created-with-admin.event';
 import { USER_ACCOUNT_REPOSITORY } from '../../domain/user-account.repository';
 import { Role } from '../../domain/value-objects/role';
 import { UserAccount } from '../../domain/user-account';
