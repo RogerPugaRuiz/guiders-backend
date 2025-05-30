@@ -81,7 +81,7 @@ export class ChatController {
     return result;
   }
 
-  @Post('chat/:chatId')
+  @Post('chats/:chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
   @StartChatSwagger()
@@ -94,7 +94,7 @@ export class ChatController {
   }
 
   // Obtener mensajes paginados de un chat específico
-  @Get('chat/:chatId/messages')
+  @Get('chats/:chatId/messages')
   @RequiredRoles('visitor', 'commercial')
   @UseGuards(AuthGuard, RolesGuard)
   @GetMessagesSwagger()
@@ -140,8 +140,8 @@ export class ChatController {
   }
 
   // Obtener información de un chat específico por ID
-  @Get('chat/:chatId')
-  @RequiredRoles('visitor')
+  @Get('chats/:chatId')
+  @RequiredRoles('visitor', 'commercial')
   @UseGuards(AuthGuard, RolesGuard)
   @GetChatByIdSwagger()
   async getChatById(@Param('chatId') chatId: string): Promise<ChatResponseDto> {
