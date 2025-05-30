@@ -36,11 +36,13 @@ describe('ApiKeyService', () => {
     const companyId = 'company-123';
     const expectedResult = { apiKey: 'api-key-456' };
 
-    jest.spyOn(createApiKeyForDomainUseCase, 'execute').mockResolvedValue(expectedResult);
+    const executeSpy = jest
+      .spyOn(createApiKeyForDomainUseCase, 'execute')
+      .mockResolvedValue(expectedResult);
 
     const result = await service.createApiKeyForDomain(domain, companyId);
 
-    expect(createApiKeyForDomainUseCase.execute).toHaveBeenCalledWith(domain, companyId);
+    expect(executeSpy).toHaveBeenCalledWith(domain, companyId);
     expect(result).toEqual(expectedResult);
   });
 });

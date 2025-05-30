@@ -14,21 +14,21 @@ describe('UserAlreadyExistsError', () => {
 
   it('debe heredar de Error', () => {
     const error = new UserAlreadyExistsError();
-    
+
     expect(error).toBeInstanceOf(Error);
     expect(error.stack).toBeDefined();
   });
 
   it('debe mantener el nombre correcto del error', () => {
     const error = new UserAlreadyExistsError();
-    
+
     expect(error.name).toBe('UserAlreadyExistsError');
   });
 
   it('debe usar mensaje constante', () => {
     const error1 = new UserAlreadyExistsError();
     const error2 = new UserAlreadyExistsError();
-    
+
     expect(error1.message).toBe(error2.message);
     expect(error1.message).toBe('User already exists');
   });

@@ -33,14 +33,14 @@ describe('EventType', () => {
   it('debe comparar correctamente dos tipos iguales', () => {
     const type1 = new EventType('page_view');
     const type2 = new EventType('page_view');
-    
+
     expect(type1.equals(type2)).toBe(true);
   });
 
   it('debe comparar correctamente dos tipos diferentes', () => {
     const type1 = new EventType('page_view');
     const type2 = new EventType('button_click');
-    
+
     expect(type1.equals(type2)).toBe(false);
   });
 });

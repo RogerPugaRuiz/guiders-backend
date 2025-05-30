@@ -39,14 +39,14 @@ describe('IntentType', () => {
   it('debe comparar correctamente dos tipos iguales', () => {
     const type1 = new IntentType(IntentType.PURCHASE);
     const type2 = new IntentType(IntentType.PURCHASE);
-    
+
     expect(type1.equals(type2)).toBe(true);
   });
 
   it('debe comparar correctamente dos tipos diferentes', () => {
     const type1 = new IntentType(IntentType.PURCHASE);
     const type2 = new IntentType(IntentType.RESEARCH);
-    
+
     expect(type1.equals(type2)).toBe(false);
   });
 });

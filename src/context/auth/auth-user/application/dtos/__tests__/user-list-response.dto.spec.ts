@@ -1,6 +1,9 @@
 // Prueba unitaria para UserListResponseDto
 // Ubicación: src/context/auth/auth-user/application/dtos/__tests__/user-list-response.dto.spec.ts
-import { UserListItemDto, UserListResponseDto } from '../user-list-response.dto';
+import {
+  UserListItemDto,
+  UserListResponseDto,
+} from '../user-list-response.dto';
 
 describe('UserListItemDto', () => {
   it('debe crear una instancia con todas las propiedades', () => {

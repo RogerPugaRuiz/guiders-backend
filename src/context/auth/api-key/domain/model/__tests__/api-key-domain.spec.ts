@@ -38,14 +38,14 @@ describe('ApiKeyDomain', () => {
   it('debe comparar correctamente dos dominios iguales', () => {
     const domain1 = new ApiKeyDomain('example.com');
     const domain2 = new ApiKeyDomain('example.com');
-    
+
     expect(domain1.equals(domain2)).toBe(true);
   });
 
   it('debe comparar correctamente dos dominios diferentes', () => {
     const domain1 = new ApiKeyDomain('example.com');
     const domain2 = new ApiKeyDomain('other.com');
-    
+
     expect(domain1.equals(domain2)).toBe(false);
   });
 });

@@ -15,7 +15,7 @@ describe('AcceptInviteCommand', () => {
 
   it('debe implementar ICommand', () => {
     const command = new AcceptInviteCommand('token', 'password');
-    
+
     expect(command).toBeDefined();
     expect(command.token).toBeDefined();
     expect(command.password).toBeDefined();

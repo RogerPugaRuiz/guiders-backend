@@ -27,14 +27,14 @@ describe('AdminName', () => {
   it('debe comparar correctamente dos nombres iguales', () => {
     const name1 = new AdminName('Test Admin');
     const name2 = new AdminName('Test Admin');
-    
+
     expect(name1.equals(name2)).toBe(true);
   });
 
   it('debe comparar correctamente dos nombres diferentes', () => {
     const name1 = new AdminName('Admin A');
     const name2 = new AdminName('Admin B');
-    
+
     expect(name1.equals(name2)).toBe(false);
   });
 });

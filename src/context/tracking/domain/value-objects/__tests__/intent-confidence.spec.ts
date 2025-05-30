@@ -45,14 +45,14 @@ describe('IntentConfidence', () => {
   it('debe comparar correctamente dos niveles iguales', () => {
     const conf1 = new IntentConfidence(IntentConfidence.HIGH);
     const conf2 = new IntentConfidence(IntentConfidence.HIGH);
-    
+
     expect(conf1.equals(conf2)).toBe(true);
   });
 
   it('debe comparar correctamente dos niveles diferentes', () => {
     const conf1 = new IntentConfidence(IntentConfidence.HIGH);
     const conf2 = new IntentConfidence(IntentConfidence.LOW);
-    
+
     expect(conf1.equals(conf2)).toBe(false);
   });
 });

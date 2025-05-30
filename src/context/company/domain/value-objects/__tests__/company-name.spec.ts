@@ -33,14 +33,14 @@ describe('CompanyName', () => {
   it('debe comparar correctamente dos nombres iguales', () => {
     const name1 = new CompanyName('Test Company');
     const name2 = new CompanyName('Test Company');
-    
+
     expect(name1.equals(name2)).toBe(true);
   });
 
   it('debe comparar correctamente dos nombres diferentes', () => {
     const name1 = new CompanyName('Company A');
     const name2 = new CompanyName('Company B');
-    
+
     expect(name1.equals(name2)).toBe(false);
   });
 });

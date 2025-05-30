@@ -39,21 +39,21 @@ describe('AdminEmail', () => {
   it('debe comparar correctamente dos emails iguales', () => {
     const email1 = new AdminEmail('test@example.com');
     const email2 = new AdminEmail('test@example.com');
-    
+
     expect(email1.equals(email2)).toBe(true);
   });
 
   it('debe comparar correctamente dos emails diferentes', () => {
     const email1 = new AdminEmail('admin@company.com');
     const email2 = new AdminEmail('user@company.com');
-    
+
     expect(email1.equals(email2)).toBe(false);
   });
 
   it('debe comparar correctamente null con null', () => {
     const email1 = new AdminEmail(null);
     const email2 = new AdminEmail(null);
-    
+
     expect(email1.equals(email2)).toBe(true);
   });
 });

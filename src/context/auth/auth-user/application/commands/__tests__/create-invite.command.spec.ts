@@ -10,7 +10,13 @@ describe('CreateInviteCommand', () => {
     const token = 'token-789';
     const expiresAt = '2024-12-31T23:59:59.000Z';
 
-    const command = new CreateInviteCommand(inviteId, userId, email, token, expiresAt);
+    const command = new CreateInviteCommand(
+      inviteId,
+      userId,
+      email,
+      token,
+      expiresAt,
+    );
 
     expect(command.inviteId).toBe(inviteId);
     expect(command.userId).toBe(userId);
@@ -22,12 +28,12 @@ describe('CreateInviteCommand', () => {
   it('debe implementar ICommand', () => {
     const command = new CreateInviteCommand(
       'invite-123',
-      'user-456', 
+      'user-456',
       'user@test.com',
       'token-789',
-      '2024-12-31T23:59:59.000Z'
+      '2024-12-31T23:59:59.000Z',
     );
-    
+
     expect(command).toBeDefined();
     expect(command.inviteId).toBeDefined();
     expect(command.userId).toBeDefined();
