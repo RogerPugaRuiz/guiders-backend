@@ -1,6 +1,6 @@
 import { CommandBus, EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
-import { VisitorAccountCreatedEvent } from 'src/context/auth/auth-visitor/domain/events/visitor-account-created.event';
+import { VisitorAccountCreatedEvent } from 'src/context/auth/features/auth-visitor/domain/events/visitor-account-created.event';
 import { CreateDefaultVisitorCommand } from '../commands/create-default-visitor.command';
 
 /**

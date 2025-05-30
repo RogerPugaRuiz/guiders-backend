@@ -4,7 +4,7 @@ import { VisitorAccountApiKey } from '../../domain/models/visitor-account-api-ke
 import {
   API_KEY_REPOSITORY,
   ApiKeyRepository,
-} from 'src/context/auth/api-key/domain/repository/api-key.repository';
+} from 'src/context/auth/features/api-key/domain/repository/api-key.repository';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
