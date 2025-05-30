@@ -25,6 +25,9 @@ npm run test:unit -- --coverage
 
 # Tests de integración con cobertura
 npm run test:int -- --coverage
+
+# Verificar umbral de cobertura (después de ejecutar los tests)
+npm run test:check-coverage
 ```
 
 Para visualizar el reporte de cobertura, abre el archivo `coverage/lcov-report/index.html` en un navegador.
