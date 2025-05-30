@@ -16,7 +16,7 @@ import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 import { TrackingModule } from './context/tracking/tracking.module';
 import { MessageModule } from './context/conversations/features/message/infrastructure/message.module';
-import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
+import { VisitorsModule } from './context/visitors/visitors.module';
 import { CompanyModule } from './context/company/company.module';
 
 @Module({
