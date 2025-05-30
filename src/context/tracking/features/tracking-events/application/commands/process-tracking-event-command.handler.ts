@@ -1,12 +1,12 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ProcessTrackingEventCommand } from './process-tracking-event.command';
-import { BasicIntentDetector } from 'src/context/tracking/domain/basic-intent-detector';
-import { VisitorId } from 'src/context/tracking/domain/value-objects/visitor-id';
-import { TrackingEvent } from 'src/context/tracking/domain/tracking-event';
+import { BasicIntentDetector } from 'src/context/tracking/features/tracking-events/domain/basic-intent-detector';
+import { VisitorId } from 'src/context/tracking/features/tracking-events/domain/value-objects/visitor-id';
+import { TrackingEvent } from 'src/context/tracking/features/tracking-events/domain/tracking-event';
 import {
   IIntentDetectorRepository,
   INTENT_DETECTOR_REPOSITORY,
-} from 'src/context/tracking/domain/intent-detector.repository';
+} from 'src/context/tracking/features/tracking-events/domain/intent-detector.repository';
 import { Injectable, Inject } from '@nestjs/common';
 
 // Handler para procesar eventos de tracking y detectar intención

@@ -1,4 +1,4 @@
-import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent';
+import { VisitorIntent } from 'src/context/tracking/features/tracking-events/domain/visitor-intent';
 import { VisitorIntentEntity } from './entity/visitor-intent.entity';
 
 // Mapper para convertir entre la entidad de dominio y la entidad de persistencia

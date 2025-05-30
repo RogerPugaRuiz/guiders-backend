@@ -1,5 +1,5 @@
-import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent';
-import { VisitorIntentDetailedPrimitives } from 'src/context/tracking/domain/visitor-intent';
+import { VisitorIntent } from 'src/context/tracking/features/tracking-events/domain/visitor-intent';
+import { VisitorIntentDetailedPrimitives } from 'src/context/tracking/features/tracking-events/domain/visitor-intent';
 
 // Mapper para convertir entre la entidad de dominio y la persistencia (ejemplo para TypeORM)
 export class VisitorIntentMapper {

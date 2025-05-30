@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProcessTrackingEventCommandHandler } from '../process-tracking-event-command.handler';
 import { ProcessTrackingEventCommand } from '../process-tracking-event.command';
-import { BasicIntentDetector } from 'src/context/tracking/domain/basic-intent-detector';
-import { INTENT_DETECTOR_REPOSITORY } from 'src/context/tracking/domain/intent-detector.repository';
-import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent';
+import { BasicIntentDetector } from 'src/context/tracking/features/tracking-events/domain/basic-intent-detector';
+import { INTENT_DETECTOR_REPOSITORY } from 'src/context/tracking/features/tracking-events/domain/intent-detector.repository';
+import { VisitorIntent } from 'src/context/tracking/features/tracking-events/domain/visitor-intent';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 // Mock para el repositorio

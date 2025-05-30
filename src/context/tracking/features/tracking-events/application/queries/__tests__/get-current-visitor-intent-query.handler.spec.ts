@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GetCurrentVisitorIntentQueryHandler } from '../get-current-visitor-intent-query.handler';
 import { GetCurrentVisitorIntentQuery } from '../get-current-visitor-intent.query';
-import { INTENT_DETECTOR_REPOSITORY } from 'src/context/tracking/domain/intent-detector.repository';
-import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent';
+import { INTENT_DETECTOR_REPOSITORY } from 'src/context/tracking/features/tracking-events/domain/intent-detector.repository';
+import { VisitorIntent } from 'src/context/tracking/features/tracking-events/domain/visitor-intent';
 import { ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';

@@ -3,8 +3,8 @@ import { GetCurrentVisitorIntentQuery } from './get-current-visitor-intent.query
 import {
   IIntentDetectorRepository,
   INTENT_DETECTOR_REPOSITORY,
-} from 'src/context/tracking/domain/intent-detector.repository';
-import { VisitorId } from 'src/context/tracking/domain/value-objects/visitor-id';
+} from 'src/context/tracking/features/tracking-events/domain/intent-detector.repository';
+import { VisitorId } from 'src/context/tracking/features/tracking-events/domain/value-objects/visitor-id';
 import { Inject, Injectable } from '@nestjs/common';
 
 // Handler para obtener la intención actual de un visitante
