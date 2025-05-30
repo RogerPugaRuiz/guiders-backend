@@ -10,8 +10,8 @@ import { Command } from 'commander';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../src/app.module';
 import { CommandBus } from '@nestjs/cqrs';
-import { CreateCompanyCommand } from '../src/context/company/application/commands/create-company.command';
-import { CreateCompanyWithAdminCommand } from '../src/context/company/application/commands/create-company-with-admin.command';
+import { CreateCompanyCommand } from '../src/context/company/features/company-management/application/commands/create-company.command';
+import { CreateCompanyWithAdminCommand } from '../src/context/company/features/company-management/application/commands/create-company-with-admin.command';
 
 const program = new Command();
 
