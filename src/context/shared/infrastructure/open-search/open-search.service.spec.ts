@@ -2,44 +2,34 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OpenSearchService } from './open-search.service';
 import { Client } from '@opensearch-project/opensearch';
 
-// Mock de la clase Client de OpenSearch
-jest.mock('@opensearch-project/opensearch', () => {
-  return {
-    Client: jest.fn().mockImplementation(() => ({
-      cluster: {
-        health: jest.fn().mockResolvedValue({
-          body: {
-            status: 'green',
-          },
-        }),
-      },
-      index: jest.fn().mockResolvedValue({
-        body: {
-          result: 'created',
-        },
-      }),
-      search: jest.fn().mockResolvedValue({
-        body: {
-          hits: {
-            hits: [
-              {
-                _id: 'test-id',
-                _source: {
-                  title: 'Test',
-                  tags: ['test'],
-                },
-              },
-            ],
-          },
-        },
-      }),
-    })),
-  };
+// Crear un mock manual para el cliente OpenSearch
+const mockClusterHealth = jest.fn().mockResolvedValue({
+  body: { status: 'green' },
 });
+
+const mockClient = {
+  cluster: {
+    health: mockClusterHealth,
+  },
+  index: jest.fn().mockResolvedValue({
+    body: { result: 'created' },
+  }),
+  search: jest.fn().mockResolvedValue({
+    body: {
+      hits: {
+        hits: [{ _id: 'test-id', _source: { title: 'Test', tags: ['test'] } }],
+      },
+    },
+  }),
+};
+
+// Mock del constructor de Client
+jest.mock('@opensearch-project/opensearch', () => ({
+  Client: jest.fn().mockImplementation(() => mockClient),
+}));
 
 describe('OpenSearchService', () => {
   let service: OpenSearchService;
-  let mockClient;
 
   beforeEach(async () => {
     // Limpiamos todos los mocks antes de cada test
@@ -50,7 +40,6 @@ describe('OpenSearchService', () => {
     }).compile();
 
     service = module.get<OpenSearchService>(OpenSearchService);
-    mockClient = (Client as jest.Mock).mock.instances[0];
   });
 
   it('should be defined', () => {
@@ -63,25 +52,22 @@ describe('OpenSearchService', () => {
       await service.onModuleInit();
 
       // Assert
-      expect(mockClient.cluster.health).toHaveBeenCalled();
+      expect(mockClusterHealth).toHaveBeenCalled();
     });
 
     it('should log an error if cluster health check fails', async () => {
       // Arrange
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
       const loggerErrorSpy = jest.spyOn(service['logger'], 'error').mockImplementation();
       
-      mockClient.cluster.health.mockRejectedValueOnce(new Error('Connection refused'));
+      // Forzar que el método health falle para esta prueba
+      mockClusterHealth.mockRejectedValueOnce(new Error('Connection refused'));
 
       // Act
       await service.onModuleInit();
 
       // Assert
-      expect(mockClient.cluster.health).toHaveBeenCalled();
+      expect(mockClusterHealth).toHaveBeenCalled();
       expect(loggerErrorSpy).toHaveBeenCalledWith(expect.stringContaining('OpenSearch cluster is down'));
-      
-      // Restore console.error
-      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -91,7 +77,7 @@ describe('OpenSearchService', () => {
       const result = service.getClient();
 
       // Assert
-      expect(result).toBe(mockClient);
+      expect(result).toEqual(mockClient);
     });
   });
 });

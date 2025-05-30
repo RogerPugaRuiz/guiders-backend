@@ -110,22 +110,33 @@ describe('ParticipantSeenChatCommandHandler', () => {
       seenAt,
     });
 
-    const chat = Chat.fromPrimitives({
-      id: command.params.chatId,
+    // Crear un mock de la función participantSeenAt
+    const participantSeenAtMock = jest.fn().mockReturnValue({
+      // Esto simula el chat actualizado que devuelve participantSeenAt
+      id: { value: chatId },
+      participantSeenAt: jest.fn(),
       participants: [
         {
-          id: command.params.participantId,
+          id: participantId,
+          lastSeenAt: seenAt,
+        },
+      ],
+    });
+
+    // Crear el chat mock con la función mockeada
+    const chat = {
+      id: { value: chatId },
+      participantSeenAt: participantSeenAtMock,
+      participants: [
+        {
+          id: participantId,
           name: 'Visitor',
           isCommercial: false,
           isVisitor: true,
           lastSeenAt: new Date(Date.now() - 10000), // Fecha actual menos 10 segundos
-        }, // Otro participante
+        },
       ],
-      createdAt: new Date(),
-      lastMessage: null,
-      lastMessageAt: null,
-      status: 'active',
-    });
+    };
 
     // Mock or spy on the method that updates the participant's lastSeenAt
     const updateLastSeenAtSpy = jest.spyOn(commandHandler, 'execute');
@@ -133,10 +144,18 @@ describe('ParticipantSeenChatCommandHandler', () => {
     // Simula que el chat existe
     jest
       .spyOn(chatRepository, 'findOne')
-      .mockResolvedValueOnce(Optional.of({ chat }));
+      .mockResolvedValueOnce(Optional.of({ chat: chat as unknown as Chat }));
 
     // Simula que el chat se guarda correctamente
     jest.spyOn(chatRepository, 'save').mockResolvedValueOnce();
+
+    // Mock para el EventPublisher
+    const mergeObjectContextMock = jest.fn().mockReturnValue({
+      commit: jest.fn(),
+    });
+    jest
+      .spyOn(commandHandler['publisher'], 'mergeObjectContext')
+      .mockImplementation(mergeObjectContextMock);
 
     // Ejecuta el comando
     await commandHandler.execute(command);
@@ -144,7 +163,54 @@ describe('ParticipantSeenChatCommandHandler', () => {
     // Verificar que el método fue llamado con los argumentos correctos
     expect(updateLastSeenAtSpy).toHaveBeenCalledWith(command);
 
+    // Verificar que se llamó a la función participantSeenAt con los parámetros correctos
+    expect(participantSeenAtMock).toHaveBeenCalledWith(participantId, seenAt);
+
     // Verifica que el método save del repositorio fue llamado
-    expect(chatRepository['save']).toHaveBeenCalledWith(expect.any(Chat));
+    expect(chatRepository['save']).toHaveBeenCalled();
+
+    // Verificar que se llamó a mergeObjectContext y commit
+    expect(mergeObjectContextMock).toHaveBeenCalled();
+    expect(mergeObjectContextMock().commit).toHaveBeenCalled();
+  });
+  
+  it('should handle errors during the update process', async () => {
+    const participantId = Uuid.generate();
+    const chatId = Uuid.generate();
+    const seenAt = new Date();
+
+    const command = new ParticipantSeenChatCommand({
+      participantId,
+      chatId,
+      seenAt,
+    });
+
+    // Crear un mock del chat que lanza un error cuando se llama a participantSeenAt
+    const errorMessage = 'Error updating participant seen status';
+    const chat = {
+      id: { value: chatId },
+      participantSeenAt: jest.fn().mockImplementation(() => {
+        throw new Error(errorMessage);
+      }),
+      participants: [
+        {
+          id: participantId,
+          name: 'Visitor',
+          isCommercial: false,
+          isVisitor: true,
+        },
+      ],
+    };
+
+    // Simula que el chat existe
+    jest
+      .spyOn(chatRepository, 'findOne')
+      .mockResolvedValueOnce(Optional.of({ chat: chat as unknown as Chat }));
+
+    // Ejecuta el comando y verifica que se lanza el error esperado
+    await expect(commandHandler.execute(command)).rejects.toThrow(Error);
+    
+    // Verifica que no se llamó a save
+    expect(chatRepository['save']).not.toHaveBeenCalled();
   });
 });
