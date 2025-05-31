@@ -3,6 +3,19 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 
+// Tipo específico para PostgreSQL options para hacer testing más fácil
+interface PostgresConnectionOptions {
+  type: 'postgres';
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+  entities: string[];
+  synchronize: boolean;
+  autoLoadEntities: boolean;
+}
+
 describe('AppModule', () => {
   let module: TestingModule;
   let configService: ConfigService;
@@ -81,37 +94,11 @@ describe('AppModule', () => {
     });
   });
 
-  describe('TypeORM Configuration', () => {
-    it('should configure TypeORM for test environment', () => {
-      // Simular la factory function de TypeORM
-      const typeOrmFactory = (configService: ConfigService) => {
-        const nodeEnv = configService.get<string>('NODE_ENV');
-        const isTest = nodeEnv === 'test';
-
-        return {
-          type: 'postgres',
-          host: isTest
-            ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
-            : configService.get<string>('DATABASE_HOST', 'localhost'),
-          port: isTest
-            ? Number(configService.get<string>('TEST_DATABASE_PORT', '5432'))
-            : Number(configService.get<string>('DATABASE_PORT', '5432')),
-          username: isTest
-            ? configService.get<string>('TEST_DATABASE_USERNAME', 'postgres')
-            : configService.get<string>('DATABASE_USERNAME', 'postgres'),
-          password: isTest
-            ? configService.get<string>('TEST_DATABASE_PASSWORD', 'password')
-            : configService.get<string>('DATABASE_PASSWORD', 'password'),
-          database: isTest
-            ? configService.get<string>('TEST_DATABASE', 'mydb')
-            : configService.get<string>('DATABASE', 'mydb'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
-          autoLoadEntities: false,
-        };
-      };
-
-      const config = typeOrmFactory(configService);
+  describe('TypeORM Configuration useFactory', () => {
+    it('should configure TypeORM for test environment using real factory method', () => {
+      const config = AppModule.createTypeOrmOptions(
+        configService,
+      ) as PostgresConnectionOptions;
 
       expect(config.type).toBe('postgres');
       expect(config.host).toBe('test-host');
@@ -124,10 +111,7 @@ describe('AppModule', () => {
       expect(config.entities).toContain(__dirname + '/**/*.entity{.ts,.js}');
     });
 
-    it('should configure TypeORM for production environment', () => {
-      // Cambiar NODE_ENV a production
-      process.env.NODE_ENV = 'production';
-
+    it('should configure TypeORM for production environment using real factory method', () => {
       const productionConfigService = new ConfigService({
         NODE_ENV: 'production',
         DATABASE_HOST: 'prod-host',
@@ -137,35 +121,9 @@ describe('AppModule', () => {
         DATABASE: 'prod-db',
       });
 
-      // Simular la factory function de TypeORM para producción
-      const typeOrmFactory = (configService: ConfigService) => {
-        const nodeEnv = configService.get<string>('NODE_ENV');
-        const isTest = nodeEnv === 'test';
-
-        return {
-          type: 'postgres',
-          host: isTest
-            ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
-            : configService.get<string>('DATABASE_HOST', 'localhost'),
-          port: isTest
-            ? Number(configService.get<string>('TEST_DATABASE_PORT', '5432'))
-            : Number(configService.get<string>('DATABASE_PORT', '5432')),
-          username: isTest
-            ? configService.get<string>('TEST_DATABASE_USERNAME', 'postgres')
-            : configService.get<string>('DATABASE_USERNAME', 'postgres'),
-          password: isTest
-            ? configService.get<string>('TEST_DATABASE_PASSWORD', 'password')
-            : configService.get<string>('DATABASE_PASSWORD', 'password'),
-          database: isTest
-            ? configService.get<string>('TEST_DATABASE', 'mydb')
-            : configService.get<string>('DATABASE', 'mydb'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
-          autoLoadEntities: false,
-        };
-      };
-
-      const config = typeOrmFactory(productionConfigService);
+      const config = AppModule.createTypeOrmOptions(
+        productionConfigService,
+      ) as PostgresConnectionOptions;
 
       expect(config.type).toBe('postgres');
       expect(config.host).toBe('prod-host');
@@ -176,56 +134,20 @@ describe('AppModule', () => {
     });
 
     it('should use default values when environment variables are not set', () => {
-      // Limpiar las variables de entorno específicas para esta prueba
-      const originalValues: Record<string, string | undefined> = {
-        DATABASE_HOST: process.env.DATABASE_HOST,
-        DATABASE_PORT: process.env.DATABASE_PORT,
-        DATABASE_USERNAME: process.env.DATABASE_USERNAME,
-        DATABASE_PASSWORD: process.env.DATABASE_PASSWORD,
-        DATABASE: process.env.DATABASE,
-      };
+      // Crear ConfigService con un entorno limpio y solo NODE_ENV específico
+      const isolatedConfigService = new ConfigService();
 
-      // Eliminar temporalmente las variables específicas
-      delete process.env.DATABASE_HOST;
-      delete process.env.DATABASE_PORT;
-      delete process.env.DATABASE_USERNAME;
-      delete process.env.DATABASE_PASSWORD;
-      delete process.env.DATABASE;
+      // Mock del método get para simular un ambiente sin variables específicas
+      jest
+        .spyOn(isolatedConfigService, 'get')
+        .mockImplementation((key: string, defaultValue?: any) => {
+          if (key === 'NODE_ENV') return 'development';
+          return defaultValue; // Retorna el valor por defecto
+        });
 
-      // Crear ConfigService sin variables específicas
-      const defaultConfigService = new ConfigService({
-        NODE_ENV: 'development',
-      });
-
-      // Simular la factory function con valores por defecto
-      const typeOrmFactory = (configService: ConfigService) => {
-        const nodeEnv = configService.get<string>('NODE_ENV');
-        const isTest = nodeEnv === 'test';
-
-        return {
-          type: 'postgres',
-          host: isTest
-            ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
-            : configService.get<string>('DATABASE_HOST', 'localhost'),
-          port: isTest
-            ? Number(configService.get<string>('TEST_DATABASE_PORT', '5432'))
-            : Number(configService.get<string>('DATABASE_PORT', '5432')),
-          username: isTest
-            ? configService.get<string>('TEST_DATABASE_USERNAME', 'postgres')
-            : configService.get<string>('DATABASE_USERNAME', 'postgres'),
-          password: isTest
-            ? configService.get<string>('TEST_DATABASE_PASSWORD', 'password')
-            : configService.get<string>('DATABASE_PASSWORD', 'password'),
-          database: isTest
-            ? configService.get<string>('TEST_DATABASE', 'mydb')
-            : configService.get<string>('DATABASE', 'mydb'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
-          autoLoadEntities: false,
-        };
-      };
-
-      const config = typeOrmFactory(defaultConfigService);
+      const config = AppModule.createTypeOrmOptions(
+        isolatedConfigService,
+      ) as PostgresConnectionOptions;
 
       // Verificar valores por defecto para ambiente development (no test)
       expect(config.host).toBe('localhost');
@@ -234,12 +156,88 @@ describe('AppModule', () => {
       expect(config.password).toBe('password');
       expect(config.database).toBe('mydb');
 
-      // Restaurar las variables originales
-      Object.keys(originalValues).forEach((key) => {
-        if (originalValues[key] !== undefined) {
-          process.env[key] = originalValues[key];
-        }
+      // Limpiar el mock
+      jest.restoreAllMocks();
+    });
+
+    it('should properly handle NODE_ENV test vs non-test environments', () => {
+      // Test environment
+      const testConfigService = new ConfigService({
+        NODE_ENV: 'test',
+        TEST_DATABASE_HOST: 'test-db-host',
+        TEST_DATABASE_PORT: '5433',
+        TEST_DATABASE_USERNAME: 'test-user',
+        TEST_DATABASE_PASSWORD: 'test-pass',
+        TEST_DATABASE: 'test-db',
       });
+
+      const testConfig = AppModule.createTypeOrmOptions(
+        testConfigService,
+      ) as PostgresConnectionOptions;
+
+      expect(testConfig.host).toBe('test-db-host');
+      expect(testConfig.port).toBe(5433);
+
+      // Production environment
+      const prodConfigService = new ConfigService({
+        NODE_ENV: 'production',
+        DATABASE_HOST: 'prod-db-host',
+        DATABASE_PORT: '5432',
+        DATABASE_USERNAME: 'prod-user',
+        DATABASE_PASSWORD: 'prod-pass',
+        DATABASE: 'prod-db',
+      });
+
+      const prodConfig = AppModule.createTypeOrmOptions(
+        prodConfigService,
+      ) as PostgresConnectionOptions;
+
+      expect(prodConfig.host).toBe('prod-db-host');
+      expect(prodConfig.port).toBe(5432);
+    });
+
+    it('should return correct configuration when NODE_ENV is explicitly test', () => {
+      const testEnvConfigService = new ConfigService({
+        NODE_ENV: 'test',
+        TEST_DATABASE_HOST: 'localhost-test',
+        TEST_DATABASE_PORT: '5433',
+        TEST_DATABASE_USERNAME: 'testuser',
+        TEST_DATABASE_PASSWORD: 'testpass',
+        TEST_DATABASE: 'testdb',
+      });
+
+      const config = AppModule.createTypeOrmOptions(
+        testEnvConfigService,
+      ) as PostgresConnectionOptions;
+
+      // Verificar que se usan las variables TEST_* cuando NODE_ENV=test
+      expect(config.host).toBe('localhost-test');
+      expect(config.port).toBe(5433);
+      expect(config.username).toBe('testuser');
+      expect(config.password).toBe('testpass');
+      expect(config.database).toBe('testdb');
+    });
+
+    it('should return correct configuration when NODE_ENV is not test', () => {
+      const nonTestConfigService = new ConfigService({
+        NODE_ENV: 'production',
+        DATABASE_HOST: 'prod-server',
+        DATABASE_PORT: '5432',
+        DATABASE_USERNAME: 'produser',
+        DATABASE_PASSWORD: 'prodpass',
+        DATABASE: 'proddb',
+      });
+
+      const config = AppModule.createTypeOrmOptions(
+        nonTestConfigService,
+      ) as PostgresConnectionOptions;
+
+      // Verificar que se usan las variables DATABASE_* cuando NODE_ENV != test
+      expect(config.host).toBe('prod-server');
+      expect(config.port).toBe(5432);
+      expect(config.username).toBe('produser');
+      expect(config.password).toBe('prodpass');
+      expect(config.database).toBe('proddb');
     });
   });
 
