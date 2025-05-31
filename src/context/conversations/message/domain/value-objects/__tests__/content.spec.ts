@@ -98,7 +98,7 @@ describe('Content', () => {
 
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const content = new Content('Contenido de prueba');
-    
+
     expect(typeof content.equals).toBe('function');
     expect(typeof content.getValue).toBe('function');
     expect(content.getValue()).toBe('Contenido de prueba');
@@ -107,7 +107,7 @@ describe('Content', () => {
   it('debe permitir contenido muy largo', () => {
     const longContent = 'a'.repeat(10000);
     const content = new Content(longContent);
-    
+
     expect(content.value).toBe(longContent);
     expect(content.value.length).toBe(10000);
   });
@@ -115,7 +115,7 @@ describe('Content', () => {
   it('debe permitir contenido con diferentes tipos de caracteres Unicode', () => {
     const unicodeContent = '🚀 Hello 世界 مرحبا 🌍';
     const content = new Content(unicodeContent);
-    
+
     expect(content.value).toBe(unicodeContent);
   });
 });

@@ -63,7 +63,7 @@ describe('Role', () => {
     expect(() => {
       new Role('ADMIN');
     }).toThrow(ValidationError);
-    
+
     expect(() => {
       new Role('Admin');
     }).toThrow(ValidationError);
@@ -97,7 +97,7 @@ describe('Role', () => {
 
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const role = new Role(RoleEnum.ADMIN);
-    
+
     expect(typeof role.equals).toBe('function');
     expect(typeof role.getValue).toBe('function');
     expect(role.getValue()).toBe('admin');

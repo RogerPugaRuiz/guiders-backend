@@ -56,7 +56,7 @@ describe('ConnectionUserId', () => {
 
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const userId = new ConnectionUserId('user-123');
-    
+
     expect(typeof userId.equals).toBe('function');
     expect(typeof userId.getValue).toBe('function');
     expect(userId.getValue()).toBe('user-123');

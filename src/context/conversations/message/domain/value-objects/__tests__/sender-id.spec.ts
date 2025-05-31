@@ -64,7 +64,7 @@ describe('SenderId', () => {
   it('debe heredar métodos de UuidValueObject', () => {
     const validUuid = '123e4567-e89b-12d3-a456-426614174000';
     const senderId = new SenderId(validUuid);
-    
+
     expect(typeof senderId.equals).toBe('function');
     expect(typeof senderId.getValue).toBe('function');
     expect(senderId.getValue()).toBe(validUuid);
@@ -77,7 +77,7 @@ describe('SenderId', () => {
       'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     ];
 
-    uuids.forEach(uuid => {
+    uuids.forEach((uuid) => {
       expect(() => {
         new SenderId(uuid);
       }).not.toThrow();
@@ -86,13 +86,13 @@ describe('SenderId', () => {
 
   it('debe rechazar UUIDs con formato incorrecto', () => {
     const invalidUuids = [
-      '123e4567-e89b-12d3-a456-42661417400',  // Un carácter menos
+      '123e4567-e89b-12d3-a456-42661417400', // Un carácter menos
       '123e4567-e89b-12d3-a456-4266141740000', // Un carácter más
-      '123e4567-e89b-12d3-a456-42661417400g',  // Carácter inválido
-      '123e4567e89b12d3a456426614174000',      // Sin guiones
+      '123e4567-e89b-12d3-a456-42661417400g', // Carácter inválido
+      '123e4567e89b12d3a456426614174000', // Sin guiones
     ];
 
-    invalidUuids.forEach(uuid => {
+    invalidUuids.forEach((uuid) => {
       expect(() => {
         new SenderId(uuid);
       }).toThrow();
@@ -107,7 +107,7 @@ describe('SenderId', () => {
       'f47ac10b-58cc-4372-a567-0e02b2c3d479', // Admin ID
     ];
 
-    senderIds.forEach(id => {
+    senderIds.forEach((id) => {
       const senderId = new SenderId(id);
       expect(senderId.value).toBe(id);
     });

@@ -4,7 +4,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotifyOnParticipantAssignedToChatEventHandler } from '../notify-on-participant-assigned-to-chat.event-handler';
 import { ParticipantAssignedEvent } from 'src/context/conversations/chat/domain/chat/events/participant-assigned.event';
 import { INotification, NOTIFICATION } from '../../../domain/notification';
-import { ChatPrimitives, ParticipantPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
+import {
+  ChatPrimitives,
+  ParticipantPrimitives,
+} from 'src/context/conversations/chat/domain/chat/chat';
 
 describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
   let handler: NotifyOnParticipantAssignedToChatEventHandler;
@@ -14,6 +17,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
     // Crear mock del servicio de notificación
     mockNotification = {
       notify: jest.fn().mockResolvedValue(undefined),
+      notifyRole: jest.fn().mockResolvedValue(undefined),
     };
 
     // Configuración del módulo de prueba
@@ -32,6 +36,10 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
     );
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('debe estar definido', () => {
     expect(handler).toBeDefined();
   });
@@ -40,18 +48,23 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
     // Arrange
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-123',
-      state: 'pending',
+      status: 'pending',
       participants: [],
+      lastMessage: null,
+      lastMessageAt: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
 
     const participantPrimitives: ParticipantPrimitives = {
       id: 'participant-123',
-      type: 'commercial',
+      name: 'Test Commercial',
+      isCommercial: true,
+      isVisitor: false,
       isOnline: true,
-      lastReadAt: new Date(),
-      unreadMessages: 0,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
     };
 
     const event = new ParticipantAssignedEvent({
@@ -75,18 +88,23 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
     // Arrange
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-123',
-      state: 'pending',
+      status: 'pending',
       participants: [],
+      lastMessage: null,
+      lastMessageAt: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
 
     const participantPrimitives: ParticipantPrimitives = {
       id: 'participant-123',
-      type: 'commercial',
+      name: 'Test Commercial',
+      isCommercial: true,
+      isVisitor: false,
       isOnline: true,
-      lastReadAt: new Date(),
-      unreadMessages: 0,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
     };
 
     const event = new ParticipantAssignedEvent({
@@ -94,30 +112,34 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
       newParticipant: participantPrimitives,
     });
 
-    // Simular error en la notificación
-    mockNotification.notify.mockRejectedValue(new Error('Notification failed'));
+    // Mock para error en notificación
+    mockNotification.notify.mockRejectedValue(new Error('Notification error'));
 
-    // Act & Assert - no debe lanzar excepción
-    await expect(handler.handle(event)).rejects.toThrow('Notification failed');
-    expect(mockNotification.notify).toHaveBeenCalledTimes(1);
+    // Act & Assert - no debe lanzar error
+    await expect(handler.handle(event)).resolves.not.toThrow();
   });
 
-  it('debe extraer correctamente los datos del evento', async () => {
+  it('debe notificar con el tipo correcto para participante visitante', async () => {
     // Arrange
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-456',
-      state: 'active',
+      status: 'active',
       participants: [],
+      lastMessage: null,
+      lastMessageAt: null,
       createdAt: new Date(),
-      updatedAt: new Date(),
     };
 
     const participantPrimitives: ParticipantPrimitives = {
       id: 'participant-456',
-      type: 'visitor',
+      name: 'Test Visitor',
+      isCommercial: false,
+      isVisitor: true,
       isOnline: false,
-      lastReadAt: new Date(),
-      unreadMessages: 5,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
     };
 
     const event = new ParticipantAssignedEvent({

@@ -105,7 +105,7 @@ describe('IntentPriceRange', () => {
 
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const priceRange = new IntentPriceRange({ min: 100, max: 500 });
-    
+
     expect(typeof priceRange.equals).toBe('function');
     expect(typeof priceRange.toString).toBe('function');
   });

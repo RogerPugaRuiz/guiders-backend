@@ -61,7 +61,7 @@ describe('ConnectionRoom', () => {
 
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const room = new ConnectionRoom('room-123');
-    
+
     expect(typeof room.equals).toBe('function');
     expect(typeof room.getValue).toBe('function');
     expect(room.getValue()).toBe('room-123');

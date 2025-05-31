@@ -16,7 +16,7 @@ describe('InviteEmail', () => {
       'contact@example.edu',
     ];
 
-    validEmails.forEach(emailValue => {
+    validEmails.forEach((emailValue) => {
       const email = new InviteEmail(emailValue);
       expect(email.value).toBe(emailValue);
     });
@@ -102,7 +102,7 @@ describe('InviteEmail', () => {
 
   it('debe heredar de Email', () => {
     const email = new InviteEmail('test@example.com');
-    
+
     expect(typeof email.equals).toBe('function');
     expect(typeof email.getValue).toBe('function');
     expect(email.getValue()).toBe('test@example.com');
@@ -115,7 +115,7 @@ describe('InviteEmail', () => {
       'contact@site.fr',
     ];
 
-    internationalEmails.forEach(emailValue => {
+    internationalEmails.forEach((emailValue) => {
       expect(() => {
         new InviteEmail(emailValue);
       }).not.toThrow();

@@ -2,7 +2,10 @@
 // Ubicación: src/context/real-time/application/usecases/__tests__/disconnect.usecase.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventPublisher } from '@nestjs/cqrs';
-import { DisconnectUseCase, DisconnectUseCaseRequest } from '../disconnect.usecase';
+import {
+  DisconnectUseCase,
+  DisconnectUseCaseRequest,
+} from '../disconnect.usecase';
 import { CONNECTION_REPOSITORY } from '../../../domain/connection.repository';
 import { ok, err } from 'src/context/shared/domain/result';
 import { ConnectionUserNotFound } from '../../../domain/errors/connection-user-not-found';
@@ -138,7 +141,9 @@ describe('DisconnectUseCase', () => {
         socketId: 'nonexistent-socket',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('nonexistent-socket')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('nonexistent-socket')),
+      );
       mockRepository.find.mockResolvedValue([
         { userId: { value: 'user1' } },
         { userId: { value: 'user2' } },
@@ -166,7 +171,9 @@ describe('DisconnectUseCase', () => {
         { userId: { value: 'visitor3' } },
       ];
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('unknown-socket')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('unknown-socket')),
+      );
       mockRepository.find.mockResolvedValue(mockVisitorConnections);
 
       // Act
@@ -182,7 +189,9 @@ describe('DisconnectUseCase', () => {
         socketId: 'empty-list-socket',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('empty-list-socket')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('empty-list-socket')),
+      );
       mockRepository.find.mockResolvedValue([]);
 
       // Act
@@ -205,7 +214,9 @@ describe('DisconnectUseCase', () => {
       mockRepository.findOne.mockRejectedValue(repositoryError);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow('Database connection failed');
+      await expect(useCase.execute(request)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     it('debe propagar errores del repositorio al guardar', async () => {
@@ -224,7 +235,9 @@ describe('DisconnectUseCase', () => {
       mockRepository.save.mockRejectedValue(saveError);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow('Failed to save disconnection');
+      await expect(useCase.execute(request)).rejects.toThrow(
+        'Failed to save disconnection',
+      );
     });
 
     it('debe manejar errores al buscar todas las conexiones', async () => {
@@ -233,11 +246,17 @@ describe('DisconnectUseCase', () => {
         socketId: 'find-all-error-socket',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('find-all-error-socket')));
-      mockRepository.find.mockRejectedValue(new Error('Failed to find all connections'));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('find-all-error-socket')),
+      );
+      mockRepository.find.mockRejectedValue(
+        new Error('Failed to find all connections'),
+      );
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow('Failed to find all connections');
+      await expect(useCase.execute(request)).rejects.toThrow(
+        'Failed to find all connections',
+      );
     });
   });
 
@@ -274,7 +293,9 @@ describe('DisconnectUseCase', () => {
         socketId: 'no-event-socket',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('no-event-socket')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('no-event-socket')),
+      );
       mockRepository.find.mockResolvedValue([]);
 
       // Act

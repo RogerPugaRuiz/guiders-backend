@@ -3,9 +3,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UpdateVisitorCurrentPageCommandHandler } from '../update-visitor-current-page-command.handler';
 import { UpdateVisitorCurrentPageCommand } from '../update-visitor-current-page.command';
-import { IVisitorRepository, VISITOR_REPOSITORY } from '../../../domain/visitor.repository';
+import {
+  IVisitorRepository,
+  VISITOR_REPOSITORY,
+} from '../../../domain/visitor.repository';
 import { ok, err } from 'src/context/shared/domain/result';
-import { DomainError } from 'src/context/shared/domain/domain.error';
+import { VisitorNotFoundError } from '../../../domain/errors/visitor.error';
 import { VisitorCurrentPage } from '../../../domain/value-objects/visitor-current-page';
 
 describe('UpdateVisitorCurrentPageCommandHandler', () => {
@@ -17,8 +20,7 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     mockRepository = {
       findById: jest.fn(),
       save: jest.fn(),
-      findAll: jest.fn(),
-      findByCriteria: jest.fn(),
+      match: jest.fn(),
     };
 
     // Configuración del módulo de prueba
@@ -45,7 +47,7 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     // Arrange
     const command = new UpdateVisitorCurrentPageCommand(
       '123e4567-e89b-12d3-a456-426614174000',
-      '/products/category-1'
+      '/products/category-1',
     );
 
     const mockVisitor = {
@@ -57,7 +59,7 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
 
     // Mock de éxito para encontrar el visitante
     mockRepository.findById.mockResolvedValue(ok(mockVisitor));
-    
+
     // Mock de éxito para guardar
     mockRepository.save.mockResolvedValue(ok(undefined));
 
@@ -68,11 +70,11 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     expect(result.isOk()).toBe(true);
     expect(mockRepository.findById).toHaveBeenCalledWith(
       expect.objectContaining({
-        value: '123e4567-e89b-12d3-a456-426614174000'
-      })
+        value: '123e4567-e89b-12d3-a456-426614174000',
+      }),
     );
     expect(mockVisitor.updateCurrentPage).toHaveBeenCalledWith(
-      expect.any(VisitorCurrentPage)
+      expect.any(VisitorCurrentPage),
     );
     expect(mockRepository.save).toHaveBeenCalled();
   });
@@ -81,11 +83,13 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     // Arrange
     const command = new UpdateVisitorCurrentPageCommand(
       '123e4567-e89b-12d3-a456-426614174000',
-      '/products/category-1'
+      '/products/category-1',
     );
 
-    const notFoundError = new DomainError('Visitor not found');
-    
+    const notFoundError = new VisitorNotFoundError(
+      '123e4567-e89b-12d3-a456-426614174000',
+    );
+
     // Mock de error para encontrar el visitante
     mockRepository.findById.mockResolvedValue(err(notFoundError));
 
@@ -94,7 +98,9 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
 
     // Assert
     expect(result.isErr()).toBe(true);
-    expect(result.error).toBe(notFoundError);
+    if (result.isErr()) {
+      expect(result.error).toBe(notFoundError);
+    }
     expect(mockRepository.findById).toHaveBeenCalled();
     expect(mockRepository.save).not.toHaveBeenCalled();
   });
@@ -103,7 +109,7 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     // Arrange
     const command = new UpdateVisitorCurrentPageCommand(
       '123e4567-e89b-12d3-a456-426614174000',
-      '/products/category-1'
+      '/products/category-1',
     );
 
     const mockVisitor = {
@@ -113,11 +119,11 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
       }),
     } as any;
 
-    const saveError = new DomainError('Save failed');
+    const saveError = new VisitorNotFoundError('Save failed');
 
     // Mock de éxito para encontrar el visitante
     mockRepository.findById.mockResolvedValue(ok(mockVisitor));
-    
+
     // Mock de error para guardar
     mockRepository.save.mockResolvedValue(err(saveError));
 
@@ -126,7 +132,9 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
 
     // Assert
     expect(result.isErr()).toBe(true);
-    expect(result.error).toBe(saveError);
+    if (result.isErr()) {
+      expect(result.error).toBe(saveError);
+    }
     expect(mockRepository.findById).toHaveBeenCalled();
     expect(mockVisitor.updateCurrentPage).toHaveBeenCalled();
     expect(mockRepository.save).toHaveBeenCalled();
@@ -137,7 +145,7 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     const currentPage = '/home/landing-page';
     const command = new UpdateVisitorCurrentPageCommand(
       '123e4567-e89b-12d3-a456-426614174000',
-      currentPage
+      currentPage,
     );
 
     const mockVisitor = {
@@ -156,8 +164,8 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     // Assert
     expect(mockVisitor.updateCurrentPage).toHaveBeenCalledWith(
       expect.objectContaining({
-        value: currentPage
-      })
+        value: currentPage,
+      }),
     );
   });
 });

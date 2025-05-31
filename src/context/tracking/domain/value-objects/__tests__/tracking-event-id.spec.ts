@@ -37,8 +37,12 @@ describe('TrackingEventId', () => {
   });
 
   it('debe comparar correctamente dos tracking event IDs diferentes', () => {
-    const trackingEventId1 = new TrackingEventId('123e4567-e89b-12d3-a456-426614174000');
-    const trackingEventId2 = new TrackingEventId('987fcdeb-51a2-43d1-9f33-426614174111');
+    const trackingEventId1 = new TrackingEventId(
+      '123e4567-e89b-12d3-a456-426614174000',
+    );
+    const trackingEventId2 = new TrackingEventId(
+      '987fcdeb-51a2-43d1-9f33-426614174111',
+    );
 
     expect(trackingEventId1.equals(trackingEventId2)).toBe(false);
   });
@@ -53,7 +57,7 @@ describe('TrackingEventId', () => {
   it('debe heredar métodos de Uuid', () => {
     const validUuid = '123e4567-e89b-12d3-a456-426614174000';
     const trackingEventId = new TrackingEventId(validUuid);
-    
+
     expect(typeof trackingEventId.equals).toBe('function');
     expect(typeof trackingEventId.getValue).toBe('function');
     expect(trackingEventId.getValue()).toBe(validUuid);

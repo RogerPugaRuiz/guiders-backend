@@ -9,7 +9,9 @@ describe('ConnectionSocketId', () => {
   });
 
   it('debe crear socket ID con formato UUID', () => {
-    const socketId = new ConnectionSocketId('123e4567-e89b-12d3-a456-426614174000');
+    const socketId = new ConnectionSocketId(
+      '123e4567-e89b-12d3-a456-426614174000',
+    );
     expect(socketId.value).toBe('123e4567-e89b-12d3-a456-426614174000');
   });
 
@@ -56,7 +58,7 @@ describe('ConnectionSocketId', () => {
 
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const socketId = new ConnectionSocketId('socket-123');
-    
+
     expect(typeof socketId.equals).toBe('function');
     expect(typeof socketId.getValue).toBe('function');
     expect(socketId.getValue()).toBe('socket-123');

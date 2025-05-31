@@ -26,7 +26,7 @@ describe('UserId', () => {
   it('debe generar diferentes IDs aleatorios', () => {
     const userId1 = UserId.random();
     const userId2 = UserId.random();
-    
+
     expect(userId1.value).not.toBe(userId2.value);
   });
 
@@ -79,7 +79,7 @@ describe('UserId', () => {
   it('debe heredar métodos de Uuid', () => {
     const validUuid = '123e4567-e89b-12d3-a456-426614174000';
     const userId = new UserId(validUuid);
-    
+
     expect(typeof userId.equals).toBe('function');
     expect(typeof userId.getValue).toBe('function');
     expect(userId.getValue()).toBe(validUuid);
@@ -95,7 +95,7 @@ describe('UserId', () => {
   it('debe funcionar con otros métodos estáticos de Uuid', () => {
     const generatedUuid = Uuid.generate();
     const userId = new UserId(generatedUuid);
-    
+
     expect(userId.value).toBe(generatedUuid);
     expect(Uuid.validate(userId.value)).toBe(true);
   });

@@ -1,10 +1,10 @@
 // Prueba unitaria para ConnectUseCase
 // Ubicación: src/context/real-time/application/usecases/__tests__/connect.usecase.spec.ts
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventPublisher } from '@nestjs/cqrs';
 import { ConnectUseCase, ConnectUseCaseRequest } from '../connect.usecase';
 import { CONNECTION_REPOSITORY } from '../../../domain/connection.repository';
-import { ConnectionUser } from '../../../domain/connection-user';
 import { ok, err } from 'src/context/shared/domain/result';
 import { ConnectionUserNotFound } from '../../../domain/errors/connection-user-not-found';
 
@@ -60,7 +60,9 @@ describe('ConnectUseCase', () => {
       };
 
       // Simular que no se encuentra el usuario
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('user-123')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('user-123')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -80,7 +82,9 @@ describe('ConnectUseCase', () => {
         socketId: 'socket-456',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('user-456')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('user-456')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -99,7 +103,9 @@ describe('ConnectUseCase', () => {
         socketId: 'socket-789',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('visitor-789')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('visitor-789')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -121,8 +127,9 @@ describe('ConnectUseCase', () => {
 
       const mockConnection = {
         socketId: {
-          fold: jest.fn().mockImplementation((onEmpty, onValue) => {
+          fold: jest.fn().mockImplementation((onEmpty) => {
             // Simular que no hay socket ID (primera función)
+
             return onEmpty();
           }),
         },
@@ -157,6 +164,7 @@ describe('ConnectUseCase', () => {
         socketId: {
           fold: jest.fn().mockImplementation((onEmpty, onValue) => {
             // Simular que ya hay socket ID (segunda función)
+
             return onValue('existing-socket');
           }),
         },
@@ -186,7 +194,9 @@ describe('ConnectUseCase', () => {
       mockRepository.findOne.mockRejectedValue(repositoryError);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow('Database connection failed');
+      await expect(useCase.execute(request)).rejects.toThrow(
+        'Database connection failed',
+      );
     });
 
     it('debe propagar errores del repositorio al guardar nueva conexión', async () => {
@@ -198,11 +208,15 @@ describe('ConnectUseCase', () => {
       };
 
       const saveError = new Error('Failed to save connection');
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('user-save-error')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('user-save-error')),
+      );
       mockRepository.save.mockRejectedValue(saveError);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow('Failed to save connection');
+      await expect(useCase.execute(request)).rejects.toThrow(
+        'Failed to save connection',
+      );
     });
 
     it('debe propagar errores del repositorio al guardar conexión existente', async () => {
@@ -215,7 +229,7 @@ describe('ConnectUseCase', () => {
 
       const mockConnection = {
         socketId: {
-          fold: jest.fn().mockImplementation((onEmpty, onValue) => {
+          fold: jest.fn().mockImplementation((onEmpty) => {
             return onEmpty();
           }),
         },
@@ -227,7 +241,9 @@ describe('ConnectUseCase', () => {
       mockRepository.save.mockRejectedValue(updateError);
 
       // Act & Assert
-      await expect(useCase.execute(request)).rejects.toThrow('Failed to update connection');
+      await expect(useCase.execute(request)).rejects.toThrow(
+        'Failed to update connection',
+      );
     });
   });
 
@@ -240,7 +256,9 @@ describe('ConnectUseCase', () => {
         socketId: 'socket-no-roles',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('user-no-roles')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('user-no-roles')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -265,7 +283,9 @@ describe('ConnectUseCase', () => {
           socketId,
         };
 
-        mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound(`user-${socketId}`)));
+        mockRepository.findOne.mockResolvedValue(
+          err(new ConnectionUserNotFound(`user-${socketId}`)),
+        );
         mockRepository.save.mockResolvedValue();
 
         // Act
@@ -286,7 +306,9 @@ describe('ConnectUseCase', () => {
         socketId: 'event-socket',
       };
 
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('event-user')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('event-user')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -308,7 +330,7 @@ describe('ConnectUseCase', () => {
 
       const mockConnection = {
         socketId: {
-          fold: jest.fn().mockImplementation((onEmpty, onValue) => {
+          fold: jest.fn().mockImplementation((onEmpty) => {
             return onEmpty();
           }),
         },

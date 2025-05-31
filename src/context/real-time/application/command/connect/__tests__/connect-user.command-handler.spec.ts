@@ -5,7 +5,7 @@ import { EventBus, EventPublisher } from '@nestjs/cqrs';
 import { ConnectUserCommandHandler } from '../connect-user.command-handler';
 import { ConnectUserCommand } from '../connect-user.command';
 import { CONNECTION_REPOSITORY } from '../../../../domain/connection.repository';
-import { INotification, NOTIFICATION } from '../../../../domain/notification';
+import { NOTIFICATION } from '../../../../domain/notification';
 import { ConnectionRole } from '../../../../domain/value-objects/connection-role';
 import { ok, err } from 'src/context/shared/domain/result';
 import { CommercialConnectedEvent } from '../../../../domain/events/commercial-connected.event';
@@ -81,10 +81,16 @@ describe('ConnectUserCommandHandler', () => {
   describe('Nueva conexión', () => {
     it('debe crear nueva conexión cuando el usuario no existe', async () => {
       // Arrange
-      const command = new ConnectUserCommand('user-123', ['visitor'], 'socket-123');
-      
+      const command = new ConnectUserCommand(
+        'user-123',
+        ['visitor'],
+        'socket-123',
+      );
+
       // Simular que no se encuentra el usuario (nueva conexión)
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('user-123')));
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('user-123')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -105,14 +111,25 @@ describe('ConnectUserCommandHandler', () => {
 
     it('debe crear nueva conexión de comercial y disparar evento', async () => {
       // Arrange
-      const command = new ConnectUserCommand('commercial-123', [ConnectionRole.COMMERCIAL], 'socket-123');
-      
+      const command = new ConnectUserCommand(
+        'commercial-123',
+        [ConnectionRole.COMMERCIAL],
+        'socket-123',
+      );
+
       // Mock para usuario no encontrado inicialmente
       mockRepository.findOne
-        .mockResolvedValueOnce(err(new ConnectionUserNotFound('commercial-123')))
-        .mockResolvedValueOnce(ok({
-          toPrimitives: () => ({ userId: 'commercial-123', roles: ['commercial'] }),
-        }));
+        .mockResolvedValueOnce(
+          err(new ConnectionUserNotFound('commercial-123')),
+        )
+        .mockResolvedValueOnce(
+          ok({
+            toPrimitives: () => ({
+              userId: 'commercial-123',
+              roles: ['commercial'],
+            }),
+          }),
+        );
 
       mockRepository.save.mockResolvedValue();
 
@@ -121,7 +138,7 @@ describe('ConnectUserCommandHandler', () => {
 
       // Assert
       expect(mockEventBus.publish).toHaveBeenCalledWith(
-        expect.any(CommercialConnectedEvent)
+        expect.any(CommercialConnectedEvent),
       );
     });
   });
@@ -129,8 +146,12 @@ describe('ConnectUserCommandHandler', () => {
   describe('Conexión existente', () => {
     it('debe actualizar conexión existente cuando el usuario ya existe', async () => {
       // Arrange
-      const command = new ConnectUserCommand('user-123', ['visitor'], 'socket-456');
-      
+      const command = new ConnectUserCommand(
+        'user-123',
+        ['visitor'],
+        'socket-456',
+      );
+
       const mockConnection = {
         userId: { value: 'user-123' },
         connect: jest.fn().mockReturnValue({
@@ -156,9 +177,15 @@ describe('ConnectUserCommandHandler', () => {
   describe('Notificaciones', () => {
     it('debe notificar a los comerciales cuando cualquier usuario se conecta', async () => {
       // Arrange
-      const command = new ConnectUserCommand('user-123', ['visitor'], 'socket-123');
-      
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('user-123')));
+      const command = new ConnectUserCommand(
+        'user-123',
+        ['visitor'],
+        'socket-123',
+      );
+
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('user-123')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -179,9 +206,15 @@ describe('ConnectUserCommandHandler', () => {
   describe('Eventos de comercial', () => {
     it('no debe disparar evento si el usuario no es comercial', async () => {
       // Arrange
-      const command = new ConnectUserCommand('visitor-123', ['visitor'], 'socket-123');
-      
-      mockRepository.findOne.mockResolvedValue(err(new ConnectionUserNotFound('visitor-123')));
+      const command = new ConnectUserCommand(
+        'visitor-123',
+        ['visitor'],
+        'socket-123',
+      );
+
+      mockRepository.findOne.mockResolvedValue(
+        err(new ConnectionUserNotFound('visitor-123')),
+      );
       mockRepository.save.mockResolvedValue();
 
       // Act
@@ -193,13 +226,21 @@ describe('ConnectUserCommandHandler', () => {
 
     it('debe manejar el caso cuando no se puede encontrar la conexión actualizada', async () => {
       // Arrange
-      const command = new ConnectUserCommand('commercial-123', [ConnectionRole.COMMERCIAL], 'socket-123');
-      
+      const command = new ConnectUserCommand(
+        'commercial-123',
+        [ConnectionRole.COMMERCIAL],
+        'socket-123',
+      );
+
       // Primera llamada: usuario no encontrado (nueva conexión)
       // Segunda llamada: tampoco se encuentra después de guardar (caso edge)
       mockRepository.findOne
-        .mockResolvedValueOnce(err(new ConnectionUserNotFound('commercial-123')))
-        .mockResolvedValueOnce(err(new ConnectionUserNotFound('commercial-123')));
+        .mockResolvedValueOnce(
+          err(new ConnectionUserNotFound('commercial-123')),
+        )
+        .mockResolvedValueOnce(
+          err(new ConnectionUserNotFound('commercial-123')),
+        );
 
       mockRepository.save.mockResolvedValue();
 

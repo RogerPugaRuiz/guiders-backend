@@ -53,7 +53,7 @@ describe('NavigationPath', () => {
   it('debe crear un path con un step', () => {
     const step = new NavigationPathStep('home');
     const path = new NavigationPath([step]);
-    
+
     expect(path.value).toHaveLength(1);
     expect(path.value[0].value).toBe('home');
     expect(path.toPrimitives()).toEqual(['home']);
@@ -64,18 +64,23 @@ describe('NavigationPath', () => {
       new NavigationPathStep('home'),
       new NavigationPathStep('products'),
       new NavigationPathStep('category-1'),
-      new NavigationPathStep('product-detail')
+      new NavigationPathStep('product-detail'),
     ];
     const path = new NavigationPath(steps);
-    
+
     expect(path.value).toHaveLength(4);
-    expect(path.toPrimitives()).toEqual(['home', 'products', 'category-1', 'product-detail']);
+    expect(path.toPrimitives()).toEqual([
+      'home',
+      'products',
+      'category-1',
+      'product-detail',
+    ]);
   });
 
   it('debe crear path desde primitivos', () => {
     const primitives = ['home', 'products', 'category-1'];
     const path = NavigationPath.fromPrimitives(primitives);
-    
+
     expect(path.value).toHaveLength(3);
     expect(path.toPrimitives()).toEqual(primitives);
   });
@@ -95,18 +100,24 @@ describe('NavigationPath', () => {
   it('debe inmutabilizar el array de steps', () => {
     const steps = [new NavigationPathStep('home')];
     const path = new NavigationPath(steps);
-    
+
     // Modificar el array original no debe afectar al path
     steps.push(new NavigationPathStep('other'));
-    
+
     expect(path.value).toHaveLength(1);
     expect(path.toPrimitives()).toEqual(['home']);
   });
 
   it('debe comparar correctamente dos paths iguales', () => {
-    const steps1 = [new NavigationPathStep('home'), new NavigationPathStep('products')];
-    const steps2 = [new NavigationPathStep('home'), new NavigationPathStep('products')];
-    
+    const steps1 = [
+      new NavigationPathStep('home'),
+      new NavigationPathStep('products'),
+    ];
+    const steps2 = [
+      new NavigationPathStep('home'),
+      new NavigationPathStep('products'),
+    ];
+
     const path1 = new NavigationPath(steps1);
     const path2 = new NavigationPath(steps2);
 
