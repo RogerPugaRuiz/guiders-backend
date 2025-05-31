@@ -29,4 +29,12 @@ export class NavigationPath extends PrimitiveValueObject<NavigationPathStep[]> {
   public static fromPrimitives(steps: string[]): NavigationPath {
     return new NavigationPath(steps.map((s) => new NavigationPathStep(s)));
   }
+
+  // Override equals para comparación profunda de arrays
+  public equals(other: NavigationPath): boolean {
+    if (this.value.length !== other.value.length) {
+      return false;
+    }
+    return this.value.every((step, index) => step.equals(other.value[index]));
+  }
 }

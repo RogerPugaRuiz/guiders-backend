@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
+import { RepositoryError } from 'src/context/shared/domain/errors/repository.error';
 import { ConnectionUser } from './connection-user';
 import { ConnectionRole } from './value-objects/connection-role';
 import {
@@ -19,23 +20,27 @@ export class CommercialAssignmentService {
    * @returns Lista de conexiones de comerciales activos
    */
   async getConnectedCommercials(): Promise<ConnectionUser[]> {
-    const criteria = new Criteria<ConnectionUser>().addFilter(
-      'roles',
-      Operator.IN,
-      [ConnectionRole.COMMERCIAL],
-    );
+    try {
+      const criteria = new Criteria<ConnectionUser>().addFilter(
+        'roles',
+        Operator.IN,
+        [ConnectionRole.COMMERCIAL],
+      );
 
-    const connCommercialList = await this.connectionRepository.find(criteria);
+      const connCommercialList = await this.connectionRepository.find(criteria);
 
-    if (connCommercialList.length === 0) {
-      return [];
+      if (!connCommercialList || connCommercialList.length === 0) {
+        return [];
+      }
+
+      // Filtramos solo aquellos comerciales que están activamente conectados
+      const connectedCommercials = connCommercialList.filter(
+        (conn: ConnectionUser) => conn.isConnected(),
+      );
+
+      return connectedCommercials;
+    } catch {
+      throw new RepositoryError('Failed to retrieve connected commercials');
     }
-
-    // Filtramos solo aquellos comerciales que están activamente conectados
-    const connectedCommercials = connCommercialList.filter(
-      (conn: ConnectionUser) => conn.isConnected(),
-    );
-
-    return connectedCommercials;
   }
 }

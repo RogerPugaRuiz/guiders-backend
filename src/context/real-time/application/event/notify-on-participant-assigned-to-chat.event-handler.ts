@@ -19,14 +19,22 @@ export class NotifyOnParticipantAssignedToChatEventHandler
     const { attributes } = event;
     const { chat, newParticipant } = attributes;
 
-    await this.notification.notify({
-      payload: { chat },
-      recipientId: newParticipant.id,
-      type: 'commercial:incoming-chats',
-    });
+    try {
+      await this.notification.notify({
+        payload: { chat },
+        recipientId: newParticipant.id,
+        type: 'commercial:incoming-chats',
+      });
 
-    this.logger.log(
-      `Participant assigned to chat: ${chat.id}, new participant: ${newParticipant.id}`,
-    );
+      this.logger.log(
+        `Participant assigned to chat: ${chat.id}, new participant: ${newParticipant.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to notify participant ${newParticipant.id} about chat assignment: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      // Gracefully handle the error - don't throw
+    }
   }
 }
