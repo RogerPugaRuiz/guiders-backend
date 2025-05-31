@@ -37,7 +37,7 @@ describe('ApiKeyCreatedAt', () => {
 
     // Comparar las fechas en formato ISO para evitar problemas de zona horaria
     expect(createdAt.value.toISOString()).toBe(specificTime.toISOString());
-    
+
     // Verificar adicionalmente los componentes individuales
     // usando getUTC* para garantizar consistencia independientemente de la zona horaria
     expect(createdAt.value.getUTCFullYear()).toBe(2024);

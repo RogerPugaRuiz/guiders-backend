@@ -68,7 +68,7 @@ describe('CreateDefaultVisitorCommandHandler', () => {
     expect(mockSave).toHaveBeenCalledTimes(1);
 
     // Verificar que el save se llamó con un objeto Visitor
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     const visitor = mockSave.mock.calls[0][0] as Visitor;
     expect(visitor).toBeInstanceOf(Visitor);
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommandBus } from '@nestjs/cqrs';
 import { OnVisitorAccountCreatedEventHandler } from '../on-visitor-account-created.event-handler';
@@ -55,7 +54,7 @@ describe('OnVisitorAccountCreatedEventHandler', () => {
     await handler.handle(event);
 
     // Assert
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+
     expect(commandBus.execute).toHaveBeenCalledTimes(1);
 
     // Verificar que se ejecuta el comando correcto con el ID de la cuenta

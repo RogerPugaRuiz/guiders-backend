@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 // Prueba unitaria para CreateInviteOnUserAccountCreatedEventHandler
 // Ubicación: src/context/auth/auth-user/application/events/create-invite-on-user-account-created-event.handler.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
