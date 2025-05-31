@@ -35,13 +35,18 @@ describe('ApiKeyCreatedAt', () => {
     const specificTime = new Date('2024-12-25T14:30:45.123Z');
     const createdAt = new ApiKeyCreatedAt(specificTime);
 
-    expect(createdAt.value.getFullYear()).toBe(2024);
-    expect(createdAt.value.getMonth()).toBe(11); // December is month 11
-    expect(createdAt.value.getDate()).toBe(25);
-    expect(createdAt.value.getHours()).toBe(14);
-    expect(createdAt.value.getMinutes()).toBe(30);
-    expect(createdAt.value.getSeconds()).toBe(45);
-    expect(createdAt.value.getMilliseconds()).toBe(123);
+    // Comparar las fechas en formato ISO para evitar problemas de zona horaria
+    expect(createdAt.value.toISOString()).toBe(specificTime.toISOString());
+    
+    // Verificar adicionalmente los componentes individuales
+    // usando getUTC* para garantizar consistencia independientemente de la zona horaria
+    expect(createdAt.value.getUTCFullYear()).toBe(2024);
+    expect(createdAt.value.getUTCMonth()).toBe(11); // December is month 11
+    expect(createdAt.value.getUTCDate()).toBe(25);
+    expect(createdAt.value.getUTCHours()).toBe(14);
+    expect(createdAt.value.getUTCMinutes()).toBe(30);
+    expect(createdAt.value.getUTCSeconds()).toBe(45);
+    expect(createdAt.value.getUTCMilliseconds()).toBe(123);
   });
 
   it('now() should create different timestamps when called multiple times', async () => {
