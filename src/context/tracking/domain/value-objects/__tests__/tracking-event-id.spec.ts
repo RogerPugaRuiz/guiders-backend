@@ -54,8 +54,8 @@ describe('TrackingEventId', () => {
     const validUuid = '123e4567-e89b-12d3-a456-426614174000';
     const trackingEventId = new TrackingEventId(validUuid);
     
-    expect(typeof trackingEventId.toString).toBe('function');
     expect(typeof trackingEventId.equals).toBe('function');
-    expect(trackingEventId.toString()).toBe(validUuid);
+    expect(typeof trackingEventId.getValue).toBe('function');
+    expect(trackingEventId.getValue()).toBe(validUuid);
   });
 });

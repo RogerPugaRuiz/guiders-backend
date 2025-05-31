@@ -54,8 +54,8 @@ describe('VisitorId (tracking)', () => {
     const validUuid = '123e4567-e89b-12d3-a456-426614174000';
     const visitorId = new VisitorId(validUuid);
     
-    expect(typeof visitorId.toString).toBe('function');
     expect(typeof visitorId.equals).toBe('function');
-    expect(visitorId.toString()).toBe(validUuid);
+    expect(typeof visitorId.getValue).toBe('function');
+    expect(visitorId.getValue()).toBe(validUuid);
   });
 });

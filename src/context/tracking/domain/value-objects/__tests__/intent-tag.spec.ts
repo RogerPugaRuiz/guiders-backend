@@ -90,8 +90,8 @@ describe('IntentTag', () => {
   it('debe heredar métodos de PrimitiveValueObject', () => {
     const tag = new IntentTag('product-interest');
     
-    expect(typeof tag.toString).toBe('function');
     expect(typeof tag.equals).toBe('function');
-    expect(tag.toString()).toBe('product-interest');
+    expect(typeof tag.getValue).toBe('function');
+    expect(tag.getValue()).toBe('product-interest');
   });
 });

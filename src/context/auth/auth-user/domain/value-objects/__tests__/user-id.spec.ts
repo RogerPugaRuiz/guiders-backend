@@ -80,9 +80,9 @@ describe('UserId', () => {
     const validUuid = '123e4567-e89b-12d3-a456-426614174000';
     const userId = new UserId(validUuid);
     
-    expect(typeof userId.toString).toBe('function');
     expect(typeof userId.equals).toBe('function');
-    expect(userId.toString()).toBe(validUuid);
+    expect(typeof userId.getValue).toBe('function');
+    expect(userId.getValue()).toBe(validUuid);
   });
 
   it('debe crear IDs aleatorios válidos múltiples veces', () => {

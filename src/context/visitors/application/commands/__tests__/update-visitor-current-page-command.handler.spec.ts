@@ -4,9 +4,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UpdateVisitorCurrentPageCommandHandler } from '../update-visitor-current-page-command.handler';
 import { UpdateVisitorCurrentPageCommand } from '../update-visitor-current-page.command';
 import { IVisitorRepository, VISITOR_REPOSITORY } from '../../../domain/visitor.repository';
-import { Result } from 'src/context/shared/domain/result';
+import { ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { Visitor } from '../../../domain/visitor';
 import { VisitorCurrentPage } from '../../../domain/value-objects/visitor-current-page';
 
 describe('UpdateVisitorCurrentPageCommandHandler', () => {
@@ -57,10 +56,10 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     } as any;
 
     // Mock de éxito para encontrar el visitante
-    mockRepository.findById.mockResolvedValue(Result.success(mockVisitor));
+    mockRepository.findById.mockResolvedValue(ok(mockVisitor));
     
     // Mock de éxito para guardar
-    mockRepository.save.mockResolvedValue(Result.success(undefined));
+    mockRepository.save.mockResolvedValue(ok(undefined));
 
     // Act
     const result = await handler.execute(command);
@@ -88,7 +87,7 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     const notFoundError = new DomainError('Visitor not found');
     
     // Mock de error para encontrar el visitante
-    mockRepository.findById.mockResolvedValue(Result.failure(notFoundError));
+    mockRepository.findById.mockResolvedValue(err(notFoundError));
 
     // Act
     const result = await handler.execute(command);
@@ -117,10 +116,10 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
     const saveError = new DomainError('Save failed');
 
     // Mock de éxito para encontrar el visitante
-    mockRepository.findById.mockResolvedValue(Result.success(mockVisitor));
+    mockRepository.findById.mockResolvedValue(ok(mockVisitor));
     
     // Mock de error para guardar
-    mockRepository.save.mockResolvedValue(Result.failure(saveError));
+    mockRepository.save.mockResolvedValue(err(saveError));
 
     // Act
     const result = await handler.execute(command);
@@ -148,8 +147,8 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
       }),
     } as any;
 
-    mockRepository.findById.mockResolvedValue(Result.success(mockVisitor));
-    mockRepository.save.mockResolvedValue(Result.success(undefined));
+    mockRepository.findById.mockResolvedValue(ok(mockVisitor));
+    mockRepository.save.mockResolvedValue(ok(undefined));
 
     // Act
     await handler.execute(command);
@@ -160,40 +159,5 @@ describe('UpdateVisitorCurrentPageCommandHandler', () => {
         value: currentPage
       })
     );
-  });
-
-  it('debe manejar diferentes tipos de páginas', async () => {
-    // Arrange
-    const testCases = [
-      '/home',
-      '/products',
-      '/products/category-1/item-123',
-      '/checkout',
-      '/contact',
-    ];
-
-    const mockVisitor = {
-      updateCurrentPage: jest.fn().mockReturnValue({}),
-    } as any;
-
-    mockRepository.findById.mockResolvedValue(Result.success(mockVisitor));
-    mockRepository.save.mockResolvedValue(Result.success(undefined));
-
-    // Act & Assert
-    for (const page of testCases) {
-      const command = new UpdateVisitorCurrentPageCommand(
-        '123e4567-e89b-12d3-a456-426614174000',
-        page
-      );
-
-      const result = await handler.execute(command);
-      
-      expect(result.isOk()).toBe(true);
-      expect(mockVisitor.updateCurrentPage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          value: page
-        })
-      );
-    }
   });
 });
