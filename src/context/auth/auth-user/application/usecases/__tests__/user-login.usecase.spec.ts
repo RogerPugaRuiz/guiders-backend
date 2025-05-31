@@ -14,12 +14,11 @@ import {
 } from '../../service/user-token-service';
 import { UnauthorizedError } from '../../errors/unauthorized.error';
 import { UserAccount } from '../../../domain/user-account';
-import { UserEmail } from '../../../domain/user-email';
-import { UserPassword } from '../../../domain/user-password';
-import { UserId } from '../../../domain/user-id';
-import { UserRoles } from '../../../domain/user-roles';
-import { UserRole } from '../../../domain/user-role';
-import { CompanyId } from 'src/context/shared/domain/value-objects/company-id';
+import { UserAccountEmail } from '../../../domain/user-account-email';
+import { UserAccountPassword } from '../../../domain/user-account-password';
+import { UserAccountRoles } from '../../../domain/value-objects/user-account-roles';
+import { Role } from '../../../domain/value-objects/role';
+import { UserAccountCompanyId } from '../../../domain/value-objects/user-account-company-id';
 
 describe('UserLoginUseCase', () => {
   let useCase: UserLoginUseCase;
@@ -73,14 +72,18 @@ describe('UserLoginUseCase', () => {
   describe('execute', () => {
     const email = 'test@example.com';
     const password = 'password123';
-    const hashedPassword = 'hashedPassword123';
+    const hashedPassword = 'HashedPassword123!';
 
     const mockUser = UserAccount.create({
-      id: new UserId('user-123'),
-      email: new UserEmail(email),
-      password: new UserPassword(hashedPassword),
-      roles: new UserRoles([new UserRole('USER')]),
-      companyId: new CompanyId('company-123'),
+      email: new UserAccountEmail(email),
+
+      password: new UserAccountPassword(hashedPassword),
+
+      roles: new UserAccountRoles([new Role('admin')]),
+
+      companyId: new UserAccountCompanyId(
+        '12345678-1234-4234-9234-123456789abc',
+      ),
     });
 
     it('should login user successfully', async () => {
@@ -90,23 +93,28 @@ describe('UserLoginUseCase', () => {
         refreshToken: 'refresh-token',
       };
 
-      userRepository.findByEmail.mockResolvedValue(mockUser);
-      hasherService.compare.mockResolvedValue(true);
-      tokenService.generate.mockResolvedValue(expectedTokens);
-      userRepository.save.mockResolvedValue(undefined);
+      const findByEmailSpy = jest
+        .spyOn(userRepository, 'findByEmail')
+        .mockResolvedValue(mockUser);
+      const compareSpy = jest
+        .spyOn(hasherService, 'compare')
+        .mockResolvedValue(true);
+      const generateSpy = jest
+        .spyOn(tokenService, 'generate')
+        .mockResolvedValue(expectedTokens);
+      const saveSpy = jest
+        .spyOn(userRepository, 'save')
+        .mockResolvedValue(undefined);
 
       // Act
       const result = await useCase.execute(email, password);
 
       // Assert
       expect(result).toEqual(expectedTokens);
-      expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
-      expect(hasherService.compare).toHaveBeenCalledWith(
-        password,
-        hashedPassword,
-      );
-      expect(userRepository.save).toHaveBeenCalled();
-      expect(tokenService.generate).toHaveBeenCalledWith({
+      expect(findByEmailSpy).toHaveBeenCalledWith(email);
+      expect(compareSpy).toHaveBeenCalledWith(password, hashedPassword);
+      expect(saveSpy).toHaveBeenCalled();
+      expect(generateSpy).toHaveBeenCalledWith({
         id: mockUser.id.getValue(),
         email: mockUser.email.getValue(),
         roles: mockUser.roles.getValue().map((role) => role.getValue()),
@@ -116,51 +124,64 @@ describe('UserLoginUseCase', () => {
 
     it('should throw UnauthorizedError when user not found', async () => {
       // Arrange
-      userRepository.findByEmail.mockResolvedValue(null);
+      const findByEmailSpy = jest
+        .spyOn(userRepository, 'findByEmail')
+        .mockResolvedValue(null);
+      const compareSpy = jest.spyOn(hasherService, 'compare');
 
       // Act & Assert
       await expect(useCase.execute(email, password)).rejects.toThrow(
         new UnauthorizedError('User not found'),
       );
-      expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
-      expect(hasherService.compare).not.toHaveBeenCalled();
+      expect(findByEmailSpy).toHaveBeenCalledWith(email);
+      expect(compareSpy).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedError when user has empty password', async () => {
       // Arrange
+
       const userWithEmptyPassword = UserAccount.create({
-        id: new UserId('user-123'),
-        email: new UserEmail(email),
-        password: UserPassword.empty(),
-        roles: new UserRoles([new UserRole('USER')]),
-        companyId: new CompanyId('company-123'),
+        email: new UserAccountEmail(email),
+
+        password: UserAccountPassword.empty(),
+
+        roles: new UserAccountRoles([new Role('admin')]),
+
+        companyId: new UserAccountCompanyId(
+          '12345678-1234-4234-9234-123456789abc',
+        ),
       });
 
-      userRepository.findByEmail.mockResolvedValue(userWithEmptyPassword);
+      const findByEmailSpy = jest
+        .spyOn(userRepository, 'findByEmail')
+        .mockResolvedValue(userWithEmptyPassword);
+      const compareSpy = jest.spyOn(hasherService, 'compare');
 
       // Act & Assert
       await expect(useCase.execute(email, password)).rejects.toThrow(
         new UnauthorizedError('User not found'),
       );
-      expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
-      expect(hasherService.compare).not.toHaveBeenCalled();
+      expect(findByEmailSpy).toHaveBeenCalledWith(email);
+      expect(compareSpy).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedError when password is invalid', async () => {
       // Arrange
-      userRepository.findByEmail.mockResolvedValue(mockUser);
-      hasherService.compare.mockResolvedValue(false);
+      const findByEmailSpy = jest
+        .spyOn(userRepository, 'findByEmail')
+        .mockResolvedValue(mockUser);
+      const compareSpy = jest
+        .spyOn(hasherService, 'compare')
+        .mockResolvedValue(false);
+      const generateSpy = jest.spyOn(tokenService, 'generate');
 
       // Act & Assert
       await expect(useCase.execute(email, password)).rejects.toThrow(
         new UnauthorizedError('Invalid password'),
       );
-      expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
-      expect(hasherService.compare).toHaveBeenCalledWith(
-        password,
-        hashedPassword,
-      );
-      expect(tokenService.generate).not.toHaveBeenCalled();
+      expect(findByEmailSpy).toHaveBeenCalledWith(email);
+      expect(compareSpy).toHaveBeenCalledWith(password, hashedPassword);
+      expect(generateSpy).not.toHaveBeenCalled();
     });
 
     it('should update user last login time', async () => {
@@ -170,16 +191,18 @@ describe('UserLoginUseCase', () => {
         refreshToken: 'refresh-token',
       };
 
-      userRepository.findByEmail.mockResolvedValue(mockUser);
-      hasherService.compare.mockResolvedValue(true);
-      tokenService.generate.mockResolvedValue(expectedTokens);
-      userRepository.save.mockResolvedValue(undefined);
+      jest.spyOn(userRepository, 'findByEmail').mockResolvedValue(mockUser);
+      jest.spyOn(hasherService, 'compare').mockResolvedValue(true);
+      jest.spyOn(tokenService, 'generate').mockResolvedValue(expectedTokens);
+      const saveSpy = jest
+        .spyOn(userRepository, 'save')
+        .mockResolvedValue(undefined);
 
       // Act
       await useCase.execute(email, password);
 
       // Assert
-      expect(userRepository.save).toHaveBeenCalledWith(
+      expect(saveSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           id: mockUser.id,
           email: mockUser.email,

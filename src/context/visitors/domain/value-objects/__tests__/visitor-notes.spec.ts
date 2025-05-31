@@ -46,15 +46,15 @@ describe('VisitorNotes', () => {
   });
 
   it('should throw error for non-array input', () => {
-    expect(() => new VisitorNotes('not an array' as any)).toThrow(
+    expect(
+      () => new VisitorNotes('not an array' as unknown as VisitorNote[]),
+    ).toThrow('VisitorNotes debe ser un array de VisitorNote');
+    expect(() => new VisitorNotes(null as unknown as VisitorNote[])).toThrow(
       'VisitorNotes debe ser un array de VisitorNote',
     );
-    expect(() => new VisitorNotes(null as any)).toThrow(
-      'VisitorNotes debe ser un array de VisitorNote',
-    );
-    expect(() => new VisitorNotes(undefined as any)).toThrow(
-      'VisitorNotes debe ser un array de VisitorNote',
-    );
+    expect(
+      () => new VisitorNotes(undefined as unknown as VisitorNote[]),
+    ).toThrow('VisitorNotes debe ser un array de VisitorNote');
   });
 
   it('should throw error for array with invalid notes', () => {
@@ -63,16 +63,16 @@ describe('VisitorNotes', () => {
       'invalid',
       new VisitorNote('Also valid'),
     ];
-    expect(() => new VisitorNotes(invalidArray as any)).toThrow(
-      'VisitorNotes debe ser un array de VisitorNote',
-    );
+    expect(
+      () => new VisitorNotes(invalidArray as unknown as VisitorNote[]),
+    ).toThrow('VisitorNotes debe ser un array de VisitorNote');
   });
 
   it('should handle array with only invalid objects', () => {
     const invalidArray = ['string', 123, {}];
-    expect(() => new VisitorNotes(invalidArray as any)).toThrow(
-      'VisitorNotes debe ser un array de VisitorNote',
-    );
+    expect(
+      () => new VisitorNotes(invalidArray as unknown as VisitorNote[]),
+    ).toThrow('VisitorNotes debe ser un array de VisitorNote');
   });
 
   it('should create from empty primitives array', () => {

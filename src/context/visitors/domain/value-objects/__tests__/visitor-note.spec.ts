@@ -28,13 +28,13 @@ describe('VisitorNote', () => {
   });
 
   it('should throw error for non-string value', () => {
-    expect(() => new VisitorNote(123 as any)).toThrow(
+    expect(() => new VisitorNote(123 as unknown as string)).toThrow(
       'VisitorNote debe ser un string no vacío',
     );
-    expect(() => new VisitorNote(null as any)).toThrow(
+    expect(() => new VisitorNote(null as unknown as string)).toThrow(
       'VisitorNote debe ser un string no vacío',
     );
-    expect(() => new VisitorNote(undefined as any)).toThrow(
+    expect(() => new VisitorNote(undefined as unknown as string)).toThrow(
       'VisitorNote debe ser un string no vacío',
     );
   });

@@ -14,7 +14,7 @@ import { VisitorNameUpdatedEvent } from '../events/visitor-name-updated-event';
 import { VisitorTelUpdatedEvent } from '../events/visitor-tel-updated-event';
 
 describe('Visitor', () => {
-  const visitorId = new VisitorId('visitor-123');
+  const visitorId = new VisitorId('12345678-1234-4234-9234-123456789abc');
   const visitorName = new VisitorName('John Doe');
   const visitorEmail = new VisitorEmail('john@example.com');
   const visitorTel = new VisitorTel('123456789');
@@ -73,12 +73,13 @@ describe('Visitor', () => {
       // Assert
       expect(updatedVisitor).not.toBe(visitor); // Immutability
       expect(updatedVisitor.currentPage.get()).toBe(newPage);
-      expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
+      const events = updatedVisitor.getUncommittedEvents();
+      expect(events).toHaveLength(1);
 
-      const event = updatedVisitor.getUncommittedEvents()[0];
+      const event = events[0] as VisitorCurrentPageUpdatedEvent;
       expect(event).toBeInstanceOf(VisitorCurrentPageUpdatedEvent);
-      expect(event.payload.visitorId).toBe(visitorId.value);
-      expect(event.payload.currentPage).toBe(newPage.value);
+      expect(event.attributes.visitorId).toBe(visitorId.value);
+      expect(event.attributes.currentPage).toBe(newPage.value);
     });
 
     it('should preserve other fields when updating current page', () => {

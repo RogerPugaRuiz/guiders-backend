@@ -63,7 +63,7 @@ describe('AdminTel', () => {
   });
 
   it('should throw error for undefined value', () => {
-    expect(() => new AdminTel(undefined as any)).toThrow(
+    expect(() => new AdminTel(undefined as unknown as string | null)).toThrow(
       'El teléfono del administrador no es válido',
     );
   });

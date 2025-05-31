@@ -28,13 +28,13 @@ describe('ApiKeyCompanyId', () => {
   });
 
   it('should throw error for non-string value', () => {
-    expect(() => new ApiKeyCompanyId(123 as any)).toThrow(
+    expect(() => new ApiKeyCompanyId(123 as unknown as string)).toThrow(
       'El companyId de la API Key no puede estar vacío',
     );
-    expect(() => new ApiKeyCompanyId(null as any)).toThrow(
+    expect(() => new ApiKeyCompanyId(null as unknown as string)).toThrow(
       'El companyId de la API Key no puede estar vacío',
     );
-    expect(() => new ApiKeyCompanyId(undefined as any)).toThrow(
+    expect(() => new ApiKeyCompanyId(undefined as unknown as string)).toThrow(
       'El companyId de la API Key no puede estar vacío',
     );
   });

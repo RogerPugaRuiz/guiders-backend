@@ -7,22 +7,22 @@ export class ConnectionNotFoundError extends Error {
 }
 
 export class SendMessageToVisitorError extends DomainError {
-  protected name: string = 'SendMessageToVisitorError';
   constructor(message: string) {
     super(message);
+    this.name = 'SendMessageToVisitorError';
   }
 }
 
 export class SendMessageToCommercialError extends DomainError {
-  protected name: string = 'SendMessageToCommercialError';
   constructor(message: string) {
     super(message);
+    this.name = 'SendMessageToCommercialError';
   }
 }
 
 export class UserNotConnectedError extends DomainError {
-  protected name: string = 'UserNotConnectedError';
   constructor(userId: string) {
     super(`El usuario no está conectado: ${userId}`);
+    this.name = 'UserNotConnectedError';
   }
 }

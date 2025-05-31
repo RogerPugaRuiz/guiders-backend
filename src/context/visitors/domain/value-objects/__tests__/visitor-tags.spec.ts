@@ -46,13 +46,13 @@ describe('VisitorTags', () => {
   });
 
   it('should throw error for non-array input', () => {
-    expect(() => new VisitorTags('not an array' as any)).toThrow(
+    expect(
+      () => new VisitorTags('not an array' as unknown as VisitorTag[]),
+    ).toThrow('VisitorTags debe ser un array de VisitorTag');
+    expect(() => new VisitorTags(null as unknown as VisitorTag[])).toThrow(
       'VisitorTags debe ser un array de VisitorTag',
     );
-    expect(() => new VisitorTags(null as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag',
-    );
-    expect(() => new VisitorTags(undefined as any)).toThrow(
+    expect(() => new VisitorTags(undefined as unknown as VisitorTag[])).toThrow(
       'VisitorTags debe ser un array de VisitorTag',
     );
   });
@@ -63,16 +63,16 @@ describe('VisitorTags', () => {
       'invalid',
       new VisitorTag('Also valid'),
     ];
-    expect(() => new VisitorTags(invalidArray as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag',
-    );
+    expect(
+      () => new VisitorTags(invalidArray as unknown as VisitorTag[]),
+    ).toThrow('VisitorTags debe ser un array de VisitorTag');
   });
 
   it('should handle array with only invalid objects', () => {
     const invalidArray = ['string', 123, {}];
-    expect(() => new VisitorTags(invalidArray as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag',
-    );
+    expect(
+      () => new VisitorTags(invalidArray as unknown as VisitorTag[]),
+    ).toThrow('VisitorTags debe ser un array de VisitorTag');
   });
 
   it('should create from empty primitives array', () => {
