@@ -1,8 +1,10 @@
-export abstract class DomainError {
-  readonly message: string;
-  protected name: string = this.constructor.name;
+export abstract class DomainError extends Error {
+  public name: string = this.constructor.name;
   constructor(message: string) {
-    this.message = message;
+    super(message);
+    this.name = this.constructor.name;
+    // Para asegurar compatibilidad con instanceof en entornos de transpilación
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 
   public static getName(): string {

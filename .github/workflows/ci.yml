@@ -82,7 +82,7 @@ jobs:
         run: node src/scripts/ensure-coverage-dir.js
       
       - name: Run unit tests with coverage
-        run: npm run test:unit -- --coverage
+        run: npm run test:unit -- --coverage --coverageReporters=lcov --coverageReporters=text
       
       - name: Verify coverage directory
         run: |
@@ -156,7 +156,7 @@ jobs:
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
       - name: Run integration tests with coverage
-        run: npm run test:int -- --coverage
+        run: npm run test:int -- --coverage --coverageReporters=lcov --coverageReporters=text
       
       - name: Verify integration coverage directory
         run: |
@@ -235,11 +235,40 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
 
+  # Job para verificar la cobertura de código
+  check-coverage:
+    name: Check Code Coverage
+    runs-on: ubuntu-latest
+    needs: [test-unit]
+    if: success()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Download unit test coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-coverage
+          path: coverage/
+      
+      - name: Display structure of coverage directory
+        run: ls -la coverage/
+        
+      - name: Check coverage threshold with exclusions
+        run: node src/scripts/check-coverage-threshold.js
+
   # Job final para verificar que todo está OK
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [lint, build, test-unit, test-integration, test-e2e]
+    needs: [lint, build, test-unit, test-integration, test-e2e, check-coverage]
     if: success()
     
     steps:
@@ -251,3 +280,4 @@ jobs:
           echo "✅ Tests unitarios: OK"
           echo "✅ Tests de integración: OK"
           echo "✅ Tests E2E: OK"
+          echo "✅ Coverage: OK (>= 80%)"

@@ -50,33 +50,8 @@ import { CompanyModule } from './context/company/company.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService): TypeOrmModuleOptions => {
-        // Selección dinámica de variables según NODE_ENV
-        const nodeEnv = configService.get<string>('NODE_ENV');
-        const isTest = nodeEnv === 'test';
-        // Se retorna un objeto estrictamente tipado para TypeOrmModuleOptions
-        return {
-          type: 'postgres', // Tipo de base de datos explícito
-          host: isTest
-            ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
-            : configService.get<string>('DATABASE_HOST', 'localhost'),
-          port: isTest
-            ? Number(configService.get<string>('TEST_DATABASE_PORT', '5432'))
-            : Number(configService.get<string>('DATABASE_PORT', '5432')),
-          username: isTest
-            ? configService.get<string>('TEST_DATABASE_USERNAME', 'postgres')
-            : configService.get<string>('DATABASE_USERNAME', 'postgres'),
-          password: isTest
-            ? configService.get<string>('TEST_DATABASE_PASSWORD', 'password')
-            : configService.get<string>('DATABASE_PASSWORD', 'password'),
-          database: isTest
-            ? configService.get<string>('TEST_DATABASE', 'mydb')
-            : configService.get<string>('DATABASE', 'mydb'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
-          synchronize: false,
-          autoLoadEntities: false, // Permite la carga automática de entidades
-        };
-      },
+      useFactory: (configService: ConfigService) =>
+        AppModule.createTypeOrmOptions(configService),
     }),
   ],
   controllers: [AppController],
@@ -84,6 +59,38 @@ import { CompanyModule } from './context/company/company.module';
 })
 export class AppModule {
   private readonly logger = new Logger(AppModule.name);
+
+  // Método estático para hacer testeable la factory function de TypeORM
+  static createTypeOrmOptions(
+    configService: ConfigService,
+  ): TypeOrmModuleOptions {
+    // Selección dinámica de variables según NODE_ENV
+    const nodeEnv = configService.get<string>('NODE_ENV');
+    const isTest = nodeEnv === 'test';
+    // Se retorna un objeto estrictamente tipado para TypeOrmModuleOptions
+    return {
+      type: 'postgres', // Tipo de base de datos explícito
+      host: isTest
+        ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
+        : configService.get<string>('DATABASE_HOST', 'localhost'),
+      port: isTest
+        ? Number(configService.get<string>('TEST_DATABASE_PORT', '5432'))
+        : Number(configService.get<string>('DATABASE_PORT', '5432')),
+      username: isTest
+        ? configService.get<string>('TEST_DATABASE_USERNAME', 'postgres')
+        : configService.get<string>('DATABASE_USERNAME', 'postgres'),
+      password: isTest
+        ? configService.get<string>('TEST_DATABASE_PASSWORD', 'password')
+        : configService.get<string>('DATABASE_PASSWORD', 'password'),
+      database: isTest
+        ? configService.get<string>('TEST_DATABASE', 'mydb')
+        : configService.get<string>('DATABASE', 'mydb'),
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: false,
+      autoLoadEntities: false, // Permite la carga automática de entidades
+    };
+  }
+
   constructor(private readonly configService: ConfigService) {
     // Configuración de variables de entorno
     const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');

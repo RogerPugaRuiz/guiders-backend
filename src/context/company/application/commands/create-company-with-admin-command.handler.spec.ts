@@ -67,12 +67,12 @@ describe('CreateCompanyWithAdminCommandHandler', () => {
 
     // Assert
     // Se accede al mock directamente desde el objeto mockeado
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     expect((repository as any).save).toHaveBeenCalled();
     expect(publisher.mergeObjectContext).toHaveBeenCalled();
     expect(mockCommit).toHaveBeenCalled();
     // Extraemos los argumentos del evento publicado para aserción manual, tipando correctamente
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     const publishCall = eventBus.publish.mock.calls[0][0] as {
       _attributes: Record<string, unknown>;
     };

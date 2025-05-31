@@ -68,7 +68,7 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
 
     // Verifica que se haya enviado el email correctamente
     expect(emailSenderServiceMock.sendEmail).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     const emailParams = emailSenderServiceMock.sendEmail.mock.calls[0][0] as {
       to: string;
       subject: string;
