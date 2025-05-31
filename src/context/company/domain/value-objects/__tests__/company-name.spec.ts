@@ -43,4 +43,27 @@ describe('CompanyName', () => {
 
     expect(name1.equals(name2)).toBe(false);
   });
+
+  it('should accept single character name', () => {
+    const name = new CompanyName('A');
+    expect(name.value).toBe('A');
+  });
+
+  it('should throw error for null value', () => {
+    expect(() => new CompanyName(null as any)).toThrow(
+      'El nombre de la empresa no puede estar vacío'
+    );
+  });
+
+  it('should throw error for undefined value', () => {
+    expect(() => new CompanyName(undefined as any)).toThrow(
+      'El nombre de la empresa no puede estar vacío'
+    );
+  });
+
+  it('should preserve whitespace in names', () => {
+    const nameWithSpaces = '  Company   Name  ';
+    const name = new CompanyName(nameWithSpaces);
+    expect(name.value).toBe(nameWithSpaces);
+  });
 });

@@ -37,4 +37,32 @@ describe('AdminName', () => {
 
     expect(name1.equals(name2)).toBe(false);
   });
+
+  it('should accept single character names', () => {
+    const name = new AdminName('A');
+    expect(name.value).toBe('A');
+  });
+
+  it('should accept names with numbers', () => {
+    const name = new AdminName('Admin123');
+    expect(name.value).toBe('Admin123');
+  });
+
+  it('should throw error for null value', () => {
+    expect(() => new AdminName(null as any)).toThrow(
+      'El nombre del administrador no puede estar vacío'
+    );
+  });
+
+  it('should throw error for undefined value', () => {
+    expect(() => new AdminName(undefined as any)).toThrow(
+      'El nombre del administrador no puede estar vacío'
+    );
+  });
+
+  it('should preserve whitespace in names', () => {
+    const nameWithSpaces = '  John   Doe  ';
+    const name = new AdminName(nameWithSpaces);
+    expect(name.value).toBe(nameWithSpaces);
+  });
 });

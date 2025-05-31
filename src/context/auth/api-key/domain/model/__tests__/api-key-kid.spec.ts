@@ -23,4 +23,23 @@ describe('ApiKeyKid', () => {
 
     expect(apiKeyKid.value).toBe(kidValue);
   });
+
+  it('should accept empty string', () => {
+    const kid = new ApiKeyKid('');
+    expect(kid.value).toBe('');
+  });
+
+  it('should accept special characters', () => {
+    const specialKid = 'kid-123_ABC.test';
+    const kid = new ApiKeyKid(specialKid);
+
+    expect(kid.value).toBe(specialKid);
+  });
+
+  it('should preserve exact string value with spaces', () => {
+    const kidWithSpaces = '  test kid with spaces  ';
+    const kid = new ApiKeyKid(kidWithSpaces);
+
+    expect(kid.value).toBe(kidWithSpaces);
+  });
 });

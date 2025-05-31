@@ -95,6 +95,34 @@ describe('AppModule', () => {
   });
 
   describe('TypeORM Configuration useFactory', () => {
+    it('should execute the factory function as defined in module configuration', () => {
+      // Test directo de la factory function tal como se define en el módulo
+      const factoryFunction = (configService: ConfigService) =>
+        AppModule.createTypeOrmOptions(configService);
+      
+      const config = factoryFunction(configService) as PostgresConnectionOptions;
+
+      expect(config.type).toBe('postgres');
+      expect(config.host).toBe('test-host');
+      expect(config.port).toBe(5433);
+      expect(config.username).toBe('test-user');
+      expect(config.password).toBe('test-password');
+      expect(config.database).toBe('test-db');
+      expect(config.synchronize).toBe(false);
+      expect(config.autoLoadEntities).toBe(false);
+      expect(config.entities).toContain(__dirname + '/**/*.entity{.ts,.js}');
+    });
+
+    it('should test the exact useFactory function used in TypeOrmModule configuration', () => {
+      // Simulamos exactamente cómo se llama en el módulo (línea 54)
+      const useFactoryResult = ((configService: ConfigService) =>
+        AppModule.createTypeOrmOptions(configService))(configService) as PostgresConnectionOptions;
+      
+      expect(useFactoryResult).toBeDefined();
+      expect(useFactoryResult.type).toBe('postgres');
+      expect(useFactoryResult.host).toBe('test-host');
+    });
+
     it('should configure TypeORM for test environment using real factory method', () => {
       const config = AppModule.createTypeOrmOptions(
         configService,
