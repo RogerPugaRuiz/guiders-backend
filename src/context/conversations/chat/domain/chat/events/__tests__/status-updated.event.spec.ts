@@ -5,17 +5,19 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 describe('StatusUpdatedEvent', () => {
   const validChatPrimitives: ChatPrimitives = {
     id: Uuid.random().value,
-    participants: [{
-      id: Uuid.random().value,
-      name: 'Test Visitor',
-      isCommercial: false,
-      isVisitor: true,
-      isOnline: true,
-      assignedAt: new Date(),
-      lastSeenAt: null,
-      isViewing: false,
-      isTyping: false,
-    }],
+    participants: [
+      {
+        id: Uuid.random().value,
+        name: 'Test Visitor',
+        isCommercial: false,
+        isVisitor: true,
+        isOnline: true,
+        assignedAt: new Date(),
+        lastSeenAt: null,
+        isViewing: false,
+        isTyping: false,
+      },
+    ],
     status: 'active',
     lastMessage: 'Hello world',
     lastMessageAt: new Date(),
@@ -73,7 +75,9 @@ describe('StatusUpdatedEvent', () => {
       expect(event.params.attributes.chat.participants).toHaveLength(1);
       expect(event.params.attributes.chat.participants[0].isVisitor).toBe(true);
       expect(event.params.attributes.chat.lastMessage).toBe('Hello world');
-      expect(event.params.attributes.chat.lastMessageAt).toEqual(validChatPrimitives.lastMessageAt);
+      expect(event.params.attributes.chat.lastMessageAt).toEqual(
+        validChatPrimitives.lastMessageAt,
+      );
     });
 
     it('should handle different status transitions', () => {

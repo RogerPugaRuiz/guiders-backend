@@ -33,7 +33,7 @@ describe('Participants', () => {
 
     it('should throw ValidationError when participants is not an array', () => {
       expect(() => {
-        new Participants('not-an-array' as any);
+        new Participants('not-an-array' as unknown as Participant[]);
       }).toThrow(ValidationError);
     });
 
@@ -45,7 +45,7 @@ describe('Participants', () => {
 
     it('should throw ValidationError when participants contains non-Participant objects', () => {
       expect(() => {
-        new Participants(['not-a-participant'] as any);
+        new Participants(['not-a-participant'] as unknown as Participant[]);
       }).toThrow(ValidationError);
     });
   });
@@ -68,7 +68,10 @@ describe('Participants', () => {
         isVisitor: false,
       };
 
-      const participants = Participants.create([validParticipantData, commercialData]);
+      const participants = Participants.create([
+        validParticipantData,
+        commercialData,
+      ]);
 
       expect(participants.value).toHaveLength(2);
       expect(participants.value[0].isVisitor).toBe(true);
@@ -153,7 +156,10 @@ describe('Participants', () => {
         isCommercial: true,
         isVisitor: false,
       };
-      const participants = Participants.create([validParticipantData, commercialData]);
+      const participants = Participants.create([
+        validParticipantData,
+        commercialData,
+      ]);
 
       participants.removeParticipant(commercialData.id);
 
@@ -178,7 +184,9 @@ describe('Participants', () => {
 
       participants.setSeenAt(validParticipantData.id, seenAt);
 
-      const participant = participants.getParticipant(validParticipantData.id).get();
+      const participant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
       expect(participant.lastSeenAt).toEqual(seenAt);
       expect(participant.isViewing).toBe(true);
     });
@@ -200,7 +208,9 @@ describe('Participants', () => {
 
       participants.setUnseenAt(validParticipantData.id, unseenAt);
 
-      const participant = participants.getParticipant(validParticipantData.id).get();
+      const participant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
       expect(participant.lastSeenAt).toEqual(unseenAt);
       expect(participant.isViewing).toBe(false);
     });
@@ -221,7 +231,9 @@ describe('Participants', () => {
 
       participants.setOnline(validParticipantData.id, false);
 
-      const participant = participants.getParticipant(validParticipantData.id).get();
+      const participant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
       expect(participant.isOnline).toBe(false);
     });
 
@@ -240,7 +252,9 @@ describe('Participants', () => {
 
       participants.setViewing(validParticipantData.id, true);
 
-      const participant = participants.getParticipant(validParticipantData.id).get();
+      const participant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
       expect(participant.isViewing).toBe(true);
     });
 

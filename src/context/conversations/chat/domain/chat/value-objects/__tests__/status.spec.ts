@@ -17,9 +17,15 @@ describe('Status', () => {
     });
 
     it('should accept all valid statuses', () => {
-      const validStatuses = ['active', 'inactive', 'closed', 'archived', 'pending'];
+      const validStatuses = [
+        'active',
+        'inactive',
+        'closed',
+        'archived',
+        'pending',
+      ];
 
-      validStatuses.forEach(status => {
+      validStatuses.forEach((status) => {
         expect(() => {
           new Status(status);
         }).not.toThrow();

@@ -18,7 +18,7 @@ describe('LastMessage', () => {
 
     it('should throw error with non-string value', () => {
       expect(() => {
-        new LastMessage(null as any);
+        new LastMessage(null as unknown as string);
       }).toThrow('Invalid Last Message');
     });
 

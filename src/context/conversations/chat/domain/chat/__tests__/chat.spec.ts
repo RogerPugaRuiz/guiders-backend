@@ -1,6 +1,6 @@
 import { Chat, ChatPrimitives } from '../chat';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
-import { Status } from '../value-objects/status';
+import { Optional } from 'src/context/shared/domain/optional';
 
 describe('Chat Domain', () => {
   const validChatId = Uuid.random().value;
@@ -190,13 +190,10 @@ describe('Chat Domain', () => {
       const chat = Chat.fromPrimitives(primitives);
       const commercial = { id: validCommercialId, name: 'Test Commercial' };
 
-      // Mock participants to return empty when searching for commercial
-      jest.spyOn(chat.participants, 'getParticipant').mockReturnValue({
-        isEmpty: () => true,
-        get: () => {
-          throw new Error('Empty optional');
-        },
-      } as any);
+      // Mock participants para retornar empty cuando se busca el comercial
+      jest
+        .spyOn(chat.participants, 'getParticipant')
+        .mockReturnValue(Optional.empty());
 
       expect(() => {
         chat.asignCommercial(commercial);
@@ -333,7 +330,9 @@ describe('Chat Domain', () => {
       expect(updatedChat).toBe(chat); // Should return same instance
       const events = chat.getUncommittedEvents();
       expect(events).toHaveLength(2); // ParticipantOnlineStatusUpdatedEvent + ParticipantUnseenAtEvent
-      expect(events[0].constructor.name).toBe('ParticipantOnlineStatusUpdatedEvent');
+      expect(events[0].constructor.name).toBe(
+        'ParticipantOnlineStatusUpdatedEvent',
+      );
       expect(events[1].constructor.name).toBe('ParticipantUnseenAtEvent');
     });
 
@@ -347,7 +346,7 @@ describe('Chat Domain', () => {
     });
   });
 
-  // FIXME: The confirmChat method has a bug - it checks for 'PENDING' (uppercase) 
+  // FIXME: The confirmChat method has a bug - it checks for 'PENDING' (uppercase)
   // but status values are lowercase ('pending'). This causes all calls to fail.
   // describe('confirmChat', () => {
   //   it('should confirm pending chat and change status to active', () => {

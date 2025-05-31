@@ -5,17 +5,19 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 describe('NewChatCreatedEvent', () => {
   const validChatPrimitives: ChatPrimitives = {
     id: Uuid.random().value,
-    participants: [{
-      id: Uuid.random().value,
-      name: 'Test Visitor',
-      isCommercial: false,
-      isVisitor: true,
-      isOnline: true,
-      assignedAt: new Date(),
-      lastSeenAt: null,
-      isViewing: false,
-      isTyping: false,
-    }],
+    participants: [
+      {
+        id: Uuid.random().value,
+        name: 'Test Visitor',
+        isCommercial: false,
+        isVisitor: true,
+        isOnline: true,
+        assignedAt: new Date(),
+        lastSeenAt: null,
+        isViewing: false,
+        isTyping: false,
+      },
+    ],
     status: 'pending',
     lastMessage: null,
     lastMessageAt: null,
@@ -27,10 +29,13 @@ describe('NewChatCreatedEvent', () => {
       const publisherId = Uuid.random().value;
       const customTimestamp = new Date('2023-01-01');
 
-      const event = new NewChatCreatedEvent({
-        chat: validChatPrimitives,
-        publisherId,
-      }, customTimestamp);
+      const event = new NewChatCreatedEvent(
+        {
+          chat: validChatPrimitives,
+          publisherId,
+        },
+        customTimestamp,
+      );
 
       expect(event.atributes.chat).toBe(validChatPrimitives);
       expect(event.atributes.publisherId).toBe(publisherId);
@@ -50,8 +55,12 @@ describe('NewChatCreatedEvent', () => {
 
       expect(event.atributes.chat).toBe(validChatPrimitives);
       expect(event.atributes.publisherId).toBe(publisherId);
-      expect(event.timestamp.getTime()).toBeGreaterThanOrEqual(beforeCreation.getTime());
-      expect(event.timestamp.getTime()).toBeLessThanOrEqual(afterCreation.getTime());
+      expect(event.timestamp.getTime()).toBeGreaterThanOrEqual(
+        beforeCreation.getTime(),
+      );
+      expect(event.timestamp.getTime()).toBeLessThanOrEqual(
+        afterCreation.getTime(),
+      );
     });
 
     it('should preserve all chat primitive properties', () => {

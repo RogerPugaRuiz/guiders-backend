@@ -20,7 +20,7 @@ describe('LastMessageAt', () => {
 
     it('should throw error with non-Date value', () => {
       expect(() => {
-        new LastMessageAt('not-a-date' as any);
+        new LastMessageAt('not-a-date' as unknown as Date);
       }).toThrow('Invalid Last Message At');
     });
 

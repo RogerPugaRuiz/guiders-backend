@@ -117,7 +117,9 @@ describe('TypeOrmVisitorAdapter', () => {
         currentPage: '/home',
       });
 
-      jest.spyOn(repository, 'save').mockResolvedValue(new VisitorTypeOrmEntity());
+      jest
+        .spyOn(repository, 'save')
+        .mockResolvedValue(new VisitorTypeOrmEntity());
 
       // Act
       const result = await adapter.save(visitor);
