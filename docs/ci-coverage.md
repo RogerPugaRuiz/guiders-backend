@@ -40,8 +40,22 @@ Para visualizar el reporte de cobertura, abre el archivo `coverage/lcov-report/i
 
 ## Archivos Excluidos
 
-Se han excluido del análisis de cobertura:
-- Archivos generados automáticamente
+Para enfocar la cobertura en el código de negocio relevante, se excluyen automáticamente del cálculo de cobertura los siguientes tipos de archivos:
+
+- **Módulos NestJS** (`*.module.ts`): Archivos de configuración de módulos que solo importan y configuran dependencias
+- **Configuración de aplicación** (`main.ts`, `data-source.ts`): Puntos de entrada y configuración de infraestructura
+- **Migraciones de base de datos** (`/migrations/*.ts`): Scripts de migración automáticos
+- **Archivos barrel** (`index.ts`): Archivos que solo re-exportan módulos
+- **Archivos de configuración** (`*.config.ts`): Configuraciones de servicios y módulos
+- **Archivos de constantes** (`*.constants.ts`, `*.enum.ts`): Definiciones de datos estáticos
+- **Scripts de utilidad** (`/scripts/*.js`): Herramientas de desarrollo y CI
+
+Esta exclusión permite que el umbral del 80% se enfoque en:
+- Lógica de dominio y reglas de negocio
+- Casos de uso y comandos/queries
+- Adaptadores de infraestructura con lógica compleja
+- Servicios de aplicación
+- Value objects y agregados con comportamiento
 
 ## Mejoras Futuras
 

@@ -47,9 +47,11 @@ describe('ApiKeyCreatedAt', () => {
   it('now() should create different timestamps when called multiple times', async () => {
     const first = ApiKeyCreatedAt.now();
     // Small delay to ensure different timestamps
-    await new Promise(resolve => setTimeout(resolve, 1));
+    await new Promise((resolve) => setTimeout(resolve, 1));
     const second = ApiKeyCreatedAt.now();
 
-    expect(second.value.getTime()).toBeGreaterThanOrEqual(first.value.getTime());
+    expect(second.value.getTime()).toBeGreaterThanOrEqual(
+      first.value.getTime(),
+    );
   });
 });

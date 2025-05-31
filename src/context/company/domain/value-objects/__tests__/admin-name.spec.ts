@@ -50,13 +50,13 @@ describe('AdminName', () => {
 
   it('should throw error for null value', () => {
     expect(() => new AdminName(null as any)).toThrow(
-      'El nombre del administrador no puede estar vacío'
+      'El nombre del administrador no puede estar vacío',
     );
   });
 
   it('should throw error for undefined value', () => {
     expect(() => new AdminName(undefined as any)).toThrow(
-      'El nombre del administrador no puede estar vacío'
+      'El nombre del administrador no puede estar vacío',
     );
   });
 

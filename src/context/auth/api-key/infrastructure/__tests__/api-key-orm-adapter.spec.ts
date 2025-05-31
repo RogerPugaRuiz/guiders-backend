@@ -160,7 +160,10 @@ describe('ApiKeyOrmAdapter', () => {
   describe('getAllApiKeys', () => {
     it('should return all api keys', async () => {
       // Arrange
-      const apiKeyEntities = [createMockApiKeyEntity(), createMockApiKeyEntity()];
+      const apiKeyEntities = [
+        createMockApiKeyEntity(),
+        createMockApiKeyEntity(),
+      ];
       const apiKeys = [createMockApiKey(), createMockApiKey()];
 
       repository.find.mockResolvedValue(apiKeyEntities);

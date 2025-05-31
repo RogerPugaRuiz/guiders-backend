@@ -1,8 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserLoginUseCase } from '../user-login.usecase';
-import { UserPasswordHasher, USER_PASSWORD_HASHER } from '../../service/user-password-hasher';
-import { UserAccountRepository, USER_ACCOUNT_REPOSITORY } from '../../../domain/user-account.repository';
-import { UserTokenService, USER_TOKEN_SERVICE } from '../../service/user-token-service';
+import {
+  UserPasswordHasher,
+  USER_PASSWORD_HASHER,
+} from '../../service/user-password-hasher';
+import {
+  UserAccountRepository,
+  USER_ACCOUNT_REPOSITORY,
+} from '../../../domain/user-account.repository';
+import {
+  UserTokenService,
+  USER_TOKEN_SERVICE,
+} from '../../service/user-token-service';
 import { UnauthorizedError } from '../../errors/unauthorized.error';
 import { UserAccount } from '../../../domain/user-account';
 import { UserEmail } from '../../../domain/user-email';
@@ -92,12 +101,15 @@ describe('UserLoginUseCase', () => {
       // Assert
       expect(result).toEqual(expectedTokens);
       expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
-      expect(hasherService.compare).toHaveBeenCalledWith(password, hashedPassword);
+      expect(hasherService.compare).toHaveBeenCalledWith(
+        password,
+        hashedPassword,
+      );
       expect(userRepository.save).toHaveBeenCalled();
       expect(tokenService.generate).toHaveBeenCalledWith({
         id: mockUser.id.getValue(),
         email: mockUser.email.getValue(),
-        roles: mockUser.roles.getValue().map(role => role.getValue()),
+        roles: mockUser.roles.getValue().map((role) => role.getValue()),
         companyId: mockUser.companyId.getValue(),
       });
     });
@@ -108,7 +120,7 @@ describe('UserLoginUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(email, password)).rejects.toThrow(
-        new UnauthorizedError('User not found')
+        new UnauthorizedError('User not found'),
       );
       expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
       expect(hasherService.compare).not.toHaveBeenCalled();
@@ -128,7 +140,7 @@ describe('UserLoginUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(email, password)).rejects.toThrow(
-        new UnauthorizedError('User not found')
+        new UnauthorizedError('User not found'),
       );
       expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
       expect(hasherService.compare).not.toHaveBeenCalled();
@@ -141,10 +153,13 @@ describe('UserLoginUseCase', () => {
 
       // Act & Assert
       await expect(useCase.execute(email, password)).rejects.toThrow(
-        new UnauthorizedError('Invalid password')
+        new UnauthorizedError('Invalid password'),
       );
       expect(userRepository.findByEmail).toHaveBeenCalledWith(email);
-      expect(hasherService.compare).toHaveBeenCalledWith(password, hashedPassword);
+      expect(hasherService.compare).toHaveBeenCalledWith(
+        password,
+        hashedPassword,
+      );
       expect(tokenService.generate).not.toHaveBeenCalled();
     });
 
@@ -168,7 +183,7 @@ describe('UserLoginUseCase', () => {
         expect.objectContaining({
           id: mockUser.id,
           email: mockUser.email,
-        })
+        }),
       );
     });
   });

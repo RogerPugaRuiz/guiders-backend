@@ -51,13 +51,13 @@ describe('CompanyName', () => {
 
   it('should throw error for null value', () => {
     expect(() => new CompanyName(null as any)).toThrow(
-      'El nombre de la empresa no puede estar vacío'
+      'El nombre de la empresa no puede estar vacío',
     );
   });
 
   it('should throw error for undefined value', () => {
     expect(() => new CompanyName(undefined as any)).toThrow(
-      'El nombre de la empresa no puede estar vacío'
+      'El nombre de la empresa no puede estar vacío',
     );
   });
 

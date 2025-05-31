@@ -22,49 +22,49 @@ describe('AdminTel', () => {
 
   it('should throw error for phone with letters', () => {
     expect(() => new AdminTel('12345678a')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for phone with special characters', () => {
     expect(() => new AdminTel('123-456-789')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for empty string', () => {
     expect(() => new AdminTel('')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for phone with less than 9 digits', () => {
     expect(() => new AdminTel('12345678')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for phone with more than 9 digits', () => {
     expect(() => new AdminTel('1234567890')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for phone with spaces', () => {
     expect(() => new AdminTel('123 456 789')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for phone starting with +', () => {
     expect(() => new AdminTel('+123456789')).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 
   it('should throw error for undefined value', () => {
     expect(() => new AdminTel(undefined as any)).toThrow(
-      'El teléfono del administrador no es válido'
+      'El teléfono del administrador no es válido',
     );
   });
 

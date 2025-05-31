@@ -16,21 +16,32 @@ describe('VisitorNote', () => {
   });
 
   it('should throw error for empty string', () => {
-    expect(() => new VisitorNote('')).toThrow('VisitorNote debe ser un string no vacío');
+    expect(() => new VisitorNote('')).toThrow(
+      'VisitorNote debe ser un string no vacío',
+    );
   });
 
   it('should throw error for string with only spaces', () => {
-    expect(() => new VisitorNote('   ')).toThrow('VisitorNote debe ser un string no vacío');
+    expect(() => new VisitorNote('   ')).toThrow(
+      'VisitorNote debe ser un string no vacío',
+    );
   });
 
   it('should throw error for non-string value', () => {
-    expect(() => new VisitorNote(123 as any)).toThrow('VisitorNote debe ser un string no vacío');
-    expect(() => new VisitorNote(null as any)).toThrow('VisitorNote debe ser un string no vacío');
-    expect(() => new VisitorNote(undefined as any)).toThrow('VisitorNote debe ser un string no vacío');
+    expect(() => new VisitorNote(123 as any)).toThrow(
+      'VisitorNote debe ser un string no vacío',
+    );
+    expect(() => new VisitorNote(null as any)).toThrow(
+      'VisitorNote debe ser un string no vacío',
+    );
+    expect(() => new VisitorNote(undefined as any)).toThrow(
+      'VisitorNote debe ser un string no vacío',
+    );
   });
 
   it('should accept long notes', () => {
-    const longNote = 'This is a very long note that contains multiple sentences and should be perfectly valid as a visitor note since there are no restrictions on length.';
+    const longNote =
+      'This is a very long note that contains multiple sentences and should be perfectly valid as a visitor note since there are no restrictions on length.';
     const note = new VisitorNote(longNote);
 
     expect(note.value).toBe(longNote);

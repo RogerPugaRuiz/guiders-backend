@@ -74,7 +74,7 @@ describe('Visitor', () => {
       expect(updatedVisitor).not.toBe(visitor); // Immutability
       expect(updatedVisitor.currentPage.get()).toBe(newPage);
       expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-      
+
       const event = updatedVisitor.getUncommittedEvents()[0];
       expect(event).toBeInstanceOf(VisitorCurrentPageUpdatedEvent);
       expect(event.payload.visitorId).toBe(visitorId.value);
@@ -123,7 +123,7 @@ describe('Visitor', () => {
       expect(updatedVisitor).not.toBe(visitor); // Immutability
       expect(updatedVisitor.email.get()).toBe(newEmail);
       expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-      
+
       const event = updatedVisitor.getUncommittedEvents()[0];
       expect(event).toBeInstanceOf(VisitorEmailUpdatedEvent);
     });
@@ -162,7 +162,7 @@ describe('Visitor', () => {
       expect(updatedVisitor).not.toBe(visitor); // Immutability
       expect(updatedVisitor.name.get()).toBe(newName);
       expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-      
+
       const event = updatedVisitor.getUncommittedEvents()[0];
       expect(event).toBeInstanceOf(VisitorNameUpdatedEvent);
     });
@@ -201,7 +201,7 @@ describe('Visitor', () => {
       expect(updatedVisitor).not.toBe(visitor); // Immutability
       expect(updatedVisitor.tel.get()).toBe(newTel);
       expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-      
+
       const event = updatedVisitor.getUncommittedEvents()[0];
       expect(event).toBeInstanceOf(VisitorTelUpdatedEvent);
     });

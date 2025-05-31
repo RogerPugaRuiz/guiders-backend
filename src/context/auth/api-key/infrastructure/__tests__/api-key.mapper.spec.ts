@@ -127,13 +127,27 @@ describe('ApiKeyMapper', () => {
 
       // Assert
       expect(convertedApiKey.id.getValue()).toBe(originalApiKey.id.getValue());
-      expect(convertedApiKey.domain.getValue()).toBe(originalApiKey.domain.getValue());
-      expect(convertedApiKey.apiKey.getValue()).toBe(originalApiKey.apiKey.getValue());
-      expect(convertedApiKey.companyId.getValue()).toBe(originalApiKey.companyId.getValue());
-      expect(convertedApiKey.createdAt.getValue()).toEqual(originalApiKey.createdAt.getValue());
-      expect(convertedApiKey.kid.getValue()).toBe(originalApiKey.kid.getValue());
-      expect(convertedApiKey.privateKey.getValue()).toBe(originalApiKey.privateKey.getValue());
-      expect(convertedApiKey.publicKey.getValue()).toBe(originalApiKey.publicKey.getValue());
+      expect(convertedApiKey.domain.getValue()).toBe(
+        originalApiKey.domain.getValue(),
+      );
+      expect(convertedApiKey.apiKey.getValue()).toBe(
+        originalApiKey.apiKey.getValue(),
+      );
+      expect(convertedApiKey.companyId.getValue()).toBe(
+        originalApiKey.companyId.getValue(),
+      );
+      expect(convertedApiKey.createdAt.getValue()).toEqual(
+        originalApiKey.createdAt.getValue(),
+      );
+      expect(convertedApiKey.kid.getValue()).toBe(
+        originalApiKey.kid.getValue(),
+      );
+      expect(convertedApiKey.privateKey.getValue()).toBe(
+        originalApiKey.privateKey.getValue(),
+      );
+      expect(convertedApiKey.publicKey.getValue()).toBe(
+        originalApiKey.publicKey.getValue(),
+      );
     });
   });
 

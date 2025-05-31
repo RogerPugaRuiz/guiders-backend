@@ -17,25 +17,25 @@ describe('ApiKeyCompanyId', () => {
 
   it('should throw error for empty string', () => {
     expect(() => new ApiKeyCompanyId('')).toThrow(
-      'El companyId de la API Key no puede estar vacío'
+      'El companyId de la API Key no puede estar vacío',
     );
   });
 
   it('should throw error for string with only spaces', () => {
     expect(() => new ApiKeyCompanyId('   ')).toThrow(
-      'El companyId de la API Key no puede estar vacío'
+      'El companyId de la API Key no puede estar vacío',
     );
   });
 
   it('should throw error for non-string value', () => {
     expect(() => new ApiKeyCompanyId(123 as any)).toThrow(
-      'El companyId de la API Key no puede estar vacío'
+      'El companyId de la API Key no puede estar vacío',
     );
     expect(() => new ApiKeyCompanyId(null as any)).toThrow(
-      'El companyId de la API Key no puede estar vacío'
+      'El companyId de la API Key no puede estar vacío',
     );
     expect(() => new ApiKeyCompanyId(undefined as any)).toThrow(
-      'El companyId de la API Key no puede estar vacío'
+      'El companyId de la API Key no puede estar vacío',
     );
   });
 

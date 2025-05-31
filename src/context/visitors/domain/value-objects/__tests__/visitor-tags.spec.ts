@@ -47,27 +47,31 @@ describe('VisitorTags', () => {
 
   it('should throw error for non-array input', () => {
     expect(() => new VisitorTags('not an array' as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag'
+      'VisitorTags debe ser un array de VisitorTag',
     );
     expect(() => new VisitorTags(null as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag'
+      'VisitorTags debe ser un array de VisitorTag',
     );
     expect(() => new VisitorTags(undefined as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag'
+      'VisitorTags debe ser un array de VisitorTag',
     );
   });
 
   it('should throw error for array with invalid tags', () => {
-    const invalidArray = [new VisitorTag('Valid'), 'invalid', new VisitorTag('Also valid')];
+    const invalidArray = [
+      new VisitorTag('Valid'),
+      'invalid',
+      new VisitorTag('Also valid'),
+    ];
     expect(() => new VisitorTags(invalidArray as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag'
+      'VisitorTags debe ser un array de VisitorTag',
     );
   });
 
   it('should handle array with only invalid objects', () => {
     const invalidArray = ['string', 123, {}];
     expect(() => new VisitorTags(invalidArray as any)).toThrow(
-      'VisitorTags debe ser un array de VisitorTag'
+      'VisitorTags debe ser un array de VisitorTag',
     );
   });
 

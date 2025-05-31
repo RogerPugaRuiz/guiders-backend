@@ -246,6 +246,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
       - name: Download unit test coverage
         uses: actions/download-artifact@v4
         with:
@@ -255,13 +261,8 @@ jobs:
       - name: Display structure of coverage directory
         run: ls -la coverage/
         
-      - name: Check coverage threshold
-        uses: VeryGoodOpenSource/very_good_coverage@v2
-        with:
-          path: "./coverage/lcov.info"
-          min_coverage: 80
-          exclude: "**/*.g.dart **/*.freezed.dart"
-          fail_below_min: true
+      - name: Check coverage threshold with exclusions
+        run: node src/scripts/check-coverage-threshold.js
 
   # Job final para verificar que todo está OK
   ci-success:

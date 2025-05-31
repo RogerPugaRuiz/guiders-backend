@@ -99,8 +99,10 @@ describe('AppModule', () => {
       // Test directo de la factory function tal como se define en el módulo
       const factoryFunction = (configService: ConfigService) =>
         AppModule.createTypeOrmOptions(configService);
-      
-      const config = factoryFunction(configService) as PostgresConnectionOptions;
+
+      const config = factoryFunction(
+        configService,
+      ) as PostgresConnectionOptions;
 
       expect(config.type).toBe('postgres');
       expect(config.host).toBe('test-host');
@@ -116,8 +118,10 @@ describe('AppModule', () => {
     it('should test the exact useFactory function used in TypeOrmModule configuration', () => {
       // Simulamos exactamente cómo se llama en el módulo (línea 54)
       const useFactoryResult = ((configService: ConfigService) =>
-        AppModule.createTypeOrmOptions(configService))(configService) as PostgresConnectionOptions;
-      
+        AppModule.createTypeOrmOptions(configService))(
+        configService,
+      ) as PostgresConnectionOptions;
+
       expect(useFactoryResult).toBeDefined();
       expect(useFactoryResult.type).toBe('postgres');
       expect(useFactoryResult.host).toBe('test-host');

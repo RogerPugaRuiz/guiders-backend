@@ -1,8 +1,8 @@
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { 
-  VisitorPersistenceError, 
-  VisitorNotFoundError, 
-  VisitorDataError 
+import {
+  VisitorPersistenceError,
+  VisitorNotFoundError,
+  VisitorDataError,
 } from '../visitor.error';
 
 describe('Visitor Errors', () => {
@@ -12,7 +12,9 @@ describe('Visitor Errors', () => {
       const error = new VisitorPersistenceError(message);
 
       expect(error).toBeInstanceOf(DomainError);
-      expect(error.message).toBe(`Error de persistencia de visitante: ${message}`);
+      expect(error.message).toBe(
+        `Error de persistencia de visitante: ${message}`,
+      );
     });
 
     it('should be throwable', () => {

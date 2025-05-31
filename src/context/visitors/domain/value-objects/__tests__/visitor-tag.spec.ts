@@ -16,17 +16,27 @@ describe('VisitorTag', () => {
   });
 
   it('should throw error for empty string', () => {
-    expect(() => new VisitorTag('')).toThrow('VisitorTag debe ser un string no vacío');
+    expect(() => new VisitorTag('')).toThrow(
+      'VisitorTag debe ser un string no vacío',
+    );
   });
 
   it('should throw error for string with only spaces', () => {
-    expect(() => new VisitorTag('   ')).toThrow('VisitorTag debe ser un string no vacío');
+    expect(() => new VisitorTag('   ')).toThrow(
+      'VisitorTag debe ser un string no vacío',
+    );
   });
 
   it('should throw error for non-string value', () => {
-    expect(() => new VisitorTag(123 as any)).toThrow('VisitorTag debe ser un string no vacío');
-    expect(() => new VisitorTag(null as any)).toThrow('VisitorTag debe ser un string no vacío');
-    expect(() => new VisitorTag(undefined as any)).toThrow('VisitorTag debe ser un string no vacío');
+    expect(() => new VisitorTag(123 as any)).toThrow(
+      'VisitorTag debe ser un string no vacío',
+    );
+    expect(() => new VisitorTag(null as any)).toThrow(
+      'VisitorTag debe ser un string no vacío',
+    );
+    expect(() => new VisitorTag(undefined as any)).toThrow(
+      'VisitorTag debe ser un string no vacío',
+    );
   });
 
   it('should accept single character tags', () => {
