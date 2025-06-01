@@ -1,9 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FindOneUserByIdQueryHandler } from '../find-one-user-by-id.query-handler';
 import { FindOneUserByIdQuery } from '../find-one-user-by-id.query';
-import { UserAccountRepository, USER_ACCOUNT_REPOSITORY } from '../../../domain/user-account.repository';
+import {
+  UserAccountRepository,
+  USER_ACCOUNT_REPOSITORY,
+} from '../../../domain/user-account.repository';
 import { UserAccount } from '../../../domain/user-account';
-import { Optional } from 'src/context/shared/domain/optional';
 
 describe('FindOneUserByIdQueryHandler', () => {
   let handler: FindOneUserByIdQueryHandler;
@@ -35,7 +37,9 @@ describe('FindOneUserByIdQueryHandler', () => {
       ],
     }).compile();
 
-    handler = module.get<FindOneUserByIdQueryHandler>(FindOneUserByIdQueryHandler);
+    handler = module.get<FindOneUserByIdQueryHandler>(
+      FindOneUserByIdQueryHandler,
+    );
     userRepository = module.get(USER_ACCOUNT_REPOSITORY);
   });
 
@@ -99,10 +103,14 @@ describe('FindOneUserByIdQueryHandler', () => {
     it('should handle repository errors gracefully', async () => {
       // Arrange
       const query = new FindOneUserByIdQuery(mockUserId);
-      userRepository.findById.mockRejectedValue(new Error('Database connection error'));
+      userRepository.findById.mockRejectedValue(
+        new Error('Database connection error'),
+      );
 
       // Act & Assert
-      await expect(handler.execute(query)).rejects.toThrow('Database connection error');
+      await expect(handler.execute(query)).rejects.toThrow(
+        'Database connection error',
+      );
       expect(userRepository.findById).toHaveBeenCalledWith(mockUserId);
     });
 

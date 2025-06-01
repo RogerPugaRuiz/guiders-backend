@@ -3,12 +3,14 @@ import { EventPublisher } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 import { DisconnectUserCommandHandler } from '../disconnect-user.command-handler';
 import { DisconnectUserCommand } from '../disconnect-user.command';
-import { ConnectionRepository, CONNECTION_REPOSITORY } from '../../../../domain/connection.repository';
+import {
+  ConnectionRepository,
+  CONNECTION_REPOSITORY,
+} from '../../../../domain/connection.repository';
 import { INotification, NOTIFICATION } from '../../../../domain/notification';
-import { ConnectionUser } from '../../../../domain/connection-user';
 import { ConnectionUserId } from '../../../../domain/value-objects/connection-user-id';
 import { Criteria } from 'src/context/shared/domain/criteria';
-import { Result, ok, err } from 'src/context/shared/domain/result';
+import { ok, err } from 'src/context/shared/domain/result';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { RepositoryError } from 'src/context/shared/domain/errors/repository.error';
 
@@ -60,7 +62,9 @@ describe('DisconnectUserCommandHandler', () => {
       ],
     }).compile();
 
-    handler = module.get<DisconnectUserCommandHandler>(DisconnectUserCommandHandler);
+    handler = module.get<DisconnectUserCommandHandler>(
+      DisconnectUserCommandHandler,
+    );
     connectionRepository = module.get(CONNECTION_REPOSITORY);
     eventPublisher = module.get(EventPublisher);
     notification = module.get(NOTIFICATION);
@@ -92,8 +96,12 @@ describe('DisconnectUserCommandHandler', () => {
         expect.any(Criteria),
       );
       expect(mockConnectionUser.disconnect).toHaveBeenCalled();
-      expect(connectionRepository.save).toHaveBeenCalledWith(disconnectedConnection);
-      expect(eventPublisher.mergeObjectContext).toHaveBeenCalledWith(disconnectedConnection);
+      expect(connectionRepository.save).toHaveBeenCalledWith(
+        disconnectedConnection,
+      );
+      expect(eventPublisher.mergeObjectContext).toHaveBeenCalledWith(
+        disconnectedConnection,
+      );
       expect(notification.notify).toHaveBeenCalledWith({
         recipientId: mockUserId,
         type: 'visitor:disconnected',
@@ -105,7 +113,9 @@ describe('DisconnectUserCommandHandler', () => {
 
     it('should handle case when connection is not found', async () => {
       // Arrange
-      connectionRepository.findOne.mockResolvedValue(err(new RepositoryError('Connection not found')));
+      connectionRepository.findOne.mockResolvedValue(
+        err(new RepositoryError('Connection not found')),
+      );
 
       // Act
       await handler.execute(command);
@@ -136,7 +146,9 @@ describe('DisconnectUserCommandHandler', () => {
       await expect(handler.execute(command)).rejects.toThrow('Database error');
       expect(connectionRepository.findOne).toHaveBeenCalled();
       expect(mockConnectionUser.disconnect).toHaveBeenCalled();
-      expect(connectionRepository.save).toHaveBeenCalledWith(disconnectedConnection);
+      expect(connectionRepository.save).toHaveBeenCalledWith(
+        disconnectedConnection,
+      );
     });
 
     it('should handle notification errors gracefully', async () => {
@@ -148,7 +160,9 @@ describe('DisconnectUserCommandHandler', () => {
       notification.notify.mockRejectedValue(new Error('Notification error'));
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Notification error');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Notification error',
+      );
       expect(notification.notify).toHaveBeenCalledWith({
         recipientId: mockUserId,
         type: 'visitor:disconnected',

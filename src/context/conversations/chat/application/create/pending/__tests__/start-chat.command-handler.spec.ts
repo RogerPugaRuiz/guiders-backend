@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventPublisher } from '@nestjs/cqrs';
 import { StartChatCommandHandler } from '../start-chat.command-handler';
 import { StartChatCommand } from '../start-chat.command';
-import { IChatRepository, CHAT_REPOSITORY } from '../../../../domain/chat/chat.repository';
+import {
+  IChatRepository,
+  CHAT_REPOSITORY,
+} from '../../../../domain/chat/chat.repository';
 import { Chat } from '../../../../domain/chat/chat';
 
 // Mock the Chat static method
@@ -98,7 +101,11 @@ describe('StartChatCommandHandler', () => {
 
     it('should use default timestamp when not provided', async () => {
       // Arrange
-      const command = new StartChatCommand(mockChatId, mockVisitorId, mockVisitorName);
+      const command = new StartChatCommand(
+        mockChatId,
+        mockVisitorId,
+        mockVisitorName,
+      );
       chatRepository.save.mockResolvedValue(undefined);
 
       // Act
@@ -172,7 +179,9 @@ describe('StartChatCommandHandler', () => {
       });
 
       // Act & Assert
-      await expect(handler.execute(command)).rejects.toThrow('Invalid chat data');
+      await expect(handler.execute(command)).rejects.toThrow(
+        'Invalid chat data',
+      );
       expect(Chat.createPendingChat).toHaveBeenCalled();
       expect(eventPublisher.mergeObjectContext).not.toHaveBeenCalled();
       expect(chatRepository.save).not.toHaveBeenCalled();

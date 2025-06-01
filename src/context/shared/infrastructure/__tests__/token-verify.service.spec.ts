@@ -81,7 +81,9 @@ describe('TokenVerifyService', () => {
 
       // Assert
       expect(result).toEqual(mockPayload);
-      expect(jwtService.decode).toHaveBeenCalledWith(mockToken, { complete: true });
+      expect(jwtService.decode).toHaveBeenCalledWith(mockToken, {
+        complete: true,
+      });
       expect(jwtService.verify).toHaveBeenCalledWith(mockToken, {
         secret: 'test-secret',
       });
@@ -109,13 +111,15 @@ describe('TokenVerifyService', () => {
 
       jwtService.decode.mockReturnValue(decodedToken);
       configService.get.mockReturnValue('https://test-app.com');
-      httpService.get.mockReturnValue(of({
-        data: jwksResponse,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-      } as AxiosResponse));
+      httpService.get.mockReturnValue(
+        of({
+          data: jwksResponse,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {},
+        } as AxiosResponse),
+      );
       jwtService.verify.mockReturnValue(visitorPayload);
 
       // Act
@@ -177,13 +181,15 @@ describe('TokenVerifyService', () => {
 
       jwtService.decode.mockReturnValue(decodedToken);
       configService.get.mockReturnValue('https://test-app.com');
-      httpService.get.mockReturnValue(of({
-        data: jwksResponse,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-      } as AxiosResponse));
+      httpService.get.mockReturnValue(
+        of({
+          data: jwksResponse,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {},
+        } as AxiosResponse),
+      );
 
       // Act & Assert
       await expect(service.verifyToken(mockToken)).rejects.toThrow(

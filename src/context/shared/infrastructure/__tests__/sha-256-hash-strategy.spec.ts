@@ -16,7 +16,9 @@ describe('Sha256HashStrategy', () => {
       const result = await hashStrategy.hash(plainText);
 
       // Assert
-      expect(result).toBe('ffe65f1d98fafedea3514adc956c8ada5980c6c5d2552fd61f48401aefd5c00e');
+      expect(result).toBe(
+        'ffe65f1d98fafedea3514adc956c8ada5980c6c5d2552fd61f48401aefd5c00e',
+      );
       expect(result).toHaveLength(64); // SHA-256 produces 64-character hex string
       expect(typeof result).toBe('string');
     });
@@ -54,7 +56,9 @@ describe('Sha256HashStrategy', () => {
       const result = await hashStrategy.hash(plainText);
 
       // Assert
-      expect(result).toBe('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+      expect(result).toBe(
+        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      );
       expect(result).toHaveLength(64);
     });
 
@@ -153,7 +157,10 @@ describe('Sha256HashStrategy', () => {
 
       // Act
       const correctResult = await hashStrategy.compare(plainText, hashed);
-      const incorrectResult = await hashStrategy.compare('password@123?', hashed);
+      const incorrectResult = await hashStrategy.compare(
+        'password@123?',
+        hashed,
+      );
 
       // Assert
       expect(correctResult).toBe(true);

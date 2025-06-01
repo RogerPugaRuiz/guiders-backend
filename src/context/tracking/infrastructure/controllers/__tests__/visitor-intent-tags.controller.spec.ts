@@ -26,7 +26,9 @@ describe('VisitorIntentTagsController', () => {
       ],
     }).compile();
 
-    controller = module.get<VisitorIntentTagsController>(VisitorIntentTagsController);
+    controller = module.get<VisitorIntentTagsController>(
+      VisitorIntentTagsController,
+    );
     queryBus = module.get(QueryBus);
   });
 
@@ -96,10 +98,7 @@ describe('VisitorIntentTagsController', () => {
     it('should handle result objects without isErr method', async () => {
       // Arrange
       const regularObject = {
-        tags: [
-          new IntentTagDto('tag1'),
-          new IntentTagDto('tag2'),
-        ],
+        tags: [new IntentTagDto('tag1'), new IntentTagDto('tag2')],
       };
       queryBus.execute.mockResolvedValue(regularObject);
 

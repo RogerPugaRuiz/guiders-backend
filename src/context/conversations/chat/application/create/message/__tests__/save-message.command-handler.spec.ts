@@ -3,10 +3,15 @@ import { EventPublisher } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 import { SaveMessageCommandHandler } from '../save-message.command-handler';
 import { SaveMessageCommand } from '../save-message.command';
-import { IChatRepository, CHAT_REPOSITORY } from '../../../../domain/chat/chat.repository';
-import { Chat } from '../../../../domain/chat/chat';
+import {
+  IChatRepository,
+  CHAT_REPOSITORY,
+} from '../../../../domain/chat/chat.repository';
 import { Optional } from 'src/context/shared/domain/optional';
-import { ChatNotFoundError, ChatCanNotSaveMessageError } from '../../../../domain/chat/errors/errors';
+import {
+  ChatNotFoundError,
+  ChatCanNotSaveMessageError,
+} from '../../../../domain/chat/errors/errors';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 describe('SaveMessageCommandHandler', () => {
@@ -80,7 +85,9 @@ describe('SaveMessageCommandHandler', () => {
     it('should save message successfully when chat exists', async () => {
       // Arrange
       mockChat.canAddMessage.mockReturnValue(mockUpdatedChat);
-      chatRepository.findById.mockResolvedValue(Optional.of({ chat: mockChat }));
+      chatRepository.findById.mockResolvedValue(
+        Optional.of({ chat: mockChat }),
+      );
       chatRepository.save.mockResolvedValue(undefined);
 
       // Act
@@ -98,7 +105,9 @@ describe('SaveMessageCommandHandler', () => {
         senderId: mockSenderId,
         id: mockMessageId,
       });
-      expect(eventPublisher.mergeObjectContext).toHaveBeenCalledWith(mockUpdatedChat);
+      expect(eventPublisher.mergeObjectContext).toHaveBeenCalledWith(
+        mockUpdatedChat,
+      );
       expect(chatRepository.save).toHaveBeenCalledWith(mockUpdatedChat);
       expect(mockUpdatedChat.commit).toHaveBeenCalled();
     });
@@ -127,7 +136,9 @@ describe('SaveMessageCommandHandler', () => {
       mockChat.canAddMessage.mockImplementation(() => {
         throw new Error('Cannot add message');
       });
-      chatRepository.findById.mockResolvedValue(Optional.of({ chat: mockChat }));
+      chatRepository.findById.mockResolvedValue(
+        Optional.of({ chat: mockChat }),
+      );
 
       // Act
       const result = await handler.execute(command);
@@ -150,7 +161,9 @@ describe('SaveMessageCommandHandler', () => {
     it('should return error when repository save fails', async () => {
       // Arrange
       mockChat.canAddMessage.mockReturnValue(mockUpdatedChat);
-      chatRepository.findById.mockResolvedValue(Optional.of({ chat: mockChat }));
+      chatRepository.findById.mockResolvedValue(
+        Optional.of({ chat: mockChat }),
+      );
       chatRepository.save.mockRejectedValue(new Error('Database error'));
 
       // Act
@@ -175,7 +188,9 @@ describe('SaveMessageCommandHandler', () => {
         new Date('2024-01-01'),
       );
       mockChat.canAddMessage.mockReturnValue(mockUpdatedChat);
-      chatRepository.findById.mockResolvedValue(Optional.of({ chat: mockChat }));
+      chatRepository.findById.mockResolvedValue(
+        Optional.of({ chat: mockChat }),
+      );
       chatRepository.save.mockResolvedValue(undefined);
 
       // Act

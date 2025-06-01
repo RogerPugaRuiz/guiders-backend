@@ -12,7 +12,9 @@ import { CriteriaConverter } from 'src/context/shared/infrastructure/criteria-co
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 
 // Mock de CriteriaConverter
-jest.mock('src/context/shared/infrastructure/criteria-converter/criteria-converter');
+jest.mock(
+  'src/context/shared/infrastructure/criteria-converter/criteria-converter',
+);
 
 describe('TypeOrmVisitorAdapter', () => {
   let adapter: TypeOrmVisitorAdapter;
@@ -249,7 +251,9 @@ describe('TypeOrmVisitorAdapter', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toBe('Error al buscar Visitors: SQL error');
+        expect(result.error.message).toBe(
+          'Error al buscar Visitors: SQL error',
+        );
       }
     });
 

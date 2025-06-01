@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FindOneUserBySocketIdQueryHandler } from '../find-one-user-by-socket-id.query-handler';
 import { FindOneUserBySocketIdQuery } from '../find-one-user-by-socket-id.query';
-import { ConnectionRepository, CONNECTION_REPOSITORY } from '../../../../domain/connection.repository';
+import {
+  ConnectionRepository,
+  CONNECTION_REPOSITORY,
+} from '../../../../domain/connection.repository';
 import { ConnectionUser } from '../../../../domain/connection-user';
 import { Criteria } from 'src/context/shared/domain/criteria';
-import { Result, ok, err } from 'src/context/shared/domain/result';
+import { ok, err } from 'src/context/shared/domain/result';
 import { RepositoryError } from 'src/context/shared/domain/errors/repository.error';
 
 describe('FindOneUserBySocketIdQueryHandler', () => {
@@ -36,7 +39,9 @@ describe('FindOneUserBySocketIdQueryHandler', () => {
       ],
     }).compile();
 
-    handler = module.get<FindOneUserBySocketIdQueryHandler>(FindOneUserBySocketIdQueryHandler);
+    handler = module.get<FindOneUserBySocketIdQueryHandler>(
+      FindOneUserBySocketIdQueryHandler,
+    );
     connectionRepository = module.get(CONNECTION_REPOSITORY);
   });
 
@@ -71,7 +76,9 @@ describe('FindOneUserBySocketIdQueryHandler', () => {
     it('should return empty object when connection is not found', async () => {
       // Arrange
       const query = new FindOneUserBySocketIdQuery(mockSocketId);
-      connectionRepository.findOne.mockResolvedValue(err(new RepositoryError('Connection not found')));
+      connectionRepository.findOne.mockResolvedValue(
+        err(new RepositoryError('Connection not found')),
+      );
 
       // Act
       const result = await handler.execute(query);
@@ -87,7 +94,9 @@ describe('FindOneUserBySocketIdQueryHandler', () => {
     it('should use correct criteria with socket ID filter', async () => {
       // Arrange
       const query = new FindOneUserBySocketIdQuery(mockSocketId);
-      connectionRepository.findOne.mockResolvedValue(err(new RepositoryError('Not found')));
+      connectionRepository.findOne.mockResolvedValue(
+        err(new RepositoryError('Not found')),
+      );
 
       // Act
       await handler.execute(query);
@@ -101,17 +110,25 @@ describe('FindOneUserBySocketIdQueryHandler', () => {
           }),
         ]),
       });
-      expect(connectionRepository.findOne).toHaveBeenCalledWith(expectedCriteria);
+      expect(connectionRepository.findOne).toHaveBeenCalledWith(
+        expectedCriteria,
+      );
     });
 
     it('should handle repository errors gracefully', async () => {
       // Arrange
       const query = new FindOneUserBySocketIdQuery(mockSocketId);
-      connectionRepository.findOne.mockRejectedValue(new Error('Database connection error'));
+      connectionRepository.findOne.mockRejectedValue(
+        new Error('Database connection error'),
+      );
 
       // Act & Assert
-      await expect(handler.execute(query)).rejects.toThrow('Database connection error');
-      expect(connectionRepository.findOne).toHaveBeenCalledWith(expect.any(Criteria));
+      await expect(handler.execute(query)).rejects.toThrow(
+        'Database connection error',
+      );
+      expect(connectionRepository.findOne).toHaveBeenCalledWith(
+        expect.any(Criteria),
+      );
     });
   });
 });

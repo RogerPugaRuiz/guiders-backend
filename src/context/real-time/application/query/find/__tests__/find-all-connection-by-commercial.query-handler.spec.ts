@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FindAllConnectionByCommercialQueryHandler } from '../find-all-connection-by-commercial.query-handler';
-import { FindAllConnectionByCommercialQuery } from '../find-all-connection-by-commercial.query';
-import { ConnectionRepository, CONNECTION_REPOSITORY } from '../../../../domain/connection.repository';
+import {
+  ConnectionRepository,
+  CONNECTION_REPOSITORY,
+} from '../../../../domain/connection.repository';
 import { ConnectionUser } from '../../../../domain/connection-user';
 import { ConnectionRole } from '../../../../domain/value-objects/connection-role';
 import { Criteria } from 'src/context/shared/domain/criteria';
@@ -33,7 +35,9 @@ describe('FindAllConnectionByCommercialQueryHandler', () => {
       ],
     }).compile();
 
-    handler = module.get<FindAllConnectionByCommercialQueryHandler>(FindAllConnectionByCommercialQueryHandler);
+    handler = module.get<FindAllConnectionByCommercialQueryHandler>(
+      FindAllConnectionByCommercialQueryHandler,
+    );
     connectionRepository = module.get(CONNECTION_REPOSITORY);
   });
 
@@ -44,7 +48,6 @@ describe('FindAllConnectionByCommercialQueryHandler', () => {
   describe('execute', () => {
     it('should return commercial connections when found', async () => {
       // Arrange
-      const query = new FindAllConnectionByCommercialQuery();
       const allConnections = [mockCommercialConnection, mockVisitorConnection];
       connectionRepository.find.mockResolvedValue(allConnections);
 
@@ -66,17 +69,19 @@ describe('FindAllConnectionByCommercialQueryHandler', () => {
 
     it('should throw error when no connections are found', async () => {
       // Arrange
-      const query = new FindAllConnectionByCommercialQuery();
       connectionRepository.find.mockResolvedValue([]);
 
       // Act & Assert
-      await expect(handler.execute()).rejects.toThrow('No commercial connections found');
-      expect(connectionRepository.find).toHaveBeenCalledWith(expect.any(Criteria));
+      await expect(handler.execute()).rejects.toThrow(
+        'No commercial connections found',
+      );
+      expect(connectionRepository.find).toHaveBeenCalledWith(
+        expect.any(Criteria),
+      );
     });
 
     it('should return empty array when no commercial connections found but other connections exist', async () => {
       // Arrange
-      const query = new FindAllConnectionByCommercialQuery();
       const nonCommercialConnections = [mockVisitorConnection];
       connectionRepository.find.mockResolvedValue(nonCommercialConnections);
 
@@ -92,7 +97,6 @@ describe('FindAllConnectionByCommercialQueryHandler', () => {
 
     it('should use correct criteria to find connected users', async () => {
       // Arrange
-      const query = new FindAllConnectionByCommercialQuery();
       connectionRepository.find.mockResolvedValue([mockCommercialConnection]);
 
       // Act
@@ -112,12 +116,17 @@ describe('FindAllConnectionByCommercialQueryHandler', () => {
 
     it('should handle repository errors gracefully', async () => {
       // Arrange
-      const query = new FindAllConnectionByCommercialQuery();
-      connectionRepository.find.mockRejectedValue(new Error('Database connection error'));
+      connectionRepository.find.mockRejectedValue(
+        new Error('Database connection error'),
+      );
 
       // Act & Assert
-      await expect(handler.execute()).rejects.toThrow('Database connection error');
-      expect(connectionRepository.find).toHaveBeenCalledWith(expect.any(Criteria));
+      await expect(handler.execute()).rejects.toThrow(
+        'Database connection error',
+      );
+      expect(connectionRepository.find).toHaveBeenCalledWith(
+        expect.any(Criteria),
+      );
     });
   });
 });
