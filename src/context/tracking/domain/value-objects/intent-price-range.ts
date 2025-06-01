@@ -8,6 +8,7 @@ export class IntentPriceRange extends PrimitiveValueObject<{
   constructor(value: { min: number; max: number }) {
     if (
       typeof value !== 'object' ||
+      value === null ||
       typeof value.min !== 'number' ||
       typeof value.max !== 'number' ||
       value.min < 0 ||
@@ -21,5 +22,12 @@ export class IntentPriceRange extends PrimitiveValueObject<{
   // Devuelve el rango como string para visualización
   public toString(): string {
     return `${this.value.min} - ${this.value.max}`;
+  }
+
+  // Override equals para comparación profunda de objetos
+  public equals(other: IntentPriceRange): boolean {
+    return (
+      this.value.min === other.value.min && this.value.max === other.value.max
+    );
   }
 }

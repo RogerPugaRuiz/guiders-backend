@@ -2,22 +2,36 @@
 // Ubicación: src/context/visitors/infrastructure/persistence/__tests__/type-orm-visitor.adapter.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeOrmVisitorAdapter } from '../type-orm-visitor.adapter';
 import { VisitorTypeOrmEntity } from '../visitor-typeorm.entity';
 import { Visitor } from '../../../domain/visitor';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
+import { Criteria } from 'src/context/shared/domain/criteria';
+import { CriteriaConverter } from 'src/context/shared/infrastructure/criteria-converter/criteria-converter';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
+
+// Mock de CriteriaConverter
+jest.mock(
+  'src/context/shared/infrastructure/criteria-converter/criteria-converter',
+);
 
 describe('TypeOrmVisitorAdapter', () => {
   let adapter: TypeOrmVisitorAdapter;
-  let repository: Repository<VisitorTypeOrmEntity>;
+  let repository: jest.Mocked<Repository<VisitorTypeOrmEntity>>;
+  let queryBuilder: jest.Mocked<SelectQueryBuilder<VisitorTypeOrmEntity>>;
 
   beforeEach(async () => {
+    queryBuilder = {
+      where: jest.fn().mockReturnThis(),
+      setParameters: jest.fn().mockReturnThis(),
+      getMany: jest.fn(),
+    } as any;
+
     const mockRepository = {
       findOne: jest.fn(),
       save: jest.fn(),
-      createQueryBuilder: jest.fn(),
+      createQueryBuilder: jest.fn().mockReturnValue(queryBuilder),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -31,9 +45,7 @@ describe('TypeOrmVisitorAdapter', () => {
     }).compile();
 
     adapter = module.get<TypeOrmVisitorAdapter>(TypeOrmVisitorAdapter);
-    repository = module.get<Repository<VisitorTypeOrmEntity>>(
-      getRepositoryToken(VisitorTypeOrmEntity),
-    );
+    repository = module.get(getRepositoryToken(VisitorTypeOrmEntity));
   });
 
   it('debe estar definido', () => {
@@ -151,6 +163,116 @@ describe('TypeOrmVisitorAdapter', () => {
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error.message).toContain('Error al guardar Visitor');
+      }
+    });
+  });
+
+  describe('match', () => {
+    const mockCriteria = new Criteria<Visitor>();
+
+    it('debe buscar visitors usando criterios', async () => {
+      // Arrange
+      const mockSql = 'id = :id';
+      const mockParameters = { id: '123' };
+      (CriteriaConverter.toPostgresSql as jest.Mock).mockReturnValue({
+        sql: `WHERE ${mockSql}`,
+        parameters: mockParameters,
+      });
+
+      const mockEntities = [
+        {
+          id: Uuid.generate(),
+          name: 'Test User 1',
+          email: 'test1@example.com',
+          tel: '+34123456789',
+          tags: ['test'],
+          notes: ['nota'],
+          currentPage: '/home',
+        },
+      ];
+      queryBuilder.getMany.mockResolvedValue(mockEntities);
+
+      // Act
+      const result = await adapter.match(mockCriteria);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toHaveLength(1);
+        expect(result.value[0]).toBeInstanceOf(Visitor);
+      }
+      expect(CriteriaConverter.toPostgresSql).toHaveBeenCalledWith(
+        mockCriteria,
+        'visitors',
+        expect.objectContaining({
+          id: 'id',
+          name: 'name',
+          email: 'email',
+          tel: 'tel',
+          tags: 'tags',
+          notes: 'notes',
+          currentPage: 'currentPage',
+        }),
+      );
+      expect(queryBuilder.where).toHaveBeenCalledWith(mockSql);
+      expect(queryBuilder.setParameters).toHaveBeenCalledWith(mockParameters);
+    });
+
+    it('debe retornar array vacío cuando no hay coincidencias', async () => {
+      // Arrange
+      (CriteriaConverter.toPostgresSql as jest.Mock).mockReturnValue({
+        sql: 'WHERE id = :id',
+        parameters: { id: '123' },
+      });
+      queryBuilder.getMany.mockResolvedValue([]);
+
+      // Act
+      const result = await adapter.match(mockCriteria);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value).toEqual([]);
+      }
+    });
+
+    it('debe manejar errores en la query', async () => {
+      // Arrange
+      const error = new Error('SQL error');
+      (CriteriaConverter.toPostgresSql as jest.Mock).mockReturnValue({
+        sql: 'WHERE id = :id',
+        parameters: { id: '123' },
+      });
+      queryBuilder.getMany.mockRejectedValue(error);
+
+      // Act
+      const result = await adapter.match(mockCriteria);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe(
+          'Error al buscar Visitors: SQL error',
+        );
+      }
+    });
+
+    it('debe manejar errores del CriteriaConverter', async () => {
+      // Arrange
+      const error = new Error('Criteria conversion error');
+      (CriteriaConverter.toPostgresSql as jest.Mock).mockImplementation(() => {
+        throw error;
+      });
+
+      // Act
+      const result = await adapter.match(mockCriteria);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toBe(
+          'Error al buscar Visitors: Criteria conversion error',
+        );
       }
     });
   });
