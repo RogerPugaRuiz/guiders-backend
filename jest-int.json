@@ -5,7 +5,12 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "collectCoverageFrom": ["**/*.(t|j)s"],
+  "collectCoverageFrom": [
+    "context/**/*.(t|j)s",
+    "!context/**/*.int-spec.ts",
+    "!context/**/*.spec.ts",
+    "!context/**/*.test.ts"
+  ],
   "coverageDirectory": "../coverage",
   "testEnvironment": "node",
   "moduleNameMapper": {

@@ -2,21 +2,21 @@
  * Script de verificación de cobertura de código para el proyecto Guiders Backend
  * 
  * Este script verifica que la cobertura de código cumpla con el umbral mínimo establecido.
- * Se puede usar localmente para probar si se cumple el umbral antes de hacer un push.
+ * Se enfoca ÚNICAMENTE en la carpeta 'context' que contiene la lógica de negocio principal.
  * 
  * Características:
- * - Excluye automáticamente archivos que no requieren testing (configuración, DTOs, entidades, etc.)
+ * - Solo analiza archivos dentro de src/context/
+ * - Excluye automáticamente archivos que no requieren testing dentro de context
  * - Proporciona un análisis detallado de qué archivos se incluyen/excluyen
  * - Muestra estadísticas organizadas por categorías de exclusión
  * - Diseñado específicamente para proyectos NestJS con DDD y CQRS
  * 
- * Tipos de archivos excluidos:
- * - Módulos NestJS y configuración de aplicación
+ * Tipos de archivos excluidos en context:
+ * - Módulos NestJS y configuración
  * - Entidades de base de datos y migraciones
  * - DTOs, mappers y adaptadores de infraestructura
- * - Archivos de testing y documentación
+ * - Archivos de testing
  * - Definiciones de tipos, interfaces y enums
- * - Scripts de utilidad y herramientas
  * - Contratos de dominio (interfaces de repositorios/servicios)
  * - Infraestructura específica de NestJS (guards, pipes, etc.)
  * 
@@ -33,76 +33,57 @@ const path = require('path');
 const THRESHOLD = 80; // Umbral mínimo de cobertura (porcentaje)
 const LCOV_PATH = path.join(__dirname, '../../coverage/lcov.info');
 
-// Patrones de archivos a excluir del cálculo de cobertura
+// Patrones de archivos a excluir del cálculo de cobertura EN LA CARPETA CONTEXT
 const EXCLUDE_PATTERNS = [
-  // Configuración y setup de aplicación
-  /\.module\.ts$/, // Módulos NestJS
-  /main\.ts$/, // Punto de entrada de la aplicación
-  /data-source\.ts$/, // Configuración de base de datos
-  /app\.controller\.ts$/, // Controlador principal de la app
-  /app\.service\.ts$/, // Servicio principal de la app
+  // Configuración y setup dentro de context
+  /\/context\/.*\.module\.ts$/, // Módulos NestJS dentro de context
+  /\/context\/.*\/index\.ts$/, // Archivos barrel dentro de context
+  /\/context\/.*\.config\.ts$/, // Archivos de configuración dentro de context
+  /\/context\/.*\.constants\.ts$/, // Archivos de constantes dentro de context
   
-  // Archivos de infraestructura que no requieren testing
-  /\/migrations\/.*\.ts$/, // Archivos de migración
-  /\/index\.ts$/, // Archivos barrel que solo re-exportan
-  /\.config\.ts$/, // Archivos de configuración
-  /\.constants\.ts$/, // Archivos de constantes
-  /\/scripts\/.*\.js$/, // Scripts de utilidad
-  /\/scripts\/.*\.ts$/, // Scripts de utilidad TypeScript
+  // Archivos de definición de tipos y contratos dentro de context
+  /\/context\/.*\.enum\.ts$/, // Archivos de enums
+  /\/context\/.*\.interface\.ts$/, // Interfaces de TypeScript puras
+  /\/context\/.*\.type\.ts$/, // Tipos de TypeScript
+  /\/context\/.*\.d\.ts$/, // Archivos de definición de tipos
   
-  // Archivos de definición de tipos y contratos
-  /\.enum\.ts$/, // Archivos de enums
-  /\.interface\.ts$/, // Interfaces de TypeScript puras
-  /\.type\.ts$/, // Tipos de TypeScript
-  /\.d\.ts$/, // Archivos de definición de tipos
+  // Entidades de base de datos y mappers dentro de context
+  /\/context\/.*\.entity\.ts$/, // Entidades de TypeORM
+  /\/context\/.*\.mapper\.ts$/, // Mappers de infraestructura
+  /\/context\/.*\.adapter\.ts$/, // Adaptadores de infraestructura
   
-  // Entidades de base de datos y mappers (infraestructura)
-  /\.entity\.ts$/, // Entidades de TypeORM
-  /\.mapper\.ts$/, // Mappers de infraestructura
-  /\.adapter\.ts$/, // Adaptadores de infraestructura
+  // DTOs dentro de context
+  /\/context\/.*\.dto\.ts$/, // Data Transfer Objects
   
-  // DTOs y documentación
-  /\.dto\.ts$/, // Data Transfer Objects
-  /\.swagger\.ts$/, // Configuración de Swagger
-  /\/docs\/.*\.ts$/, // Archivos de documentación
+  // Archivos de testing dentro de context
+  /\/context\/.*\.spec\.ts$/, // Archivos de test
+  /\/context\/.*\.test\.ts$/, // Archivos de test alternativos
+  /\/context\/.*\.int-spec\.ts$/, // Tests de integración
+  /\/context\/.*\.e2e-spec\.ts$/, // Tests end-to-end
   
-  // Archivos de testing y configuración del entorno
-  /\.spec\.ts$/, // Archivos de test
-  /\.test\.ts$/, // Archivos de test alternativos
-  /jest\.config/, // Configuración de Jest
-  /\.e2e-spec\.ts$/, // Tests end-to-end
+  // Archivos específicos del dominio que son solo definiciones dentro de context
+  /\/context\/.*\/domain\/.*\.error\.ts$/, // Clases de error de dominio
+  /\/context\/.*\/domain\/.*\.exception\.ts$/, // Excepciones de dominio
+  /\/context\/.*\/domain\/.*\.repository\.ts$/, // Interfaces de repositorios (solo contratos)
+  /\/context\/.*\/domain\/.*\.service\.ts$/, // Interfaces de servicios de dominio (solo contratos)
   
-  // Archivos de configuración de herramientas
-  /Dockerfile/, // Archivos Docker
-  /\.json$/, // Archivos de configuración JSON
-  /\.yaml$/, // Archivos YAML
-  /\.yml$/, // Archivos YML
-  /\.md$/, // Archivos Markdown
-  /\.mmd$/, // Archivos Mermaid
-  
-  // Directorios específicos que no requieren coverage
-  /\/config\/.*\.ts$/, // Directorio de configuración
-  /\/examples\/.*\.ts$/, // Directorio de ejemplos
-  /\/tools\/.*\.ts$/, // Directorio de herramientas
-  /\/bin\/.*\.js$/, // Scripts binarios
-  
-  // Archivos específicos del dominio que son solo definiciones
-  /\/domain\/.*\.error\.ts$/, // Clases de error de dominio
-  /\/domain\/.*\.exception\.ts$/, // Excepciones de dominio
-  /\/domain\/.*\.repository\.ts$/, // Interfaces de repositorios (solo contratos)
-  /\/domain\/.*\.service\.ts$/, // Interfaces de servicios de dominio (solo contratos)
-  
-  // Archivos de infraestructura específicos
-  /\/infrastructure\/.*\.guard\.ts$/, // Guards de NestJS
-  /\/infrastructure\/.*\.decorator\.ts$/, // Decoradores personalizados
-  /\/infrastructure\/.*\.strategy\.ts$/, // Estrategias de Passport/Auth
-  /\/infrastructure\/.*\.interceptor\.ts$/, // Interceptors de NestJS
-  /\/infrastructure\/.*\.filter\.ts$/, // Exception filters
-  /\/infrastructure\/.*\.pipe\.ts$/, // Pipes de validación
+  // Archivos de infraestructura específicos dentro de context
+  /\/context\/.*\/infrastructure\/.*\.guard\.ts$/, // Guards de NestJS
+  /\/context\/.*\/infrastructure\/.*\.decorator\.ts$/, // Decoradores personalizados
+  /\/context\/.*\/infrastructure\/.*\.strategy\.ts$/, // Estrategias de Passport/Auth
+  /\/context\/.*\/infrastructure\/.*\.interceptor\.ts$/, // Interceptors de NestJS
+  /\/context\/.*\/infrastructure\/.*\.filter\.ts$/, // Exception filters
+  /\/context\/.*\/infrastructure\/.*\.pipe\.ts$/, // Pipes de validación
 ];
 
 // Función para verificar si un archivo debe ser excluido
 function shouldExcludeFile(filePath) {
+  // Primero verificar que el archivo esté dentro de context
+  if (!filePath.includes('/context/')) {
+    return true; // Excluir todo lo que no esté en context
+  }
+  
+  // Luego verificar patrones específicos de exclusión
   return EXCLUDE_PATTERNS.some(pattern => pattern.test(filePath));
 }
 
@@ -197,25 +178,24 @@ function calculateCoverage(lcovContent) {
 
 // Función para obtener la razón de exclusión de un archivo
 function getExclusionReason(filePath) {
-  if (/\.module\.ts$/.test(filePath)) return '🏗️  Módulos NestJS';
-  if (/main\.ts$|app\.controller\.ts$|app\.service\.ts$/.test(filePath)) return '🚀 Configuración de aplicación';
-  if (/data-source\.ts$/.test(filePath)) return '🗄️  Configuración de base de datos';
-  if (/\/migrations\/.*\.ts$/.test(filePath)) return '📊 Migraciones de base de datos';
-  if (/\.entity\.ts$/.test(filePath)) return '🗃️  Entidades de base de datos';
-  if (/\.mapper\.ts$|\.adapter\.ts$/.test(filePath)) return '🔄 Adaptadores y mappers';
-  if (/\.dto\.ts$/.test(filePath)) return '📝 Data Transfer Objects';
-  if (/\.spec\.ts$|\.test\.ts$|\.e2e-spec\.ts$/.test(filePath)) return '🧪 Archivos de testing';
-  if (/\.enum\.ts$|\.interface\.ts$|\.type\.ts$|\.d\.ts$/.test(filePath)) return '📋 Definiciones de tipos';
-  if (/\.config\.ts$|\.constants\.ts$/.test(filePath)) return '⚙️  Configuración y constantes';
-  if (/\.swagger\.ts$|\/docs\/.*\.ts$/.test(filePath)) return '📚 Documentación';
-  if (/\/scripts\/.*\.(js|ts)$/.test(filePath)) return '🛠️  Scripts de utilidad';
-  if (/\/config\/.*\.ts$|\/examples\/.*\.ts$|\/tools\/.*\.ts$/.test(filePath)) return '📁 Directorios auxiliares';
-  if (/\/domain\/.*\.(error|exception|repository|service)\.ts$/.test(filePath)) return '🏛️  Contratos de dominio';
-  if (/\/infrastructure\/.*\.(guard|decorator|strategy|interceptor|filter|pipe)\.ts$/.test(filePath)) return '🔧 Infraestructura NestJS';
-  if (/\/index\.ts$/.test(filePath)) return '📦 Archivos barrel';
-  if (/\.(json|yaml|yml|md|mmd)$/.test(filePath)) return '📄 Archivos de configuración';
+  // Si no está en context
+  if (!filePath.includes('/context/')) {
+    return '🚫 Fuera del directorio context';
+  }
   
-  return '🔍 Otros archivos excluidos';
+  // Patrones específicos para archivos en context
+  if (/\/context\/.*\.module\.ts$/.test(filePath)) return '🏗️  Módulos NestJS';
+  if (/\/context\/.*\.entity\.ts$/.test(filePath)) return '🗃️  Entidades de base de datos';
+  if (/\/context\/.*\.mapper\.ts$|\/context\/.*\.adapter\.ts$/.test(filePath)) return '🔄 Adaptadores y mappers';
+  if (/\/context\/.*\.dto\.ts$/.test(filePath)) return '📝 Data Transfer Objects';
+  if (/\/context\/.*\.spec\.ts$|\/context\/.*\.test\.ts$|\/context\/.*\.int-spec\.ts$|\/context\/.*\.e2e-spec\.ts$/.test(filePath)) return '🧪 Archivos de testing';
+  if (/\/context\/.*\.enum\.ts$|\/context\/.*\.interface\.ts$|\/context\/.*\.type\.ts$|\/context\/.*\.d\.ts$/.test(filePath)) return '📋 Definiciones de tipos';
+  if (/\/context\/.*\.config\.ts$|\/context\/.*\.constants\.ts$/.test(filePath)) return '⚙️  Configuración y constantes';
+  if (/\/context\/.*\/domain\/.*\.(error|exception|repository|service)\.ts$/.test(filePath)) return '🏛️  Contratos de dominio';
+  if (/\/context\/.*\/infrastructure\/.*\.(guard|decorator|strategy|interceptor|filter|pipe)\.ts$/.test(filePath)) return '🔧 Infraestructura NestJS';
+  if (/\/context\/.*\/index\.ts$/.test(filePath)) return '📦 Archivos barrel';
+  
+  return '🔍 Otros archivos excluidos en context';
 }
 
 // Verifica si el archivo lcov.info existe
@@ -229,7 +209,7 @@ if (!fs.existsSync(LCOV_PATH)) {
 const lcovContent = fs.readFileSync(LCOV_PATH, 'utf8');
 const coverage = calculateCoverage(lcovContent);
 
-console.log(`\n🎯 Resultado del análisis de cobertura:`);
+console.log(`\n🎯 Resultado del análisis de cobertura (solo carpeta context):`);
 console.log(`   Cobertura actual: ${coverage.toFixed(2)}%`);
 console.log(`   Umbral mínimo requerido: ${THRESHOLD}%`);
 
@@ -239,9 +219,10 @@ if (coverage < THRESHOLD) {
   console.error(`\n❌ La cobertura (${coverage.toFixed(2)}%) está por debajo del umbral mínimo (${THRESHOLD}%)`);
   console.error(`   Necesitas incrementar la cobertura en ${deficit.toFixed(2)} puntos porcentuales`);
   console.log('\n💡 Notas importantes:');
+  console.log('   • Solo se evalúa código dentro de src/context/ (lógica de negocio principal)');
   console.log('   • Los archivos de configuración, entidades, DTOs y testing están excluidos del cálculo');
-  console.log('   • Solo se evalúa la lógica de aplicación y dominio que requiere testing');
   console.log('   • Enfócate en escribir tests para comandos, queries, handlers y servicios de dominio');
+  console.log('   • Los contratos de dominio (interfaces) no requieren coverage directo');
   process.exit(1);
 } else {
   const surplus = coverage - THRESHOLD;
@@ -249,5 +230,5 @@ if (coverage < THRESHOLD) {
   if (surplus > 10) {
     console.log(`🌟 ¡Excelente! Tienes ${surplus.toFixed(2)} puntos porcentuales por encima del mínimo`);
   }
-  console.log('🎉 ¡Excelente cobertura de código!');
+  console.log('🎉 ¡Excelente cobertura de código en la lógica de negocio!');
 }

@@ -17,12 +17,12 @@ env:
   CACHE_VERSION: v1
 
 jobs:
-  # Job para verificar lint y formato - más permisivo
+  # Job para verificar lint y formato - CRÍTICO
   lint:
     name: Lint and Format Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true # Permite que falle sin detener otros jobs
+    continue-on-error: false # CRÍTICO: debe pasar obligatoriamente
     
     steps:
       - name: Checkout code
@@ -53,19 +53,20 @@ jobs:
           max_attempts: 3
           command: npm ci
       
-      - name: Run ESLint (continue on error)
-        run: npm run lint || echo "⚠️ ESLint encontró problemas, pero continuamos"
-        continue-on-error: true
+      - name: Run ESLint (CRÍTICO)
+        run: npm run lint
+        continue-on-error: false
       
-      - name: Check Prettier formatting (continue on error)
-        run: npm run format -- --check || echo "⚠️ Prettier encontró problemas de formato, pero continuamos"
-        continue-on-error: true
+      - name: Check Prettier formatting (CRÍTICO)
+        run: npm run format -- --check
+        continue-on-error: false
 
-  # Job para compilar el proyecto - mejorado
+  # Job para compilar el proyecto - CRÍTICO
   build:
     name: Build Project
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    needs: [lint] # Depende de lint
     
     steps:
       - name: Checkout code
@@ -116,12 +117,13 @@ jobs:
           retention-days: 3
           if-no-files-found: warn
 
-  # Job para tests unitarios - más permisivo
+  # Job para tests unitarios - CRÍTICO
   test-unit:
     name: Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true # Permite fallos en tests unitarios
+    continue-on-error: false # CRÍTICO: debe pasar obligatoriamente
+    needs: [lint] # Puede ejecutar en paralelo con build
     
     steps:
       - name: Checkout code
@@ -153,13 +155,9 @@ jobs:
       - name: Ensure coverage directory
         run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
       
-      - name: Run unit tests with coverage (permisivo)
-        run: |
-          npm run test:unit -- --coverage --coverageReporters=lcov --coverageReporters=text || {
-            echo "⚠️ Algunos tests unitarios fallaron, pero continuamos"
-            exit 0
-          }
-        continue-on-error: true
+      - name: Run unit tests with coverage (CRÍTICO)
+        run: npm run test:unit -- --coverage --coverageReporters=lcov --coverageReporters=text
+        continue-on-error: false
       
       - name: Verify coverage directory
         run: |
@@ -174,12 +172,13 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  # Job para tests de integración - más robusto
+  # Job para tests de integración - CRÍTICO
   test-integration:
     name: Integration Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: true # Permite fallos en tests de integración
+    continue-on-error: false # CRÍTICO: debe pasar obligatoriamente
+    needs: [lint] # Puede ejecutar en paralelo con build y unit tests
     
     services:
       postgres:
@@ -261,13 +260,9 @@ jobs:
           echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
-      - name: Run integration tests with coverage (permisivo)
-        run: |
-          npm run test:int -- --coverage --coverageReporters=lcov --coverageReporters=text || {
-            echo "⚠️ Algunos tests de integración fallaron, pero continuamos"
-            exit 0
-          }
-        continue-on-error: true
+      - name: Run integration tests with coverage (CRÍTICO)
+        run: npm run test:int -- --coverage --coverageReporters=lcov --coverageReporters=text
+        continue-on-error: false
       
       - name: Verify integration coverage directory
         run: |
@@ -282,14 +277,14 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  # Job para tests e2e - más robusto y permisivo
+  # Job para tests e2e - CRÍTICO
   test-e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    continue-on-error: true # Permite fallos en tests E2E
+    continue-on-error: false # CRÍTICO: debe pasar obligatoriamente
     needs: [build]
-    if: always() # Ejecuta incluso si build falla parcialmente
+    if: success() # Solo ejecuta si build pasa
     
     services:
       postgres:
@@ -345,12 +340,12 @@ jobs:
           max_attempts: 3
           command: npm ci
       
-      - name: Download build artifacts (optional)
+      - name: Download build artifacts (requerido)
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts-${{ github.sha }}
           path: dist/
-        continue-on-error: true # Si no hay artifacts, construimos
+        continue-on-error: false # Debe tener artifacts
       
       - name: Build if no artifacts available
         run: |
@@ -384,22 +379,18 @@ jobs:
           echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
-      - name: Run E2E tests (permisivo)
-        run: |
-          npm run test:e2e || {
-            echo "⚠️ Algunos tests E2E fallaron, pero continuamos"
-            exit 0
-          }
-        continue-on-error: true
+      - name: Run E2E tests (CRÍTICO)
+        run: npm run test:e2e
+        continue-on-error: false
 
-  # Job para verificar la cobertura de código - más flexible
+  # Job para verificar la cobertura de código - NO CRÍTICO (único permisivo)
   check-coverage:
     name: Check Code Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [test-unit]
     if: always() # Ejecuta incluso si test-unit falla
-    continue-on-error: true # No bloquea el pipeline si falla
+    continue-on-error: true # NO CRÍTICO: puede fallar sin bloquear
     
     steps:
       - name: Checkout code
@@ -427,11 +418,11 @@ jobs:
             echo "⚠️ No se encontró directorio de coverage"
           fi
         
-      - name: Check coverage threshold with exclusions (flexible)
+      - name: Check coverage threshold with exclusions (NO CRÍTICO)
         run: |
           if [ -f "src/scripts/check-coverage-threshold.js" ]; then
             node src/scripts/check-coverage-threshold.js || {
-              echo "⚠️ Coverage por debajo del umbral, pero continuamos"
+              echo "⚠️ Coverage por debajo del umbral, pero NO es crítico"
               exit 0
             }
           else
@@ -439,13 +430,14 @@ jobs:
           fi
         continue-on-error: true
 
-  # Job opcional para análisis de seguridad
+  # Job opcional para análisis de seguridad - CRÍTICO cuando se ejecuta
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true # No bloquea el pipeline
+    continue-on-error: false # CRÍTICO cuando se ejecuta
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    needs: [lint] # Puede ejecutar en paralelo
     
     steps:
       - name: Checkout code
@@ -459,17 +451,13 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
-        continue-on-error: true
+        continue-on-error: false
       
-      - name: Run npm audit
-        run: |
-          npm audit --audit-level=moderate || {
-            echo "⚠️ Se encontraron vulnerabilidades, pero continuamos"
-            exit 0
-          }
-        continue-on-error: true
+      - name: Run npm audit (CRÍTICO)
+        run: npm audit --audit-level=moderate
+        continue-on-error: false
 
-  # Job final para verificar que todo está OK - más permisivo
+  # Job final para verificar que todo está OK - CRÍTICO
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
@@ -517,41 +505,61 @@ jobs:
           # Determinar el estado general
           critical_failures=0
           
-          # Solo build es crítico
+          # Todos son críticos EXCEPTO coverage
+          if [[ "${{ needs.lint.result }}" == "failure" ]]; then
+            critical_failures=$((critical_failures + 1))
+          fi
           if [[ "${{ needs.build.result }}" == "failure" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
+          if [[ "${{ needs.test-unit.result }}" == "failure" ]]; then
+            critical_failures=$((critical_failures + 1))
+          fi
+          if [[ "${{ needs.test-integration.result }}" == "failure" ]]; then
+            critical_failures=$((critical_failures + 1))
+          fi
+          if [[ "${{ needs.test-e2e.result }}" == "failure" ]]; then
+            critical_failures=$((critical_failures + 1))
+          fi
+          if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+            critical_failures=$((critical_failures + 1))
+          fi
+          # check-coverage NO es crítico
           
           if [ $critical_failures -eq 0 ]; then
             echo "🎉 **Pipeline completado exitosamente!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "✅ Todos los jobs críticos han pasado correctamente" >> $GITHUB_STEP_SUMMARY
-            echo "⚠️ Algunos jobs no críticos pueden haber fallado, pero el código está listo" >> $GITHUB_STEP_SUMMARY
+            
+            # Mostrar estado de coverage por separado
+            if [[ "${{ needs.check-coverage.result }}" != "success" ]]; then
+              echo "⚠️ Coverage falló, pero NO es crítico" >> $GITHUB_STEP_SUMMARY
+            fi
             
             echo "✅ Pipeline CI completado exitosamente"
+            echo "✅ Lint: ${{ needs.lint.result }}"
             echo "✅ Build: ${{ needs.build.result }}"
-            echo "ℹ️ Lint: ${{ needs.lint.result }}"
-            echo "ℹ️ Tests unitarios: ${{ needs.test-unit.result }}"
-            echo "ℹ️ Tests de integración: ${{ needs.test-integration.result }}"
-            echo "ℹ️ Tests E2E: ${{ needs.test-e2e.result }}"
-            echo "ℹ️ Coverage: ${{ needs.check-coverage.result }}"
-            echo "ℹ️ Security: ${{ needs.security-scan.result }}"
+            echo "✅ Tests unitarios: ${{ needs.test-unit.result }}"
+            echo "✅ Tests de integración: ${{ needs.test-integration.result }}"
+            echo "✅ Tests E2E: ${{ needs.test-e2e.result }}"
+            echo "✅ Security: ${{ needs.security-scan.result }}"
+            echo "ℹ️ Coverage (NO crítico): ${{ needs.check-coverage.result }}"
             
             exit 0
           else
-            echo "⚠️ **Pipeline completado con algunos fallos críticos**" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Pipeline falló - Jobs críticos fallaron**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "❌ Hay $critical_failures job(s) crítico(s) que fallaron" >> $GITHUB_STEP_SUMMARY
             echo "🔍 Revisa los logs para más detalles" >> $GITHUB_STEP_SUMMARY
             
-            echo "⚠️ Pipeline CI completado con fallos críticos"
-            echo "❌ Build: ${{ needs.build.result }}"
-            echo "ℹ️ Lint: ${{ needs.lint.result }}"
-            echo "ℹ️ Tests unitarios: ${{ needs.test-unit.result }}"
-            echo "ℹ️ Tests de integración: ${{ needs.test-integration.result }}"
-            echo "ℹ️ Tests E2E: ${{ needs.test-e2e.result }}"
-            echo "ℹ️ Coverage: ${{ needs.check-coverage.result }}"
-            echo "ℹ️ Security: ${{ needs.security-scan.result }}"
+            echo "❌ Pipeline CI falló - Jobs críticos fallaron"
+            echo "Status Lint: ${{ needs.lint.result }}"
+            echo "Status Build: ${{ needs.build.result }}"
+            echo "Status Tests unitarios: ${{ needs.test-unit.result }}"
+            echo "Status Tests de integración: ${{ needs.test-integration.result }}"
+            echo "Status Tests E2E: ${{ needs.test-e2e.result }}"
+            echo "Status Security: ${{ needs.security-scan.result }}"
+            echo "ℹ️ Coverage (NO crítico): ${{ needs.check-coverage.result }}"
             
             exit 1
           fi
