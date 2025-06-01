@@ -39,8 +39,12 @@ export class CommercialAssignmentService {
       );
 
       return connectedCommercials;
-    } catch {
-      throw new RepositoryError('Failed to retrieve connected commercials');
+    } catch (error) {
+      console.error('Error fetching connected commercials:', error);
+      throw new RepositoryError(
+        'Failed to retrieve connected commercials',
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 }
