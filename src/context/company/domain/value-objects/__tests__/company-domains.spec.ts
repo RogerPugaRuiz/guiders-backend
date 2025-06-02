@@ -22,7 +22,7 @@ describe('CompanyDomains', () => {
   it('debe devolver array de CompanyDomain objects', () => {
     const domains = new CompanyDomains(['example.com', 'test.org']);
     const domainObjects = domains.getDomains();
-    
+
     expect(domainObjects).toHaveLength(2);
     expect(domainObjects[0]).toBeInstanceOf(CompanyDomain);
     expect(domainObjects[1]).toBeInstanceOf(CompanyDomain);
@@ -34,7 +34,7 @@ describe('CompanyDomains', () => {
     const domain1 = new CompanyDomain('example.com');
     const domain2 = new CompanyDomain('test.org');
     const domains = CompanyDomains.fromCompanyDomainArray([domain1, domain2]);
-    
+
     expect(domains.toPrimitives()).toEqual(['example.com', 'test.org']);
   });
 

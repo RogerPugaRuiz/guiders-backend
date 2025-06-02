@@ -50,7 +50,7 @@ describe('Company', () => {
       const events = company.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(CompanyCreatedEvent);
-      
+
       const event = events[0] as CompanyCreatedEvent;
       expect(event.attributes.id).toBe(validId.getValue());
       expect(event.attributes.companyName).toBe(validName.getValue());
@@ -224,9 +224,9 @@ describe('Company', () => {
       });
 
       expect(company.getUncommittedEvents()).toHaveLength(1);
-      
+
       company.commit();
-      
+
       expect(company.getUncommittedEvents()).toHaveLength(0);
     });
   });

@@ -14,8 +14,12 @@ describe('ApiKey', () => {
   const validDomain = new ApiKeyDomain('api.example.com');
   const validApiKeyValue = new ApiKeyValue('ak_test_12345');
   const validKid = new ApiKeyKid('kid_12345');
-  const validPublicKey = new ApiKeyPublicKey('-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w...\n-----END PUBLIC KEY-----');
-  const validPrivateKey = new ApiKeyPrivateKey('-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w...\n-----END PRIVATE KEY-----');
+  const validPublicKey = new ApiKeyPublicKey(
+    '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w...\n-----END PUBLIC KEY-----',
+  );
+  const validPrivateKey = new ApiKeyPrivateKey(
+    '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w...\n-----END PRIVATE KEY-----',
+  );
   const validCompanyId = new ApiKeyCompanyId('company_12345');
 
   describe('create', () => {
@@ -63,7 +67,7 @@ describe('ApiKey', () => {
 
     it('debe generar fecha de creación automáticamente', () => {
       const beforeCreation = new Date();
-      
+
       const apiKey = ApiKey.create({
         domain: validDomain,
         publicKey: validPublicKey,
@@ -77,7 +81,9 @@ describe('ApiKey', () => {
 
       const createdAt = apiKey.createdAt.getValue();
       expect(createdAt).toBeInstanceOf(Date);
-      expect(createdAt.getTime()).toBeGreaterThanOrEqual(beforeCreation.getTime());
+      expect(createdAt.getTime()).toBeGreaterThanOrEqual(
+        beforeCreation.getTime(),
+      );
       expect(createdAt.getTime()).toBeLessThanOrEqual(afterCreation.getTime());
     });
 
@@ -142,8 +148,10 @@ describe('ApiKey', () => {
         id: '550e8400-e29b-41d4-a716-446655440000',
         domain: 'api.example.com',
         apiKey: 'ak_test_12345',
-        publicKey: '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w...\n-----END PUBLIC KEY-----',
-        privateKey: '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w...\n-----END PRIVATE KEY-----',
+        publicKey:
+          '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w...\n-----END PUBLIC KEY-----',
+        privateKey:
+          '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w...\n-----END PRIVATE KEY-----',
         kid: 'kid_12345',
         companyId: '550e8400-e29b-41d4-a716-446655440001',
         createdAt: new Date('2023-01-01T12:00:00.000Z'),
@@ -181,8 +189,12 @@ describe('ApiKey', () => {
       expect(apiKey.publicKey.getValue()).toBe('different-public-key');
       expect(apiKey.privateKey.getValue()).toBe('different-private-key');
       expect(apiKey.kid.getValue()).toBe('different_kid');
-      expect(apiKey.companyId.getValue()).toBe('550e8400-e29b-41d4-a716-446655440003');
-      expect(apiKey.createdAt.getValue()).toEqual(new Date('2024-06-15T08:30:00.000Z'));
+      expect(apiKey.companyId.getValue()).toBe(
+        '550e8400-e29b-41d4-a716-446655440003',
+      );
+      expect(apiKey.createdAt.getValue()).toEqual(
+        new Date('2024-06-15T08:30:00.000Z'),
+      );
     });
 
     it('debe manejar fechas en formato string ISO', () => {
@@ -221,7 +233,10 @@ describe('ApiKey', () => {
       expect(primitives).toHaveProperty('domain', validDomain.getValue());
       expect(primitives).toHaveProperty('apiKey', validApiKeyValue.getValue());
       expect(primitives).toHaveProperty('publicKey', validPublicKey.getValue());
-      expect(primitives).toHaveProperty('privateKey', validPrivateKey.getValue());
+      expect(primitives).toHaveProperty(
+        'privateKey',
+        validPrivateKey.getValue(),
+      );
       expect(primitives).toHaveProperty('kid', validKid.getValue());
       expect(primitives).toHaveProperty('companyId', validCompanyId.getValue());
       expect(primitives).toHaveProperty('createdAt');
@@ -270,11 +285,19 @@ describe('ApiKey', () => {
       expect(reconstructed.id.getValue()).toBe(original.id.getValue());
       expect(reconstructed.domain.getValue()).toBe(original.domain.getValue());
       expect(reconstructed.apiKey.getValue()).toBe(original.apiKey.getValue());
-      expect(reconstructed.publicKey.getValue()).toBe(original.publicKey.getValue());
-      expect(reconstructed.privateKey.getValue()).toBe(original.privateKey.getValue());
+      expect(reconstructed.publicKey.getValue()).toBe(
+        original.publicKey.getValue(),
+      );
+      expect(reconstructed.privateKey.getValue()).toBe(
+        original.privateKey.getValue(),
+      );
       expect(reconstructed.kid.getValue()).toBe(original.kid.getValue());
-      expect(reconstructed.companyId.getValue()).toBe(original.companyId.getValue());
-      expect(reconstructed.createdAt.getValue()).toEqual(original.createdAt.getValue());
+      expect(reconstructed.companyId.getValue()).toBe(
+        original.companyId.getValue(),
+      );
+      expect(reconstructed.createdAt.getValue()).toEqual(
+        original.createdAt.getValue(),
+      );
     });
 
     it('debe permitir múltiples round trips', () => {
@@ -298,7 +321,9 @@ describe('ApiKey', () => {
       expect(reconstructed2.id.getValue()).toBe(original.id.getValue());
       expect(reconstructed2.domain.getValue()).toBe(original.domain.getValue());
       expect(reconstructed2.apiKey.getValue()).toBe(original.apiKey.getValue());
-      expect(reconstructed2.createdAt.getValue()).toEqual(original.createdAt.getValue());
+      expect(reconstructed2.createdAt.getValue()).toEqual(
+        original.createdAt.getValue(),
+      );
     });
   });
 

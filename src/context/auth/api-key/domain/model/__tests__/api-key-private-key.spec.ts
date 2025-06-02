@@ -4,7 +4,8 @@ import { ApiKeyPrivateKey } from '../api-key-private-key';
 
 describe('ApiKeyPrivateKey', () => {
   it('debe crear clave privada válida', () => {
-    const privateKey = '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwgg...\n-----END PRIVATE KEY-----';
+    const privateKey =
+      '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwgg...\n-----END PRIVATE KEY-----';
     const apiKeyPrivateKey = new ApiKeyPrivateKey(privateKey);
     expect(apiKeyPrivateKey.value).toBe(privateKey);
     expect(apiKeyPrivateKey.getValue()).toBe(privateKey);
@@ -66,12 +67,12 @@ describe('ApiKeyPrivateKey', () => {
     it('debe encriptar la clave privada usando la función encriptador', async () => {
       const originalKey = 'original-private-key';
       const encryptedValue = 'encrypted-private-key';
-      
+
       const mockEncryptor = jest.fn().mockResolvedValue(encryptedValue);
-      
+
       const apiKeyPrivateKey = new ApiKeyPrivateKey(originalKey);
       const encryptedApiKey = await apiKeyPrivateKey.encrypt(mockEncryptor);
-      
+
       expect(mockEncryptor).toHaveBeenCalledWith(originalKey);
       expect(encryptedApiKey).toBeInstanceOf(ApiKeyPrivateKey);
       expect(encryptedApiKey.getValue()).toBe(encryptedValue);
@@ -80,12 +81,12 @@ describe('ApiKeyPrivateKey', () => {
     it('debe manejar encriptación con clave vacía', async () => {
       const originalKey = '';
       const encryptedValue = 'encrypted-empty-key';
-      
+
       const mockEncryptor = jest.fn().mockResolvedValue(encryptedValue);
-      
+
       const apiKeyPrivateKey = new ApiKeyPrivateKey(originalKey);
       const encryptedApiKey = await apiKeyPrivateKey.encrypt(mockEncryptor);
-      
+
       expect(mockEncryptor).toHaveBeenCalledWith(originalKey);
       expect(encryptedApiKey.getValue()).toBe(encryptedValue);
     });
@@ -93,36 +94,40 @@ describe('ApiKeyPrivateKey', () => {
     it('debe propagar errores del encriptador', async () => {
       const originalKey = 'original-private-key';
       const errorMessage = 'Encryption failed';
-      
-      const mockEncryptor = jest.fn().mockRejectedValue(new Error(errorMessage));
-      
+
+      const mockEncryptor = jest
+        .fn()
+        .mockRejectedValue(new Error(errorMessage));
+
       const apiKeyPrivateKey = new ApiKeyPrivateKey(originalKey);
-      
-      await expect(apiKeyPrivateKey.encrypt(mockEncryptor)).rejects.toThrow(errorMessage);
+
+      await expect(apiKeyPrivateKey.encrypt(mockEncryptor)).rejects.toThrow(
+        errorMessage,
+      );
       expect(mockEncryptor).toHaveBeenCalledWith(originalKey);
     });
 
     it('debe manejar encriptador que devuelve una promesa', async () => {
       const originalKey = 'original-private-key';
-      const encryptedValue = 'encrypted-with-promise';
-      
-      const mockEncryptor = (value: string) => Promise.resolve(`encrypted-${value}`);
-      
+
+      const mockEncryptor = (value: string) =>
+        Promise.resolve(`encrypted-${value}`);
+
       const apiKeyPrivateKey = new ApiKeyPrivateKey(originalKey);
       const encryptedApiKey = await apiKeyPrivateKey.encrypt(mockEncryptor);
-      
+
       expect(encryptedApiKey.getValue()).toBe('encrypted-original-private-key');
     });
 
     it('debe crear nueva instancia y no modificar la original', async () => {
       const originalKey = 'original-private-key';
       const encryptedValue = 'encrypted-private-key';
-      
+
       const mockEncryptor = jest.fn().mockResolvedValue(encryptedValue);
-      
+
       const originalApiKey = new ApiKeyPrivateKey(originalKey);
       const encryptedApiKey = await originalApiKey.encrypt(mockEncryptor);
-      
+
       // La instancia original no debe cambiar
       expect(originalApiKey.getValue()).toBe(originalKey);
       // La nueva instancia debe tener el valor encriptado

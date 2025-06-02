@@ -4,7 +4,8 @@ import { ApiKeyPublicKey } from '../api-key-public-key';
 
 describe('ApiKeyPublicKey', () => {
   it('debe crear clave pública válida', () => {
-    const publicKey = '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----';
+    const publicKey =
+      '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----';
     const apiKeyPublicKey = new ApiKeyPublicKey(publicKey);
     expect(apiKeyPublicKey.value).toBe(publicKey);
     expect(apiKeyPublicKey.getValue()).toBe(publicKey);

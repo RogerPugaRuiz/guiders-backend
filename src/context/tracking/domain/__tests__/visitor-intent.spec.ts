@@ -51,7 +51,11 @@ describe('VisitorIntent', () => {
     it('debe crear visitor intent con todas las propiedades opcionales', () => {
       const tags = [new IntentTag('electronics'), new IntentTag('mobile')];
       const priceRange = new IntentPriceRange({ min: 100, max: 500 });
-      const navigationPath = NavigationPath.fromPrimitives(['/home', '/products', '/mobile']);
+      const navigationPath = NavigationPath.fromPrimitives([
+        '/home',
+        '/products',
+        '/mobile',
+      ]);
       const description = 'Usuario interesado en comprar un móvil';
 
       const props: VisitorIntentProperties = {
@@ -88,7 +92,7 @@ describe('VisitorIntent', () => {
       const events = visitorIntent.getUncommittedEvents();
       expect(events).toHaveLength(1);
       expect(events[0]).toBeInstanceOf(IntentDetectedEvent);
-      
+
       const event = events[0] as IntentDetectedEvent;
       expect(event.attributes.intent).toEqual(visitorIntent.toPrimitives());
     });
@@ -160,8 +164,14 @@ describe('VisitorIntent', () => {
       expect(visitorIntent.tags![0].value).toBe('electronics');
       expect(visitorIntent.tags![1].value).toBe('mobile');
       expect(visitorIntent.priceRange!.value).toEqual({ min: 100, max: 500 });
-      expect(visitorIntent.navigationPath!.toPrimitives()).toEqual(['/home', '/products', '/mobile']);
-      expect(visitorIntent.description).toBe('Usuario interesado en comprar un móvil');
+      expect(visitorIntent.navigationPath!.toPrimitives()).toEqual([
+        '/home',
+        '/products',
+        '/mobile',
+      ]);
+      expect(visitorIntent.description).toBe(
+        'Usuario interesado en comprar un móvil',
+      );
     });
 
     it('debe reconstruir con tags undefined', () => {
@@ -235,7 +245,10 @@ describe('VisitorIntent', () => {
     it('debe convertir visitor intent completo a primitivos', () => {
       const tags = [new IntentTag('electronics'), new IntentTag('mobile')];
       const priceRange = new IntentPriceRange({ min: 100, max: 500 });
-      const navigationPath = NavigationPath.fromPrimitives(['/home', '/products']);
+      const navigationPath = NavigationPath.fromPrimitives([
+        '/home',
+        '/products',
+      ]);
       const description = 'Test description';
 
       const visitorIntent = VisitorIntent.create({
@@ -334,9 +347,9 @@ describe('VisitorIntent', () => {
       });
 
       expect(visitorIntent.getUncommittedEvents()).toHaveLength(1);
-      
+
       visitorIntent.commit();
-      
+
       expect(visitorIntent.getUncommittedEvents()).toHaveLength(0);
     });
   });
@@ -365,8 +378,12 @@ describe('VisitorIntent', () => {
       expect(reconstructed.confidence.value).toBe(original.confidence.value);
       expect(reconstructed.detectedAt).toEqual(original.detectedAt);
       expect(reconstructed.tags![0].value).toBe(original.tags![0].value);
-      expect(reconstructed.priceRange!.value).toEqual(original.priceRange!.value);
-      expect(reconstructed.navigationPath!.toPrimitives()).toEqual(original.navigationPath!.toPrimitives());
+      expect(reconstructed.priceRange!.value).toEqual(
+        original.priceRange!.value,
+      );
+      expect(reconstructed.navigationPath!.toPrimitives()).toEqual(
+        original.navigationPath!.toPrimitives(),
+      );
       expect(reconstructed.description).toBe(original.description);
     });
   });
