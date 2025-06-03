@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { VisitorTypeOrmEntity } from './persistence/visitor-typeorm.entity';
 import { CreateDefaultVisitorCommandHandler } from '../application/commands/create-default-visitor.command-handler';
 import { OnVisitorAccountCreatedEventHandler } from '../application/events/on-visitor-account-created.event-handler';
+import { OnVisitorCreatedUpdateParticipantNameEventHandler } from '../application/events/on-visitor-created-update-participant-name.event-handler';
 import { VisitorController } from './controllers/visitor.controller';
 import { GetVisitorByIdQueryHandler } from '../application/queries/get-visitor-by-id.query-handler';
 import { UpdateVisitorCurrentPageCommandHandler } from '../application/commands/update-visitor-current-page-command.handler';
@@ -25,7 +26,10 @@ const CommandHandlers = [
   UpdateVisitorNameCommandHandler,
   UpdateVisitorTelCommandHandler,
 ];
-const EventHandlers = [OnVisitorAccountCreatedEventHandler];
+const EventHandlers = [
+  OnVisitorAccountCreatedEventHandler,
+  OnVisitorCreatedUpdateParticipantNameEventHandler,
+];
 const QueryHandlers = [GetVisitorByIdQueryHandler];
 
 @Module({

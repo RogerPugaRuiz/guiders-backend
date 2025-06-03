@@ -14,6 +14,7 @@ import { MessagePrimitives } from 'src/context/conversations/message/domain/mess
 import { ChatUpdatedWithNewMessageEvent } from './events/chat-updated-with-new-message.event';
 import { ParticipantSeenAtEvent } from './events/participant-seen-at.event';
 import { ParticipantUnseenAtEvent } from './events/participant-unseen-at.event';
+import { ParticipantNameUpdatedEvent } from './events/participant-name-updated.event';
 
 export interface ParticipantPrimitives {
   id: string;
@@ -362,6 +363,41 @@ export class Chat extends AggregateRoot {
           chat: this.toPrimitives(),
         },
         timestamp: new Date().getTime(),
+      }),
+    );
+
+    return this;
+  }
+
+  /**
+   * Actualiza el nombre de un participante específico en el chat
+   * @param participantId ID del participante
+   * @param newName Nuevo nombre del participante
+   */
+  public updateParticipantName(participantId: string, newName: string): Chat {
+    const participantOptional = this.participants.getParticipant(participantId);
+    if (participantOptional.isEmpty()) {
+      throw new Error('Participant not found');
+    }
+
+    const participant = participantOptional.get();
+    const oldName = participant.name;
+
+    // Si el nombre es el mismo, no hacemos nada (idempotencia)
+    if (oldName === newName) {
+      return this;
+    }
+
+    // Actualizamos el nombre del participante
+    this.participants.updateParticipantName(participantId, newName);
+
+    // Emitimos el evento de dominio
+    this.apply(
+      new ParticipantNameUpdatedEvent({
+        chatId: this.id.value,
+        participantId: participantId,
+        oldName: oldName,
+        newName: newName,
       }),
     );
 

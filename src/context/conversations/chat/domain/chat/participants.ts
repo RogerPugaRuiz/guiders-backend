@@ -160,4 +160,32 @@ export class Participants {
   public hasParticipant(id: string): boolean {
     return this._participants.some((participant) => participant.id === id);
   }
+
+  /**
+   * Actualiza el nombre de un participante específico
+   * @param id ID del participante
+   * @param newName Nuevo nombre del participante
+   */
+  public updateParticipantName(id: string, newName: string): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = new Participant(
+      participant.id,
+      newName,
+      participant.isCommercial,
+      participant.isVisitor,
+      participant.isOnline,
+      participant.assignedAt,
+      participant.lastSeenAt,
+      participant.isViewing,
+      participant.isTyping,
+      participant.isAnonymous,
+    );
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
 }
