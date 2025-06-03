@@ -387,6 +387,7 @@ export class Chat extends AggregateRoot {
         lastSeenAt: participant.lastSeenAt,
         isViewing: participant.isViewing,
         isTyping: participant.isTyping,
+        isAnonymous: participant.isAnonymous,
       })),
       status: this.status.value,
       lastMessage: this.lastMessage ? this.lastMessage.value : null,
