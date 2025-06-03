@@ -6,7 +6,6 @@ import {
   CHAT_REPOSITORY,
 } from '../../../../../domain/chat/chat.repository';
 import { Chat } from '../../../../../domain/chat/chat';
-import { Optional } from 'src/context/shared/domain/optional';
 
 describe('UpdateParticipantNameCommandHandler', () => {
   let handler: UpdateParticipantNameCommandHandler;

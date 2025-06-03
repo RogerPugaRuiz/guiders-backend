@@ -5,8 +5,6 @@ import {
   IChatRepository,
   CHAT_REPOSITORY,
 } from '../../../../domain/chat/chat.repository';
-import { Criteria } from 'src/context/shared/domain/criteria';
-import { Chat } from '../../../../domain/chat/chat';
 
 /**
  * Manejador del comando para actualizar el nombre de un participante en todos los chats donde participa

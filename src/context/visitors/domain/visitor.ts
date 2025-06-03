@@ -6,6 +6,7 @@ import { VisitorTel } from './value-objects/visitor-tel';
 import { VisitorTags } from './value-objects/visitor-tags';
 import { VisitorNotes } from './value-objects/visitor-notes';
 import { VisitorCreatedEvent } from './events/visitor-created-event';
+import { VisitorAliasAssignedEvent } from './events/visitor-alias-assigned-event';
 import { Optional } from 'src/context/shared/domain/optional';
 import { VisitorCurrentPage } from './value-objects/visitor-current-page';
 import { VisitorCurrentPageUpdatedEvent } from './events/visitor-current-page-updated-event';
@@ -60,12 +61,24 @@ export class Visitor extends AggregateRoot {
       params.notes ?? VisitorNotes.fromPrimitives([]),
       params.currentPage ?? null,
     );
+
     // Aplica el evento de dominio al crear el visitante
     visitor.apply(
       new VisitorCreatedEvent({
         visitor: visitor.toPrimitives(),
       }),
     );
+
+    // Si el visitante se crea con un nombre (alias), emite el evento específico de asignación de alias
+    if (params.name) {
+      visitor.apply(
+        new VisitorAliasAssignedEvent({
+          visitorId: params.id.value,
+          alias: params.name.value,
+        }),
+      );
+    }
+
     return visitor;
   }
 

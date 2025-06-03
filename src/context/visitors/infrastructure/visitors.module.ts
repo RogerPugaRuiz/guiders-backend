@@ -7,6 +7,7 @@ import { VisitorTypeOrmEntity } from './persistence/visitor-typeorm.entity';
 import { CreateDefaultVisitorCommandHandler } from '../application/commands/create-default-visitor.command-handler';
 import { OnVisitorAccountCreatedEventHandler } from '../application/events/on-visitor-account-created.event-handler';
 import { OnVisitorCreatedUpdateParticipantNameEventHandler } from '../application/events/on-visitor-created-update-participant-name.event-handler';
+import { OnVisitorAliasAssignedUpdateParticipantEventHandler } from '../application/events/on-visitor-alias-assigned-update-participant.event-handler';
 import { VisitorController } from './controllers/visitor.controller';
 import { GetVisitorByIdQueryHandler } from '../application/queries/get-visitor-by-id.query-handler';
 import { UpdateVisitorCurrentPageCommandHandler } from '../application/commands/update-visitor-current-page-command.handler';
@@ -29,6 +30,7 @@ const CommandHandlers = [
 const EventHandlers = [
   OnVisitorAccountCreatedEventHandler,
   OnVisitorCreatedUpdateParticipantNameEventHandler,
+  OnVisitorAliasAssignedUpdateParticipantEventHandler,
 ];
 const QueryHandlers = [GetVisitorByIdQueryHandler];
 

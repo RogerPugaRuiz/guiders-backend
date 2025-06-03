@@ -12,6 +12,8 @@ import { VisitorCurrentPageUpdatedEvent } from '../events/visitor-current-page-u
 import { VisitorEmailUpdatedEvent } from '../events/visitor-email-updated-event';
 import { VisitorNameUpdatedEvent } from '../events/visitor-name-updated-event';
 import { VisitorTelUpdatedEvent } from '../events/visitor-tel-updated-event';
+import { VisitorCreatedEvent } from '../events/visitor-created-event';
+import { VisitorAliasAssignedEvent } from '../events/visitor-alias-assigned-event';
 
 describe('Visitor', () => {
   const visitorId = new VisitorId('12345678-1234-4234-9234-123456789abc');
@@ -54,6 +56,66 @@ describe('Visitor', () => {
       expect(visitor.tel.isPresent()).toBe(false);
       expect(visitor.tags.value).toHaveLength(0);
       expect(visitor.notes.value).toHaveLength(0);
+    });
+
+    it('should emit VisitorCreatedEvent when visitor is created', () => {
+      // Act
+      const visitor = Visitor.create({
+        id: visitorId,
+        tags: new VisitorTags([]),
+        notes: new VisitorNotes([]),
+      });
+
+      // Assert
+      const events = visitor.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+
+      const event = events[0] as VisitorCreatedEvent;
+      expect(event).toBeInstanceOf(VisitorCreatedEvent);
+      expect(event.attributes.visitor.id).toBe(visitorId.value);
+    });
+
+    it('should emit both VisitorCreatedEvent and VisitorAliasAssignedEvent when visitor is created with name', () => {
+      // Act
+      const visitor = Visitor.create({
+        id: visitorId,
+        name: visitorName,
+        tags: new VisitorTags([]),
+        notes: new VisitorNotes([]),
+      });
+
+      // Assert
+      const events = visitor.getUncommittedEvents();
+      expect(events).toHaveLength(2);
+
+      const createdEvent = events[0] as VisitorCreatedEvent;
+      expect(createdEvent).toBeInstanceOf(VisitorCreatedEvent);
+      expect(createdEvent.attributes.visitor.id).toBe(visitorId.value);
+      expect(createdEvent.attributes.visitor.name).toBe(visitorName.value);
+
+      const aliasAssignedEvent = events[1] as VisitorAliasAssignedEvent;
+      expect(aliasAssignedEvent).toBeInstanceOf(VisitorAliasAssignedEvent);
+      expect(aliasAssignedEvent.payload.visitorId).toBe(visitorId.value);
+      expect(aliasAssignedEvent.payload.alias).toBe(visitorName.value);
+    });
+
+    it('should only emit VisitorCreatedEvent when visitor is created without name', () => {
+      // Act
+      const visitor = Visitor.create({
+        id: visitorId,
+        email: visitorEmail,
+        tags: new VisitorTags([]),
+        notes: new VisitorNotes([]),
+      });
+
+      // Assert
+      const events = visitor.getUncommittedEvents();
+      expect(events).toHaveLength(1);
+
+      const event = events[0] as VisitorCreatedEvent;
+      expect(event).toBeInstanceOf(VisitorCreatedEvent);
+      expect(event.attributes.visitor.id).toBe(visitorId.value);
+      expect(event.attributes.visitor.name).toBeNull();
     });
   });
 
