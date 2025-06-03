@@ -14,6 +14,8 @@ import { UpdateVisitorNameCommandHandler } from '../application/commands/update-
 import { UpdateVisitorTelCommandHandler } from '../application/commands/update-visitor-tel-command.handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
+import { ALIAS_GENERATOR_SERVICE } from '../application/services/alias-generator.service';
+import { FakerAliasGeneratorAdapter } from './services/faker-alias-generator.adapter';
 
 // Definimos los manejadores de comandos y eventos
 const CommandHandlers = [
@@ -34,6 +36,7 @@ const QueryHandlers = [GetVisitorByIdQueryHandler];
   ],
   providers: [
     { provide: VISITOR_REPOSITORY, useClass: TypeOrmVisitorAdapter },
+    { provide: ALIAS_GENERATOR_SERVICE, useClass: FakerAliasGeneratorAdapter },
     TokenVerifyService,
     ...CommandHandlers,
     ...EventHandlers,

@@ -7,9 +7,14 @@ import {
 } from '../../domain/visitor.repository';
 import { Visitor } from '../../domain/visitor';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
+import { VisitorName } from '../../domain/value-objects/visitor-name';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { ok, err } from 'src/context/shared/domain/result';
+import {
+  AliasGeneratorService,
+  ALIAS_GENERATOR_SERVICE,
+} from '../services/alias-generator.service';
 
 /**
  * Clase de error para el contexto de creación de visitante por defecto
@@ -33,6 +38,8 @@ export class CreateDefaultVisitorCommandHandler
   constructor(
     @Inject(VISITOR_REPOSITORY)
     private readonly visitorRepository: IVisitorRepository,
+    @Inject(ALIAS_GENERATOR_SERVICE)
+    private readonly aliasGenerator: AliasGeneratorService,
   ) {}
 
   /**
@@ -50,9 +57,14 @@ export class CreateDefaultVisitorCommandHandler
       // Creamos el ID del visitante usando el UUID recibido para mantener la relación
       const visitorId = new VisitorId(command.visitorAccountId);
 
-      // Creamos un visitante con valores por defecto
+      // Generamos un alias automático para el visitante
+      const generatedAlias = this.aliasGenerator.generate();
+      const visitorName = VisitorName.create(generatedAlias);
+
+      // Creamos un visitante con valores por defecto incluyendo el alias generado
       const defaultVisitor = Visitor.create({
         id: visitorId,
+        name: visitorName,
       });
 
       // Guardamos el visitante en el repositorio
@@ -66,7 +78,7 @@ export class CreateDefaultVisitorCommandHandler
       }
 
       this.logger.log(
-        `Visitante por defecto creado correctamente con ID: ${visitorId.value}`,
+        `Visitante por defecto creado correctamente con ID: ${visitorId.value} y alias: ${generatedAlias}`,
       );
       return ok(undefined);
     } catch (error) {
