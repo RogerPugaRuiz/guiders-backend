@@ -15,6 +15,7 @@ export class ChatMapper {
       lastSeenAt: participant.lastSeenAt,
       isViewing: participant.isViewing,
       isTyping: participant.isTyping,
+      isAnonymous: participant.isAnonymous,
     }));
     entity.status = chat.status.value;
     entity.lastMessage = chat.lastMessage ? chat.lastMessage.value : null;
@@ -37,6 +38,7 @@ export class ChatMapper {
             lastSeenAt: participant.lastSeenAt,
             isViewing: participant.isViewing,
             isTyping: participant.isTyping,
+            isAnonymous: participant.isAnonymous,
           }))
         : [],
       status: entity.status,

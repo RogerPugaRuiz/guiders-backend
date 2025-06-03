@@ -64,6 +64,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
         lastSeenAt: testData.createdAt,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       },
       {
         id: testData.receiverId,
@@ -75,6 +76,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
         lastSeenAt: testData.createdAt,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       },
     ],
     status: 'active',

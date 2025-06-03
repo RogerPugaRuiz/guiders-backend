@@ -25,6 +25,7 @@ export interface ParticipantPrimitives {
   lastSeenAt: Date | null;
   isViewing: boolean;
   isTyping: boolean;
+  isAnonymous: boolean;
 }
 
 export interface ChatPrimitives {
@@ -199,6 +200,7 @@ export class Chat extends AggregateRoot {
           lastSeenAt: participant.lastSeenAt,
           isViewing: participant.isViewing,
           isTyping: participant.isTyping,
+          isAnonymous: participant.isAnonymous,
         },
       }),
     );
@@ -243,6 +245,7 @@ export class Chat extends AggregateRoot {
           lastSeenAt: participant.lastSeenAt,
           isViewing: participant.isViewing,
           isTyping: participant.isTyping,
+          isAnonymous: participant.isAnonymous,
         },
       }),
     );
@@ -384,6 +387,7 @@ export class Chat extends AggregateRoot {
         lastSeenAt: participant.lastSeenAt,
         isViewing: participant.isViewing,
         isTyping: participant.isTyping,
+        isAnonymous: participant.isAnonymous,
       })),
       status: this.status.value,
       lastMessage: this.lastMessage ? this.lastMessage.value : null,

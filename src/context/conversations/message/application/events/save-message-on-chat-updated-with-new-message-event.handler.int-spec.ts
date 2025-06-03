@@ -86,6 +86,7 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
           lastSeenAt: now,
           isViewing: false,
           isTyping: false,
+          isAnonymous: true,
         },
       ],
       status: 'active',

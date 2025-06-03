@@ -9,6 +9,7 @@ export class Participant {
     readonly lastSeenAt: Date | null = null,
     readonly isViewing: boolean = false,
     readonly isTyping: boolean = false,
+    readonly isAnonymous: boolean = true,
   ) {
     if (!id) {
       throw new Error('Participant id is required');
@@ -31,6 +32,7 @@ export class Participant {
     lastSeenAt?: Date | null;
     isViewing?: boolean;
     isTyping?: boolean;
+    isAnonymous?: boolean;
   }): Participant {
     return new Participant(
       params.id,
@@ -42,6 +44,7 @@ export class Participant {
       params.lastSeenAt ?? null,
       params.isViewing ?? false,
       params.isTyping ?? false,
+      params.isAnonymous ?? true,
     );
   }
 
@@ -56,6 +59,7 @@ export class Participant {
       lastSeenAt,
       true,
       this.isTyping,
+      this.isAnonymous,
     );
   }
 
@@ -70,6 +74,7 @@ export class Participant {
       lastSeenAt,
       false,
       this.isTyping,
+      this.isAnonymous,
     );
   }
   public setViewing(isViewing: boolean): Participant {
@@ -83,6 +88,7 @@ export class Participant {
       this.lastSeenAt,
       isViewing,
       this.isTyping,
+      this.isAnonymous,
     );
   }
 
@@ -97,6 +103,7 @@ export class Participant {
       this.lastSeenAt,
       this.isViewing,
       isTyping,
+      this.isAnonymous,
     );
   }
 
@@ -111,6 +118,7 @@ export class Participant {
       this.lastSeenAt,
       this.isViewing,
       this.isTyping,
+      this.isAnonymous,
     );
   }
 
@@ -123,6 +131,24 @@ export class Participant {
       isOnline,
       this.assignedAt,
       this.lastSeenAt,
+      this.isViewing,
+      this.isTyping,
+      this.isAnonymous,
+    );
+  }
+
+  public setAnonymous(isAnonymous: boolean): Participant {
+    return new Participant(
+      this.id,
+      this.name,
+      this.isCommercial,
+      this.isVisitor,
+      this.isOnline,
+      this.assignedAt,
+      this.lastSeenAt,
+      this.isViewing,
+      this.isTyping,
+      isAnonymous,
     );
   }
 }

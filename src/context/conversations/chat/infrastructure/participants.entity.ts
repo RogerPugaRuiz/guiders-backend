@@ -41,6 +41,13 @@ export class ParticipantsEntity {
   })
   isTyping: boolean;
 
+  @Column({
+    type: 'boolean',
+    nullable: false,
+    default: true,
+  })
+  isAnonymous: boolean;
+
   @Column({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
   assignedAt: Date;
 

@@ -21,6 +21,7 @@ describe('Chat Domain', () => {
         lastSeenAt: null,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       },
     ],
     status: 'pending',
@@ -214,6 +215,7 @@ describe('Chat Domain', () => {
         lastSeenAt: null,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       });
       const chat = Chat.fromPrimitives(primitives);
 
@@ -279,6 +281,7 @@ describe('Chat Domain', () => {
         lastSeenAt: null,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       });
       const commercialMessage = {
         ...validMessage,

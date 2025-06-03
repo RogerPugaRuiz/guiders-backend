@@ -65,6 +65,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
       lastSeenAt: new Date(),
       isViewing: false,
       isTyping: false,
+      isAnonymous: false,
     };
 
     const event = new ParticipantAssignedEvent({
@@ -105,6 +106,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
       lastSeenAt: new Date(),
       isViewing: false,
       isTyping: false,
+      isAnonymous: false,
     };
 
     const event = new ParticipantAssignedEvent({
@@ -140,6 +142,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
       lastSeenAt: new Date(),
       isViewing: false,
       isTyping: false,
+      isAnonymous: false,
     };
 
     const event = new ParticipantAssignedEvent({

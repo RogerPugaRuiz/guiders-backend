@@ -16,6 +16,7 @@ describe('NewChatCreatedEvent', () => {
         lastSeenAt: null,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       },
     ],
     status: 'pending',
