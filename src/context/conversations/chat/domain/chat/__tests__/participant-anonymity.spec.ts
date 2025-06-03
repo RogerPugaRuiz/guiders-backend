@@ -61,7 +61,9 @@ describe('Participant Anonymity Feature', () => {
       // Verificar que los otros campos se preservan
       expect(namedParticipant.id).toBe(anonymousParticipant.id);
       expect(namedParticipant.name).toBe(anonymousParticipant.name);
-      expect(namedParticipant.isCommercial).toBe(anonymousParticipant.isCommercial);
+      expect(namedParticipant.isCommercial).toBe(
+        anonymousParticipant.isCommercial,
+      );
       expect(namedParticipant.isVisitor).toBe(anonymousParticipant.isVisitor);
     });
 
