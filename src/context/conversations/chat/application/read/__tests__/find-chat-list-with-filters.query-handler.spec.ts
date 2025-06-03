@@ -34,6 +34,7 @@ describe('FindChatListWithFiltersQueryHandler', () => {
           lastSeenAt: new Date(),
           isViewing: false,
           isTyping: false,
+          isAnonymous: true,
         },
       ],
       status: 'active',

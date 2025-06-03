@@ -14,6 +14,7 @@ describe('Participants', () => {
     lastSeenAt: null,
     isViewing: false,
     isTyping: false,
+    isAnonymous: true,
   };
 
   describe('constructor', () => {
@@ -66,6 +67,7 @@ describe('Participants', () => {
         name: 'Test Commercial',
         isCommercial: true,
         isVisitor: false,
+        isAnonymous: false,
       };
 
       const participants = Participants.create([
@@ -155,6 +157,7 @@ describe('Participants', () => {
         name: 'Test Commercial',
         isCommercial: true,
         isVisitor: false,
+        isAnonymous: false,
       };
       const participants = Participants.create([
         validParticipantData,
@@ -264,6 +267,36 @@ describe('Participants', () => {
       expect(() => {
         participants.setViewing('non-existing-id', true);
       }).toThrow('Participant with id non-existing-id not found');
+    });
+  });
+
+  describe('setAnonymous', () => {
+    it('should update participant anonymous status', () => {
+      const participants = Participants.create([validParticipantData]);
+
+      participants.setAnonymous(validParticipantData.id, false);
+
+      const participant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
+      expect(participant.isAnonymous).toBe(false);
+    });
+
+    it('should throw error when participant does not exist', () => {
+      const participants = Participants.create([validParticipantData]);
+
+      expect(() => {
+        participants.setAnonymous('non-existing-id', false);
+      }).toThrow('Participant with id non-existing-id not found');
+    });
+
+    it('should preserve default anonymous value as true', () => {
+      const participants = Participants.create([validParticipantData]);
+
+      const participant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
+      expect(participant.isAnonymous).toBe(true);
     });
   });
 });

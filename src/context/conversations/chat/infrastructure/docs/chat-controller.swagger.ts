@@ -102,6 +102,10 @@ export const GetChatListSwagger = () =>
                         type: 'boolean',
                         description: 'Está escribiendo',
                       },
+                      isAnonymous: {
+                        type: 'boolean',
+                        description: 'Es anónimo',
+                      },
                     },
                   },
                 },
@@ -340,6 +344,7 @@ export const GetChatByIdSwagger = () =>
                   description: 'Está viendo el chat',
                 },
                 isTyping: { type: 'boolean', description: 'Está escribiendo' },
+                isAnonymous: { type: 'boolean', description: 'Es anónimo' },
               },
             },
           },

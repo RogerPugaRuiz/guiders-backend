@@ -16,6 +16,7 @@ describe('StatusUpdatedEvent', () => {
         lastSeenAt: null,
         isViewing: false,
         isTyping: false,
+        isAnonymous: true,
       },
     ],
     status: 'active',

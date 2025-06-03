@@ -41,6 +41,7 @@ export class Participants {
       lastSeenAt?: Date | null;
       isViewing?: boolean;
       isTyping?: boolean;
+      isAnonymous?: boolean;
     }[],
   ): Participants {
     const participantObjects = participants.map((participant) =>
@@ -129,6 +130,18 @@ export class Participants {
     }
     const participant = participantOptional.get();
     const updatedParticipant = participant.setOnline(isOnline);
+    this._participants = this._participants.map((p) =>
+      p.id === id ? updatedParticipant : p,
+    );
+  }
+
+  public setAnonymous(id: string, isAnonymous: boolean): void {
+    const participantOptional = this.getParticipant(id);
+    if (participantOptional.isEmpty()) {
+      throw new Error(`Participant with id ${id} not found`);
+    }
+    const participant = participantOptional.get();
+    const updatedParticipant = participant.setAnonymous(isAnonymous);
     this._participants = this._participants.map((p) =>
       p.id === id ? updatedParticipant : p,
     );
