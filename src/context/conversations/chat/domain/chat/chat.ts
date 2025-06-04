@@ -83,14 +83,14 @@ export class Chat extends AggregateRoot {
   public static createPendingChat(params: {
     createdAt: Date;
     chatId: string;
-    visitor: { id: string; name: string };
+    visitor: { id: string; name?: string };
   }): Chat {
     const visitor = params.visitor;
     const createdAt = params.createdAt;
     const participants = Participants.create([
       {
         id: visitor.id,
-        name: visitor.name,
+        name: visitor.name || visitor.id,
         isCommercial: false,
         isVisitor: true,
       },

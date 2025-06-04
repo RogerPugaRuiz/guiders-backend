@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CqrsModule } from '@nestjs/cqrs';
 import { CreateDefaultVisitorCommandHandler } from '../create-default-visitor.command-handler';
 import { CreateDefaultVisitorCommand } from '../create-default-visitor.command';
 import {
@@ -39,6 +40,7 @@ describe('CreateDefaultVisitorCommandHandler', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+      imports: [CqrsModule], // Importar CqrsModule para acceder a EventPublisher
       providers: [
         CreateDefaultVisitorCommandHandler,
         {

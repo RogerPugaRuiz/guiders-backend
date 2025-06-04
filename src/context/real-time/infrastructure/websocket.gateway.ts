@@ -355,8 +355,7 @@ export class RealTimeWebSocketGateway
       chatId: string;
     };
     const participantId = client.user.sub;
-    const visitorName = client.user.email || client.user.sub;
-    const command = new StartChatCommand(chatId, participantId, visitorName);
+    const command = new StartChatCommand(chatId, participantId);
     await this.commandBus.execute<StartChatCommand, void>(command);
     return Promise.resolve(
       ResponseBuilder.create()

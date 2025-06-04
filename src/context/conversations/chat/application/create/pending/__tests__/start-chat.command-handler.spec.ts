@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventPublisher } from '@nestjs/cqrs';
+import { EventPublisher, QueryBus } from '@nestjs/cqrs';
 import { StartChatCommandHandler } from '../start-chat.command-handler';
 import { StartChatCommand } from '../start-chat.command';
 import {
@@ -19,6 +19,7 @@ describe('StartChatCommandHandler', () => {
   let handler: StartChatCommandHandler;
   let chatRepository: jest.Mocked<IChatRepository>;
   let eventPublisher: jest.Mocked<EventPublisher>;
+  let queryBus: jest.Mocked<QueryBus>;
 
   const mockChatId = 'chat-123';
   const mockVisitorId = 'visitor-123';
@@ -45,6 +46,10 @@ describe('StartChatCommandHandler', () => {
       mergeObjectContext: jest.fn().mockReturnValue(mockChatAggregate),
     };
 
+    const mockQueryBus = {
+      execute: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StartChatCommandHandler,
@@ -56,12 +61,17 @@ describe('StartChatCommandHandler', () => {
           provide: EventPublisher,
           useValue: mockEventPublisher,
         },
+        {
+          provide: QueryBus,
+          useValue: mockQueryBus,
+        },
       ],
     }).compile();
 
     handler = module.get<StartChatCommandHandler>(StartChatCommandHandler);
     chatRepository = module.get(CHAT_REPOSITORY);
     eventPublisher = module.get(EventPublisher);
+    queryBus = module.get(QueryBus);
 
     // Reset the mock
     (Chat.createPendingChat as jest.Mock).mockReturnValue(mockChat);
@@ -81,6 +91,7 @@ describe('StartChatCommandHandler', () => {
         mockTimestamp,
       );
       chatRepository.save.mockResolvedValue(undefined);
+      // No necesitamos mockear queryBus porque ya tenemos visitorName
 
       // Act
       await handler.execute(command);
@@ -107,6 +118,7 @@ describe('StartChatCommandHandler', () => {
         mockVisitorName,
       );
       chatRepository.save.mockResolvedValue(undefined);
+      // No necesitamos mockear queryBus porque ya tenemos visitorName
 
       // Act
       await handler.execute(command);
@@ -131,6 +143,7 @@ describe('StartChatCommandHandler', () => {
         mockTimestamp,
       );
       chatRepository.save.mockRejectedValue(new Error('Database error'));
+      // No necesitamos mockear queryBus porque ya tenemos visitorName
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow('Database error');
@@ -151,6 +164,7 @@ describe('StartChatCommandHandler', () => {
         mockTimestamp,
       );
       chatRepository.save.mockResolvedValue(undefined);
+      // No necesitamos mockear queryBus porque ya tenemos visitorName
 
       // Act
       await handler.execute(command);
@@ -177,6 +191,7 @@ describe('StartChatCommandHandler', () => {
       (Chat.createPendingChat as jest.Mock).mockImplementation(() => {
         throw new Error('Invalid chat data');
       });
+      // No necesitamos mockear queryBus porque ya tenemos visitorName
 
       // Act & Assert
       await expect(handler.execute(command)).rejects.toThrow(
@@ -185,6 +200,59 @@ describe('StartChatCommandHandler', () => {
       expect(Chat.createPendingChat).toHaveBeenCalled();
       expect(eventPublisher.mergeObjectContext).not.toHaveBeenCalled();
       expect(chatRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should query visitor when visitorName is not provided and use found visitor name', async () => {
+      // Arrange
+      const command = new StartChatCommand(
+        mockChatId,
+        mockVisitorId,
+        undefined, // Sin nombre de visitante
+        mockTimestamp,
+      );
+      const mockVisitor = { id: mockVisitorId, name: 'Found Visitor' };
+      queryBus.execute.mockResolvedValue(mockVisitor);
+      chatRepository.save.mockResolvedValue(undefined);
+
+      // Act
+      await handler.execute(command);
+
+      // Assert
+      expect(queryBus.execute).toHaveBeenCalledTimes(1);
+      expect(Chat.createPendingChat).toHaveBeenCalledWith({
+        chatId: mockChatId,
+        visitor: {
+          id: mockVisitorId,
+          name: 'Found Visitor',
+        },
+        createdAt: mockTimestamp,
+      });
+    });
+
+    it('should use default visitor name when visitor is not found', async () => {
+      // Arrange
+      const command = new StartChatCommand(
+        mockChatId,
+        mockVisitorId,
+        undefined, // Sin nombre de visitante
+        mockTimestamp,
+      );
+      queryBus.execute.mockResolvedValue(null); // Visitor no encontrado
+      chatRepository.save.mockResolvedValue(undefined);
+
+      // Act
+      await handler.execute(command);
+
+      // Assert
+      expect(queryBus.execute).toHaveBeenCalledTimes(1);
+      expect(Chat.createPendingChat).toHaveBeenCalledWith({
+        chatId: mockChatId,
+        visitor: {
+          id: mockVisitorId,
+          name: 'Visitante Anónimo',
+        },
+        createdAt: mockTimestamp,
+      });
     });
   });
 });

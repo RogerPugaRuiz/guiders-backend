@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { CreateDefaultVisitorCommand } from './create-default-visitor.command';
 import {
@@ -40,6 +40,7 @@ export class CreateDefaultVisitorCommandHandler
     private readonly visitorRepository: IVisitorRepository,
     @Inject(ALIAS_GENERATOR_SERVICE)
     private readonly aliasGenerator: AliasGeneratorService,
+    private readonly publisher: EventPublisher,
   ) {}
 
   /**
@@ -62,10 +63,13 @@ export class CreateDefaultVisitorCommandHandler
       const visitorName = VisitorName.create(generatedAlias);
 
       // Creamos un visitante con valores por defecto incluyendo el alias generado
-      const defaultVisitor = Visitor.create({
+      let defaultVisitor = Visitor.create({
         id: visitorId,
         name: visitorName,
       });
+
+      // Registramos el agregado en el EventPublisher para poder publicar sus eventos
+      defaultVisitor = this.publisher.mergeObjectContext(defaultVisitor);
 
       // Guardamos el visitante en el repositorio
       const result = await this.visitorRepository.save(defaultVisitor);
@@ -76,6 +80,9 @@ export class CreateDefaultVisitorCommandHandler
         );
         return err(result.error);
       }
+
+      // Publicamos los eventos del agregado al event bus
+      defaultVisitor.commit();
 
       this.logger.log(
         `Visitante por defecto creado correctamente con ID: ${visitorId.value} y alias: ${generatedAlias}`,
