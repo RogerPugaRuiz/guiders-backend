@@ -1,4 +1,4 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
+import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { CreateDefaultVisitorCommand } from './create-default-visitor.command';
 import {
@@ -7,9 +7,14 @@ import {
 } from '../../domain/visitor.repository';
 import { Visitor } from '../../domain/visitor';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
+import { VisitorName } from '../../domain/value-objects/visitor-name';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { ok, err } from 'src/context/shared/domain/result';
+import {
+  AliasGeneratorService,
+  ALIAS_GENERATOR_SERVICE,
+} from '../services/alias-generator.service';
 
 /**
  * Clase de error para el contexto de creación de visitante por defecto
@@ -33,6 +38,9 @@ export class CreateDefaultVisitorCommandHandler
   constructor(
     @Inject(VISITOR_REPOSITORY)
     private readonly visitorRepository: IVisitorRepository,
+    @Inject(ALIAS_GENERATOR_SERVICE)
+    private readonly aliasGenerator: AliasGeneratorService,
+    private readonly publisher: EventPublisher,
   ) {}
 
   /**
@@ -50,10 +58,18 @@ export class CreateDefaultVisitorCommandHandler
       // Creamos el ID del visitante usando el UUID recibido para mantener la relación
       const visitorId = new VisitorId(command.visitorAccountId);
 
-      // Creamos un visitante con valores por defecto
-      const defaultVisitor = Visitor.create({
+      // Generamos un alias automático para el visitante
+      const generatedAlias = this.aliasGenerator.generate();
+      const visitorName = VisitorName.create(generatedAlias);
+
+      // Creamos un visitante con valores por defecto incluyendo el alias generado
+      let defaultVisitor = Visitor.create({
         id: visitorId,
+        name: visitorName,
       });
+
+      // Registramos el agregado en el EventPublisher para poder publicar sus eventos
+      defaultVisitor = this.publisher.mergeObjectContext(defaultVisitor);
 
       // Guardamos el visitante en el repositorio
       const result = await this.visitorRepository.save(defaultVisitor);
@@ -65,8 +81,11 @@ export class CreateDefaultVisitorCommandHandler
         return err(result.error);
       }
 
+      // Publicamos los eventos del agregado al event bus
+      defaultVisitor.commit();
+
       this.logger.log(
-        `Visitante por defecto creado correctamente con ID: ${visitorId.value}`,
+        `Visitante por defecto creado correctamente con ID: ${visitorId.value} y alias: ${generatedAlias}`,
       );
       return ok(undefined);
     } catch (error) {

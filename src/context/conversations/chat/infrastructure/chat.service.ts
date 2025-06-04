@@ -12,7 +12,7 @@ export class ChatService {
   public async startChat(
     chatId: string,
     visitorId: string,
-    visitorName: string,
+    visitorName?: string,
   ): Promise<void> {
     const command = new StartChatCommand(chatId, visitorId, visitorName);
     await this.commandBus.execute(command);

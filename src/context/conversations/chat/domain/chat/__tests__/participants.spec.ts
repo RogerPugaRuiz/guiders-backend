@@ -299,4 +299,58 @@ describe('Participants', () => {
       expect(participant.isAnonymous).toBe(true);
     });
   });
+
+  describe('updateParticipantName', () => {
+    it('should update participant name successfully', () => {
+      const participants = Participants.create([validParticipantData]);
+      const newName = 'Brave Lion';
+
+      participants.updateParticipantName(validParticipantData.id, newName);
+
+      const updatedParticipant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
+      expect(updatedParticipant.name).toBe(newName);
+    });
+
+    it('should preserve all other participant properties when updating name', () => {
+      const participants = Participants.create([validParticipantData]);
+      const originalParticipant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
+      const newName = 'Swift Eagle';
+
+      participants.updateParticipantName(validParticipantData.id, newName);
+
+      const updatedParticipant = participants
+        .getParticipant(validParticipantData.id)
+        .get();
+      expect(updatedParticipant.name).toBe(newName);
+      expect(updatedParticipant.id).toBe(originalParticipant.id);
+      expect(updatedParticipant.isCommercial).toBe(
+        originalParticipant.isCommercial,
+      );
+      expect(updatedParticipant.isVisitor).toBe(originalParticipant.isVisitor);
+      expect(updatedParticipant.isOnline).toBe(originalParticipant.isOnline);
+      expect(updatedParticipant.assignedAt).toBe(
+        originalParticipant.assignedAt,
+      );
+      expect(updatedParticipant.lastSeenAt).toBe(
+        originalParticipant.lastSeenAt,
+      );
+      expect(updatedParticipant.isViewing).toBe(originalParticipant.isViewing);
+      expect(updatedParticipant.isTyping).toBe(originalParticipant.isTyping);
+      expect(updatedParticipant.isAnonymous).toBe(
+        originalParticipant.isAnonymous,
+      );
+    });
+
+    it('should throw error when participant does not exist', () => {
+      const participants = Participants.create([validParticipantData]);
+
+      expect(() => {
+        participants.updateParticipantName('non-existing-id', 'New Name');
+      }).toThrow('Participant with id non-existing-id not found');
+    });
+  });
 });

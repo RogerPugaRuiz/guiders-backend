@@ -9,6 +9,7 @@ Este contexto gestiona la lógica relacionada con visitantes, aplicando DDD y CQ
   - **events/**: Manejadores de eventos de dominio relacionados con visitantes.
   - **queries/**: Consultas para obtener información de visitantes.
   - **dtos/**: Objetos de transferencia de datos.
+  - **services/**: Puertos (interfaces) para servicios de aplicación.
 - **domain/**: Entidades, repositorios, eventos y value objects del dominio de visitantes.
   - **models/**: Entidades como Visitor y VisitorProfile.
   - **repositories/**: Interfaces de repositorios.
@@ -17,12 +18,39 @@ Este contexto gestiona la lógica relacionada con visitantes, aplicando DDD y CQ
   - **controllers/**: API REST para operaciones con visitantes.
   - **repositories/**: Implementaciones de repositorios con TypeORM.
   - **persistence/**: Entidades ORM y mappers.
+  - **services/**: Adaptadores para servicios externos (Faker.js para alias).
 
 ## Principios
 
 - **DDD**: El dominio modela las reglas y procesos de negocio de visitantes.
 - **CQRS**: Comandos y queries separados para claridad y escalabilidad.
 - **Eventos**: Los cambios relevantes generan eventos manejados por EventHandlers.
+
+## Funcionalidades principales
+
+### Generación automática de alias
+
+Los visitantes nuevos reciben automáticamente un alias amigable generado por el sistema:
+
+```typescript
+// Puerto definido en application/services/
+export interface AliasGeneratorService {
+  generate(): string;
+}
+
+// Implementación con Faker.js en infrastructure/services/
+@Injectable()
+export class FakerAliasGeneratorAdapter implements AliasGeneratorService {
+  generate(): string {
+    // Genera alias como "Brave Lion", "Clever Fox", etc.
+    const adjective = faker.word.adjective();
+    const animal = /* selección aleatoria de animales */;
+    return `${capitalizedAdjective} ${capitalizedAnimal}`;
+  }
+}
+```
+
+El sistema asigna automáticamente estos alias al crear visitantes por defecto, proporcionando identificadores amigables y únicos.
 
 ## Componentes principales
 

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CqrsModule } from '@nestjs/cqrs';
 import { ChatEntity } from './chat.entity';
 import { CHAT_REPOSITORY } from '../domain/chat/chat.repository';
 import { TypeOrmChatService } from './typeORM-chat.service';
@@ -26,10 +27,12 @@ import { VISITOR_FINDER } from '../application/read/visitor-finder';
 import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.service';
 import { ParticipantSeenChatCommandHandler } from '../application/update/participants/seen-chat/participant-seen-chat.command-handler';
 import { ParticipantUnseenChatCommandHandler } from '../application/update/participants/unseen-chat/participant-unseen-chat.command-handler';
+import { UpdateParticipantNameCommandHandler } from '../application/update/participants/name/update-participant-name.command-handler';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChatEntity, MessageEntity, ParticipantsEntity]),
+    CqrsModule,
     HttpModule,
   ],
   controllers: [ChatController],
@@ -44,6 +47,7 @@ import { ParticipantUnseenChatCommandHandler } from '../application/update/parti
     StartChatCommandHandler,
     ParticipantSeenChatCommandHandler,
     ParticipantUnseenChatCommandHandler,
+    UpdateParticipantNameCommandHandler,
 
     // queries
     // MessagePaginateQueryHandler,
