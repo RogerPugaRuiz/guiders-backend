@@ -1,5 +1,5 @@
 // Prueba unitaria para ChatMessageEncryptionService
-// Ubicación: src/context/conversations/chat/infrastructure/services/__tests__/chat-message-encryption.service.spec.ts
+// Ubicación: src/context/conversations/message/infrastructure/services/__tests__/chat-message-encryption.service.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatMessageEncryptionService } from '../chat-message-encryption.service';
 import * as bcrypt from 'bcrypt';

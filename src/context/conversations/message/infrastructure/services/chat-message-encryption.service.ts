@@ -3,7 +3,8 @@ import * as bcrypt from 'bcrypt';
 
 /**
  * Servicio de infraestructura para encriptar y verificar mensajes del chat
- * Utiliza bcrypt para el procesamiento seguro de mensajes
+ * Ubicado en la capa de persistencia de mensajes para manejar la encriptación
+ * durante el almacenamiento y recuperación de mensajes
  */
 @Injectable()
 export class ChatMessageEncryptionService {

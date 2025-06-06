@@ -28,7 +28,6 @@ import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.se
 import { ParticipantSeenChatCommandHandler } from '../application/update/participants/seen-chat/participant-seen-chat.command-handler';
 import { ParticipantUnseenChatCommandHandler } from '../application/update/participants/unseen-chat/participant-unseen-chat.command-handler';
 import { UpdateParticipantNameCommandHandler } from '../application/update/participants/name/update-participant-name.command-handler';
-import { ChatMessageEncryptionService } from './services/chat-message-encryption.service';
 
 @Module({
   imports: [
@@ -65,7 +64,6 @@ import { ChatMessageEncryptionService } from './services/chat-message-encryption
 
     // services
     TokenVerifyService,
-    ChatMessageEncryptionService,
 
     ChatService,
   ],
