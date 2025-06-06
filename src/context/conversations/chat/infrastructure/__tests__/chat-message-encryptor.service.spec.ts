@@ -12,7 +12,12 @@ describe('ChatMessageEncryptorService', () => {
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn(),
+      get: jest.fn((key: string) => {
+        if (key === 'ENCRYPTION_KEY') {
+          return testEncryptionKey;
+        }
+        return undefined;
+      }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -41,23 +46,18 @@ describe('ChatMessageEncryptorService', () => {
 
   describe('encrypt', () => {
     it('should encrypt a message successfully', async () => {
-      // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
-
       // Act
       const result = await service.encrypt(testMessage);
 
       // Assert
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
-      expect(result).toContain(':'); // IV:encryptedData format
+      expect(result).toContain(':'); // version:iv:encryptedData format
+      expect(result).toMatch(/^v\d+:/); // Should start with version
       expect(configService.get).toHaveBeenCalledWith('ENCRYPTION_KEY');
     });
 
     it('should generate different encrypted results for the same message', async () => {
-      // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
-
       // Act
       const result1 = await service.encrypt(testMessage);
       const result2 = await service.encrypt(testMessage);
@@ -66,40 +66,44 @@ describe('ChatMessageEncryptorService', () => {
       expect(result1).not.toBe(result2); // Should be different due to random IV
       expect(result1).toContain(':');
       expect(result2).toContain(':');
-    });
-
-    it('should use default encryption key when config is not available', async () => {
-      // Arrange
-      configService.get.mockReturnValue(undefined);
-
-      // Act
-      const result = await service.encrypt(testMessage);
-
-      // Assert
-      expect(result).toBeDefined();
-      expect(result).toContain(':');
-      expect(configService.get).toHaveBeenCalledWith('ENCRYPTION_KEY');
+      expect(result1).toMatch(/^v\d+:/);
+      expect(result2).toMatch(/^v\d+:/);
     });
 
     it('should handle empty message', async () => {
-      // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
-
       // Act
       const result = await service.encrypt('');
 
       // Assert
       expect(result).toBeDefined();
       expect(result).toContain(':');
+      expect(result).toMatch(/^v\d+:/);
     });
 
     it('should throw error when encryption fails', async () => {
-      // Arrange
-      configService.get.mockReturnValue('invalid-key'); // Invalid key format
+      // Create a new service with invalid key for this test
+      const mockConfigServiceInvalid = {
+        get: jest.fn((key: string) => {
+          if (key === 'ENCRYPTION_KEY') {
+            return 'invalid-key'; // Invalid key format
+          }
+          return undefined;
+        }),
+      };
 
       // Act & Assert
-      await expect(service.encrypt(testMessage)).rejects.toThrow(
-        'Failed to encrypt chat message',
+      await expect(
+        Test.createTestingModule({
+          providers: [
+            ChatMessageEncryptorService,
+            {
+              provide: ConfigService,
+              useValue: mockConfigServiceInvalid,
+            },
+          ],
+        }).compile(),
+      ).rejects.toThrow(
+        'ENCRYPTION_KEY must be 64 hexadecimal characters (32 bytes)',
       );
     });
   });
@@ -107,7 +111,6 @@ describe('ChatMessageEncryptorService', () => {
   describe('decrypt', () => {
     it('should decrypt a message successfully', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const encryptedMessage = await service.encrypt(testMessage);
 
       // Act
@@ -120,7 +123,6 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should decrypt empty message successfully', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const emptyMessage = '';
       const encryptedMessage = await service.encrypt(emptyMessage);
 
@@ -133,7 +135,6 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should throw error when encrypted message format is invalid', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const invalidFormat = 'invalid-format-without-colon';
 
       // Act & Assert
@@ -144,8 +145,7 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should throw error when IV is missing', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
-      const missingIv = ':encrypteddata';
+      const missingIv = 'v1::encrypteddata';
 
       // Act & Assert
       await expect(service.decrypt(missingIv)).rejects.toThrow(
@@ -155,8 +155,7 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should throw error when encrypted data is missing', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
-      const missingData = 'abcd1234:';
+      const missingData = 'v1:abcd1234abcd1234abcd1234abcd1234:';
 
       // Act & Assert
       await expect(service.decrypt(missingData)).rejects.toThrow(
@@ -166,9 +165,8 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should throw error when encrypted data is corrupted', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const corruptedData =
-        'abcd1234abcd1234abcd1234abcd1234:invalid-encrypted-data';
+        'v1:abcd1234abcd1234abcd1234abcd1234:invalid-encrypted-data';
 
       // Act & Assert
       await expect(service.decrypt(corruptedData)).rejects.toThrow(
@@ -178,16 +176,36 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should throw error when using wrong encryption key', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const encryptedMessage = await service.encrypt(testMessage);
 
-      // Change the key for decryption
+      // Create a new service with different key for this test
       const wrongKey =
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-      configService.get.mockReturnValue(wrongKey);
+      const mockConfigServiceWrong = {
+        get: jest.fn((key: string) => {
+          if (key === 'ENCRYPTION_KEY') {
+            return wrongKey;
+          }
+          return undefined;
+        }),
+      };
+
+      const moduleWrong = await Test.createTestingModule({
+        providers: [
+          ChatMessageEncryptorService,
+          {
+            provide: ConfigService,
+            useValue: mockConfigServiceWrong,
+          },
+        ],
+      }).compile();
+
+      const wrongService = moduleWrong.get<ChatMessageEncryptorService>(
+        ChatMessageEncryptorService,
+      );
 
       // Act & Assert
-      await expect(service.decrypt(encryptedMessage)).rejects.toThrow(
+      await expect(wrongService.decrypt(encryptedMessage)).rejects.toThrow(
         'Failed to decrypt chat message',
       );
     });
@@ -196,7 +214,6 @@ describe('ChatMessageEncryptorService', () => {
   describe('encrypt/decrypt integration', () => {
     it('should successfully encrypt and decrypt multiple messages', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const messages = [
         'Mensaje corto',
         'Este es un mensaje más largo con caracteres especiales: áéíóú ñ @ # $ % & * ( ) _ + = { } [ ] | \\ : ; " \' < > , . ? / ~ `',
@@ -216,7 +233,6 @@ describe('ChatMessageEncryptorService', () => {
 
     it('should handle large messages', async () => {
       // Arrange
-      configService.get.mockReturnValue(testEncryptionKey);
       const largeMessage = 'A'.repeat(10000); // 10KB message
 
       // Act
@@ -225,6 +241,19 @@ describe('ChatMessageEncryptorService', () => {
 
       // Assert
       expect(decrypted).toBe(largeMessage);
+    });
+
+    it('should support legacy format decryption', async () => {
+      // Arrange - simulate legacy format (iv:data without version)
+      const legacyEncrypted = await service.encrypt(testMessage);
+      const parts = legacyEncrypted.split(':');
+      const legacyFormat = `${parts[1]}:${parts[2]}`; // Remove version prefix
+
+      // Act
+      const decrypted = await service.decrypt(legacyFormat);
+
+      // Assert
+      expect(decrypted).toBe(testMessage);
     });
   });
 });

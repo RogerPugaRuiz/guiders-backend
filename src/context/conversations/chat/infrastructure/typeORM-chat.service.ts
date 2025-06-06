@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IChatRepository } from '../domain/chat/chat.repository';
@@ -15,6 +15,8 @@ import {
 import { Optional } from 'src/context/shared/domain/optional';
 import { MessageEntity } from '../../message/infrastructure/entities/message.entity';
 import { ParticipantsEntity } from './participants.entity';
+import { CHAT_MESSAGE_ENCRYPTOR } from '../application/services/chat-message-encryptor';
+import { ChatMessageEncryptorService } from './chat-message-encryptor.service';
 
 @Injectable()
 export class TypeOrmChatService implements IChatRepository {
@@ -25,6 +27,8 @@ export class TypeOrmChatService implements IChatRepository {
     private readonly messageRepository: Repository<MessageEntity>,
     @InjectRepository(ParticipantsEntity)
     private readonly participantsRepository: Repository<ParticipantsEntity>,
+    @Inject(CHAT_MESSAGE_ENCRYPTOR)
+    private readonly chatMessageEncryptor: ChatMessageEncryptorService,
   ) {}
   async findOne(criteria: Criteria<Chat>): Promise<Optional<{ chat: Chat }>> {
     const queryBuilder = this.chatRepository
@@ -52,7 +56,9 @@ export class TypeOrmChatService implements IChatRepository {
     });
     const entity = await queryBuilder.getOne();
     return entity
-      ? Optional.of({ chat: ChatMapper.toDomain(entity) })
+      ? Optional.of({
+          chat: await ChatMapper.toDomain(entity, this.chatMessageEncryptor),
+        })
       : Optional.empty();
   }
 
@@ -126,11 +132,20 @@ export class TypeOrmChatService implements IChatRepository {
     }
     const entities = await queryBuilder.getMany();
 
-    return { chats: entities.map((entity) => ChatMapper.toDomain(entity)) };
+    return {
+      chats: await Promise.all(
+        entities.map((entity) =>
+          ChatMapper.toDomain(entity, this.chatMessageEncryptor),
+        ),
+      ),
+    };
   }
 
   async save(chat: Chat): Promise<void> {
-    const entity = ChatMapper.toPersistence(chat);
+    const entity = await ChatMapper.toPersistence(
+      chat,
+      this.chatMessageEncryptor,
+    );
     await this.chatRepository.save(entity);
   }
 
@@ -139,12 +154,20 @@ export class TypeOrmChatService implements IChatRepository {
       where: { id: id.value },
     });
     return entity
-      ? Optional.of({ chat: ChatMapper.toDomain(entity) })
+      ? Optional.of({
+          chat: await ChatMapper.toDomain(entity, this.chatMessageEncryptor),
+        })
       : Optional.empty();
   }
 
   async findAll(): Promise<{ chats: Chat[] }> {
     const entities = await this.chatRepository.find();
-    return { chats: entities.map((entity) => ChatMapper.toDomain(entity)) };
+    return {
+      chats: await Promise.all(
+        entities.map((entity) =>
+          ChatMapper.toDomain(entity, this.chatMessageEncryptor),
+        ),
+      ),
+    };
   }
 }
