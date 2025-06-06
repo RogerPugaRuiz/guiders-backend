@@ -454,7 +454,11 @@ jobs:
         continue-on-error: false
       
       - name: Run npm audit (CRÍTICO)
-        run: npm audit --audit-level=moderate
+        run: |
+          npm audit --audit-level=high || {
+            echo "⚠️ Security vulnerabilities detected. Please address them.";
+            exit 1;
+          }
         continue-on-error: false
 
   # Job final para verificar que todo está OK - CRÍTICO
