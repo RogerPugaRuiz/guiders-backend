@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
+import { ConfigModule } from '@nestjs/config';
 import { ChatEntity } from './chat.entity';
 import { CHAT_REPOSITORY } from '../domain/chat/chat.repository';
 import { TypeOrmChatService } from './typeORM-chat.service';
@@ -28,12 +29,15 @@ import { VisitorFinderAdapterService } from './finders/visitor-finder-adapter.se
 import { ParticipantSeenChatCommandHandler } from '../application/update/participants/seen-chat/participant-seen-chat.command-handler';
 import { ParticipantUnseenChatCommandHandler } from '../application/update/participants/unseen-chat/participant-unseen-chat.command-handler';
 import { UpdateParticipantNameCommandHandler } from '../application/update/participants/name/update-participant-name.command-handler';
+import { CHAT_MESSAGE_ENCRYPTOR } from '../application/services/chat-message-encryptor';
+import { ChatMessageEncryptorService } from './chat-message-encryptor.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ChatEntity, MessageEntity, ParticipantsEntity]),
     CqrsModule,
     HttpModule,
+    ConfigModule,
   ],
   controllers: [ChatController],
   providers: [
@@ -41,6 +45,7 @@ import { UpdateParticipantNameCommandHandler } from '../application/update/parti
     { provide: MESSAGE_REPOSITORY, useClass: TypeOrmMessageService },
     { provide: USER_FINDER, useClass: UserFinderAdapterService },
     { provide: VISITOR_FINDER, useClass: VisitorFinderAdapterService },
+    { provide: CHAT_MESSAGE_ENCRYPTOR, useClass: ChatMessageEncryptorService },
     // usecases
 
     // commands

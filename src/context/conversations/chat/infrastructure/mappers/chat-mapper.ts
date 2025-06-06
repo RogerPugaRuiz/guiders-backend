@@ -1,8 +1,12 @@
 import { ChatEntity } from '../chat.entity';
 import { Chat } from '../../domain/chat/chat';
+import { ChatMessageEncryptorService } from '../chat-message-encryptor.service';
 
 export class ChatMapper {
-  public static toPersistence(chat: Chat): ChatEntity {
+  public static async toPersistence(
+    chat: Chat,
+    encryptor: ChatMessageEncryptorService,
+  ): Promise<ChatEntity> {
     const entity = new ChatEntity();
     entity.id = chat.id.getValue();
     entity.participants = chat.participants.value.map((participant) => ({
@@ -18,13 +22,18 @@ export class ChatMapper {
       isAnonymous: participant.isAnonymous,
     }));
     entity.status = chat.status.value;
-    entity.lastMessage = chat.lastMessage ? chat.lastMessage.value : null;
+    entity.lastMessage = chat.lastMessage
+      ? await encryptor.encrypt(chat.lastMessage.value)
+      : null;
     entity.lastMessageAt = chat.lastMessageAt ? chat.lastMessageAt.value : null;
     entity.createdAt = chat.createdAt.value;
     return entity;
   }
 
-  public static toDomain(entity: ChatEntity): Chat {
+  public static async toDomain(
+    entity: ChatEntity,
+    encryptor: ChatMessageEncryptorService,
+  ): Promise<Chat> {
     return Chat.fromPrimitives({
       id: entity.id,
       participants: entity.participants
@@ -42,7 +51,9 @@ export class ChatMapper {
           }))
         : [],
       status: entity.status,
-      lastMessage: entity.lastMessage,
+      lastMessage: entity.lastMessage
+        ? await encryptor.decrypt(entity.lastMessage)
+        : null,
       lastMessageAt: entity.lastMessageAt,
       createdAt: entity.createdAt,
     });

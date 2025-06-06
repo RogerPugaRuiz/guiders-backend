@@ -8,6 +8,23 @@ import { MESSAGE_REPOSITORY } from '../../domain/message.repository';
 import { MessageEntity } from '../../infrastructure/entities/message.entity';
 import { ChatUpdatedWithNewMessageEvent } from 'src/context/conversations/chat/domain/chat/events/chat-updated-with-new-message.event';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
+import { CHAT_MESSAGE_ENCRYPTOR } from 'src/context/conversations/chat/application/services/chat-message-encryptor';
+import { Criteria, Operator, Filter } from 'src/context/shared/domain/criteria';
+import { Message } from '../../domain/message';
+
+// Mock del ChatMessageEncryptor para las pruebas
+const mockChatMessageEncryptor = {
+  encrypt: jest
+    .fn()
+    .mockImplementation((message: string) =>
+      Promise.resolve(`encrypted_${message}`),
+    ),
+  decrypt: jest
+    .fn()
+    .mockImplementation((encryptedMessage: string) =>
+      Promise.resolve(encryptedMessage.replace('encrypted_', '')),
+    ),
+};
 
 // Prueba de integración para SaveMessageOnChatUpdatedWithNewMessageEventHandler
 // Verifica que el handler guarda correctamente el mensaje en la base de datos
@@ -38,6 +55,10 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
           provide: MESSAGE_REPOSITORY,
           useClass: TypeOrmMessageService,
         },
+        {
+          provide: CHAT_MESSAGE_ENCRYPTOR,
+          useValue: mockChatMessageEncryptor,
+        },
       ],
     }).compile();
 
@@ -53,8 +74,10 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
   });
 
   afterAll(async () => {
-    // Cerramos la conexión de TypeORM
-    await messageRepository['messageRepository'].manager.connection.destroy();
+    // Cerramos la conexión de TypeORM solo si messageRepository está disponible
+    if (messageRepository && messageRepository['messageRepository']) {
+      await messageRepository['messageRepository'].manager.connection.destroy();
+    }
   });
 
   it('should save the message in the database when event is handled', async () => {
@@ -103,15 +126,17 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
     // Ejecutamos el handler
     await handler.handle(event);
 
-    // Buscamos el mensaje en la base de datos
-    const found = await messageRepository['messageRepository'].findOne({
-      where: { id: messagePrimitives.id },
-    });
+    // Buscamos el mensaje usando el repositorio del dominio (que automáticamente desencripta)
+    const foundMessage = await messageRepository.findOne(
+      new Criteria<Message>([
+        new Filter<Message>('id', Operator.EQUALS, messagePrimitives.id),
+      ]),
+    );
 
     // Verificamos que el mensaje fue guardado correctamente
-    expect(found).toBeDefined(); // Nos aseguramos que found no sea null
-    if (!found) throw new Error('Message not found in database');
-    expect(found.id).toBe(messagePrimitives.id);
-    expect(found.content).toBe(messagePrimitives.content);
+    expect(foundMessage.isPresent()).toBe(true);
+    const message = foundMessage.get().message;
+    expect(message.id.value).toBe(messagePrimitives.id);
+    expect(message.content.value).toBe(messagePrimitives.content);
   });
 });
