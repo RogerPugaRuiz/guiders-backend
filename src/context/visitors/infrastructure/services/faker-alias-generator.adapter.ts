@@ -59,16 +59,20 @@ export class FakerAliasGeneratorAdapter implements AliasGeneratorService {
         animal = faker.animal.dog(); // fallback
     }
 
-    // Capitalizar la primera letra de cada palabra y solo usar la última palabra del animal
-    const capitalizedAdjective =
-      adjective.charAt(0).toUpperCase() + adjective.slice(1).toLowerCase();
+    // Filtrar caracteres no alfabéticos del adjetivo, manteniendo solo letras
+    const cleanAdjective = adjective.replace(/[^a-zA-Z]/g, '');
 
-    // Si el animal tiene múltiples palabras, usar solo la última
+    // Si el animal tiene múltiples palabras, usar solo la última y limpiar caracteres no alfabéticos
     const animalWords = animal.split(' ');
     const lastAnimalWord = animalWords[animalWords.length - 1];
+    const cleanAnimal = lastAnimalWord.replace(/[^a-zA-Z]/g, '');
+
+    // Capitalizar la primera letra de cada palabra
+    const capitalizedAdjective =
+      cleanAdjective.charAt(0).toUpperCase() +
+      cleanAdjective.slice(1).toLowerCase();
     const capitalizedAnimal =
-      lastAnimalWord.charAt(0).toUpperCase() +
-      lastAnimalWord.slice(1).toLowerCase();
+      cleanAnimal.charAt(0).toUpperCase() + cleanAnimal.slice(1).toLowerCase();
 
     return `${capitalizedAdjective} ${capitalizedAnimal}`;
   }
