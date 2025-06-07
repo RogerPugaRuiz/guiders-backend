@@ -95,6 +95,37 @@ describe('RecalculateAssignmentOnCommercialDisconnectedEventHandler', () => {
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
+    it('debe usar criterio con filtros de participants y status pending', async () => {
+      // Arrange
+      const userId = 'commercial-id';
+      const event = new CommercialDisconnectedEvent({
+        userId,
+        roles: [ConnectionRole.COMMERCIAL],
+        socketId: 'socket-123',
+      });
+
+      (mockChatRepository.find as jest.Mock).mockResolvedValue({
+        chats: [],
+      });
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      expect(mockChatRepository.find).toHaveBeenCalledTimes(1);
+      const criteriaUsed = (mockChatRepository.find as jest.Mock).mock
+        .calls[0][0];
+
+      // Verificamos que el criterio tenga los filtros correctos
+      expect(criteriaUsed.filters).toHaveLength(2);
+      expect(criteriaUsed.filters[0].field).toBe('participants');
+      expect(criteriaUsed.filters[0].operator).toBe('=');
+      expect(criteriaUsed.filters[0].value).toBe(userId);
+      expect(criteriaUsed.filters[1].field).toBe('status');
+      expect(criteriaUsed.filters[1].operator).toBe('=');
+      expect(criteriaUsed.filters[1].value).toBe('pending');
+    });
+
     it('debe publicar eventos para cada chat donde está asignado el comercial', async () => {
       // Arrange
       const userId = 'commercial-id';

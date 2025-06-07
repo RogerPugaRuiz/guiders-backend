@@ -15,7 +15,7 @@ import { ConnectionRole } from '../../domain/value-objects/connection-role';
  * Event handler que maneja la desconexión de comerciales
  * Cuando un comercial se desconecta, este handler:
  * 1. Verifica que el usuario desconectado sea comercial
- * 2. Busca todos los chats donde está asignado
+ * 2. Busca todos los chats pendientes donde está asignado
  * 3. Publica eventos para remover el comercial de esos chats
  */
 @EventsHandler(CommercialDisconnectedEvent)
@@ -54,12 +54,11 @@ export class RecalculateAssignmentOnCommercialDisconnectedEventHandler
       `Comercial ${event.connection.userId} desconectado, recalculando asignación de chats`,
     );
 
-    // Buscamos todos los chats donde está asignado este comercial
-    const chatsCriteria = new Criteria<Chat>().addFilter(
-      'participants',
-      Operator.EQUALS,
-      event.connection.userId,
-    );
+    // Buscamos todos los chats donde está asignado este comercial y que tengan status 'pending'
+    // Usamos el criterio para delegar el filtrado al repositorio
+    const chatsCriteria = new Criteria<Chat>()
+      .addFilter('participants', Operator.EQUALS, event.connection.userId)
+      .addFilter('status', Operator.EQUALS, 'pending');
 
     const { chats } = await this.chatRepository.find(chatsCriteria);
 
@@ -70,7 +69,7 @@ export class RecalculateAssignmentOnCommercialDisconnectedEventHandler
 
     if (chatsWithCommercial.length === 0) {
       this.logger.debug(
-        `Comercial ${event.connection.userId} no está asignado a ningún chat`,
+        `Comercial ${event.connection.userId} no está asignado a ningún chat pendiente`,
       );
       return;
     }
