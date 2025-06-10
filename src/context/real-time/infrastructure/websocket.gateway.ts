@@ -366,7 +366,7 @@ export class RealTimeWebSocketGateway
     );
   }
 
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:viewing-chat')
   async handleCommercialViewingChat(
@@ -436,7 +436,7 @@ export class RealTimeWebSocketGateway
     }
   }
 
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:notifications')
   handleCommercialNotification(
@@ -449,7 +449,7 @@ export class RealTimeWebSocketGateway
       .build();
   }
 
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:send-message')
   async handleCommercialSendMessage(
@@ -499,7 +499,7 @@ export class RealTimeWebSocketGateway
     );
   }
 
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:get-chats')
   async handleGetCommercialChats(client: AuthenticatedSocket) {
@@ -518,7 +518,7 @@ export class RealTimeWebSocketGateway
     );
   }
 
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @UseGuards(WsAuthGuard, WsRolesGuard)
   @SubscribeMessage('commercial:get-visitors')
   async handleGetCommercialVisitors(): Promise<

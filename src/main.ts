@@ -7,9 +7,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configurar el prefijo global para todas las rutas en producción
-  if (process.env.NODE_ENV === 'production') {
-    app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
-  }
+  // if (process.env.NODE_ENV === 'production') {
+  //   app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+  // }
 
   app.enableCors({
     origin: '*',
@@ -27,7 +27,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   // Configurar la ruta de Swagger (no necesitamos añadir 'api' porque ya se aplica con setGlobalPrefix)
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup(
+    `${process.env.NODE_ENV === 'production' ? 'api/' : ''}docs`,
+    app,
+    document,
+  );
+  // Configurar el logger para mostrar información de arranque
 
   const logger = new Logger('bootstrap');
   logger.log(`Application is running in ${process.env.NODE_ENV} mode`);

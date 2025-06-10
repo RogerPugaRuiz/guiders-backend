@@ -47,7 +47,7 @@ export class ChatController {
 
   // Listar chats del usuario autenticado (solo para usuarios con rol commercial)
   @Get('chats')
-  @RequiredRoles('commercial')
+  @RequiredRoles('commercial', 'admin')
   @UseGuards(AuthGuard, RolesGuard)
   @GetChatListSwagger()
   async getChatList(
@@ -95,7 +95,7 @@ export class ChatController {
 
   // Obtener mensajes paginados de un chat específico
   @Get('chats/:chatId/messages')
-  @RequiredRoles('visitor', 'commercial')
+  @RequiredRoles('visitor', 'commercial', 'admin')
   @UseGuards(AuthGuard, RolesGuard)
   @GetMessagesSwagger()
   async messagePaginate(
@@ -141,7 +141,7 @@ export class ChatController {
 
   // Obtener información de un chat específico por ID
   @Get('chats/:chatId')
-  @RequiredRoles('visitor', 'commercial')
+  @RequiredRoles('visitor', 'commercial', 'admin')
   @UseGuards(AuthGuard, RolesGuard)
   @GetChatByIdSwagger()
   async getChatById(@Param('chatId') chatId: string): Promise<ChatResponseDto> {
