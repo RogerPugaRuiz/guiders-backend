@@ -291,22 +291,42 @@ export class AuthUserController {
       );
     }
   }
-
   @Post('accept-invite')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Aceptar invitación',
     description:
       'Acepta una invitación para unirse a una compañía y establece la contraseña',
   })
-  @ApiBody({ type: AcceptInviteRequestDto })
+  @ApiBody({
+    type: AcceptInviteRequestDto,
+    description: 'Datos para aceptar la invitación',
+    required: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Invitación aceptada correctamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Invitación aceptada correctamente',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
     description:
       'Error de validación (token inválido o contraseña no cumple requisitos)',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string' },
+        error: { type: 'string' },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -317,12 +337,16 @@ export class AuthUserController {
     description: 'Error interno del servidor',
   })
   async acceptInvite(
-    @Body('token') token: string,
-    @Body('password') password: string,
-  ) {
+    @Body() acceptInviteDto: AcceptInviteRequestDto,
+  ): Promise<{ message: string }> {
     try {
-      const command = new AcceptInviteCommand(token, password);
+      const command = new AcceptInviteCommand(
+        acceptInviteDto.token,
+        acceptInviteDto.password,
+      );
       await this.commandBus.execute(command);
+
+      return { message: 'Invitación aceptada correctamente' };
     } catch (error) {
       this.logger.error('Error accepting invite', error);
       if (error instanceof ValidationError) {
