@@ -6,6 +6,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Configurar el prefijo global para todas las rutas en producción
+  if (process.env.NODE_ENV === 'production') {
+    app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+  }
+
   app.enableCors({
     origin: '*',
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Referer'],
@@ -20,6 +25,8 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
+
+  // Configurar la ruta de Swagger (no necesitamos añadir 'api' porque ya se aplica con setGlobalPrefix)
   SwaggerModule.setup('docs', app, document);
 
   const logger = new Logger('bootstrap');
