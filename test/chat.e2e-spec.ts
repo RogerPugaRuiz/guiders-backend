@@ -50,7 +50,8 @@ interface MockRequest {
 @Injectable()
 @QueryHandler(FindChatListWithFiltersQuery)
 class FindChatListWithFiltersQueryHandler
-  implements IQueryHandler<FindChatListWithFiltersQuery> {
+  implements IQueryHandler<FindChatListWithFiltersQuery>
+{
   async execute(
     query: FindChatListWithFiltersQuery,
   ): Promise<ChatListResponse> {
@@ -257,7 +258,9 @@ describe('Chat Controller (e2e) con QueryBus y CommandBus reales', () => {
 
   describe('Tests directos de QueryBus y CommandBus', () => {
     it('debe ejecutar correctamente FindChatListWithFiltersQuery', async () => {
-      const query = new FindChatListWithFiltersQuery('test-participant-id', 5, ['lastMessage']);
+      const query = new FindChatListWithFiltersQuery('test-participant-id', 5, [
+        'lastMessage',
+      ]);
       const result = await queryBus.execute(query);
 
       expect(result).toBeDefined();

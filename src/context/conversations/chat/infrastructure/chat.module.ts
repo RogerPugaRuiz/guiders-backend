@@ -31,6 +31,7 @@ import { ParticipantUnseenChatCommandHandler } from '../application/update/parti
 import { UpdateParticipantNameCommandHandler } from '../application/update/participants/name/update-participant-name.command-handler';
 import { CHAT_MESSAGE_ENCRYPTOR } from '../application/services/chat-message-encryptor';
 import { ChatMessageEncryptorService } from './chat-message-encryptor.service';
+import { ParticipantViewingChatCommandHandler } from '../application/update/participants/viewing-chat/participant-viewing-chat.command-handler';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ChatMessageEncryptorService } from './chat-message-encryptor.service';
     ParticipantSeenChatCommandHandler,
     ParticipantUnseenChatCommandHandler,
     UpdateParticipantNameCommandHandler,
+    ParticipantViewingChatCommandHandler,
 
     // queries
     // MessagePaginateQueryHandler,

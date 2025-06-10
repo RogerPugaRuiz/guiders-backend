@@ -34,6 +34,7 @@ import { StartChatCommand } from 'src/context/conversations/chat/application/cre
 import { ConnectionUser } from '../domain/connection-user';
 import { ParticipantUnseenChatCommand } from 'src/context/conversations/chat/application/update/participants/unseen-chat/participant-unseen-chat.command';
 import { ParticipantSeenChatCommand } from 'src/context/conversations/chat/application/update/participants/seen-chat/participant-seen-chat.command';
+import { ParticipantViewingChatCommand } from 'src/context/conversations/chat/application/update/participants/viewing-chat/participant-viewing-chat.command';
 import { ChatPrimitives } from 'src/context/conversations/chat/domain/chat/chat';
 import { CreateTrackingEventCommand } from 'src/context/tracking/application/commands/create-tracking-event.command';
 import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/application/commands/update-visitor-current-page.command';
@@ -363,6 +364,76 @@ export class RealTimeWebSocketGateway
         .addData(event.data)
         .build(),
     );
+  }
+
+  @Roles(['commercial'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('commercial:viewing-chat')
+  async handleCommercialViewingChat(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    try {
+      const { chatId, isViewing } = event.data as {
+        chatId: string;
+        isViewing: boolean;
+      };
+
+      if (!chatId) {
+        this.logger.warn(
+          'Payload inválido en commercial:viewing-chat: falta chatId',
+          event,
+        );
+        return ResponseBuilder.create()
+          .addSuccess(false)
+          .addMessage('Payload inválido: falta chatId')
+          .build();
+      }
+
+      const participantId = client.user.sub;
+      const viewingAt = new Date();
+
+      this.logger.log(
+        `Usuario ${participantId} ${isViewing ? 'está viendo' : 'dejó de ver'} el chat ${chatId}`,
+      );
+
+      const command = new ParticipantViewingChatCommand({
+        chatId,
+        participantId,
+        isViewing,
+        viewingAt,
+      });
+
+      await this.commandBus.execute(command);
+
+      return ResponseBuilder.create()
+        .addSuccess(true)
+        .addMessage(
+          `Estado de visualización actualizado: ${isViewing ? 'viendo' : 'no viendo'} el chat`,
+        )
+        .addData({
+          chatId,
+          isViewing,
+          timestamp: viewingAt.getTime(),
+        })
+        .build();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      const errorStack = error instanceof Error ? error.stack : '';
+      this.logger.error(
+        `Error al actualizar estado de visualización: ${errorMessage}`,
+        errorStack,
+      );
+      return Promise.resolve(
+        ResponseBuilder.create()
+          .addSuccess(false)
+          .addMessage(
+            `Error al actualizar estado de visualización: ${errorMessage}`,
+          )
+          .build(),
+      );
+    }
   }
 
   @Roles(['commercial'])

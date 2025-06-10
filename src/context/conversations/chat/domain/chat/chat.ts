@@ -15,6 +15,7 @@ import { ChatUpdatedWithNewMessageEvent } from './events/chat-updated-with-new-m
 import { ParticipantSeenAtEvent } from './events/participant-seen-at.event';
 import { ParticipantUnseenAtEvent } from './events/participant-unseen-at.event';
 import { ParticipantNameUpdatedEvent } from './events/participant-name-updated.event';
+import { ParticipantViewingStatusChangedEvent } from './events/participant-viewing-status-changed.event';
 
 export interface ParticipantPrimitives {
   id: string;
@@ -361,6 +362,49 @@ export class Chat extends AggregateRoot {
             previousIsViewing: previousIsViewing,
           },
           chat: this.toPrimitives(),
+        },
+        timestamp: new Date().getTime(),
+      }),
+    );
+
+    return this;
+  }
+
+  /**
+   * Actualiza el estado de visualización de un participante específico
+   * @param participantId ID del participante
+   * @param isViewing Nuevo estado de visualización
+   * @returns El chat actualizado
+   */
+  public setParticipantViewing(
+    participantId: string,
+    isViewing: boolean,
+  ): Chat {
+    const participantOptional = this.participants.getParticipant(participantId);
+    if (participantOptional.isEmpty()) {
+      throw new Error('Participant not found');
+    }
+
+    const participant = participantOptional.get();
+    const previousIsViewing = participant.isViewing;
+
+    // Si el estado no cambia, no hacemos nada (idempotencia)
+    if (previousIsViewing === isViewing) {
+      return this;
+    }
+
+    // Actualizamos el estado de visualización
+    this.participants.setViewing(participantId, isViewing);
+
+    // Emitimos el evento de dominio
+    this.apply(
+      new ParticipantViewingStatusChangedEvent({
+        attributes: {
+          chat: this.toPrimitives(),
+          participantUpdate: {
+            id: participantId,
+            previousIsViewing: previousIsViewing,
+          },
         },
         timestamp: new Date().getTime(),
       }),
