@@ -168,6 +168,16 @@ npm run test:e2e          # Ejecuta pruebas end-to-end
 
 # Base de datos
 npm run typeorm:migrate:run    # Ejecuta migraciones pendientes
+
+# CLI
+node bin/guiders-cli.js clean-database --force    # Limpia todas las entidades de la base de datos
+node bin/guiders-cli.js create-company --name "Mi Compañía" --domain "micompania.com"    # Crea una nueva compañía
+node bin/guiders-cli.js create-company-with-admin --name "Mi Compañía" --domain "micompania.com" --adminName "Admin" --adminEmail "admin@example.com"    # Crea una compañía con administrador
+
+# CLI
+node bin/guiders-cli.js clean-database --force    # Limpia todas las entidades de la base de datos
+node bin/guiders-cli.js create-company --name "Mi Compañía" --domain "micompania.com"    # Crea una nueva compañía
+node bin/guiders-cli.js create-company-with-admin --name "Mi Compañía" --domain "micompania.com" --adminName "Admin" --adminEmail "admin@example.com"    # Crea una compañía con administrador
 ```
 
 ## Recursos adicionales
