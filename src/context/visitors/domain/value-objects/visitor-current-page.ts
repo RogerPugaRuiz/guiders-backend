@@ -1,6 +1,7 @@
 import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-object';
 
 // Objeto de valor para la página actual que está viendo el visitante
+// Puede almacenar URLs completas, paths relativos o nombres de página
 // Valida que la página sea un string no vacío
 const validateCurrentPage = (value: string) =>
   typeof value === 'string' && value.trim().length > 0;

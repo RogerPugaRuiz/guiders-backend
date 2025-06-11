@@ -14,6 +14,7 @@ import { UpdateVisitorCurrentPageCommandHandler } from '../application/commands/
 import { UpdateVisitorEmailCommandHandler } from '../application/commands/update-visitor-email-command.handler';
 import { UpdateVisitorNameCommandHandler } from '../application/commands/update-visitor-name-command.handler';
 import { UpdateVisitorTelCommandHandler } from '../application/commands/update-visitor-tel-command.handler';
+import { UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler } from '../application/events/update-visitor-current-page-on-tracking-event-created.event-handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
 import { ALIAS_GENERATOR_SERVICE } from '../application/services/alias-generator.service';
@@ -31,6 +32,7 @@ const EventHandlers = [
   OnVisitorAccountCreatedEventHandler,
   OnVisitorCreatedUpdateParticipantNameEventHandler,
   OnVisitorAliasAssignedUpdateParticipantEventHandler,
+  UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler,
 ];
 const QueryHandlers = [GetVisitorByIdQueryHandler];
 
