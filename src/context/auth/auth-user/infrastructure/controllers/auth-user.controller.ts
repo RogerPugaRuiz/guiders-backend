@@ -131,6 +131,7 @@ export class AuthUserController {
     status: 500,
     description: 'Error interno del servidor',
   })
+  @ApiBearerAuth()
   @RequiredRoles('admin')
   @UseGuards(AuthGuard, RolesGuard)
   async register(
