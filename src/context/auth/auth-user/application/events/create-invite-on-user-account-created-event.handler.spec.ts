@@ -48,6 +48,7 @@ describe('CreateInviteOnUserAccountCreatedEventHandler', () => {
       user: {
         id: userId,
         email: 'user@test.com',
+        name: 'Test User',
         password: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -84,6 +85,7 @@ describe('CreateInviteOnUserAccountCreatedEventHandler', () => {
       user: {
         id: userId,
         email: 'user@test.com',
+        name: 'Test User',
         password: 'hashed-password',
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -140,7 +140,12 @@ export class AuthUserController {
     @Req() req: { user: { companyId: string } },
   ): Promise<void> {
     try {
-      await this.authUserService.register(email, req.user.companyId, roles);
+      await this.authUserService.register(
+        email,
+        name,
+        req.user.companyId,
+        roles,
+      );
     } catch (error) {
       this.logger.error('Error registering user', error);
       if (error instanceof ValidationError) {

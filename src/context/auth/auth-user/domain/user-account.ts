@@ -12,10 +12,12 @@ import { UserPasswordUpdatedEvent } from './events/user-password-updated-event';
 import { UserAccountCompanyId } from './value-objects/user-account-company-id';
 import { UserAccountIsActive } from './value-objects/user-account-is-active';
 import { UserAccountCreatedEvent } from './events/user-account-created-event';
+import { UserAccountName } from './value-objects/user-account-name';
 
 export interface UserAccountPrimitives {
   id: string;
   email: string;
+  name: string;
   password: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -29,6 +31,7 @@ export class UserAccount extends AggregateRoot {
   // Propiedades privadas siguiendo convención _xxxx
   private readonly _id: UserAccountId;
   private readonly _email: UserAccountEmail;
+  private readonly _name: UserAccountName;
   private readonly _password: UserAccountPassword;
   private readonly _createdAt: UserAccountCreatedAt;
   private readonly _updatedAt: UserAccountUpdatedAt;
@@ -40,6 +43,7 @@ export class UserAccount extends AggregateRoot {
   private constructor(
     id: UserAccountId,
     email: UserAccountEmail,
+    name: UserAccountName,
     password: UserAccountPassword,
     createdAt: UserAccountCreatedAt,
     updatedAt: UserAccountUpdatedAt,
@@ -51,6 +55,7 @@ export class UserAccount extends AggregateRoot {
     super();
     this._id = id;
     this._email = email;
+    this._name = name;
     this._password = password;
     this._createdAt = createdAt;
     this._updatedAt = updatedAt;
@@ -63,6 +68,7 @@ export class UserAccount extends AggregateRoot {
   // Métodos estáticos de fábrica
   public static create(params: {
     email: UserAccountEmail;
+    name: UserAccountName;
     password: UserAccountPassword;
     id?: UserAccountId;
     roles?: UserAccountRoles;
@@ -73,6 +79,7 @@ export class UserAccount extends AggregateRoot {
     const user = new UserAccount(
       params.id ?? UserAccountId.random(),
       params.email,
+      params.name,
       params.password,
       UserAccountCreatedAt.create(now),
       UserAccountUpdatedAt.create(now),
@@ -93,6 +100,7 @@ export class UserAccount extends AggregateRoot {
   public static fromPrimitives(params: {
     id: string;
     email: string;
+    name: string;
     password: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -104,6 +112,7 @@ export class UserAccount extends AggregateRoot {
     const newUser = new UserAccount(
       UserAccountId.create(params.id),
       UserAccountEmail.create(params.email),
+      new UserAccountName(params.name),
       new UserAccountPassword(params.password ?? null),
       UserAccountCreatedAt.create(params.createdAt),
       UserAccountUpdatedAt.create(params.updatedAt),
@@ -122,6 +131,9 @@ export class UserAccount extends AggregateRoot {
   }
   get email(): UserAccountEmail {
     return this._email;
+  }
+  get name(): UserAccountName {
+    return this._name;
   }
   // Getter que expone password como Optional
   get password(): Optional<string> {
@@ -161,6 +173,7 @@ export class UserAccount extends AggregateRoot {
     return (
       this._id.equals(userAccount._id) &&
       this._email.equals(userAccount._email) &&
+      this._name.equals(userAccount._name) &&
       this._password.equals(userAccount._password) &&
       this._createdAt.equals(userAccount._createdAt) &&
       this._updatedAt.equals(userAccount._updatedAt) &&
@@ -176,6 +189,7 @@ export class UserAccount extends AggregateRoot {
     return new UserAccount(
       this._id,
       this._email,
+      this._name,
       this._password,
       this._createdAt,
       this._updatedAt,
@@ -191,6 +205,7 @@ export class UserAccount extends AggregateRoot {
     const updatedUser = new UserAccount(
       this._id,
       this._email,
+      this._name,
       new UserAccountPassword(password),
       this._createdAt,
       this._updatedAt,
@@ -206,6 +221,7 @@ export class UserAccount extends AggregateRoot {
   public toPrimitives(): UserAccountPrimitives {
     return {
       email: this._email.getValue(),
+      name: this._name.getValue(),
       password: this._password.getValue(),
       createdAt: this._createdAt.getValue(),
       updatedAt: this._updatedAt.getValue(),

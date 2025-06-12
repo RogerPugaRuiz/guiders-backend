@@ -10,6 +10,7 @@ import { UserAccountPassword } from '../../domain/user-account-password';
 import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';
 import { Role } from '../../domain/value-objects/role';
 import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
+import { UserAccountName } from '../../domain/value-objects/user-account-name';
 
 import {
   USER_PASSWORD_HASHER,
@@ -29,6 +30,7 @@ export class UserRegisterUseCase {
 
   async execute(
     email: string,
+    name: string, // Se agrega nombre como argumento requerido
     companyId: string, // Se agrega companyId como argumento
     roles: string[],
   ): Promise<void> {
@@ -44,6 +46,7 @@ export class UserRegisterUseCase {
     // Creamos el usuario incluyendo el value object de roles, por defecto solo 'commercial'
     const newUser = UserAccount.create({
       email: UserAccountEmail.create(email),
+      name: new UserAccountName(name),
       roles: UserAccountRoles.create(roles.map((role) => Role.create(role))),
       companyId: UserAccountCompanyId.create(companyId),
       password: UserAccountPassword.empty(),

@@ -28,11 +28,12 @@ export class AuthUserService {
 
   async register(
     email: string,
+    name: string,
     companyId: string,
     roles?: string[], // roles es opcional para compatibilidad con llamadas antiguas
   ): Promise<void> {
     // Si roles no está definido, se pasa un array vacío por defecto
-    return await this.userRegister.execute(email, companyId, roles ?? []);
+    return await this.userRegister.execute(email, name, companyId, roles ?? []);
   }
 
   async update(): Promise<void> {

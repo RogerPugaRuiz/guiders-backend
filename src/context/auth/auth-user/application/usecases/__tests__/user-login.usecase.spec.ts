@@ -19,6 +19,7 @@ import { UserAccountPassword } from '../../../domain/user-account-password';
 import { UserAccountRoles } from '../../../domain/value-objects/user-account-roles';
 import { Role } from '../../../domain/value-objects/role';
 import { UserAccountCompanyId } from '../../../domain/value-objects/user-account-company-id';
+import { UserAccountName } from '../../../domain/value-objects/user-account-name';
 
 describe('UserLoginUseCase', () => {
   let useCase: UserLoginUseCase;
@@ -76,11 +77,9 @@ describe('UserLoginUseCase', () => {
 
     const mockUser = UserAccount.create({
       email: new UserAccountEmail(email),
-
+      name: new UserAccountName('Test User'),
       password: new UserAccountPassword(hashedPassword),
-
       roles: new UserAccountRoles([new Role('admin')]),
-
       companyId: new UserAccountCompanyId(
         '12345678-1234-4234-9234-123456789abc',
       ),
@@ -142,11 +141,9 @@ describe('UserLoginUseCase', () => {
 
       const userWithEmptyPassword = UserAccount.create({
         email: new UserAccountEmail(email),
-
+        name: new UserAccountName('Test User'),
         password: UserAccountPassword.empty(),
-
         roles: new UserAccountRoles([new Role('admin')]),
-
         companyId: new UserAccountCompanyId(
           '12345678-1234-4234-9234-123456789abc',
         ),
