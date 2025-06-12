@@ -8,6 +8,9 @@ export class UserAccountEntity {
   @Column({ unique: true })
   email: string;
 
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
+
   @Column({ type: 'text', nullable: true })
   password: string | null;
 
