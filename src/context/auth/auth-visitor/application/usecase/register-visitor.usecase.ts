@@ -28,6 +28,13 @@ export class RegisterVisitor {
     private readonly publisher: EventPublisher,
   ) {}
 
+  /**
+   * Normaliza un dominio eliminando el prefijo 'www.' si existe
+   */
+  private normalizeDomain(domain: string): string {
+    return domain.startsWith('www.') ? domain.substring(4) : domain;
+  }
+
   async execute(
     apiKey: string,
     client: number,
@@ -38,10 +45,15 @@ export class RegisterVisitor {
     const clientIDValue = VisitorAccountClientID.create(client);
     const userAgentValue = VisitorAccountUserAgent.create(userAgent);
 
-    this.logger.log('domain: ' + domain);
+    // Normalizar el dominio eliminando el prefijo 'www.'
+    const normalizedDomain = this.normalizeDomain(domain);
+    this.logger.log(
+      'domain: ' + domain + ' -> normalized: ' + normalizedDomain,
+    );
+
     const isValid = await this.validateDomainApiKey.validate({
       apiKey: apiKeyValue,
-      domain,
+      domain: normalizedDomain,
     });
 
     if (!isValid) {
