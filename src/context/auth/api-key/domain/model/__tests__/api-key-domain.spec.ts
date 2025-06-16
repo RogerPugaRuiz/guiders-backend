@@ -23,6 +23,16 @@ describe('ApiKeyDomain', () => {
     expect(domain.value).toBe('test_domain.com');
   });
 
+  it('debe permitir dominios complejos como rmotion.es', () => {
+    const domain = new ApiKeyDomain('rmotion.es');
+    expect(domain.value).toBe('rmotion.es');
+  });
+
+  it('debe permitir dominios complejos con www como www.rmotion.es', () => {
+    const domain = new ApiKeyDomain('www.rmotion.es');
+    expect(domain.value).toBe('www.rmotion.es');
+  });
+
   it('debe lanzar error para dominio inválido con espacios', () => {
     expect(() => {
       new ApiKeyDomain('invalid domain.com');

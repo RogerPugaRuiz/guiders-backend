@@ -5,10 +5,10 @@ export class ApiKeyDomain extends PrimitiveValueObject<string> {
     super(
       value,
       (value: string) => {
-        // Permite dominios con o sin www. y solo letras, números, guiones, puntos y guion bajo
-        const clean = value.startsWith('www.') ? value.substring(4) : value;
+        // La validación permite dominios que contengan letras, números, guiones, puntos y guión bajo
+        // Los dominios con www. son válidos y se normalizan en los casos de uso
         const regex = /^[a-zA-Z0-9._-]+$/;
-        return regex.test(clean);
+        return regex.test(value);
       },
       'Invalid API key domain format',
     );

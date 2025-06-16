@@ -23,8 +23,23 @@ export class ValidateDomainApiKeyAdapter implements ValidateDomainApiKey {
     if (!apiKey) {
       return false;
     }
-    this.logger.log('apiKey.domain' + apiKey.domain.getValue());
-    this.logger.log('params.domain' + params.domain);
-    return apiKey.domain.getValue() === params.domain;
+
+    // Normalizar dominios eliminando el prefijo www. para comparación
+    const normalizedStoredDomain = this.normalizeDomain(
+      apiKey.domain.getValue(),
+    );
+    const normalizedProvidedDomain = this.normalizeDomain(params.domain);
+
+    this.logger.log('Stored domain (normalized): ' + normalizedStoredDomain);
+    this.logger.log(
+      'Provided domain (normalized): ' + normalizedProvidedDomain,
+    );
+
+    return normalizedStoredDomain === normalizedProvidedDomain;
+  }
+
+  private normalizeDomain(domain: string): string {
+    // Eliminar prefijo www. si existe para permitir comparación flexible
+    return domain.startsWith('www.') ? domain.substring(4) : domain;
   }
 }

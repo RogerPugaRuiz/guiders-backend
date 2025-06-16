@@ -35,8 +35,12 @@ export class CreateApiKeyForDomainUseCase {
     domain: string,
     companyId: string,
   ): Promise<{ apiKey: string }> {
-    const domainValue = ApiKeyDomain.create(domain);
-    const apiKeyValue = ApiKeyValue.create(await this.hashService.hash(domain));
+    // Normalizar el dominio eliminando el prefijo www. para consistencia
+    const normalizedDomain = this.normalizeDomain(domain);
+    const domainValue = ApiKeyDomain.create(normalizedDomain);
+    const apiKeyValue = ApiKeyValue.create(
+      await this.hashService.hash(normalizedDomain),
+    );
 
     const foundApiKey =
       await this.apiKeyRepository.getApiKeyByDomain(domainValue);
@@ -63,5 +67,10 @@ export class CreateApiKeyForDomainUseCase {
 
     await this.apiKeyRepository.save(newApiKey);
     return { apiKey: newApiKey.apiKey.getValue() };
+  }
+
+  private normalizeDomain(domain: string): string {
+    // Eliminar prefijo www. si existe para mantener consistencia en el almacenamiento
+    return domain.startsWith('www.') ? domain.substring(4) : domain;
   }
 }
