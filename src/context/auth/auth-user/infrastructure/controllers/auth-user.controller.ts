@@ -131,6 +131,7 @@ export class AuthUserController {
     status: 500,
     description: 'Error interno del servidor',
   })
+  @ApiBearerAuth()
   @RequiredRoles('admin')
   @UseGuards(AuthGuard, RolesGuard)
   async register(
@@ -140,7 +141,12 @@ export class AuthUserController {
     @Req() req: { user: { companyId: string } },
   ): Promise<void> {
     try {
-      await this.authUserService.register(email, req.user.companyId, roles);
+      await this.authUserService.register(
+        email,
+        name,
+        req.user.companyId,
+        roles,
+      );
     } catch (error) {
       this.logger.error('Error registering user', error);
       if (error instanceof ValidationError) {

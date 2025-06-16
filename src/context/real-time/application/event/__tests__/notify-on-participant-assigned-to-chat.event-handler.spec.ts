@@ -82,15 +82,29 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
       recipientId: 'participant-123',
       type: 'commercial:incoming-chats',
     });
+    // Como no hay otros participantes en el chat, solo se realiza una notificación
     expect(mockNotification.notify).toHaveBeenCalledTimes(1);
   });
 
   it('debe manejar error en notificación gracefully', async () => {
     // Arrange
+    const existingParticipant: ParticipantPrimitives = {
+      id: 'existing-participant',
+      name: 'Existing User',
+      isCommercial: true,
+      isVisitor: false,
+      isOnline: true,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
+      isAnonymous: false,
+    };
+
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-123',
       status: 'pending',
-      participants: [],
+      participants: [existingParticipant],
       lastMessage: null,
       lastMessageAt: null,
       createdAt: new Date(),
@@ -121,18 +135,31 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
     await expect(handler.handle(event)).resolves.not.toThrow();
   });
 
-  it('debe notificar con el tipo correcto para participante visitante', async () => {
+  it('debe notificar con el tipo correcto para participante visitante y a los participantes existentes', async () => {
     // Arrange
+    const existingParticipant: ParticipantPrimitives = {
+      id: 'existing-commercial',
+      name: 'Existing Commercial',
+      isCommercial: true,
+      isVisitor: false,
+      isOnline: true,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
+      isAnonymous: false,
+    };
+
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-456',
       status: 'active',
-      participants: [],
+      participants: [existingParticipant],
       lastMessage: null,
       lastMessageAt: null,
       createdAt: new Date(),
     };
 
-    const participantPrimitives: ParticipantPrimitives = {
+    const visitorParticipant: ParticipantPrimitives = {
       id: 'participant-456',
       name: 'Test Visitor',
       isCommercial: false,
@@ -147,17 +174,121 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
 
     const event = new ParticipantAssignedEvent({
       chat: chatPrimitives,
-      newParticipant: participantPrimitives,
+      newParticipant: visitorParticipant,
     });
 
     // Act
     await handler.handle(event);
 
     // Assert
+    // Verificar notificación al participante visitante
     expect(mockNotification.notify).toHaveBeenCalledWith({
       payload: { chat: chatPrimitives },
       recipientId: 'participant-456',
       type: 'commercial:incoming-chats',
     });
+
+    // Verificar notificación al participante comercial existente
+    expect(mockNotification.notify).toHaveBeenCalledWith({
+      payload: {
+        chatId: 'chat-456',
+        newParticipant: visitorParticipant,
+      },
+      recipientId: 'existing-commercial',
+      type: 'chat:participant-joined',
+    });
+
+    // Verificar que se realizaron dos notificaciones
+    expect(mockNotification.notify).toHaveBeenCalledTimes(2);
+  });
+
+  it('debe notificar a todos los participantes existentes cuando un nuevo participante se une al chat', async () => {
+    // Arrange
+    const existingParticipant1: ParticipantPrimitives = {
+      id: 'existing-participant-1',
+      name: 'Existing Commercial',
+      isCommercial: true,
+      isVisitor: false,
+      isOnline: true,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
+      isAnonymous: false,
+    };
+
+    const existingParticipant2: ParticipantPrimitives = {
+      id: 'existing-participant-2',
+      name: 'Existing Visitor',
+      isCommercial: false,
+      isVisitor: true,
+      isOnline: true,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
+      isAnonymous: false,
+    };
+
+    const chatPrimitives: ChatPrimitives = {
+      id: 'chat-789',
+      status: 'active',
+      participants: [existingParticipant1, existingParticipant2],
+      lastMessage: 'Hola',
+      lastMessageAt: new Date(),
+      createdAt: new Date(),
+    };
+
+    const newParticipant: ParticipantPrimitives = {
+      id: 'new-participant-789',
+      name: 'New Participant',
+      isCommercial: true,
+      isVisitor: false,
+      isOnline: true,
+      assignedAt: new Date(),
+      lastSeenAt: new Date(),
+      isViewing: false,
+      isTyping: false,
+      isAnonymous: false,
+    };
+
+    const event = new ParticipantAssignedEvent({
+      chat: chatPrimitives,
+      newParticipant,
+    });
+
+    // Act
+    await handler.handle(event);
+
+    // Assert
+    // Verificar la notificación al nuevo participante
+    expect(mockNotification.notify).toHaveBeenCalledWith({
+      payload: { chat: chatPrimitives },
+      recipientId: 'new-participant-789',
+      type: 'commercial:incoming-chats',
+    });
+
+    // Verificar notificación al primer participante existente
+    expect(mockNotification.notify).toHaveBeenCalledWith({
+      payload: {
+        chatId: 'chat-789',
+        newParticipant: newParticipant,
+      },
+      recipientId: 'existing-participant-1',
+      type: 'chat:participant-joined',
+    });
+
+    // Verificar notificación al segundo participante existente
+    expect(mockNotification.notify).toHaveBeenCalledWith({
+      payload: {
+        chatId: 'chat-789',
+        newParticipant: newParticipant,
+      },
+      recipientId: 'existing-participant-2',
+      type: 'chat:participant-joined',
+    });
+
+    // Se deben haber realizado 3 notificaciones: una al nuevo participante y una a cada participante existente
+    expect(mockNotification.notify).toHaveBeenCalledTimes(3);
   });
 });

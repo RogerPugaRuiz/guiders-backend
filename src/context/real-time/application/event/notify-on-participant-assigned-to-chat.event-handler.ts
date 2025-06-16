@@ -20,18 +20,34 @@ export class NotifyOnParticipantAssignedToChatEventHandler
     const { chat, newParticipant } = attributes;
 
     try {
+      // Notificar al nuevo participante sobre su asignación al chat
       await this.notification.notify({
         payload: { chat },
         recipientId: newParticipant.id,
         type: 'commercial:incoming-chats',
       });
 
+      // Notificar a todos los participantes existentes sobre el nuevo participante
+      for (const participant of chat.participants) {
+        // No notificar al propio participante que se está uniendo
+        if (participant.id !== newParticipant.id) {
+          await this.notification.notify({
+            payload: {
+              chatId: chat.id,
+              newParticipant: newParticipant,
+            },
+            recipientId: participant.id,
+            type: 'chat:participant-joined',
+          });
+        }
+      }
+
       this.logger.log(
-        `Participant assigned to chat: ${chat.id}, new participant: ${newParticipant.id}`,
+        `Participant assigned to chat: ${chat.id}, new participant: ${newParticipant.id}, notified all other participants`,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to notify participant ${newParticipant.id} about chat assignment: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to notify participants about new participant ${newParticipant.id} in chat ${chat.id}: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
       // Gracefully handle the error - don't throw

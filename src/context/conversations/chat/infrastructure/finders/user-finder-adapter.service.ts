@@ -18,6 +18,6 @@ export class UserFinderAdapterService implements IUserFinder {
     if (userOptional.isEmpty()) {
       throw new Error('User not found');
     }
-    return userOptional.get().user.email;
+    return userOptional.get().user.name;
   }
 }

@@ -14,6 +14,7 @@ import { UserAccountRoles } from '../../domain/value-objects/user-account-roles'
 import { Role } from '../../domain/value-objects/role';
 import { UserAccountId } from '../../domain/user-account-id';
 import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
+import { UserAccountName } from '../../domain/value-objects/user-account-name';
 
 // Este handler escucha el evento de creación de compañía con admin y crea un usuario admin en el contexto de auth
 @EventsHandler(CompanyCreatedWithAdminEvent)
@@ -28,13 +29,14 @@ export class CreateAdminOnCompanyCreatedWithAdminEventHandler
 
   async handle(event: CompanyCreatedWithAdminEvent): Promise<void> {
     // El payload del evento está en event.attributes
-    const { adminEmail, userId, companyId } = event.attributes;
-    // Si no hay email de admin, no se crea usuario
-    if (!adminEmail || !userId || !companyId) return;
+    const { adminEmail, adminName, userId, companyId } = event.attributes;
+    // Si no hay email o nombre de admin, no se crea usuario
+    if (!adminEmail || !adminName || !userId || !companyId) return;
     // Por defecto, el password es null (debe ser seteado por invitación o flujo aparte)
     const user = UserAccount.create({
       id: UserAccountId.create(userId),
       email: UserAccountEmail.create(adminEmail),
+      name: new UserAccountName(adminName),
       password: UserAccountPassword.empty(),
       roles: UserAccountRoles.create([Role.admin()]), // Rol admin
       companyId: UserAccountCompanyId.create(companyId), // Asocia el usuario admin a la compañía creada
