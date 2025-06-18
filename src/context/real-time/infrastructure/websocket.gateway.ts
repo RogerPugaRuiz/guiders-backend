@@ -590,7 +590,8 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ trackingEventId: string }>> {
-    const { trackingEventId, metadata, eventType } = event.data;
+    const { trackingEventId, eventType } = event.data;
+    const metadata = event.metadata || {};
     const command = new CreateTrackingEventCommand({
       id: trackingEventId,
       visitorId: client.user.sub,
