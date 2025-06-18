@@ -41,13 +41,7 @@ import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/applicatio
 
 export interface Event {
   type?: string;
-  data: {
-    eventType: string;
-    trackingEventId: string;
-    sessionId: string;
-    // Permite campos adicionales desconocidos
-    [key: string]: unknown;
-  };
+  data: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   timestamp: number;
 }
@@ -590,7 +584,10 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ trackingEventId: string }>> {
-    const { trackingEventId, eventType } = event.data;
+    const { trackingEventId, eventType } = event.data as {
+      trackingEventId: string;
+      eventType?: string;
+    };
     const metadata = event.metadata || {};
     const command = new CreateTrackingEventCommand({
       id: trackingEventId,
