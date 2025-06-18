@@ -41,7 +41,13 @@ import { UpdateVisitorCurrentPageCommand } from 'src/context/visitors/applicatio
 
 export interface Event {
   type?: string;
-  data: Record<string, unknown>;
+  data: {
+    eventType: string;
+    trackingEventId: string;
+    sessionId: string;
+    // Permite campos adicionales desconocidos
+    [key: string]: unknown;
+  };
   metadata?: Record<string, unknown>;
   timestamp: number;
 }
@@ -297,19 +303,14 @@ export class RealTimeWebSocketGateway
           .build(),
       );
     }
-    const { id, message, timestamp, chatId } = event.data as {
-      id: string;
-      message: string;
-      timestamp: number;
-      chatId: string;
-    };
+    const { id, message, timestamp, chatId } = event.data;
     try {
       const command = new RealTimeMessageSenderCommand(
-        id,
-        chatId,
+        id as string,
+        chatId as string,
         client.user.sub,
-        message,
-        new Date(timestamp),
+        message as string,
+        new Date(timestamp as number),
       );
 
       const result = await this.commandBus.execute<
@@ -352,11 +353,9 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    const { chatId } = event.data as {
-      chatId: string;
-    };
+    const { chatId } = event.data;
     const participantId = client.user.sub;
-    const command = new StartChatCommand(chatId, participantId);
+    const command = new StartChatCommand(chatId as string, participantId);
     await this.commandBus.execute<StartChatCommand, void>(command);
     return Promise.resolve(
       ResponseBuilder.create()
@@ -374,10 +373,7 @@ export class RealTimeWebSocketGateway
     @MessageBody() event: Event,
   ) {
     try {
-      const { chatId, isViewing } = event.data as {
-        chatId: string;
-        isViewing: boolean;
-      };
+      const { chatId, isViewing } = event.data;
 
       if (!chatId) {
         this.logger.warn(
@@ -394,13 +390,13 @@ export class RealTimeWebSocketGateway
       const viewingAt = new Date();
 
       this.logger.log(
-        `Usuario ${participantId} ${isViewing ? 'está viendo' : 'dejó de ver'} el chat ${chatId}`,
+        `Usuario ${participantId} ${isViewing ? 'está viendo' : 'dejó de ver'} el chat ${chatId as string}`,
       );
 
       const command = new ParticipantViewingChatCommand({
-        chatId,
+        chatId: chatId as string,
         participantId,
-        isViewing,
+        isViewing: isViewing as boolean,
         viewingAt,
       });
 
@@ -456,22 +452,17 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ) {
-    const { id, message, timestamp, chatId } = event.data as {
-      id: string;
-      message: string;
-      timestamp: number;
-      chatId: string;
-    };
+    const { id, message, timestamp, chatId } = event.data;
     this.logger.log(
-      `User ${client.user.sub} is sending message to visitor: ${message}`,
+      `User ${client.user.sub} is sending message to visitor: ${message as string}`,
     );
 
     const command = new RealTimeMessageSenderCommand(
-      id,
-      chatId,
+      id as string,
+      chatId as string,
       client.user.sub,
-      message,
-      new Date(timestamp),
+      message as string,
+      new Date(timestamp as number),
     );
     const result = await this.commandBus.execute<
       RealTimeMessageSenderCommand,
@@ -486,7 +477,7 @@ export class RealTimeWebSocketGateway
       );
     }
     this.logger.log(
-      `User ${client.user.sub} has sent message to visitor: ${message}`,
+      `User ${client.user.sub} has sent message to visitor: ${message as string}`,
     );
     return Promise.resolve(
       ResponseBuilder.create()
@@ -555,15 +546,12 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ chatId: string; timestamp: number }>> {
-    const { chatId, timestamp } = event.data as {
-      chatId: string;
-      timestamp: number;
-    };
+    const { chatId, timestamp } = event.data;
 
     const command = new ParticipantSeenChatCommand({
-      chatId,
+      chatId: chatId as string,
       participantId: client.user.sub,
-      seenAt: new Date(timestamp),
+      seenAt: new Date(timestamp as number),
     });
 
     await this.commandBus.execute<ParticipantSeenChatCommand, void>(command);
@@ -581,14 +569,11 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ chatId: string; timestamp: number }>> {
-    const { chatId, timestamp } = event.data as {
-      chatId: string;
-      timestamp: number;
-    };
+    const { chatId, timestamp } = event.data;
     const command = new ParticipantUnseenChatCommand({
-      chatId,
+      chatId: chatId as string,
       participantId: client.user.sub,
-      unseenAt: new Date(timestamp),
+      unseenAt: new Date(timestamp as number),
     });
 
     await this.commandBus.execute<ParticipantUnseenChatCommand, void>(command);
@@ -605,11 +590,7 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ trackingEventId: string }>> {
-    const { trackingEventId, metadata, eventType } = event.data as {
-      trackingEventId: string;
-      metadata: Record<string, unknown>;
-      eventType: string;
-    };
+    const { trackingEventId, metadata, eventType } = event.data;
     const command = new CreateTrackingEventCommand({
       id: trackingEventId,
       visitorId: client.user.sub,
@@ -631,14 +612,11 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ chatId: string; timestamp: number }>> {
-    const { chatId, timestamp } = event.data as {
-      chatId: string;
-      timestamp: number;
-    };
+    const { chatId, timestamp } = event.data;
     const command = new ParticipantSeenChatCommand({
-      chatId,
+      chatId: chatId as string,
       participantId: client.user.sub,
-      seenAt: new Date(timestamp),
+      seenAt: new Date(timestamp as number),
     });
     await this.commandBus.execute<ParticipantSeenChatCommand, void>(command);
     return new ResponseBuilder<any>()
@@ -665,7 +643,7 @@ export class RealTimeWebSocketGateway
         .addMessage('Payload inválido: falta currentPage')
         .build();
     }
-    const { currentPage } = event.data as { currentPage: string };
+    const { currentPage } = event.data;
     try {
       // El resultado del comando debe ser Result<void, DomainError>
       const result: Result<void, DomainError> = await this.commandBus.execute(
