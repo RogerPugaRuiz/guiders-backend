@@ -37,12 +37,33 @@ describe('RedisConnectionService', () => {
   afterEach(async () => {
     // Limpiar datos después de cada test
     try {
-      // Limpiar todos los datos de test sin desconectar el cliente
+      // Primero buscar todos los usuarios con rol commercial y visitor para limpiarlos
+      const commercialCriteria = new Criteria<ConnectionUser>().addFilter(
+        'roles',
+        Operator.EQUALS,
+        ConnectionRole.COMMERCIAL,
+      );
+      const visitorCriteria = new Criteria<ConnectionUser>().addFilter(
+        'roles',
+        Operator.EQUALS,
+        ConnectionRole.VISITOR,
+      );
+
+      const commercialUsers = await service.find(commercialCriteria);
+      const visitorUsers = await service.find(visitorCriteria);
+
+      // Remover todos los usuarios encontrados
+      for (const user of [...commercialUsers, ...visitorUsers]) {
+        await service.remove(user);
+      }
+
+      // También limpiar IDs específicos de test
       const testUserIds = [
         'test-user-1',
         'test-user-2',
         'test-user-3',
         'test-user-remove',
+        'ffcb698d-60e9-46bf-8747-1c700f498519', // ID que aparece en el error
       ];
       for (const userId of testUserIds) {
         const testUser = ConnectionUser.create({

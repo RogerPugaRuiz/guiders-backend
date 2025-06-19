@@ -3,7 +3,6 @@ import { RealTimeWebSocketGateway } from './websocket.gateway';
 import { TokenVerifyService } from '../../shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
 import { CONNECTION_REPOSITORY } from '../domain/connection.repository';
-import { InMemoryConnectionService } from './in-memory-connection.service';
 import { ConnectUserCommandHandler } from '../application/command/connect/connect-user.command-handler';
 import { DisconnectUserCommandHandler } from '../application/command/disconnect/disconnect-user.command-handler';
 import { FindOneUserBySocketIdQueryHandler } from '../application/query/find-one/find-one-user-by-socket-id.query-handler';
