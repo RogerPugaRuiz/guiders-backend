@@ -18,7 +18,9 @@ export class NotifyOnParticipantAssignedToChatEventHandler
   async handle(event: ParticipantAssignedEvent) {
     const { attributes } = event;
     const { chat, newParticipant } = attributes;
-
+    this.logger.log(
+      `New participant assigned to chat: ${chat.id}, participant: ${newParticipant.id}`,
+    );
     try {
       // Notificar al nuevo participante sobre su asignación al chat
       await this.notification.notify({
@@ -26,6 +28,10 @@ export class NotifyOnParticipantAssignedToChatEventHandler
         recipientId: newParticipant.id,
         type: 'commercial:incoming-chats',
       });
+
+      this.logger.log(
+        `New participant ${newParticipant.id} notified about chat ${chat.id}`,
+      );
 
       // Notificar a todos los participantes existentes sobre el nuevo participante
       for (const participant of chat.participants) {

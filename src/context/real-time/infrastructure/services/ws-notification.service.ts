@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { INotification } from '../../domain/notification';
 import {
   CONNECTION_REPOSITORY,
@@ -15,6 +15,7 @@ export class WsNotificationService implements INotification {
     private readonly connectionRepository: ConnectionRepository,
     private readonly ws: RealTimeWebSocketGateway,
   ) {}
+  private readonly logger = new Logger(WsNotificationService.name);
   async notify(params: {
     payload: Record<string, unknown>;
     recipientId: string;
@@ -35,6 +36,9 @@ export class WsNotificationService implements INotification {
       return;
     }
 
+    this.logger.log(
+      `notify: Sending notification to ${recipientId} with type ${type}`,
+    );
     this.ws.sendNotification(payload, connection.socketId.get().value, type);
   }
   notifyRole(params: {

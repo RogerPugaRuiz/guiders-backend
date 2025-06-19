@@ -256,6 +256,7 @@ export class RealTimeWebSocketGateway
       this.logger.error('Socket server not set');
       return;
     }
+    this.logger.log(`Sending notification to ${recipientId} with type ${type}`);
     this.server.to(recipientId).emit(
       type || 'notification',
       ResponseBuilder.create()
