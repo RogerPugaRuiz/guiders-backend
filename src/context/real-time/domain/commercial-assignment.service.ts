@@ -25,8 +25,8 @@ export class CommercialAssignmentService {
       // Esto funciona porque el repositorio maneja internamente la verificación de roles en array
       const criteria = new Criteria<ConnectionUser>().addFilter(
         'roles',
-        Operator.EQUALS,
-        ConnectionRole.COMMERCIAL,
+        Operator.IN,
+        [ConnectionRole.COMMERCIAL],
       );
 
       const connCommercialList = await this.connectionRepository.find(criteria);
