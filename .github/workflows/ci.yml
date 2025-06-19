@@ -202,8 +202,8 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
-          --health-start-period 30s
+          --health-retries 20
+          --health-start-period 60s
         ports:
           - 6379:6379
     
@@ -236,6 +236,9 @@ jobs:
         
       - name: Ensure coverage directory
         run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
+      
+      - name: Enable memory overcommit (required for Redis)
+        run: sudo sysctl -w vm.overcommit_memory=1
       
       - name: Wait for services to be ready
         run: |
@@ -330,8 +333,8 @@ jobs:
           --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
-          --health-start-period 30s
+          --health-retries 20
+          --health-start-period 60s
         ports:
           - 6379:6379
     
@@ -377,6 +380,9 @@ jobs:
           else
             echo "Using downloaded build artifacts"
           fi
+      
+      - name: Enable memory overcommit (required for Redis)
+        run: sudo sysctl -w vm.overcommit_memory=1
       
       - name: Wait for services to be ready
         run: |
