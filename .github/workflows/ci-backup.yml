@@ -172,7 +172,7 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  # Job para tests de integración - CRÍTICO con Redis mejorado
+  # Job para tests de integración - CRÍTICO
   test-integration:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -197,14 +197,14 @@ jobs:
           - 5432:5432
       
       redis:
-        image: redis:6
+        image: redis:6.2
         env:
-          REDIS_PASSWORD: ""
+          REDIS_HOST: localhost
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 3s
-          --health-retries 20
+          --health-retries 30
           --health-start-period 10s
           --name redis-integration
         ports:
@@ -240,77 +240,42 @@ jobs:
       - name: Ensure coverage directory
         run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
       
-      - name: Enable memory overcommit and configure system for Redis
-        run: |
-          sudo sysctl -w vm.overcommit_memory=1
-          sudo sysctl -w net.core.somaxconn=1024
-          echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
-      
-      - name: Install Redis tools
-        run: sudo apt-get update && sudo apt-get install -y redis-tools
+      - name: Enable memory overcommit (required for Redis)
+        run: sudo sysctl -w vm.overcommit_memory=1
       
       - name: Wait for services to be ready
         run: |
-          echo "🔄 Esperando a que los servicios estén listos..."
-          
-          for i in {1..60}; do
+          echo "Esperando a que los servicios estén listos..."
+          for i in {1..30}; do
             postgres_ready=false
             redis_ready=false
             
             # Verificar PostgreSQL
             if pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1; then
               postgres_ready=true
+              echo "✅ PostgreSQL listo"
             fi
             
-            # Verificar Redis con múltiples métodos
-            if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+            # Verificar Redis
+            if redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then
               redis_ready=true
-            elif nc -z localhost 6379 >/dev/null 2>&1; then
-              # Si el puerto está abierto pero no responde PING, intentar conectar directamente
-              echo "Port 6379 is open, testing Redis..."
-              sleep 1
-              if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
-                redis_ready=true
-              fi
+              echo "✅ Redis listo"
             fi
-            
-            echo "Intento $i/60: PostgreSQL=$postgres_ready, Redis=$redis_ready"
             
             if $postgres_ready && $redis_ready; then
-              echo "🎉 Todos los servicios están listos!"
+              echo "🎉 Todos los servicios están listos"
               break
             fi
             
-            # Debug cada 10 intentos
-            if [ $((i % 10)) -eq 0 ]; then
-              echo "📊 Debug en intento $i:"
-              echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U test 2>&1 || echo 'failed')"
-              echo "- Redis ping: $(redis-cli -h localhost -p 6379 ping 2>&1 || echo 'failed')"
-              echo "- Port 6379: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
-              echo "- Docker containers:"
-              docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(redis|postgres)" || echo "No Redis/Postgres containers"
-            fi
-            
+            echo "Intento $i/30: Esperando servicios (PostgreSQL: $postgres_ready, Redis: $redis_ready)..."
             sleep 2
           done
           
           # Verificación final
-          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1); then
-            echo "❌ PostgreSQL no está listo"
+          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1 && redis-cli -h localhost -p 6379 ping >/dev/null 2>&1); then
+            echo "❌ Error: Los servicios no están listos después de 60 segundos"
             exit 1
           fi
-          
-          if ! (redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG); then
-            echo "❌ Redis no está listo"
-            echo "Final debug:"
-            redis-cli -h localhost -p 6379 ping 2>&1 || echo "Redis ping failed"
-            nc -z localhost 6379 && echo "Port 6379 is open" || echo "Port 6379 is closed"
-            docker ps | grep redis || echo "No Redis container found"
-            docker logs $(docker ps -q --filter ancestor=redis:6) 2>/dev/null | tail -10 || echo "No Redis logs"
-            exit 1
-          fi
-          
-          echo "✅ Todos los servicios verificados y listos"
       
       - name: Setup test environment variables
         run: |
@@ -340,7 +305,7 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-  # Job para tests e2e - CRÍTICO con Redis mejorado
+  # Job para tests e2e - CRÍTICO
   test-e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
@@ -366,14 +331,14 @@ jobs:
           - 5432:5432
       
       redis:
-        image: redis:6
+        image: redis:6.2
         env:
-          REDIS_PASSWORD: ""
+          REDIS_HOST: localhost
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
           --health-timeout 3s
-          --health-retries 20
+          --health-retries 30
           --health-start-period 10s
           --name redis-e2e
         ports:
@@ -422,77 +387,42 @@ jobs:
             echo "Using downloaded build artifacts"
           fi
       
-      - name: Enable memory overcommit and configure system for Redis
-        run: |
-          sudo sysctl -w vm.overcommit_memory=1
-          sudo sysctl -w net.core.somaxconn=1024
-          echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
-      
-      - name: Install Redis tools
-        run: sudo apt-get update && sudo apt-get install -y redis-tools
+      - name: Enable memory overcommit (required for Redis)
+        run: sudo sysctl -w vm.overcommit_memory=1
       
       - name: Wait for services to be ready
         run: |
-          echo "🔄 Esperando a que los servicios estén listos..."
-          
-          for i in {1..60}; do
+          echo "Esperando a que los servicios estén listos..."
+          for i in {1..30}; do
             postgres_ready=false
             redis_ready=false
             
             # Verificar PostgreSQL
             if pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1; then
               postgres_ready=true
+              echo "✅ PostgreSQL listo"
             fi
             
-            # Verificar Redis con múltiples métodos
-            if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+            # Verificar Redis
+            if redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then
               redis_ready=true
-            elif nc -z localhost 6379 >/dev/null 2>&1; then
-              # Si el puerto está abierto pero no responde PING, intentar conectar directamente
-              echo "Port 6379 is open, testing Redis..."
-              sleep 1
-              if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
-                redis_ready=true
-              fi
+              echo "✅ Redis listo"
             fi
-            
-            echo "Intento $i/60: PostgreSQL=$postgres_ready, Redis=$redis_ready"
             
             if $postgres_ready && $redis_ready; then
-              echo "🎉 Todos los servicios están listos!"
+              echo "🎉 Todos los servicios están listos"
               break
             fi
             
-            # Debug cada 10 intentos
-            if [ $((i % 10)) -eq 0 ]; then
-              echo "📊 Debug en intento $i:"
-              echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U test 2>&1 || echo 'failed')"
-              echo "- Redis ping: $(redis-cli -h localhost -p 6379 ping 2>&1 || echo 'failed')"
-              echo "- Port 6379: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
-              echo "- Docker containers:"
-              docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(redis|postgres)" || echo "No Redis/Postgres containers"
-            fi
-            
+            echo "Intento $i/30: Esperando servicios (PostgreSQL: $postgres_ready, Redis: $redis_ready)..."
             sleep 2
           done
           
           # Verificación final
-          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1); then
-            echo "❌ PostgreSQL no está listo"
+          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1 && redis-cli -h localhost -p 6379 ping >/dev/null 2>&1); then
+            echo "❌ Error: Los servicios no están listos después de 60 segundos"
             exit 1
           fi
-          
-          if ! (redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG); then
-            echo "❌ Redis no está listo"
-            echo "Final debug:"
-            redis-cli -h localhost -p 6379 ping 2>&1 || echo "Redis ping failed"
-            nc -z localhost 6379 && echo "Port 6379 is open" || echo "Port 6379 is closed"
-            docker ps | grep redis || echo "No Redis container found"
-            docker logs $(docker ps -q --filter ancestor=redis:6) 2>/dev/null | tail -10 || echo "No Redis logs"
-            exit 1
-          fi
-          
-          echo "✅ Todos los servicios verificados y listos"
       
       - name: Setup test environment variables
         run: |
