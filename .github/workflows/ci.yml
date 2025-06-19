@@ -241,13 +241,35 @@ jobs:
         run: |
           echo "Esperando a que los servicios estén listos..."
           for i in {1..30}; do
-            if pg_isready -h localhost -p 5432 -U test && redis-cli -h localhost -p 6379 ping; then
-              echo "✅ Servicios listos"
+            postgres_ready=false
+            redis_ready=false
+            
+            # Verificar PostgreSQL
+            if pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1; then
+              postgres_ready=true
+              echo "✅ PostgreSQL listo"
+            fi
+            
+            # Verificar Redis
+            if redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then
+              redis_ready=true
+              echo "✅ Redis listo"
+            fi
+            
+            if $postgres_ready && $redis_ready; then
+              echo "🎉 Todos los servicios están listos"
               break
             fi
-            echo "Intento $i/30: Esperando servicios..."
+            
+            echo "Intento $i/30: Esperando servicios (PostgreSQL: $postgres_ready, Redis: $redis_ready)..."
             sleep 2
           done
+          
+          # Verificación final
+          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1 && redis-cli -h localhost -p 6379 ping >/dev/null 2>&1); then
+            echo "❌ Error: Los servicios no están listos después de 60 segundos"
+            exit 1
+          fi
       
       - name: Setup test environment variables
         run: |
@@ -360,13 +382,35 @@ jobs:
         run: |
           echo "Esperando a que los servicios estén listos..."
           for i in {1..30}; do
-            if pg_isready -h localhost -p 5432 -U test && redis-cli -h localhost -p 6379 ping; then
-              echo "✅ Servicios listos"
+            postgres_ready=false
+            redis_ready=false
+            
+            # Verificar PostgreSQL
+            if pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1; then
+              postgres_ready=true
+              echo "✅ PostgreSQL listo"
+            fi
+            
+            # Verificar Redis
+            if redis-cli -h localhost -p 6379 ping >/dev/null 2>&1; then
+              redis_ready=true
+              echo "✅ Redis listo"
+            fi
+            
+            if $postgres_ready && $redis_ready; then
+              echo "🎉 Todos los servicios están listos"
               break
             fi
-            echo "Intento $i/30: Esperando servicios..."
+            
+            echo "Intento $i/30: Esperando servicios (PostgreSQL: $postgres_ready, Redis: $redis_ready)..."
             sleep 2
           done
+          
+          # Verificación final
+          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1 && redis-cli -h localhost -p 6379 ping >/dev/null 2>&1); then
+            echo "❌ Error: Los servicios no están listos después de 60 segundos"
+            exit 1
+          fi
       
       - name: Setup test environment variables
         run: |
