@@ -27,13 +27,14 @@ import { RecalculateAssignmentOnCommercialDisconnectedEventHandler } from '../ap
 import { DetectCommercialDisconnectedEventHandler } from '../application/event/detect-commercial-disconnected.event-handler';
 import { CommercialAssignmentService } from '../domain/commercial-assignment.service';
 import { ChatModule } from 'src/context/conversations/chat/infrastructure/chat.module';
+import { RedisConnectionService } from './redis-connection.service';
 
 @Module({
   imports: [HttpModule, ChatModule],
   providers: [
     RealTimeWebSocketGateway,
     TokenVerifyService,
-    { provide: CONNECTION_REPOSITORY, useClass: InMemoryConnectionService },
+    { provide: CONNECTION_REPOSITORY, useClass: RedisConnectionService },
     {
       provide: CHAT_MESSAGE_EMITTER,
       useFactory: (socketServer: RealTimeWebSocketGateway) =>

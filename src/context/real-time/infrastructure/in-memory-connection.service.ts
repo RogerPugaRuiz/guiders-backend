@@ -105,11 +105,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
           }
           return false;
         case 'roles':
-          return this.applyOperator(
-            user.roles.map((role) => role.value).join(','),
-            operator,
-            value,
-          );
+          return this.applyRoleOperator(user.roles, operator, value);
         default:
           return false;
       }
@@ -130,6 +126,38 @@ export class InMemoryConnectionService implements ConnectionRepository {
         return Array.isArray(value) && value.includes(fieldValue);
       case Operator.NOT_IN:
         return Array.isArray(value) && !value.includes(fieldValue);
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Aplica operadores específicos para el campo de roles
+   * Maneja la lógica de verificación de roles en arrays
+   */
+  private applyRoleOperator(
+    userRoles: import('../domain/value-objects/connection-role').ConnectionRole[],
+    operator: Operator,
+    value: any,
+  ): boolean {
+    const rolesAsStrings = userRoles.map((role) => role.value);
+
+    switch (operator) {
+      case Operator.IN:
+        // Verifica si alguno de los roles del usuario está en la lista de valores
+        if (Array.isArray(value)) {
+          return value.some((v: string) => rolesAsStrings.includes(v));
+        }
+        return rolesAsStrings.includes(value as string);
+      case Operator.NOT_IN:
+        // Verifica que ninguno de los roles del usuario esté en la lista de valores
+        if (Array.isArray(value)) {
+          return !value.some((v: string) => rolesAsStrings.includes(v));
+        }
+        return !rolesAsStrings.includes(value as string);
+      case Operator.EQUALS:
+        // Para roles, verificamos si contiene exactamente el rol especificado
+        return rolesAsStrings.includes(value as string);
       default:
         return false;
     }
