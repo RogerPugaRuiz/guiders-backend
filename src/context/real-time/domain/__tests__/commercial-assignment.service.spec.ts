@@ -76,7 +76,7 @@ describe('CommercialAssignmentService', () => {
         (filter: any) => filter.field === 'companyId',
       );
       expect(companyIdFilter).toBeDefined();
-      expect(companyIdFilter.operator).toBe('EQUALS');
+      expect(companyIdFilter.operator).toBe('=');
       expect(companyIdFilter.value).toBe(testCompanyId);
     });
 
