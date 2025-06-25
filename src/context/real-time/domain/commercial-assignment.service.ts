@@ -23,8 +23,7 @@ export class CommercialAssignmentService {
     try {
       // Usar el operador EQUALS para verificar si el usuario tiene el rol 'commercial'
       // Esto funciona porque el repositorio maneja internamente la verificación de roles en array
-      const criteria = new Criteria<ConnectionUser>()
-      .addFilter(
+      const criteria = new Criteria<ConnectionUser>().addFilter(
         'roles',
         Operator.IN,
         [ConnectionRole.COMMERCIAL],

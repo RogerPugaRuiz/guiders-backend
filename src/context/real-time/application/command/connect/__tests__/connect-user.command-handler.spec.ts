@@ -10,6 +10,7 @@ import { ConnectionRole } from '../../../../domain/value-objects/connection-role
 import { ok, err } from 'src/context/shared/domain/result';
 import { CommercialConnectedEvent } from '../../../../domain/events/commercial-connected.event';
 import { ConnectionUserNotFound } from '../../../../domain/errors/connection-user-not-found';
+import { USER_ACCOUNT_REPOSITORY } from 'src/context/auth/auth-user/domain/user-account.repository';
 
 describe('ConnectUserCommandHandler', () => {
   let handler: ConnectUserCommandHandler;
@@ -17,6 +18,7 @@ describe('ConnectUserCommandHandler', () => {
   let mockNotification: any;
   let mockEventPublisher: any;
   let mockEventBus: any;
+  let mockUserAccountRepository: any;
 
   beforeEach(async () => {
     // Crear mocks
@@ -48,6 +50,12 @@ describe('ConnectUserCommandHandler', () => {
       publisher: jest.fn(),
     };
 
+    mockUserAccountRepository = {
+      findById: jest.fn(),
+      findByEmail: jest.fn(),
+      save: jest.fn(),
+    };
+
     // Configuración del módulo de prueba
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -68,6 +76,10 @@ describe('ConnectUserCommandHandler', () => {
           provide: EventBus,
           useValue: mockEventBus,
         },
+        {
+          provide: USER_ACCOUNT_REPOSITORY,
+          useValue: mockUserAccountRepository,
+        },
       ],
     }).compile();
 
@@ -85,6 +97,7 @@ describe('ConnectUserCommandHandler', () => {
         'user-123',
         ['visitor'],
         'socket-123',
+        '550e8400-e29b-41d4-a716-446655440000',
       );
 
       // Simular que no se encuentra el usuario (nueva conexión)
@@ -115,6 +128,7 @@ describe('ConnectUserCommandHandler', () => {
         'commercial-123',
         [ConnectionRole.COMMERCIAL],
         'socket-123',
+        '550e8400-e29b-41d4-a716-446655440000',
       );
 
       // Mock para usuario no encontrado inicialmente
@@ -150,6 +164,7 @@ describe('ConnectUserCommandHandler', () => {
         'user-123',
         ['visitor'],
         'socket-456',
+        '550e8400-e29b-41d4-a716-446655440000',
       );
 
       const mockConnection = {
@@ -181,6 +196,7 @@ describe('ConnectUserCommandHandler', () => {
         'user-123',
         ['visitor'],
         'socket-123',
+        '550e8400-e29b-41d4-a716-446655440000',
       );
 
       mockRepository.findOne.mockResolvedValue(
@@ -210,6 +226,7 @@ describe('ConnectUserCommandHandler', () => {
         'visitor-123',
         ['visitor'],
         'socket-123',
+        '550e8400-e29b-41d4-a716-446655440000',
       );
 
       mockRepository.findOne.mockResolvedValue(
@@ -230,6 +247,7 @@ describe('ConnectUserCommandHandler', () => {
         'commercial-123',
         [ConnectionRole.COMMERCIAL],
         'socket-123',
+        '550e8400-e29b-41d4-a716-446655440000',
       );
 
       // Primera llamada: usuario no encontrado (nueva conexión)

@@ -51,6 +51,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
         userId,
         socketId, // Puede ser undefined, lo que generará Optional.empty()
         roles,
+        companyId: '550e8400-e29b-41d4-a716-446655440000', // Default companyId para implementación en memoria
       });
       if (this.matchesCriteria(user, filters)) {
         users.push(user);
@@ -72,6 +73,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
         userId,
         socketId,
         roles,
+        companyId: '550e8400-e29b-41d4-a716-446655440000', // Default companyId para implementación en memoria
       });
       if (this.matchesCriteria(user, filters)) {
         return Promise.resolve(ok(user));

@@ -55,5 +55,6 @@ import { CreateInviteOnUserAccountCreatedEventHandler } from '../application/eve
     AcceptInviteCommandHandler,
     FindUsersByCompanyIdQueryHandler,
   ],
+  exports: [USER_ACCOUNT_REPOSITORY],
 })
 export class AuthUserModule {}

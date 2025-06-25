@@ -7,11 +7,13 @@ import { ConnectUseCase, ConnectUseCaseRequest } from '../connect.usecase';
 import { CONNECTION_REPOSITORY } from '../../../domain/connection.repository';
 import { ok, err } from 'src/context/shared/domain/result';
 import { ConnectionUserNotFound } from '../../../domain/errors/connection-user-not-found';
+import { USER_ACCOUNT_REPOSITORY } from 'src/context/auth/auth-user/domain/user-account.repository';
 
 describe('ConnectUseCase', () => {
   let useCase: ConnectUseCase;
   let mockRepository: any;
   let mockEventPublisher: any;
+  let mockUserAccountRepository: any;
 
   beforeEach(async () => {
     // Crear mocks
@@ -28,6 +30,12 @@ describe('ConnectUseCase', () => {
       mergeObjectContext: jest.fn().mockReturnValue(mockObjectWithContext),
     };
 
+    mockUserAccountRepository = {
+      findById: jest.fn(),
+      findByEmail: jest.fn(),
+      save: jest.fn(),
+    };
+
     // Configuración del módulo de prueba
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,6 +47,10 @@ describe('ConnectUseCase', () => {
         {
           provide: EventPublisher,
           useValue: mockEventPublisher,
+        },
+        {
+          provide: USER_ACCOUNT_REPOSITORY,
+          useValue: mockUserAccountRepository,
         },
       ],
     }).compile();
@@ -57,6 +69,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'user-123',
         roles: ['visitor'],
         socketId: 'socket-123',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       // Simular que no se encuentra el usuario
@@ -80,6 +93,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'user-456',
         roles: ['commercial', 'admin'],
         socketId: 'socket-456',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       mockRepository.findOne.mockResolvedValue(
@@ -101,6 +115,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'visitor-789',
         roles: ['visitor'],
         socketId: 'socket-789',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       mockRepository.findOne.mockResolvedValue(
@@ -123,6 +138,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'existing-user',
         roles: ['commercial'],
         socketId: 'new-socket-123',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       const mockConnection = {
@@ -158,6 +174,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'connected-user',
         roles: ['visitor'],
         socketId: 'existing-socket',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       const mockConnection = {
@@ -188,6 +205,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'user-error',
         roles: ['visitor'],
         socketId: 'socket-error',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       const repositoryError = new Error('Database connection failed');
@@ -205,6 +223,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'user-save-error',
         roles: ['commercial'],
         socketId: 'socket-save-error',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       const saveError = new Error('Failed to save connection');
@@ -225,6 +244,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'existing-save-error',
         roles: ['admin'],
         socketId: 'socket-update-error',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       const mockConnection = {
@@ -254,6 +274,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'user-no-roles',
         roles: [],
         socketId: 'socket-no-roles',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       mockRepository.findOne.mockResolvedValue(
@@ -278,13 +299,14 @@ describe('ConnectUseCase', () => {
 
       for (const socketId of socketIds) {
         const request: ConnectUseCaseRequest = {
-          connectionId: `user-${socketId}`,
+          connectionId: `user-socket-123`,
           roles: ['visitor'],
           socketId,
+          companyId: '550e8400-e29b-41d4-a716-446655440000',
         };
 
         mockRepository.findOne.mockResolvedValue(
-          err(new ConnectionUserNotFound(`user-${socketId}`)),
+          err(new ConnectionUserNotFound(`user-socket-123`)),
         );
         mockRepository.save.mockResolvedValue();
 
@@ -304,6 +326,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'event-user',
         roles: ['commercial'],
         socketId: 'event-socket',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       mockRepository.findOne.mockResolvedValue(
@@ -326,6 +349,7 @@ describe('ConnectUseCase', () => {
         connectionId: 'update-event-user',
         roles: ['visitor'],
         socketId: 'update-event-socket',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       };
 
       const mockConnection = {

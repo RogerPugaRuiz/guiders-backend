@@ -8,6 +8,7 @@ import { ConnectionRole } from '../../../domain/value-objects/connection-role';
 import { ConnectionUser } from '../../../domain/connection-user';
 import { ConnectionUserId } from '../../../domain/value-objects/connection-user-id';
 import { ConnectionSocketId } from '../../../domain/value-objects/connection-socket-id';
+import { ConnectionCompanyId } from '../../../domain/value-objects/connection-company-id';
 import { Status } from '../../../../conversations/chat/domain/chat/value-objects/status';
 import { ChatCommercialsAssignedEvent } from '../../../domain/events/chat-commercials-assigned.event';
 import { Chat } from '../../../../conversations/chat/domain/chat/chat';
@@ -189,6 +190,9 @@ function createMockConnectionUser(
   const connection = ConnectionUser.create({
     userId: new ConnectionUserId(userId),
     roles: [new ConnectionRole('commercial')],
+    companyId: ConnectionCompanyId.create(
+      '550e8400-e29b-41d4-a716-446655440000',
+    ),
   });
 
   if (isConnected) {

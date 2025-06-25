@@ -26,9 +26,10 @@ import { DetectCommercialDisconnectedEventHandler } from '../application/event/d
 import { CommercialAssignmentService } from '../domain/commercial-assignment.service';
 import { ChatModule } from 'src/context/conversations/chat/infrastructure/chat.module';
 import { RedisConnectionService } from './redis-connection.service';
+import { AuthUserModule } from 'src/context/auth/auth-user/infrastructure/auth-user.module';
 
 @Module({
-  imports: [HttpModule, ChatModule],
+  imports: [HttpModule, ChatModule, AuthUserModule],
   providers: [
     RealTimeWebSocketGateway,
     TokenVerifyService,

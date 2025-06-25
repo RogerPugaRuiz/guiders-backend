@@ -5,5 +5,6 @@ export class ConnectUserCommand implements ICommand {
     public readonly userId: string,
     public readonly roles: string[],
     public readonly socketId: string,
+    public readonly companyId?: string,
   ) {}
 }
