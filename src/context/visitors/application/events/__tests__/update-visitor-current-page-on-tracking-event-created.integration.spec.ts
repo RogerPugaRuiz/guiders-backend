@@ -54,14 +54,13 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler Integration
         visitorId,
         eventType: 'page_view',
         metadata: {
-          page: 'vehicle_search',
-          page_url: 'http://localhost:8080/vehicle-search', // Esta tendrá prioridad
-          referrer: 'http://localhost:8080/vehicle-comparison',
-          page_hash: '',
-          page_host: 'localhost:8080',
-          page_path: '/vehicle-search',
-          page_search: '',
-          page_protocol: 'http:',
+          page: {
+            url: 'http://localhost:8080/vehicle-search', // Esta tendrá prioridad
+            path: '/vehicle-search',
+            title: 'Vehicle Search',
+            referrer: 'http://localhost:8080/vehicle-comparison',
+          },
+          page_url: 'http://localhost:8080/vehicle-search-old', // Fallback legacy
           timestamp_url_injection: 1749630189102,
         },
         occurredAt: new Date(),
@@ -100,7 +99,9 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler Integration
         visitorId,
         eventType: 'page_view',
         metadata: {
-          page_path: expectedPage, // Solo page_path disponible
+          page: {
+            path: expectedPage, // Solo page.path disponible
+          },
           page_host: 'localhost:8080',
         },
         occurredAt: new Date(),
@@ -135,7 +136,9 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler Integration
         eventType: 'button_click',
         metadata: {
           button_id: 'submit-btn',
-          page: 'contact-form',
+          page: {
+            url: 'http://localhost:8080/contact-form',
+          },
         },
         occurredAt: new Date(),
       });
@@ -182,9 +185,11 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler Integration
         visitorId,
         eventType: 'page_view',
         metadata: {
-          page: '', // Empty string
-          page_path: '   ', // Whitespace only
-          page_url: expectedPage, // Valid fallback
+          page: {
+            url: expectedPage, // Valid URL in page.url
+            path: '   ', // Whitespace only
+          },
+          page_url: 'http://localhost:8080/ignored', // Should be ignored since page.url exists
         },
         occurredAt: new Date(),
       });
@@ -204,7 +209,7 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler Integration
       // Act
       await eventHandler.handle(trackingEvent);
 
-      // Assert - Debería usar page_url como fallback
+      // Assert - Debería usar page.url
       expect(mockVisitorRepository.findById).toHaveBeenCalledWith(
         expect.objectContaining({ value: visitorId }),
       );
@@ -218,7 +223,6 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler Integration
         eventType: 'page_view',
         metadata: {
           page: null,
-          page_path: undefined,
           page_url: null,
           other_data: 'some_value',
         },
