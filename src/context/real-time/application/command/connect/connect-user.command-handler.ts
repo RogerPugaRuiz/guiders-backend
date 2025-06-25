@@ -15,8 +15,13 @@ import { ConnectionUser } from '../../../domain/connection-user';
 import { ConnectionSocketId } from '../../../domain/value-objects/connection-socket-id';
 import { ConnectionUserId } from '../../../domain/value-objects/connection-user-id';
 import { ConnectionRole } from '../../../domain/value-objects/connection-role';
+import { ConnectionCompanyId } from '../../../domain/value-objects/connection-company-id';
 import { INotification, NOTIFICATION } from '../../../domain/notification';
 import { CommercialConnectedEvent } from '../../../domain/events/commercial-connected.event';
+import {
+  UserAccountRepository,
+  USER_ACCOUNT_REPOSITORY,
+} from 'src/context/auth/auth-user/domain/user-account.repository';
 
 @CommandHandler(ConnectUserCommand)
 export class ConnectUserCommandHandler
@@ -30,9 +35,22 @@ export class ConnectUserCommandHandler
     private readonly notification: INotification,
     private readonly publisher: EventPublisher,
     private readonly eventBus: EventBus,
+    @Inject(USER_ACCOUNT_REPOSITORY)
+    private readonly userAccountRepository: UserAccountRepository,
   ) {}
   async execute(command: ConnectUserCommand): Promise<void> {
-    const { userId, socketId, roles } = command;
+    const { userId, socketId, roles, companyId } = command;
+
+    // Si no se proporciona companyId, lo obtenemos del UserAccount
+    let resolvedCompanyId = companyId;
+    if (!resolvedCompanyId) {
+      const userAccount = await this.userAccountRepository.findById(userId);
+      if (!userAccount) {
+        this.logger.error(`User account not found for userId: ${userId}`);
+        throw new Error(`User account not found for userId: ${userId}`);
+      }
+      resolvedCompanyId = userAccount.companyId.getValue();
+    }
 
     const criteria = new Criteria<ConnectionUser>().addFilter(
       'userId',
@@ -43,7 +61,8 @@ export class ConnectUserCommandHandler
     const result = await this.repository.findOne(criteria);
 
     await result.fold(
-      () => this.handleNewConnection(userId, roles, socketId),
+      () =>
+        this.handleNewConnection(userId, roles, socketId, resolvedCompanyId),
       async (connection) =>
         await this.handleExistingConnection(connection, socketId),
     );
@@ -99,10 +118,12 @@ export class ConnectUserCommandHandler
     userId: string,
     roles: string[],
     socketId: string,
+    companyId: string,
   ): Promise<void> {
     const newConnection = ConnectionUser.create({
       userId: ConnectionUserId.create(userId),
       roles: roles.map((role) => ConnectionRole.create(role)),
+      companyId: ConnectionCompanyId.create(companyId),
     });
     const newConnectionWithSocket = newConnection.connect(
       ConnectionSocketId.create(socketId),

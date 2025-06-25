@@ -25,6 +25,7 @@ export class RedisConnectionService
   private readonly USER_SOCKET_KEY = 'user:socket:'; // user:socket:userId -> socketId
   private readonly SOCKET_USER_KEY = 'socket:user:'; // socket:user:socketId -> userId
   private readonly USER_ROLES_KEY = 'user:roles:'; // user:roles:userId -> JSON array of roles
+  private readonly USER_COMPANY_KEY = 'user:company:'; // user:company:userId -> companyId
   private readonly ALL_USERS_KEY = 'users:all'; // Set con todos los userIds
 
   constructor() {
@@ -83,7 +84,7 @@ export class RedisConnectionService
   async save(user: ConnectionUser): Promise<void> {
     await this.ensureConnection();
 
-    const { userId, roles } = user.toPrimitives();
+    const { userId, roles, companyId } = user.toPrimitives();
 
     try {
       // Usar pipeline para operaciones atómicas
@@ -94,6 +95,9 @@ export class RedisConnectionService
 
       // Guardar roles del usuario
       pipeline.set(this.USER_ROLES_KEY + userId, JSON.stringify(roles));
+
+      // Guardar companyId del usuario
+      pipeline.set(this.USER_COMPANY_KEY + userId, companyId);
 
       if (user.socketId.isPresent()) {
         const socketId = user.socketId.get().value;
@@ -138,6 +142,7 @@ export class RedisConnectionService
       // Eliminar de todos los índices
       pipeline.sRem(this.ALL_USERS_KEY, userId);
       pipeline.del(this.USER_ROLES_KEY + userId);
+      pipeline.del(this.USER_COMPANY_KEY + userId);
       pipeline.del(this.USER_SOCKET_KEY + userId);
 
       if (socketId) {
@@ -209,13 +214,14 @@ export class RedisConnectionService
     userId: string,
   ): Promise<ConnectionUser | null> {
     try {
-      // Obtener roles y socketId del usuario
-      const [rolesJson, socketId] = await Promise.all([
+      // Obtener roles, socketId y companyId del usuario
+      const [rolesJson, socketId, companyId] = await Promise.all([
         this.redisClient.get(this.USER_ROLES_KEY + userId),
         this.redisClient.get(this.USER_SOCKET_KEY + userId),
+        this.redisClient.get(this.USER_COMPANY_KEY + userId),
       ]);
 
-      if (!rolesJson) {
+      if (!rolesJson || !companyId) {
         return null; // Usuario no tiene datos válidos
       }
 
@@ -225,6 +231,7 @@ export class RedisConnectionService
         userId,
         socketId: socketId || undefined,
         roles,
+        companyId,
       });
     } catch (error) {
       console.error(

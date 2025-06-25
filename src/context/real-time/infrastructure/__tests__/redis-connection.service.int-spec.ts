@@ -9,11 +9,15 @@ import {
   ConnectionRoleEnum,
 } from '../../domain/value-objects/connection-role';
 import { ConnectionSocketId } from '../../domain/value-objects/connection-socket-id';
+import { ConnectionCompanyId } from '../../domain/value-objects/connection-company-id';
 import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 
 describe('RedisConnectionService', () => {
   let service: RedisConnectionService;
   let module: TestingModule;
+
+  // Constante para testing
+  const TEST_COMPANY_ID = '550e8400-e29b-41d4-a716-446655440000';
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -71,6 +75,7 @@ describe('RedisConnectionService', () => {
         const testUser = ConnectionUser.create({
           userId: ConnectionUserId.create(userId),
           roles: [new ConnectionRole(ConnectionRoleEnum.VISITOR)],
+          companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
         });
         await service.remove(testUser);
       }
@@ -93,7 +98,11 @@ describe('RedisConnectionService', () => {
       const socketId = ConnectionSocketId.create('socket-123');
       const roles = [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)];
 
-      const user = ConnectionUser.create({ userId, roles }).connect(socketId);
+      const user = ConnectionUser.create({
+        userId,
+        roles,
+        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+      }).connect(socketId);
 
       try {
         // Act
@@ -134,7 +143,11 @@ describe('RedisConnectionService', () => {
         new ConnectionRole(ConnectionRoleEnum.ADMIN),
       ];
 
-      const user = ConnectionUser.create({ userId, roles }).connect(socketId);
+      const user = ConnectionUser.create({
+        userId,
+        roles,
+        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+      }).connect(socketId);
 
       try {
         // Act
@@ -172,7 +185,11 @@ describe('RedisConnectionService', () => {
       const socketId = ConnectionSocketId.create('socket-789');
       const roles = [new ConnectionRole(ConnectionRoleEnum.VISITOR)];
 
-      const user = ConnectionUser.create({ userId, roles }).connect(socketId);
+      const user = ConnectionUser.create({
+        userId,
+        roles,
+        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+      }).connect(socketId);
 
       try {
         // Act
@@ -209,7 +226,11 @@ describe('RedisConnectionService', () => {
       const socketId = ConnectionSocketId.create('socket-remove');
       const roles = [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)];
 
-      const user = ConnectionUser.create({ userId, roles }).connect(socketId);
+      const user = ConnectionUser.create({
+        userId,
+        roles,
+        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+      }).connect(socketId);
 
       try {
         // Act - guardar y luego eliminar

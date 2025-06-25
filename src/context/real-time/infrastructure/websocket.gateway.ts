@@ -146,8 +146,11 @@ export class RealTimeWebSocketGateway
         throw new UnauthorizedException();
       }
       const socketId = client.id;
-      const { sub: connectionId, role: roles } =
-        await this.tokenVerifyService.verifyToken(token);
+      const {
+        sub: connectionId,
+        role: roles,
+        companyId,
+      } = await this.tokenVerifyService.verifyToken(token);
 
       // Si existe un timeout de desconexión pendiente para este usuario, lo cancelamos
       if (this.disconnectTimeouts.has(connectionId)) {
@@ -159,7 +162,7 @@ export class RealTimeWebSocketGateway
       }
 
       await this.commandBus.execute(
-        new ConnectUserCommand(connectionId, roles, socketId),
+        new ConnectUserCommand(connectionId, roles, socketId, companyId),
       );
 
       await Promise.all(roles.map(async (r) => client.join(r)));

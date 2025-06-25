@@ -2,6 +2,7 @@ import { Optional } from 'src/context/shared/domain/optional';
 import { ConnectionRole } from './value-objects/connection-role';
 import { ConnectionSocketId } from './value-objects/connection-socket-id';
 import { ConnectionUserId } from './value-objects/connection-user-id';
+import { ConnectionCompanyId } from './value-objects/connection-company-id';
 import { AggregateRoot } from '@nestjs/cqrs';
 import { ConnectedEvent } from './events/connected.event';
 import { DisconnectedEvent } from './events/disconnected.event';
@@ -11,6 +12,7 @@ export interface ConnectionUserPrimitive {
   userId: string;
   socketId: string | null;
   roles: string[];
+  companyId: string;
 }
 
 export class ConnectionUser extends AggregateRoot {
@@ -18,6 +20,7 @@ export class ConnectionUser extends AggregateRoot {
     readonly userId: ConnectionUserId,
     readonly socketId: Optional<ConnectionSocketId>,
     readonly roles: ConnectionRole[],
+    readonly companyId: ConnectionCompanyId,
   ) {
     super();
   }
@@ -25,14 +28,21 @@ export class ConnectionUser extends AggregateRoot {
   public static create(params: {
     userId: ConnectionUserId;
     roles: ConnectionRole[];
+    companyId: ConnectionCompanyId;
   }): ConnectionUser {
-    return new ConnectionUser(params.userId, Optional.empty(), params.roles);
+    return new ConnectionUser(
+      params.userId,
+      Optional.empty(),
+      params.roles,
+      params.companyId,
+    );
   }
 
   public static fromPrimitives(primitives: {
     userId: string;
     socketId?: string;
     roles: string[];
+    companyId: string;
   }): ConnectionUser {
     return new ConnectionUser(
       ConnectionUserId.create(primitives.userId),
@@ -42,6 +52,7 @@ export class ConnectionUser extends AggregateRoot {
           )
         : Optional.empty(),
       primitives.roles.map((role) => ConnectionRole.create(role)),
+      ConnectionCompanyId.create(primitives.companyId),
     );
   }
 
@@ -81,11 +92,17 @@ export class ConnectionUser extends AggregateRoot {
       userId: this.userId.value,
       socketId: this.socketId.map((socketId) => socketId.value).getOrNull(),
       roles: this.roles.map((role) => role.value),
+      companyId: this.companyId.value,
     };
   }
 
   public updateRole(roles: ConnectionRole[]): ConnectionUser {
-    return new ConnectionUser(this.userId, this.socketId, roles);
+    return new ConnectionUser(
+      this.userId,
+      this.socketId,
+      roles,
+      this.companyId,
+    );
   }
 
   public connect(socketId: ConnectionSocketId): ConnectionUser {
@@ -93,6 +110,7 @@ export class ConnectionUser extends AggregateRoot {
       this.userId,
       Optional.of(socketId),
       this.roles,
+      this.companyId,
     );
     newConnection.apply(new ConnectedEvent(newConnection.toPrimitives()));
     return newConnection;
@@ -103,6 +121,7 @@ export class ConnectionUser extends AggregateRoot {
       this.userId,
       Optional.empty(),
       this.roles,
+      this.companyId,
     );
 
     newDisconnect.apply(new DisconnectedEvent(newDisconnect.toPrimitives()));
