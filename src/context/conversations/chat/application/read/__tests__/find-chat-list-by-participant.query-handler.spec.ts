@@ -23,6 +23,7 @@ describe('FindChatListByParticipantQueryHandler', () => {
     const participantId = 'user-uuid';
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-1',
+      companyId: 'test-company-id',
       participants: [],
       status: 'active',
       lastMessage: null,

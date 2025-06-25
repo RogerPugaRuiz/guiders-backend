@@ -15,7 +15,12 @@ export class ChatService {
     companyId: string,
     visitorName?: string,
   ): Promise<void> {
-    const command = new StartChatCommand(chatId, visitorId, companyId, visitorName);
+    const command = new StartChatCommand(
+      chatId,
+      visitorId,
+      companyId,
+      visitorName,
+    );
     await this.commandBus.execute(command);
   }
 }

@@ -23,6 +23,7 @@ describe('FindChatListWithFiltersQueryHandler', () => {
   const createMockChat = (id: string, createdAt: Date): Chat => {
     const chatPrimitives: ChatPrimitives = {
       id,
+      companyId: 'test-company-id',
       participants: [
         {
           id: 'commercial-user-uuid',

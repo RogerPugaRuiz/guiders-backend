@@ -65,6 +65,7 @@ describe('ParticipantSeenChatCommandHandler', () => {
     // Simula que el chat existe y el participantId no
     const chat = Chat.fromPrimitives({
       id: command.params.chatId,
+      companyId: 'test-company-id',
       participants: [
         {
           id: Uuid.generate(),
@@ -112,6 +113,7 @@ describe('ParticipantSeenChatCommandHandler', () => {
 
     const chat = Chat.fromPrimitives({
       id: command.params.chatId,
+      companyId: 'test-company-id',
       participants: [
         {
           id: command.params.participantId,

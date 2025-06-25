@@ -5,7 +5,7 @@ describe('CompanyId', () => {
     it('should create CompanyId with valid string', () => {
       const validId = 'valid-company-id';
       const companyId = CompanyId.create(validId);
-      
+
       expect(companyId).toBeInstanceOf(CompanyId);
       expect(companyId.getValue()).toBe(validId);
     });

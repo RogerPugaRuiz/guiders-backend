@@ -354,7 +354,11 @@ export class RealTimeWebSocketGateway
     const { chatId } = event.data;
     const participantId = client.user.sub;
     const companyId = client.user.companyId || 'default-company';
-    const command = new StartChatCommand(chatId as string, participantId, companyId);
+    const command = new StartChatCommand(
+      chatId as string,
+      participantId,
+      companyId,
+    );
     await this.commandBus.execute<StartChatCommand, void>(command);
     return Promise.resolve(
       ResponseBuilder.create()

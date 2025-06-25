@@ -46,6 +46,7 @@ describe('ChatController', () => {
       const chatId = 'chat-uuid';
       const chat: ChatPrimitives = {
         id: chatId,
+        companyId: 'test-company-id',
         participants: [],
         status: 'active',
         lastMessage: null,

@@ -19,6 +19,7 @@ describe('FindOneChatByIdQueryHandler', () => {
     const chatId = 'chat-uuid';
     const chatPrimitives: ChatPrimitives = {
       id: chatId,
+      companyId: 'test-company-id',
       participants: [],
       status: 'active',
       lastMessage: null,

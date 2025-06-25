@@ -90,7 +90,11 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
   ): Promise<any> {
     const { id: visitorId, companyId } = req.user;
-    return await this.chatService.startChat(chatId, visitorId, companyId || 'default-company');
+    return await this.chatService.startChat(
+      chatId,
+      visitorId,
+      companyId || 'default-company',
+    );
   }
 
   // Obtener mensajes paginados de un chat específico
