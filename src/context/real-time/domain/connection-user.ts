@@ -12,7 +12,7 @@ export interface ConnectionUserPrimitive {
   userId: string;
   socketId: string | null;
   roles: string[];
-  companyId: string;
+  companyId?: string;
 }
 
 export class ConnectionUser extends AggregateRoot {
@@ -42,7 +42,7 @@ export class ConnectionUser extends AggregateRoot {
     userId: string;
     socketId?: string;
     roles: string[];
-    companyId: string;
+    companyId?: string;
   }): ConnectionUser {
     return new ConnectionUser(
       ConnectionUserId.create(primitives.userId),
@@ -52,7 +52,9 @@ export class ConnectionUser extends AggregateRoot {
           )
         : Optional.empty(),
       primitives.roles.map((role) => ConnectionRole.create(role)),
-      ConnectionCompanyId.create(primitives.companyId),
+      ConnectionCompanyId.create(
+        primitives.companyId || '550e8400-e29b-41d4-a716-446655440000',
+      ),
     );
   }
 

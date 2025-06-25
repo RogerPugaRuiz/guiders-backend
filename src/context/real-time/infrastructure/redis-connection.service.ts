@@ -97,7 +97,10 @@ export class RedisConnectionService
       pipeline.set(this.USER_ROLES_KEY + userId, JSON.stringify(roles));
 
       // Guardar companyId del usuario
-      pipeline.set(this.USER_COMPANY_KEY + userId, companyId);
+      pipeline.set(
+        this.USER_COMPANY_KEY + userId,
+        companyId || '550e8400-e29b-41d4-a716-446655440000',
+      );
 
       if (user.socketId.isPresent()) {
         const socketId = user.socketId.get().value;
