@@ -23,6 +23,7 @@ describe('StartChatCommandHandler', () => {
 
   const mockChatId = 'chat-123';
   const mockVisitorId = 'visitor-123';
+  const mockCompanyId = 'company-123';
   const mockVisitorName = 'John Doe';
   const mockTimestamp = new Date('2024-01-01T10:00:00Z');
 
@@ -87,6 +88,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         mockVisitorId,
+        mockCompanyId,
         mockVisitorName,
         mockTimestamp,
       );
@@ -99,6 +101,7 @@ describe('StartChatCommandHandler', () => {
       // Assert
       expect(Chat.createPendingChat).toHaveBeenCalledWith({
         chatId: mockChatId,
+        companyId: mockCompanyId,
         visitor: {
           id: mockVisitorId,
           name: mockVisitorName,
@@ -115,6 +118,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         mockVisitorId,
+        mockCompanyId,
         mockVisitorName,
       );
       chatRepository.save.mockResolvedValue(undefined);
@@ -126,6 +130,7 @@ describe('StartChatCommandHandler', () => {
       // Assert
       expect(Chat.createPendingChat).toHaveBeenCalledWith({
         chatId: mockChatId,
+        companyId: mockCompanyId,
         visitor: {
           id: mockVisitorId,
           name: mockVisitorName,
@@ -139,6 +144,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         mockVisitorId,
+        mockCompanyId,
         mockVisitorName,
         mockTimestamp,
       );
@@ -160,6 +166,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         customVisitorId,
+        mockCompanyId,
         customVisitorName,
         mockTimestamp,
       );
@@ -172,6 +179,7 @@ describe('StartChatCommandHandler', () => {
       // Assert
       expect(Chat.createPendingChat).toHaveBeenCalledWith({
         chatId: mockChatId,
+        companyId: mockCompanyId,
         visitor: {
           id: customVisitorId,
           name: customVisitorName,
@@ -185,6 +193,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         mockVisitorId,
+        mockCompanyId,
         mockVisitorName,
         mockTimestamp,
       );
@@ -207,6 +216,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         mockVisitorId,
+        mockCompanyId,
         undefined, // Sin nombre de visitante
         mockTimestamp,
       );
@@ -221,6 +231,7 @@ describe('StartChatCommandHandler', () => {
       expect(queryBus.execute).toHaveBeenCalledTimes(1);
       expect(Chat.createPendingChat).toHaveBeenCalledWith({
         chatId: mockChatId,
+        companyId: mockCompanyId,
         visitor: {
           id: mockVisitorId,
           name: 'Found Visitor',
@@ -234,6 +245,7 @@ describe('StartChatCommandHandler', () => {
       const command = new StartChatCommand(
         mockChatId,
         mockVisitorId,
+        mockCompanyId,
         undefined, // Sin nombre de visitante
         mockTimestamp,
       );
@@ -247,6 +259,7 @@ describe('StartChatCommandHandler', () => {
       expect(queryBus.execute).toHaveBeenCalledTimes(1);
       expect(Chat.createPendingChat).toHaveBeenCalledWith({
         chatId: mockChatId,
+        companyId: mockCompanyId,
         visitor: {
           id: mockVisitorId,
           name: 'Visitante Anónimo',

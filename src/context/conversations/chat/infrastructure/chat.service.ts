@@ -12,9 +12,10 @@ export class ChatService {
   public async startChat(
     chatId: string,
     visitorId: string,
+    companyId: string,
     visitorName?: string,
   ): Promise<void> {
-    const command = new StartChatCommand(chatId, visitorId, visitorName);
+    const command = new StartChatCommand(chatId, visitorId, companyId, visitorName);
     await this.commandBus.execute(command);
   }
 }

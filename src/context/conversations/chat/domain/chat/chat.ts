@@ -2,6 +2,7 @@ import { ChatId } from './value-objects/chat-id';
 import { LastMessage } from './value-objects/last-message';
 import { LastMessageAt } from './value-objects/last-message-at';
 import { Status } from './value-objects/status';
+import { CompanyId } from './value-objects/company-id';
 import { AggregateRoot } from '@nestjs/cqrs';
 import { Participants } from './participants';
 import { NewChatCreatedEvent } from './events/new-chat-created.event';
@@ -32,6 +33,7 @@ export interface ParticipantPrimitives {
 
 export interface ChatPrimitives {
   id: string;
+  companyId: string;
   participants: ParticipantPrimitives[];
   status: string;
   lastMessage: string | null;
@@ -42,6 +44,7 @@ export interface ChatPrimitives {
 export class Chat extends AggregateRoot {
   private constructor(
     readonly id: ChatId,
+    readonly companyId: CompanyId,
     readonly status: Status,
     readonly participants: Participants,
     readonly lastMessage: LastMessage | null,
@@ -53,6 +56,7 @@ export class Chat extends AggregateRoot {
 
   public static fromPrimitives(params: {
     id: string;
+    companyId: string;
     participants: {
       id: string;
       name: string;
@@ -71,6 +75,7 @@ export class Chat extends AggregateRoot {
   }): Chat {
     return new Chat(
       ChatId.create(params.id),
+      CompanyId.create(params.companyId),
       Status.create(params.status),
       Participants.create(params.participants),
       params.lastMessage ? LastMessage.create(params.lastMessage) : null,
@@ -84,6 +89,7 @@ export class Chat extends AggregateRoot {
   public static createPendingChat(params: {
     createdAt: Date;
     chatId: string;
+    companyId: string;
     visitor: { id: string; name?: string };
   }): Chat {
     const visitor = params.visitor;
@@ -99,6 +105,7 @@ export class Chat extends AggregateRoot {
 
     const pendingChat = new Chat(
       ChatId.create(params.chatId),
+      CompanyId.create(params.companyId),
       Status.PENDING,
       participants,
       null,
@@ -279,6 +286,7 @@ export class Chat extends AggregateRoot {
 
     const updatedChat = new Chat(
       this.id,
+      this.companyId,
       updatedStatus,
       this.participants,
       lastMessage,
@@ -314,6 +322,7 @@ export class Chat extends AggregateRoot {
     }
     const updatedChat = new Chat(
       this.id,
+      this.companyId,
       Status.ACTIVE,
       this.participants,
       this.lastMessage,
@@ -457,6 +466,7 @@ export class Chat extends AggregateRoot {
   public toPrimitives(): ChatPrimitives {
     return {
       id: this.id.value,
+      companyId: this.companyId.getValue(),
       participants: this.participants.value.map((participant) => ({
         id: participant.id,
         name: participant.name,

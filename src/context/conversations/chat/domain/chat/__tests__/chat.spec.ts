@@ -10,6 +10,7 @@ describe('Chat Domain', () => {
 
   const createValidChatPrimitives = (): ChatPrimitives => ({
     id: validChatId,
+    companyId: 'test-company-id',
     participants: [
       {
         id: validVisitorId,
@@ -72,12 +73,14 @@ describe('Chat Domain', () => {
       const params = {
         createdAt: validCreatedAt,
         chatId: validChatId,
+        companyId: 'test-company-id',
         visitor: { id: validVisitorId, name: 'Test Visitor' },
       };
 
       const chat = Chat.createPendingChat(params);
 
       expect(chat.id.value).toBe(validChatId);
+      expect(chat.companyId.getValue()).toBe('test-company-id');
       expect(chat.status.value).toBe('pending');
       expect(chat.participants.value).toHaveLength(1);
       expect(chat.participants.hasParticipant(validVisitorId)).toBe(true);
@@ -90,6 +93,7 @@ describe('Chat Domain', () => {
       const params = {
         createdAt: validCreatedAt,
         chatId: validChatId,
+        companyId: 'test-company-id',
         visitor: { id: validVisitorId, name: 'Test Visitor' },
       };
 
@@ -421,6 +425,7 @@ describe('Chat Domain', () => {
       const result = chat.toPrimitives();
 
       expect(result.id).toBe(validChatId);
+      expect(result.companyId).toBe('test-company-id');
       expect(result.status).toBe('pending');
       expect(result.participants).toHaveLength(1);
       expect(result.participants[0].id).toBe(validVisitorId);
@@ -437,6 +442,7 @@ describe('Chat Domain', () => {
 
       expect(result.lastMessage).toBeNull();
       expect(result.lastMessageAt).toBeNull();
+      expect(result.companyId).toBe('test-company-id');
     });
   });
 });
