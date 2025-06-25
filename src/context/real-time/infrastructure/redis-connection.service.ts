@@ -281,6 +281,8 @@ export class RedisConnectionService
           return operator === Operator.IS_NULL;
         case 'roles':
           return this.applyRoleOperator(user.roles, operator, value);
+        case 'companyId':
+          return this.applyOperator(user.companyId.value, operator, value);
         default:
           return false;
       }
