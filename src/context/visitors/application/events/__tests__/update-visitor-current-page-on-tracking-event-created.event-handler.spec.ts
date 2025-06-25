@@ -35,19 +35,33 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
   });
 
   describe('handle', () => {
-    it('should execute UpdateVisitorCurrentPageCommand when event type is page_view and has page in metadata', async () => {
+    it('should execute UpdateVisitorCurrentPageCommand when event type is page_view and has page with url in metadata', async () => {
       // Arrange
       const visitorId = 'visitor-123';
       const metadata = {
-        page: 'vehicle_search',
-        page_url: 'http://localhost:8080/vehicle-search',
-        referrer: 'http://localhost:8080/vehicle-comparison',
-        page_hash: '',
-        page_host: 'localhost:8080',
-        page_path: '/vehicle-search',
-        page_search: '',
-        page_protocol: 'http:',
-        timestamp_url_injection: 1749630189102,
+        page: {
+          url: 'http://localhost:8080/vehicle-search',
+          path: '/vehicle-search',
+          search: '?q=honda',
+          host: 'localhost:8080',
+          protocol: 'http:',
+          hash: '',
+          referrer: 'http://localhost:8080/vehicle-comparison',
+          timestamp: 1750851251584,
+        },
+        session: {
+          sessionId: '34eed1e7-f078-4ddd-bcd9-1ed9de5c097f',
+          startTime: 1750656609125,
+          lastActiveTime: 1750851251079,
+          totalActiveTime: 2423033,
+          isActive: true,
+          isIdle: false,
+        },
+        device: {
+          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+          platform: 'MacIntel',
+          language: 'es-ES',
+        },
       };
 
       const event = new TrackingEventCreatedEvent({
@@ -73,13 +87,15 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       );
     });
 
-    it('should execute UpdateVisitorCurrentPageCommand with page_url when available (highest priority)', async () => {
+    it('should execute UpdateVisitorCurrentPageCommand with url when available (highest priority)', async () => {
       // Arrange
       const visitorId = 'visitor-456';
       const metadata = {
-        page_url: 'http://localhost:8080/vehicle-comparison',
-        page_path: '/vehicle-comparison',
-        page_host: 'localhost:8080',
+        page: {
+          url: 'http://localhost:8080/vehicle-comparison',
+          path: '/vehicle-comparison',
+          host: 'localhost:8080',
+        },
       };
 
       const event = new TrackingEventCreatedEvent({
@@ -105,48 +121,18 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       );
     });
 
-    it('should execute UpdateVisitorCurrentPageCommand with page_url when page and page_path are not available', async () => {
+    it('should execute UpdateVisitorCurrentPageCommand with path when url is not available', async () => {
       // Arrange
       const visitorId = 'visitor-789';
       const metadata = {
-        page_url: 'http://localhost:8080/home',
-        page_host: 'localhost:8080',
+        page: {
+          path: '/about-us',
+          host: 'localhost:8080',
+        },
       };
 
       const event = new TrackingEventCreatedEvent({
         id: 'tracking-event-789',
-        visitorId,
-        eventType: 'page_view',
-        metadata,
-        occurredAt: new Date(),
-      });
-
-      mockCommandBus.execute.mockResolvedValue(undefined);
-
-      // Act
-      await handler.handle(event);
-
-      // Assert
-      expect(mockCommandBus.execute).toHaveBeenCalledTimes(1);
-      expect(mockCommandBus.execute).toHaveBeenCalledWith(
-        new UpdateVisitorCurrentPageCommand(
-          visitorId,
-          'http://localhost:8080/home',
-        ),
-      );
-    });
-
-    it('should execute UpdateVisitorCurrentPageCommand with page_path when page_url and page are not available', async () => {
-      // Arrange
-      const visitorId = 'visitor-999';
-      const metadata = {
-        page_path: '/about-us',
-        page_host: 'localhost:8080',
-        referrer: 'http://localhost:8080/home',
-      };
-
-      const event = new TrackingEventCreatedEvent({
-        id: 'tracking-event-999',
         visitorId,
         eventType: 'page_view',
         metadata,
@@ -169,7 +155,9 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       // Arrange
       const visitorId = 'visitor-111';
       const metadata = {
-        page: 'some-page',
+        page: {
+          url: 'http://localhost:8080/some-page',
+        },
         action: 'click',
       };
 
@@ -188,7 +176,7 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       expect(mockCommandBus.execute).not.toHaveBeenCalled();
     });
 
-    it('should not execute command when page_view event has no page information in metadata', async () => {
+    it('should not execute command when page_view event has no page object in metadata', async () => {
       // Arrange
       const visitorId = 'visitor-222';
       const metadata = {
@@ -211,16 +199,43 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       expect(mockCommandBus.execute).not.toHaveBeenCalled();
     });
 
-    it('should log correct messages during successful execution', async () => {
+    it('should not execute command when page object exists but has no url or path', async () => {
       // Arrange
       const visitorId = 'visitor-333';
       const metadata = {
-        page: 'contact_page',
-        page_url: 'http://localhost:8080/contact',
+        page: {
+          host: 'localhost:8080',
+          protocol: 'http:',
+        },
       };
 
       const event = new TrackingEventCreatedEvent({
         id: 'tracking-event-333',
+        visitorId,
+        eventType: 'page_view',
+        metadata,
+        occurredAt: new Date(),
+      });
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      expect(mockCommandBus.execute).not.toHaveBeenCalled();
+    });
+
+    it('should log correct messages during successful execution', async () => {
+      // Arrange
+      const visitorId = 'visitor-444';
+      const metadata = {
+        page: {
+          url: 'http://localhost:8080/contact',
+          path: '/contact',
+        },
+      };
+
+      const event = new TrackingEventCreatedEvent({
+        id: 'tracking-event-444',
         visitorId,
         eventType: 'page_view',
         metadata,
@@ -249,7 +264,9 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       // Arrange
       const visitorId = 'visitor-error';
       const metadata = {
-        page: 'error_page',
+        page: {
+          url: 'http://localhost:8080/error',
+        },
       };
 
       const event = new TrackingEventCreatedEvent({
@@ -278,7 +295,9 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       // Arrange
       const visitorId = 'visitor-unknown-error';
       const metadata = {
-        page: 'unknown_error_page',
+        page: {
+          path: '/unknown-error',
+        },
       };
 
       const event = new TrackingEventCreatedEvent({
@@ -301,34 +320,42 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       );
     });
 
-    it('should work with different metadata formats and prioritize page_url over page and page_path', async () => {
+    it('should work with different metadata formats and prioritize url over path', async () => {
       // Arrange
       const testCases = [
         {
           metadata: {
-            page: 'home',
-            page_path: '/home',
-            page_url: 'http://example.com/home',
+            page: {
+              url: 'http://example.com/home',
+              path: '/home',
+            },
           },
-          expected: 'http://example.com/home', // page_url tiene mayor prioridad
+          expected: 'http://example.com/home', // url tiene mayor prioridad
         },
         {
           metadata: {
-            page: 'about',
-            page_path: '/about',
+            page: {
+              path: '/about',
+            },
           },
-          expected: 'about', // page tiene prioridad sobre page_path
+          expected: '/about', // solo path disponible
         },
         {
           metadata: {
-            page_path: '/services',
-            page_url: 'http://example.com/services',
+            page: {
+              url: 'http://example.com/services',
+              path: '/services',
+            },
           },
-          expected: 'http://example.com/services', // page_url tiene mayor prioridad
+          expected: 'http://example.com/services', // url tiene mayor prioridad
         },
         {
-          metadata: { page_path: '/contact' },
-          expected: '/contact', // solo page_path disponible
+          metadata: {
+            page: {
+              path: '/contact',
+            },
+          },
+          expected: '/contact', // solo path disponible
         },
       ];
 
@@ -362,27 +389,30 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       const testCases = [
         {
           metadata: {
-            page: '',
-            page_path: '/valid-path',
-            page_url: 'http://example.com/url',
+            page: {
+              url: 'http://example.com/url',
+              path: '',
+            },
           },
-          expected: 'http://example.com/url', // page_url tiene mayor prioridad
+          expected: 'http://example.com/url', // url tiene mayor prioridad
         },
         {
           metadata: {
-            page: 'valid-page',
-            page_path: '',
-            page_url: '   ', // page_url vacío
+            page: {
+              url: '   ', // url vacío
+              path: '/valid-path',
+            },
           },
-          expected: 'valid-page', // page tiene segunda prioridad
+          expected: '/valid-path', // path como fallback
         },
         {
           metadata: {
-            page: null,
-            page_path: '/valid-path',
-            page_url: undefined,
+            page: {
+              url: null,
+              path: '/valid-path',
+            },
           },
-          expected: '/valid-path', // page_path como última opción
+          expected: '/valid-path', // path como fallback
         },
       ];
 
@@ -409,6 +439,72 @@ describe('UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler', () => {
       }
 
       expect(mockCommandBus.execute).toHaveBeenCalledTimes(testCases.length);
+    });
+
+    it('should handle when page is not an object', async () => {
+      // Arrange
+      const visitorId = 'visitor-invalid-page';
+      const metadata = {
+        page: 'invalid-page-string', // page no es un objeto
+      };
+
+      const event = new TrackingEventCreatedEvent({
+        id: 'tracking-event-invalid-page',
+        visitorId,
+        eventType: 'page_view',
+        metadata,
+        occurredAt: new Date(),
+      });
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      expect(mockCommandBus.execute).not.toHaveBeenCalled();
+    });
+
+    it('should handle user_resume event type correctly (should be ignored)', async () => {
+      // Arrange
+      const visitorId = 'visitor-user-resume';
+      const metadata = {
+        page: {
+          url: 'http://localhost:8080/',
+          path: '/',
+          search: '',
+          host: 'localhost:8080',
+          protocol: 'http:',
+          hash: '',
+          referrer: 'http://localhost:8080/',
+          timestamp: 1750851251584,
+        },
+        session: {
+          sessionId: '34eed1e7-f078-4ddd-bcd9-1ed9de5c097f',
+          startTime: 1750656609125,
+          lastActiveTime: 1750851251079,
+          totalActiveTime: 2423033,
+          isActive: true,
+          isIdle: false,
+        },
+      };
+
+      const event = new TrackingEventCreatedEvent({
+        id: 'a6dd6240-a391-4487-ac63-7f379e2327f6',
+        visitorId,
+        eventType: 'user_resume',
+        metadata,
+        occurredAt: new Date('2025-06-25T11:34:11.583Z'),
+      });
+
+      const logSpy = jest.spyOn(handler['logger'], 'log');
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      expect(mockCommandBus.execute).not.toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledWith(
+        'Evento de tipo user_resume ignorado (solo se procesan eventos page_view)',
+      );
     });
   });
 });

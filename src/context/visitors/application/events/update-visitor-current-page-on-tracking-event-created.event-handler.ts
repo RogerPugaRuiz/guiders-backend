@@ -27,6 +27,8 @@ export class UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler
       `Evento TrackingEventCreated recibido para visitante: ${event.attributes.visitorId} con tipo: ${event.attributes.eventType}`,
     );
 
+    this.logger.log(`Event attributes: ${JSON.stringify(event.attributes)}`);
+
     try {
       // Solo procesamos eventos de tipo 'page_view'
       if (event.attributes.eventType === 'page_view') {
@@ -71,31 +73,30 @@ export class UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler
 
   /**
    * Extrae información de página de la metadata de forma type-safe
-   * Prioriza: page_url > page > page_path para obtener la URL completa
-   * @param metadata Metadata del tracking event
+   * La metadata tiene una estructura anidada donde la página está en metadata.page
+   * Prioriza: url > path para obtener la URL completa o el path
+   * @param metadata Metadata del tracking event con estructura anidada
    * @returns La página extraída como string o null si no se encuentra
    */
   private extractPageFromMetadata(
     metadata: Record<string, any>,
   ): string | null {
+    // Verificar que existe el objeto page en metadata
+    if (!metadata.page || typeof metadata.page !== 'object') {
+      return null;
+    }
+
+    const pageData = metadata.page as Record<string, unknown>;
+
     // Type guards para verificar que los valores sean strings
-    // Prioriza page_url para obtener la URL completa
-    if (
-      typeof metadata.page_url === 'string' &&
-      metadata.page_url.trim().length > 0
-    ) {
-      return metadata.page_url;
+    // Prioriza url para obtener la URL completa
+    if (typeof pageData.url === 'string' && pageData.url.trim().length > 0) {
+      return pageData.url;
     }
 
-    if (typeof metadata.page === 'string' && metadata.page.trim().length > 0) {
-      return metadata.page;
-    }
-
-    if (
-      typeof metadata.page_path === 'string' &&
-      metadata.page_path.trim().length > 0
-    ) {
-      return metadata.page_path;
+    // Si no hay URL, intentamos con el path
+    if (typeof pageData.path === 'string' && pageData.path.trim().length > 0) {
+      return pageData.path;
     }
 
     return null;
