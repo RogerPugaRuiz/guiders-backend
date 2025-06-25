@@ -17,17 +17,23 @@ export class CommercialAssignmentService {
 
   /**
    * Obtiene la lista de comerciales conectados
+   * @param companyId - ID opcional de la empresa para filtrar comerciales
    * @returns Lista de conexiones de comerciales activos
    */
-  async getConnectedCommercials(): Promise<ConnectionUser[]> {
+  async getConnectedCommercials(companyId?: string): Promise<ConnectionUser[]> {
     try {
-      // Usar el operador EQUALS para verificar si el usuario tiene el rol 'commercial'
-      // Esto funciona porque el repositorio maneja internamente la verificación de roles en array
-      const criteria = new Criteria<ConnectionUser>().addFilter(
+      // Crear criteria con filtro por rol commercial
+      let criteria = new Criteria<ConnectionUser>().addFilter(
         'roles',
         Operator.IN,
         [ConnectionRole.COMMERCIAL],
       );
+
+      // Agregar filtro por companyId si se proporciona
+      if (companyId) {
+        criteria = criteria.addFilter('companyId', Operator.EQUALS, companyId);
+      }
+
       const connCommercialList = await this.connectionRepository.find(criteria);
 
       if (!connCommercialList || connCommercialList.length === 0) {

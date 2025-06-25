@@ -15,9 +15,10 @@ export class InMemoryConnectionService implements ConnectionRepository {
   private userSocketsMap: Map<string, string> = new Map(); // userId -> socketId
   private socketUserMap: Map<string, string> = new Map(); // socketId -> userId
   private userRolesMap: Map<string, string[]> = new Map(); // userId -> roles
+  private userCompanyMap: Map<string, string> = new Map(); // userId -> companyId
 
   async save(user: ConnectionUser): Promise<void> {
-    const { userId, roles } = user.toPrimitives();
+    const { userId, roles, companyId } = user.toPrimitives();
     if (user.socketId.isPresent()) {
       const socketId = user.socketId.get();
       this.socketUserMap.set(socketId.value, userId);
@@ -27,6 +28,10 @@ export class InMemoryConnectionService implements ConnectionRepository {
       this.userSocketsMap.delete(userId);
     }
     this.userRolesMap.set(userId, roles);
+    this.userCompanyMap.set(
+      userId,
+      companyId || '550e8400-e29b-41d4-a716-446655440000',
+    );
     return Promise.resolve();
   }
 
@@ -38,6 +43,7 @@ export class InMemoryConnectionService implements ConnectionRepository {
       this.socketUserMap.delete(socketId);
     }
     this.userRolesMap.delete(userId);
+    this.userCompanyMap.delete(userId);
     return Promise.resolve();
   }
 
@@ -47,11 +53,14 @@ export class InMemoryConnectionService implements ConnectionRepository {
     // Iterar sobre todos los usuarios registrados (según roles)
     this.userRolesMap.forEach((roles, userId) => {
       const socketId = this.userSocketsMap.get(userId);
+      const companyId =
+        this.userCompanyMap.get(userId) ||
+        '550e8400-e29b-41d4-a716-446655440000';
       const user = ConnectionUser.fromPrimitives({
         userId,
         socketId, // Puede ser undefined, lo que generará Optional.empty()
         roles,
-        companyId: '550e8400-e29b-41d4-a716-446655440000', // Default companyId para implementación en memoria
+        companyId,
       });
       if (this.matchesCriteria(user, filters)) {
         users.push(user);
@@ -69,11 +78,14 @@ export class InMemoryConnectionService implements ConnectionRepository {
     // Iterar sobre todos los usuarios registrados
     for (const [userId, roles] of this.userRolesMap.entries()) {
       const socketId = this.userSocketsMap.get(userId);
+      const companyId =
+        this.userCompanyMap.get(userId) ||
+        '550e8400-e29b-41d4-a716-446655440000';
       const user = ConnectionUser.fromPrimitives({
         userId,
         socketId,
         roles,
-        companyId: '550e8400-e29b-41d4-a716-446655440000', // Default companyId para implementación en memoria
+        companyId,
       });
       if (this.matchesCriteria(user, filters)) {
         return Promise.resolve(ok(user));
@@ -108,6 +120,8 @@ export class InMemoryConnectionService implements ConnectionRepository {
           return false;
         case 'roles':
           return this.applyRoleOperator(user.roles, operator, value);
+        case 'companyId':
+          return this.applyOperator(user.companyId.value, operator, value);
         default:
           return false;
       }
