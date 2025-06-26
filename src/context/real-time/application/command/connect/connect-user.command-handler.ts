@@ -3,6 +3,7 @@ import {
   EventPublisher,
   ICommandHandler,
   EventBus,
+  QueryBus,
 } from '@nestjs/cqrs';
 import { ConnectUserCommand } from './connect-user.command';
 import { Inject, Logger } from '@nestjs/common';
@@ -18,10 +19,6 @@ import { ConnectionRole } from '../../../domain/value-objects/connection-role';
 import { ConnectionCompanyId } from '../../../domain/value-objects/connection-company-id';
 import { INotification, NOTIFICATION } from '../../../domain/notification';
 import { CommercialConnectedEvent } from '../../../domain/events/commercial-connected.event';
-import {
-  UserAccountRepository,
-  USER_ACCOUNT_REPOSITORY,
-} from 'src/context/auth/auth-user/domain/user-account.repository';
 
 @CommandHandler(ConnectUserCommand)
 export class ConnectUserCommandHandler
@@ -35,22 +32,12 @@ export class ConnectUserCommandHandler
     private readonly notification: INotification,
     private readonly publisher: EventPublisher,
     private readonly eventBus: EventBus,
-    @Inject(USER_ACCOUNT_REPOSITORY)
-    private readonly userAccountRepository: UserAccountRepository,
   ) {}
   async execute(command: ConnectUserCommand): Promise<void> {
     const { userId, socketId, roles, companyId } = command;
+    this.logger.log(`parametros: ${JSON.stringify(command)}`);
 
     // Si no se proporciona companyId, lo obtenemos del UserAccount
-    let resolvedCompanyId = companyId;
-    if (!resolvedCompanyId) {
-      const userAccount = await this.userAccountRepository.findById(userId);
-      if (!userAccount) {
-        this.logger.error(`User account not found for userId: ${userId}`);
-        throw new Error(`User account not found for userId: ${userId}`);
-      }
-      resolvedCompanyId = userAccount.companyId.getValue();
-    }
 
     const criteria = new Criteria<ConnectionUser>().addFilter(
       'userId',
@@ -61,8 +48,7 @@ export class ConnectUserCommandHandler
     const result = await this.repository.findOne(criteria);
 
     await result.fold(
-      () =>
-        this.handleNewConnection(userId, roles, socketId, resolvedCompanyId),
+      () => this.handleNewConnection(userId, roles, socketId, companyId || ''),
       async (connection) =>
         await this.handleExistingConnection(connection, socketId),
     );
