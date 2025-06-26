@@ -7,6 +7,7 @@ import { ok, err } from 'src/context/shared/domain/result';
 import { ChatPrimitives } from '../../chat/domain/chat/chat';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import { CompanyService } from './services/company/company.service';
 
 // Mock para AuthGuard y RolesGuard
 jest.mock('src/context/shared/infrastructure/guards/auth.guard', () => ({
@@ -20,6 +21,7 @@ jest.mock('src/context/shared/infrastructure/guards/role.guard', () => ({
 describe('ChatController', () => {
   let controller: ChatController;
   let queryBus: QueryBus;
+  let companyService: CompanyService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -33,11 +35,16 @@ describe('ChatController', () => {
           provide: ChatService,
           useValue: { startChat: jest.fn() },
         },
+        {
+          provide: CompanyService,
+          useValue: { getCompanyIdFromOrigin: jest.fn() },
+        },
       ],
     }).compile();
 
     controller = module.get<ChatController>(ChatController);
     queryBus = module.get<QueryBus>(QueryBus);
+    companyService = module.get<CompanyService>(CompanyService);
   });
 
   describe('getChatById', () => {
@@ -88,6 +95,43 @@ describe('ChatController', () => {
       await expect(controller.getChatById(chatId)).rejects.toHaveProperty(
         'status',
         HttpStatus.NOT_FOUND,
+      );
+    });
+  });
+
+  describe('getCompanyIdFromOrigin', () => {
+    it('debe devolver companyId cuando el CompanyService encuentra la empresa', async () => {
+      // Arrange
+      const origin = 'https://ejemplo.com';
+      const expectedCompanyId = 'company-uuid-123';
+      jest
+        .spyOn(companyService, 'getCompanyIdFromOrigin')
+        .mockResolvedValue(expectedCompanyId);
+
+      // Act
+      const result = await companyService.getCompanyIdFromOrigin(origin);
+
+      // Assert
+      expect(result).toBe(expectedCompanyId);
+      expect(companyService.getCompanyIdFromOrigin).toHaveBeenCalledWith(
+        origin,
+      );
+    });
+
+    it('debe devolver null cuando el CompanyService no encuentra la empresa', async () => {
+      // Arrange
+      const origin = 'https://noexiste.com';
+      jest
+        .spyOn(companyService, 'getCompanyIdFromOrigin')
+        .mockResolvedValue(null);
+
+      // Act
+      const result = await companyService.getCompanyIdFromOrigin(origin);
+
+      // Assert
+      expect(result).toBeNull();
+      expect(companyService.getCompanyIdFromOrigin).toHaveBeenCalledWith(
+        origin,
       );
     });
   });

@@ -160,6 +160,47 @@ export class RedisConnectionService
   }
 
   /**
+   * Busca un usuario por su ID específico
+   */
+  async findById(
+    id: string,
+  ): Promise<Result<ConnectionUser, ConnectionUserNotFound>> {
+    await this.ensureConnection();
+
+    try {
+      // Verificar si el usuario existe en el conjunto de usuarios
+      const userExists = await this.redisClient.sIsMember(
+        this.ALL_USERS_KEY,
+        id,
+      );
+
+      // log con todos los usuarios
+      const allUsers = await this.redisClient.sMembers(this.ALL_USERS_KEY);
+      console.log('Todos los usuarios en Redis:', allUsers);
+      console.log(`Buscando usuario con ID: ${id}`);
+
+      if (!userExists) {
+        return err(new ConnectionUserNotFound());
+      }
+
+      // Reconstruir el usuario desde Redis
+      const user = await this.buildUserFromRedis(id);
+
+      if (!user) {
+        return err(new ConnectionUserNotFound());
+      }
+
+      console.log(`Usuario encontrado: ${JSON.stringify(user.toPrimitives())}`);
+      // Retornar el usuario encontrado
+
+      return ok(user);
+    } catch (error) {
+      console.error('Error al buscar usuario por ID en Redis:', error);
+      return err(new ConnectionUserNotFound());
+    }
+  }
+
+  /**
    * Busca usuarios que cumplan con los criterios especificados
    */
   async find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]> {

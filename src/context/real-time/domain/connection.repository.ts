@@ -12,4 +12,5 @@ export interface ConnectionRepository {
   findOne(
     criteria: Criteria<ConnectionUser>,
   ): Promise<Result<ConnectionUser, ConnectionUserNotFound>>;
+  findById(id: string): Promise<Result<ConnectionUser, ConnectionUserNotFound>>;
 }

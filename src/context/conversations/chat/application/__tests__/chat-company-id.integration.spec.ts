@@ -6,7 +6,7 @@ describe('Chat with CompanyId Integration', () => {
   it('should create chat with valid companyId', () => {
     const chatId = Uuid.random().value;
     const companyId = 'valid-company-123';
-    
+
     const chat = Chat.createPendingChat({
       chatId,
       companyId,

@@ -177,6 +177,30 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
       );
     }
   }
+
+  // Busca una empresa por dominio
+  async findByDomain(domain: string): Promise<Result<Company, DomainError>> {
+    try {
+      // Busca una empresa que tenga el dominio en su array de dominios
+      const entity = await this.companyRepo
+        .createQueryBuilder('companies')
+        .where(':domain = ANY(companies.domains)', { domain })
+        .getOne();
+
+      if (!entity) {
+        return err(new CompanyNotFoundError());
+      }
+
+      return ok(CompanyMapper.toDomain(entity));
+    } catch (error) {
+      return err(
+        new CompanyPersistenceError(
+          'Error al buscar empresa por dominio: ' +
+            (error instanceof Error ? error.message : String(error)),
+        ),
+      );
+    }
+  }
 }
 
 // Proveedor para el contenedor de dependencias

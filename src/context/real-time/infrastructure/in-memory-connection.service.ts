@@ -12,6 +12,11 @@ import { ConnectionUserNotFound } from '../domain/errors/connection-user-not-fou
 
 @Injectable()
 export class InMemoryConnectionService implements ConnectionRepository {
+  findById(
+    id: string,
+  ): Promise<Result<ConnectionUser, ConnectionUserNotFound>> {
+    throw new Error('Method not implemented.');
+  }
   private userSocketsMap: Map<string, string> = new Map(); // userId -> socketId
   private socketUserMap: Map<string, string> = new Map(); // socketId -> userId
   private userRolesMap: Map<string, string[]> = new Map(); // userId -> roles
