@@ -53,6 +53,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
   const mockChat: ChatPrimitives = {
     id: testData.chatId,
+    companyId: 'test-company-id',
     participants: [
       {
         id: testData.senderId,
