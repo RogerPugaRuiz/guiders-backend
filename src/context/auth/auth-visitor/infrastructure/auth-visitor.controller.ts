@@ -41,10 +41,13 @@ export class AuthVisitorController {
         throw new HttpException('Origin and referer do not match', 400);
       }
       const domain = originUrl.hostname;
+      const normalizedDomain = domain.startsWith('www.')
+        ? domain.slice(4)
+        : domain;
 
       return await this.authVisitor.tokens({
         client: parseInt(client),
-        domain,
+        domain: normalizedDomain,
       });
     } catch (error) {
       console.error(error);
@@ -84,18 +87,21 @@ export class AuthVisitorController {
       throw new HttpException('Origin and referer do not match', 400);
     }
     const domain = originUrl.hostname;
-    this.logger.log(`Registering visitor for domain ${domain}`);
+    const normalizedDomain = domain.startsWith('www.')
+      ? domain.slice(4)
+      : domain;
+    this.logger.log(`Registering visitor for domain ${normalizedDomain}`);
     try {
       await this.authVisitor.register(
         apiKey,
         parseInt(client),
         userAgent,
-        domain,
+        normalizedDomain,
       );
 
       return await this.authVisitor.tokens({
         client: parseInt(client),
-        domain,
+        domain: normalizedDomain,
       });
     } catch (error) {
       if (error instanceof VisitorAccountNotFoundError) {

@@ -32,6 +32,7 @@ import { UpdateParticipantNameCommandHandler } from '../application/update/parti
 import { CHAT_MESSAGE_ENCRYPTOR } from '../application/services/chat-message-encryptor';
 import { ChatMessageEncryptorService } from './chat-message-encryptor.service';
 import { ParticipantViewingChatCommandHandler } from '../application/update/participants/viewing-chat/participant-viewing-chat.command-handler';
+import { CompanyService } from './services/company/company.service';
 
 @Module({
   imports: [
@@ -71,7 +72,7 @@ import { ParticipantViewingChatCommandHandler } from '../application/update/part
 
     // services
     TokenVerifyService,
-
+    CompanyService,
     ChatService,
   ],
   exports: [CHAT_REPOSITORY],

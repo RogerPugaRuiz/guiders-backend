@@ -90,6 +90,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
   }
   async generate(
     account: VisitorAccount,
+    companyId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const apiKey = await this.apiKeyRepository.findOne({
       where: { apiKey: account.apiKey.getValue() },
@@ -109,6 +110,7 @@ export class AuthVisitorJwt implements AuthVisitorTokenService {
         ),
         role: ['visitor'],
         username: account.id.value,
+        companyId,
       },
       {
         subject: account.id.value,

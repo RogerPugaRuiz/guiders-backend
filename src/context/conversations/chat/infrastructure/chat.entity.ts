@@ -6,6 +6,9 @@ export class ChatEntity {
   @PrimaryColumn('uuid')
   id: string;
 
+  @Column('uuid')
+  companyId: string;
+
   @ManyToMany(() => ParticipantsEntity, { eager: true, cascade: true })
   @JoinTable({
     name: 'chat_participants',

@@ -10,5 +10,6 @@ export interface CompanyRepository {
   findById(id: Uuid): Promise<Result<Company, DomainError>>;
   delete(id: Uuid): Promise<Result<void, DomainError>>;
   findAll(): Promise<Result<Company[], DomainError>>;
+  findByDomain(domain: string): Promise<Result<Company, DomainError>>;
   // Otros métodos según necesidades del dominio
 }

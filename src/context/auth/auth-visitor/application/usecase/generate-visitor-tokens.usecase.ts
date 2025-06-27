@@ -17,6 +17,9 @@ import {
   VALIDATE_DOMAIN_API_KEY,
   ValidateDomainApiKey,
 } from '../services/validate-domain-api-key';
+import { QueryBus } from '@nestjs/cqrs';
+import { FindCompanyByDomainResponseDto } from 'src/context/company/application/dtos/find-company-by-domain-response.dto';
+import { FindCompanyByDomainQuery } from 'src/context/company/application/queries/find-company-by-domain.query';
 
 @Injectable()
 export class GenerateVisitorTokens {
@@ -28,6 +31,7 @@ export class GenerateVisitorTokens {
     private readonly registerVisitor: RegisterVisitor,
     @Inject(VALIDATE_DOMAIN_API_KEY)
     private readonly validateDomainApiKey: ValidateDomainApiKey,
+    private readonly queryBus: QueryBus,
   ) {}
   async execute(
     client: number,
@@ -55,7 +59,17 @@ export class GenerateVisitorTokens {
 
     await this.repository.save(updatedAccount);
 
-    const tokens = await this.tokenService.generate(updatedAccount);
+    const query = new FindCompanyByDomainQuery(domain);
+    const result = await this.queryBus.execute<
+      FindCompanyByDomainQuery,
+      FindCompanyByDomainResponseDto | null
+    >(query);
+
+    if (!result) {
+      throw new InvalidDomainError(domain);
+    }
+
+    const tokens = await this.tokenService.generate(updatedAccount, result.id);
     return tokens;
   }
 }

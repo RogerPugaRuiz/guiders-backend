@@ -48,6 +48,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
     // Arrange
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-123',
+      companyId: 'company-123',
       status: 'pending',
       participants: [],
       lastMessage: null,
@@ -103,6 +104,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
 
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-123',
+      companyId: 'company-123',
       status: 'pending',
       participants: [existingParticipant],
       lastMessage: null,
@@ -152,6 +154,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
 
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-456',
+      companyId: 'company-123',
       status: 'active',
       participants: [existingParticipant],
       lastMessage: null,
@@ -232,6 +235,7 @@ describe('NotifyOnParticipantAssignedToChatEventHandler', () => {
 
     const chatPrimitives: ChatPrimitives = {
       id: 'chat-789',
+      companyId: 'company-123',
       status: 'active',
       participants: [existingParticipant1, existingParticipant2],
       lastMessage: 'Hola',

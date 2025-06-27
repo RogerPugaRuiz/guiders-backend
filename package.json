@@ -25,7 +25,7 @@
     "cli:dev": "NODE_ENV=development ts-node -r tsconfig-paths/register tools/cli.ts",
     "cli:prod": "NODE_ENV=production node dist/tools/cli.js",
     "typeorm:migrate:run": "npm run build && npx typeorm migration:run -d dist/src/data-source.js",
-    "typeorm:migrate:generate": "npm run build && npx typeorm migration:generate $1 -d dist/src/data-source.js",
+    "typeorm:migrate:generate": "npm run build && npx typeorm migration:generate -d dist/src/data-source.js",
     "typeorm:migrate:generate:js": "tsc src/data-source.ts --module commonjs --outDir dist/tmp && npx typeorm migration:generate src/migrations/create-test-entity -d dist/tmp/data-source.js"
   },
   "dependencies": {

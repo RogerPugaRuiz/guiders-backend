@@ -3,6 +3,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Logger,
   Param,
   Post,
   Query,
@@ -36,13 +37,16 @@ import {
   GetMessagesSwagger,
   GetChatByIdSwagger,
 } from './docs/chat-controller.swagger';
+import { CompanyService } from './services/company/company.service';
 
 @ChatControllerSwagger()
 @Controller()
 export class ChatController {
+  private readonly logger = new Logger(ChatController.name);
   constructor(
     private readonly queryBus: QueryBus,
     private readonly chatService: ChatService,
+    private readonly companyService: CompanyService, // Asegúrate de que CompanyService esté importado correctamente
   ) {}
 
   // Listar chats del usuario autenticado (solo para usuarios con rol commercial)
@@ -81,6 +85,7 @@ export class ChatController {
     return result;
   }
 
+  // Iniciar un chat específico, solo para usuarios con rol visitor
   @Post('chats/:chatId')
   @RequiredRoles('visitor')
   @UseGuards(AuthGuard, RolesGuard)
@@ -90,7 +95,19 @@ export class ChatController {
     @Req() req: AuthenticatedRequest,
   ): Promise<any> {
     const { id: visitorId } = req.user;
-    return await this.chatService.startChat(chatId, visitorId);
+
+    const origin = req.headers.origin as string;
+    const companyId = await this.companyService.getCompanyIdFromOrigin(origin);
+
+    // Validar que companyId exista, si no, lanzar error HTTP 400
+    if (!companyId) {
+      throw new HttpException(
+        'companyId is required to start a chat',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return await this.chatService.startChat(chatId, visitorId, companyId);
   }
 
   // Obtener mensajes paginados de un chat específico

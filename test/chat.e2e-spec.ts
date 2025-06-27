@@ -23,6 +23,9 @@ import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guar
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { FindChatListWithFiltersQuery } from '../src/context/conversations/chat/application/read/find-chat-list-with-filters.query';
 import { StartChatCommand } from '../src/context/conversations/chat/application/create/pending/start-chat.command';
+import { CompanyService } from '../src/context/conversations/chat/infrastructure/services/company/company.service';
+import { FindCompanyByDomainQuery } from '../src/context/company/application/queries/find-company-by-domain.query';
+import { FindCompanyByDomainResponseDto } from '../src/context/company/application/dtos/find-company-by-domain-response.dto';
 
 // Definición local para evitar problemas de importación
 interface ChatListResponse {
@@ -98,6 +101,28 @@ class StartChatCommandHandler implements ICommandHandler<StartChatCommand> {
   }
 }
 
+// Handler para FindCompanyByDomainQuery que implementa la lógica de test
+@Injectable()
+@QueryHandler(FindCompanyByDomainQuery)
+class FindCompanyByDomainQueryHandler
+  implements IQueryHandler<FindCompanyByDomainQuery>
+{
+  async execute(
+    query: FindCompanyByDomainQuery,
+  ): Promise<FindCompanyByDomainResponseDto | null> {
+    // Simulamos que cualquier dominio que contenga 'test' tiene una empresa
+    if (query.domain.includes('test')) {
+      return await Promise.resolve(
+        new FindCompanyByDomainResponseDto('test-company-id', 'Test Company', [
+          'test.com',
+          'testing.com',
+        ]),
+      );
+    }
+    return await Promise.resolve(null);
+  }
+}
+
 // Mock para AuthGuard que simula autenticación exitosa
 class MockAuthGuard {
   canActivate(context: ExecutionContext): boolean {
@@ -159,9 +184,12 @@ describe('Chat Controller (e2e) con QueryBus y CommandBus reales', () => {
       providers: [
         // Proveemos el servicio real
         ChatService,
+        // Servicio Company
+        CompanyService,
         // Proporcionamos los handlers para las queries y comandos
         FindChatListWithFiltersQueryHandler,
         StartChatCommandHandler,
+        FindCompanyByDomainQueryHandler,
       ],
     })
       .overrideGuard(AuthGuard)

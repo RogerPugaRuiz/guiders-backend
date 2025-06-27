@@ -53,6 +53,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
   const mockChat: ChatPrimitives = {
     id: testData.chatId,
+    companyId: '550e8400-e29b-41d4-a716-446655440000',
     participants: [
       {
         id: testData.senderId,
@@ -89,12 +90,14 @@ describe('RealTimeMessageSenderCommandHandler', () => {
     userId: testData.senderId,
     socketId: 'socket-1',
     roles: ['commercial'],
+    companyId: '550e8400-e29b-41d4-a716-446655440000',
   });
 
   const mockReceiver = ConnectionUser.fromPrimitives({
     userId: testData.receiverId,
     socketId: 'socket-2',
     roles: ['visitor'],
+    companyId: '550e8400-e29b-41d4-a716-446655440000',
   });
 
   beforeEach(async () => {
@@ -117,6 +120,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
           provide: CONNECTION_REPOSITORY,
           useValue: {
             findOne: jest.fn(),
+            findById: jest.fn(),
           },
         },
         {
@@ -150,7 +154,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne
+      connectionRepository.findById
         .mockResolvedValueOnce(ok(mockSender))
         .mockResolvedValueOnce(ok(mockReceiver));
 
@@ -164,7 +168,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
       expect(queryBus.execute).toHaveBeenCalledWith(
         expect.objectContaining({}) as FindOneChatByIdQuery,
       );
-      expect(connectionRepository.findOne).toHaveBeenCalledTimes(2);
+      expect(connectionRepository.findById).toHaveBeenCalledTimes(2);
       expect(notification.notify).toHaveBeenCalledWith({
         recipientId: testData.receiverId,
         type: 'receive-message',
@@ -204,7 +208,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
         expect(result.error).toBeInstanceOf(RealTimeMessageSenderError);
         expect(result.error.message).toBe('Chat not found');
       }
-      expect(connectionRepository.findOne).not.toHaveBeenCalled();
+      expect(connectionRepository.findById).not.toHaveBeenCalled();
       expect(notification.notify).not.toHaveBeenCalled();
       expect(commandBus.execute).not.toHaveBeenCalled();
     });
@@ -221,7 +225,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne.mockResolvedValue(
+      connectionRepository.findById.mockResolvedValue(
         err(new ConnectionUserNotFound('User not found')),
       );
 
@@ -257,7 +261,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
         ok({ chat: chatWithoutOtherParticipants }),
       );
 
-      connectionRepository.findOne.mockResolvedValue(ok(mockSender));
+      connectionRepository.findById.mockResolvedValue(ok(mockSender));
 
       // Act
       const result = await handler.execute(command);
@@ -285,11 +289,12 @@ describe('RealTimeMessageSenderCommandHandler', () => {
       const disconnectedReceiver = ConnectionUser.fromPrimitives({
         userId: testData.receiverId,
         roles: ['visitor'],
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       });
 
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne
+      connectionRepository.findById
         .mockResolvedValueOnce(ok(mockSender))
         .mockResolvedValueOnce(ok(disconnectedReceiver));
 
@@ -318,7 +323,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne
+      connectionRepository.findById
         .mockResolvedValueOnce(ok(mockSender)) // sender
         .mockResolvedValueOnce(
           err(new ConnectionUserNotFound('User not found')),
@@ -349,7 +354,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne
+      connectionRepository.findById
         .mockResolvedValueOnce(ok(mockSender))
         .mockResolvedValueOnce(ok(mockReceiver));
 
@@ -387,7 +392,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
 
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne
+      connectionRepository.findById
         .mockResolvedValueOnce(ok(mockSender))
         .mockResolvedValueOnce(ok(mockReceiver));
 
@@ -410,7 +415,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
       // Arrange
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne.mockResolvedValue(
+      connectionRepository.findById.mockResolvedValue(
         err(new ConnectionUserNotFound('User not found')),
       ); // Para que falle y no continúe
 
@@ -437,7 +442,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
       // Arrange
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne.mockResolvedValue(ok(mockSender));
+      connectionRepository.findById.mockResolvedValue(ok(mockSender));
 
       const command = new RealTimeMessageSenderCommand(
         testData.messageId,
@@ -451,15 +456,8 @@ describe('RealTimeMessageSenderCommandHandler', () => {
       await handler.execute(command);
 
       // Assert
-      expect(connectionRepository.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filters: expect.arrayContaining([
-            expect.objectContaining({
-              field: 'userId',
-              value: testData.senderId,
-            }),
-          ]),
-        }),
+      expect(connectionRepository.findById).toHaveBeenCalledWith(
+        testData.senderId,
       );
     });
 
@@ -467,7 +465,7 @@ describe('RealTimeMessageSenderCommandHandler', () => {
       // Arrange
       queryBus.execute.mockResolvedValue(ok({ chat: mockChat }));
 
-      connectionRepository.findOne
+      connectionRepository.findById
         .mockResolvedValueOnce(ok(mockSender))
         .mockResolvedValueOnce(ok(mockReceiver));
 

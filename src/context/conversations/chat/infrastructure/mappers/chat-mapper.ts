@@ -9,6 +9,7 @@ export class ChatMapper {
   ): Promise<ChatEntity> {
     const entity = new ChatEntity();
     entity.id = chat.id.getValue();
+    entity.companyId = chat.companyId.getValue();
     entity.participants = chat.participants.value.map((participant) => ({
       id: participant.id,
       name: participant.name,
@@ -36,6 +37,7 @@ export class ChatMapper {
   ): Promise<Chat> {
     return Chat.fromPrimitives({
       id: entity.id,
+      companyId: entity.companyId,
       participants: entity.participants
         ? entity.participants.map((participant) => ({
             id: participant.id,

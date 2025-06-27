@@ -98,6 +98,7 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
     // Creamos un chat de prueba con los campos mínimos requeridos
     const chatPrimitives = {
       id: chatId,
+      companyId: 'test-company-id',
       participants: [
         {
           id: senderId,

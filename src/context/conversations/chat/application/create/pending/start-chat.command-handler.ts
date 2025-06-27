@@ -24,7 +24,7 @@ export class StartChatCommandHandler
     private readonly queryBus: QueryBus,
   ) {}
   async execute(command: StartChatCommand): Promise<any> {
-    const { chatId, visitorId, timestamp } = command;
+    const { chatId, visitorId, companyId, timestamp } = command;
     let { visitorName } = command;
 
     // Si el visitante no tiene un nombre asignado, lo buscamos en el contexto de visitantes
@@ -37,6 +37,7 @@ export class StartChatCommandHandler
 
     const chat = Chat.createPendingChat({
       chatId,
+      companyId,
       visitor: {
         id: visitorId,
         name: visitorName,

@@ -5,5 +5,6 @@ export interface AuthenticatedSocket extends Socket {
     sub: string;
     email?: string;
     role: string[];
+    companyId?: string;
   };
 }

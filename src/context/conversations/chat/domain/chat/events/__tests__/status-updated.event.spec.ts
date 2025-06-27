@@ -5,6 +5,7 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 describe('StatusUpdatedEvent', () => {
   const validChatPrimitives: ChatPrimitives = {
     id: Uuid.random().value,
+    companyId: 'test-company-id',
     participants: [
       {
         id: Uuid.random().value,

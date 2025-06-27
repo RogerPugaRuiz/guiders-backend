@@ -7,12 +7,11 @@ import {
 import { RealTimeMessageSenderCommand } from './real-time-message-sender.command';
 import { err, okVoid, Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import {
   CONNECTION_REPOSITORY,
   ConnectionRepository,
 } from '../../../domain/connection.repository';
-import { Criteria, Operator } from 'src/context/shared/domain/criteria';
 import { ConnectionUser } from '../../../domain/connection-user';
 import { Optional } from 'src/context/shared/domain/optional';
 import { RealTimeMessageSenderError } from '../../../domain/errors/connection-user-not-found';
@@ -31,6 +30,7 @@ export class RealTimeMessageSenderCommandHandler
   implements
     ICommandHandler<RealTimeMessageSenderCommand, Result<void, DomainError>>
 {
+  private logger = new Logger(RealTimeMessageSenderCommandHandler.name);
   constructor(
     @Inject(NOTIFICATION)
     private readonly notification: INotification,
@@ -52,10 +52,10 @@ export class RealTimeMessageSenderCommandHandler
 
     // get sender
     const senderOptional = await this.getUserById(senderId);
-    if (senderOptional.isEmpty()) {
+    if (!senderOptional) {
       return err(new RealTimeMessageSenderError('Sender not found'));
     }
-    const sender = senderOptional.get();
+    const sender = senderOptional;
 
     // const isVisitor = chat.participants.find(
     //   (p) => p.id === senderId,
@@ -65,14 +65,26 @@ export class RealTimeMessageSenderCommandHandler
     const receiverParticipants = chat.participants.filter(
       (p) => p.id !== senderId,
     );
+
+    this.logger.log(
+      `receiverParticipants: ${JSON.stringify(receiverParticipants)}`,
+    );
+    // If the chat is a group chat, we can get all participants
     // const receiverParticipants = chat.participants;
 
     const receivers: ConnectionUser[] = [];
     for (const participant of receiverParticipants) {
       const receiverOptional = await this.getUserById(participant.id);
-      if (receiverOptional.isPresent()) {
-        const receiver = receiverOptional.get();
-        receivers.push(receiver);
+      this.logger.log(`receiverOptional: ${JSON.stringify(receiverOptional)}`);
+      if (receiverOptional) {
+        receivers.push(receiverOptional);
+        this.logger.log(
+          `Receiver found: ${JSON.stringify(receiverOptional.toPrimitives())}`,
+        );
+      } else {
+        this.logger.log(
+          `Receiver not found for participant ID ${participant.id}, skipping.`,
+        );
       }
     }
     // --- PROCESS MESSAGE ---
@@ -125,21 +137,18 @@ export class RealTimeMessageSenderCommandHandler
     );
   }
 
-  private async getUserById(userId: string): Promise<Optional<ConnectionUser>> {
-    const criteria = new Criteria<ConnectionUser>().addFilter(
-      'userId',
-      Operator.EQUALS,
-      userId,
-    );
-    const result = await this.repository.findOne(criteria);
+  private async getUserById(userId: string): Promise<ConnectionUser | null> {
+    const result = await this.repository.findById(userId);
 
     return result.fold(
       () => {
         // Handle error
-        return Optional.empty();
+        this.logger.warn(`User with ID ${userId} not found`);
+        return null;
       },
       (user) => {
-        return Optional.of(user);
+        this.logger.log(`User found: ${JSON.stringify(user.toPrimitives())}`);
+        return user;
       },
     );
   }

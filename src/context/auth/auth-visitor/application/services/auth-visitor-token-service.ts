@@ -4,6 +4,7 @@ export const AUTH_VISITOR_TOKEN_SERVICE = 'AuthVisitorTokenService';
 export interface AuthVisitorTokenService {
   generate(
     account: VisitorAccount,
+    companyId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }>;
   verify(token: string): Promise<any>;
 
