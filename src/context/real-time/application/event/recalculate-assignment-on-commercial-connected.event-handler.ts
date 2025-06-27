@@ -58,8 +58,8 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
 
     // Obtenemos los chats pendientes de la misma compañía del comercial conectado
     const pendingChatsCriteria = this.criteriaBuilder
-      .addFilter('status', Operator.EQUALS, Status.PENDING.value)
-      // .addFilter('companyId', Operator.EQUALS, event.connection.companyId)
+      // .addFilter('status', Operator.EQUALS, Status.PENDING.value)
+      .addFilter('companyId', Operator.EQUALS, event.connection.companyId)
       .build();
 
     const { chats: pendingChats } =
