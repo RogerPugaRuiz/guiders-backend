@@ -3,7 +3,6 @@ import {
   EventPublisher,
   ICommandHandler,
   EventBus,
-  QueryBus,
 } from '@nestjs/cqrs';
 import { ConnectUserCommand } from './connect-user.command';
 import { Inject, Logger } from '@nestjs/common';

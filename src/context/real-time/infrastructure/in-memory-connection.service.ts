@@ -15,7 +15,9 @@ export class InMemoryConnectionService implements ConnectionRepository {
   findById(
     id: string,
   ): Promise<Result<ConnectionUser, ConnectionUserNotFound>> {
-    throw new Error('Method not implemented.');
+    return this.findOne(
+      new Criteria<ConnectionUser>().addFilter('userId', Operator.EQUALS, id),
+    );
   }
   private userSocketsMap: Map<string, string> = new Map(); // userId -> socketId
   private socketUserMap: Map<string, string> = new Map(); // socketId -> userId
