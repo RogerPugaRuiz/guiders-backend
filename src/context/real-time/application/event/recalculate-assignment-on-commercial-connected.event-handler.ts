@@ -48,22 +48,23 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
       `Comercial ${event.connection.userId} conectado, recalculando asignación de chats`,
     );
 
-    // Obtenemos los chats pendientes
-    const pendingChatsCriteria = new Criteria<Chat>().addFilter(
-      'status',
-      Operator.EQUALS,
-      Status.PENDING.value,
-    );
+    this.logger.log(`Company ID: ${event.connection.companyId}`);
+
+    // Obtenemos los chats pendientes de la misma compañía del comercial conectado
+    const pendingChatsCriteria = new Criteria<Chat>()
+      .addFilter('status', Operator.EQUALS, Status.PENDING.value)
+      .addFilter('companyId', Operator.EQUALS, event.connection.companyId);
 
     const { chats: pendingChats } =
       await this.chatRepository.find(pendingChatsCriteria);
 
     // Si no hay chats pendientes, no hay nada que hacer
     if (pendingChats.length === 0) {
-      this.logger.log('No hay chats pendientes para asignar');
+      this.logger.log(
+        `No hay chats pendientes para asignar en la compañía ${event.connection.companyId}`,
+      );
       return;
     }
-    this.logger.log(`Company ID: ${event.connection.companyId}`);
     // Obtenemos los comerciales conectados
     const connectedCommercials =
       await this.commercialAssignmentService.getConnectedCommercials(
@@ -73,10 +74,14 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     // Si no hay comerciales conectados, no hay nada que hacer
     if (connectedCommercials.length === 0) {
       this.logger.warn(
-        'No hay comerciales conectados para asignar a los chats',
+        `No hay comerciales conectados para asignar a los chats de la compañía ${event.connection.companyId}`,
       );
       return;
     }
+
+    this.logger.log(
+      `Encontrados ${pendingChats.length} chats pendientes y ${connectedCommercials.length} comerciales conectados para la compañía ${event.connection.companyId}`,
+    );
 
     // Para cada chat pendiente, publicamos el evento de asignación de comerciales
     for (const chat of pendingChats) {
@@ -88,7 +93,7 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
       );
 
       this.logger.log(
-        `Chats comerciales reasignados para el chat ${chat.id.value}: ${connectedCommercials.length} comerciales disponibles`,
+        `Chat ${chat.id.value} reasignado: ${connectedCommercials.length} comerciales disponibles de la compañía ${event.connection.companyId}`,
       );
     }
   }
