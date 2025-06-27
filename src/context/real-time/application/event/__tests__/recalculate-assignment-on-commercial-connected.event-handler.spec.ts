@@ -71,6 +71,7 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
         userId: 'user-1',
         roles: ['visitor'],
         socketId: 'socket-1',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       });
 
       // Act
@@ -90,6 +91,7 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
         userId: 'user-1',
         roles: ['commercial'],
         socketId: 'socket-1',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       });
 
       mockChatRepository.find.mockResolvedValue({ chats: [] });
@@ -111,6 +113,7 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
         userId: 'user-1',
         roles: ['commercial'],
         socketId: 'socket-1',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       });
 
       const mockChat = createMockChat('chat-1');
@@ -127,6 +130,9 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
       expect(
         mockCommercialAssignmentService.getConnectedCommercials,
       ).toHaveBeenCalledTimes(1);
+      expect(
+        mockCommercialAssignmentService.getConnectedCommercials,
+      ).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
@@ -136,6 +142,7 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
         userId: 'user-1',
         roles: ['commercial'],
         socketId: 'socket-1',
+        companyId: '550e8400-e29b-41d4-a716-446655440000',
       });
 
       const mockChat1 = createMockChat('chat-1');
@@ -158,6 +165,9 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
       expect(
         mockCommercialAssignmentService.getConnectedCommercials,
       ).toHaveBeenCalledTimes(1);
+      expect(
+        mockCommercialAssignmentService.getConnectedCommercials,
+      ).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
       expect(mockEventBus.publish).toHaveBeenCalledTimes(2);
 
       // Verificar que se publicó el evento con los datos correctos para cada chat
@@ -209,5 +219,8 @@ function createMockChat(chatId: string): Chat {
       value: chatId,
     },
     status: Status.PENDING,
+    companyId: {
+      value: '550e8400-e29b-41d4-a716-446655440000',
+    },
   } as unknown as Chat;
 }
