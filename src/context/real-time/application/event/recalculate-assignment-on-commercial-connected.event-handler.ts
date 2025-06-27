@@ -74,7 +74,7 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     );
 
     this.logger.log(
-      `Chats pendientes encontrados: ${pendingChats2.map((chat) => chat.companyId.value).join(', ')}`,
+      `Chats pendientes encontrados2: ${pendingChats2.map((chat) => chat.companyId.value).join(', ')}`,
     );
 
     // log para mostrar la lista de chats pendientes
