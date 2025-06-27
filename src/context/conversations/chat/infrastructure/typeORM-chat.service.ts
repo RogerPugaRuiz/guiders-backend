@@ -38,6 +38,16 @@ export class TypeOrmChatService implements IChatRepository {
     // Contador para generar nombres únicos de parámetros
     let parameterCounter = 0;
 
+    // Mapeo de campos de dominio a columnas de base de datos
+    const fieldColumnMap: Record<string, string> = {
+      id: 'id',
+      companyId: 'companyId',
+      status: 'status',
+      lastMessage: 'lastMessage',
+      lastMessageAt: 'lastMessageAt',
+      createdAt: 'createdAt',
+    };
+
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
         const subfilters: string[] = [];
@@ -45,21 +55,24 @@ export class TypeOrmChatService implements IChatRepository {
 
         filter.filters.forEach((f: Filter<Chat>) => {
           if (f.operator === Operator.IS_NULL) {
-            subfilters.push(`chat.${String(f.field)} IS NULL`);
+            const columnName =
+              fieldColumnMap[String(f.field)] || String(f.field);
+            subfilters.push(`chat.${columnName} IS NULL`);
             return;
           }
 
           const paramName = `param${parameterCounter++}`;
           const fieldName = String(f.field);
+          const columnName = fieldColumnMap[fieldName] || fieldName;
           const uuidFields = ['id', 'companyId'];
 
           if (uuidFields.includes(fieldName)) {
             subfilters.push(
-              `chat.${fieldName} ${String(f.operator)} :${paramName}::uuid`,
+              `chat.${columnName} ${String(f.operator)} :${paramName}::uuid`,
             );
           } else {
             subfilters.push(
-              `chat.${fieldName} ${String(f.operator)} :${paramName}`,
+              `chat.${columnName} ${String(f.operator)} :${paramName}`,
             );
           }
 
@@ -76,16 +89,17 @@ export class TypeOrmChatService implements IChatRepository {
       // Manejar filtro simple
       const paramName = `param${parameterCounter++}`;
       const fieldName = String(filter.field);
+      const columnName = fieldColumnMap[fieldName] || fieldName;
       const uuidFields = ['id', 'companyId'];
 
       if (uuidFields.includes(fieldName)) {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :${paramName}::uuid`,
+          `chat.${columnName} ${String(filter.operator)} :${paramName}::uuid`,
           { [paramName]: filter.value },
         );
       } else {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :${paramName}`,
+          `chat.${columnName} ${String(filter.operator)} :${paramName}`,
           { [paramName]: filter.value },
         );
       }
@@ -107,6 +121,16 @@ export class TypeOrmChatService implements IChatRepository {
     // Contador para generar nombres únicos de parámetros
     let parameterCounter = 0;
 
+    // Mapeo de campos de dominio a columnas de base de datos
+    const fieldColumnMap: Record<string, string> = {
+      id: 'id',
+      companyId: 'companyId',
+      status: 'status',
+      lastMessage: 'lastMessage',
+      lastMessageAt: 'lastMessageAt',
+      createdAt: 'createdAt',
+    };
+
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
         const subfilters: string[] = [];
@@ -126,20 +150,23 @@ export class TypeOrmChatService implements IChatRepository {
           }
 
           if (f.operator === Operator.IS_NULL) {
-            subfilters.push(`chat.${String(f.field)} IS NULL`);
+            const columnName =
+              fieldColumnMap[String(f.field)] || String(f.field);
+            subfilters.push(`chat.${columnName} IS NULL`);
             return;
           }
 
           const paramName = `param${parameterCounter++}`;
           const fieldName = String(f.field);
+          const columnName = fieldColumnMap[fieldName] || fieldName;
 
           if (uuidFields.includes(fieldName)) {
             subfilters.push(
-              `chat.${fieldName} ${String(f.operator)} :${paramName}::uuid`,
+              `chat.${columnName} ${String(f.operator)} :${paramName}::uuid`,
             );
           } else {
             subfilters.push(
-              `chat.${fieldName} ${String(f.operator)} :${paramName}`,
+              `chat.${columnName} ${String(f.operator)} :${paramName}`,
             );
           }
 
@@ -170,16 +197,17 @@ export class TypeOrmChatService implements IChatRepository {
       // Campos que son de tipo UUID en la base de datos
       const uuidFields = ['id', 'companyId'];
       const fieldName = String(filter.field);
+      const columnName = fieldColumnMap[fieldName] || fieldName;
       const paramName = `param${parameterCounter++}`;
 
       if (uuidFields.includes(fieldName)) {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :${paramName}::uuid`,
+          `chat.${columnName} ${String(filter.operator)} :${paramName}::uuid`,
           { [paramName]: filter.value },
         );
       } else {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :${paramName}`,
+          `chat.${columnName} ${String(filter.operator)} :${paramName}`,
           { [paramName]: filter.value },
         );
       }
