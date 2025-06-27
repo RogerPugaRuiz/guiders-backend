@@ -62,8 +62,20 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
       .addFilter('companyId', Operator.EQUALS, event.connection.companyId)
       .build();
 
+    const pendingChatsCriteria2 = this.criteriaBuilder
+      .addFilter('status', Operator.EQUALS, Status.PENDING.value)
+      .build();
+
     const { chats: pendingChats } =
       await this.chatRepository.find(pendingChatsCriteria);
+
+    const { chats: pendingChats2 } = await this.chatRepository.find(
+      pendingChatsCriteria2,
+    );
+
+    this.logger.log(
+      `Chats pendientes encontrados: ${pendingChats2.map((chat) => chat.companyId.value).join(', ')}`,
+    );
 
     // log para mostrar la lista de chats pendientes
     this.logger.log(
