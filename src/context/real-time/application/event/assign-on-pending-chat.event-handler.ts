@@ -18,11 +18,11 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
    * @param event Evento disparado cuando se crea un nuevo chat
    */
   async handle(event: NewChatCreatedEvent): Promise<void> {
-    const { id: chatId } = event.atributes.chat;
+    const { id: chatId, companyId } = event.atributes.chat;
 
     // Utilizamos el servicio centralizado para obtener los comerciales conectados
     const connCommercialList =
-      await this.commercialAssignmentService.getConnectedCommercials();
+      await this.commercialAssignmentService.getConnectedCommercials(companyId);
 
     if (connCommercialList.length === 0) {
       this.logger.warn('No hay comerciales conectados para asignar al chat');

@@ -66,7 +66,9 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
 
     // Obtenemos los comerciales conectados
     const connectedCommercials =
-      await this.commercialAssignmentService.getConnectedCommercials();
+      await this.commercialAssignmentService.getConnectedCommercials(
+        event.connection.companyId,
+      );
 
     // Si no hay comerciales conectados, no hay nada que hacer
     if (connectedCommercials.length === 0) {
