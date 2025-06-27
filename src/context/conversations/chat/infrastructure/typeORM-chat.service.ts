@@ -47,12 +47,26 @@ export class TypeOrmChatService implements IChatRepository {
         queryBuilder.andWhere(`(${subfilters.join(` ${filter.operator} `)})`);
         return;
       }
-      queryBuilder.andWhere(
-        `chat.${String(filter.field)} ${String(filter.operator)} :value`,
-        {
-          value: filter.value,
-        },
-      );
+
+      // Campos que son de tipo UUID en la base de datos
+      const uuidFields = ['id', 'companyId'];
+      const fieldName = String(filter.field);
+
+      if (uuidFields.includes(fieldName)) {
+        queryBuilder.andWhere(
+          `chat.${fieldName} ${String(filter.operator)} :value::uuid`,
+          {
+            value: filter.value,
+          },
+        );
+      } else {
+        queryBuilder.andWhere(
+          `chat.${fieldName} ${String(filter.operator)} :value`,
+          {
+            value: filter.value,
+          },
+        );
+      }
     });
     const entity = await queryBuilder.getOne();
     return entity
@@ -68,6 +82,7 @@ export class TypeOrmChatService implements IChatRepository {
       .leftJoinAndSelect('chat.participants', 'participants');
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
+        const uuidFields = ['id', 'companyId'];
         const subfilters = filter.filters.map((f: Filter<Chat>) => {
           if (f.field === 'participants') {
             return `chat.id IN (
@@ -80,7 +95,11 @@ export class TypeOrmChatService implements IChatRepository {
             return `chat.${String(f.field)} IS NULL`;
           }
 
-          return `chat.${String(f.field)} ${String(f.operator)} :${String(f.value)}`;
+          const fieldName = String(f.field);
+          if (uuidFields.includes(fieldName)) {
+            return `chat.${fieldName} ${String(f.operator)} :${String(f.value)}::uuid`;
+          }
+          return `chat.${fieldName} ${String(f.operator)} :${String(f.value)}`;
         });
 
         const parameters = filter.filters.reduce(
@@ -111,12 +130,26 @@ export class TypeOrmChatService implements IChatRepository {
 
         return;
       }
-      queryBuilder.andWhere(
-        `chat.${String(filter.field)} ${String(filter.operator)} :value`,
-        {
-          value: filter.value,
-        },
-      );
+
+      // Campos que son de tipo UUID en la base de datos
+      const uuidFields = ['id', 'companyId'];
+      const fieldName = String(filter.field);
+
+      if (uuidFields.includes(fieldName)) {
+        queryBuilder.andWhere(
+          `chat.${fieldName} ${String(filter.operator)} :value::uuid`,
+          {
+            value: filter.value,
+          },
+        );
+      } else {
+        queryBuilder.andWhere(
+          `chat.${fieldName} ${String(filter.operator)} :value`,
+          {
+            value: filter.value,
+          },
+        );
+      }
     });
     if (criteria.orderBy && !Array.isArray(criteria.orderBy)) {
       queryBuilder.orderBy(
