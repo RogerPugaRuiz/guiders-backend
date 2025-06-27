@@ -208,6 +208,9 @@ function createMockChat(chatId: string): Chat {
     id: {
       value: chatId,
     },
+    companyId: {
+      value: 'company-123',
+    },
     status: Status.PENDING,
   } as unknown as Chat;
 }
