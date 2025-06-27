@@ -49,9 +49,11 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     );
 
     // Obtenemos los chats pendientes
-    const pendingChatsCriteria = new Criteria<Chat>()
-      .addFilter('status', Operator.EQUALS, Status.PENDING.value)
-      .addFilter('companyId', Operator.EQUALS, event.connection.companyId);
+    const pendingChatsCriteria = new Criteria<Chat>().addFilter(
+      'status',
+      Operator.EQUALS,
+      Status.PENDING.value,
+    );
 
     const { chats: pendingChats } =
       await this.chatRepository.find(pendingChatsCriteria);
