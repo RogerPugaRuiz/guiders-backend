@@ -49,11 +49,9 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     );
 
     // Obtenemos los chats pendientes
-    const pendingChatsCriteria = new Criteria<Chat>().addFilter(
-      'status',
-      Operator.EQUALS,
-      Status.PENDING.value,
-    );
+    const pendingChatsCriteria = new Criteria<Chat>()
+      .addFilter('status', Operator.EQUALS, Status.PENDING.value)
+      .addFilter('companyId', Operator.EQUALS, event.connection.companyId);
 
     const { chats: pendingChats } =
       await this.chatRepository.find(pendingChatsCriteria);
@@ -63,7 +61,7 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
       this.logger.log('No hay chats pendientes para asignar');
       return;
     }
-
+    this.logger.log(`Company ID: ${event.connection.companyId}`);
     // Obtenemos los comerciales conectados
     const connectedCommercials =
       await this.commercialAssignmentService.getConnectedCommercials(

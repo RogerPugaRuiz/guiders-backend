@@ -21,6 +21,9 @@ export class AssignOnPendingChatEventHandler implements IEventHandler {
     const { id: chatId, companyId } = event.atributes.chat;
 
     // Utilizamos el servicio centralizado para obtener los comerciales conectados
+    this.logger.log(
+      `Asignando comerciales al chat ${chatId} de la empresa ${companyId}`,
+    );
     const connCommercialList =
       await this.commercialAssignmentService.getConnectedCommercials(companyId);
 
