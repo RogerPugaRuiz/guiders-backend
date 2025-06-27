@@ -8,7 +8,8 @@ import {
   CHAT_REPOSITORY,
   IChatRepository,
 } from 'src/context/conversations/chat/domain/chat/chat.repository';
-import { Criteria, Operator } from 'src/context/shared/domain/criteria';
+import { Operator } from 'src/context/shared/domain/criteria';
+import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
 import { Chat } from 'src/context/conversations/chat/domain/chat/chat';
 import { Status } from 'src/context/conversations/chat/domain/chat/value-objects/status';
 
@@ -19,6 +20,7 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
   private readonly logger = new Logger(
     RecalculateAssignmentOnCommercialConnectedEventHandler.name,
   );
+  private readonly criteriaBuilder = new CriteriaBuilder<Chat>();
 
   constructor(
     private readonly commercialAssignmentService: CommercialAssignmentService,
@@ -32,6 +34,10 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
    * @param event Evento disparado cuando un comercial se conecta
    */
   async handle(event: CommercialConnectedEvent): Promise<void> {
+    this.logger.log(
+      `Manejando evento CommercialConnectedEvent para el usuario ${event.connection.userId}`,
+    );
+
     // Verificamos que el usuario conectado tenga el rol de comercial
     const isCommercial = event.connection.roles.includes(
       ConnectionRole.COMMERCIAL,
@@ -51,12 +57,18 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     this.logger.log(`Company ID: ${event.connection.companyId}`);
 
     // Obtenemos los chats pendientes de la misma compañía del comercial conectado
-    const pendingChatsCriteria = new Criteria<Chat>()
+    const pendingChatsCriteria = this.criteriaBuilder
       .addFilter('status', Operator.EQUALS, Status.PENDING.value)
-      .addFilter('companyId', Operator.EQUALS, event.connection.companyId);
+      .addFilter('companyId', Operator.EQUALS, event.connection.companyId)
+      .build();
 
     const { chats: pendingChats } =
       await this.chatRepository.find(pendingChatsCriteria);
+
+    // log para mostrar la lista de chats pendientes
+    this.logger.log(
+      `Chats pendientes encontrados: ${pendingChats.map((chat) => chat.companyId.value).join(', ')}`,
+    );
 
     // Si no hay chats pendientes, no hay nada que hacer
     if (pendingChats.length === 0) {
@@ -67,7 +79,9 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     }
     // Obtenemos los comerciales conectados
     const connectedCommercials =
-      await this.commercialAssignmentService.getConnectedCommercials();
+      await this.commercialAssignmentService.getConnectedCommercials(
+        event.connection.companyId,
+      );
 
     // Si no hay comerciales conectados, no hay nada que hacer
     if (connectedCommercials.length === 0) {

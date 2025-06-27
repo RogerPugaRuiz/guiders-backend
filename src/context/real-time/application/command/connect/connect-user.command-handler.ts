@@ -33,6 +33,10 @@ export class ConnectUserCommandHandler
     private readonly eventBus: EventBus,
   ) {}
   async execute(command: ConnectUserCommand): Promise<void> {
+    this.logger.log(
+      `Ejecutando ConnectUserCommand para el usuario ${command.userId}`,
+    );
+
     const { userId, socketId, roles, companyId } = command;
     this.logger.log(`parametros: ${JSON.stringify(command)}`);
 

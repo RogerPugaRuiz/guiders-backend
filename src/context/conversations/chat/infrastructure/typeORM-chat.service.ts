@@ -34,40 +34,63 @@ export class TypeOrmChatService implements IChatRepository {
     const queryBuilder = this.chatRepository
       .createQueryBuilder('chat')
       .leftJoinAndSelect('chat.participants', 'participants');
+
+    // Contador para generar nombres únicos de parámetros
+    let parameterCounter = 0;
+
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
-        const subfilters = filter.filters.map((f: Filter<Chat>) => {
-          switch (f.operator) {
-            case Operator.IS_NULL:
-              return `chat.${String(f.field)} IS NULL`;
-            default:
-              return `chat.${String(f.field)} ${String(f.operator)} :${String(f.field)}`;
+        const subfilters: string[] = [];
+        const parameters: Record<string, unknown> = {};
+
+        filter.filters.forEach((f: Filter<Chat>) => {
+          if (f.operator === Operator.IS_NULL) {
+            subfilters.push(`chat.${String(f.field)} IS NULL`);
+            return;
           }
+
+          const paramName = `param${parameterCounter++}`;
+          const fieldName = String(f.field);
+          const uuidFields = ['id', 'companyId'];
+
+          if (uuidFields.includes(fieldName)) {
+            subfilters.push(
+              `chat.${fieldName} ${String(f.operator)} :${paramName}::uuid`,
+            );
+          } else {
+            subfilters.push(
+              `chat.${fieldName} ${String(f.operator)} :${paramName}`,
+            );
+          }
+
+          parameters[paramName] = f.value;
         });
-        queryBuilder.andWhere(`(${subfilters.join(` ${filter.operator} `)})`);
+
+        queryBuilder.andWhere(
+          `(${subfilters.join(` ${filter.operator} `)})`,
+          parameters,
+        );
         return;
       }
 
-      // Campos que son de tipo UUID en la base de datos
-      const uuidFields = ['id', 'companyId'];
+      // Manejar filtro simple
+      const paramName = `param${parameterCounter++}`;
       const fieldName = String(filter.field);
+      const uuidFields = ['id', 'companyId'];
 
       if (uuidFields.includes(fieldName)) {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :value::uuid`,
-          {
-            value: filter.value,
-          },
+          `chat.${fieldName} ${String(filter.operator)} :${paramName}::uuid`,
+          { [paramName]: filter.value },
         );
       } else {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :value`,
-          {
-            value: filter.value,
-          },
+          `chat.${fieldName} ${String(filter.operator)} :${paramName}`,
+          { [paramName]: filter.value },
         );
       }
     });
+
     const entity = await queryBuilder.getOne();
     return entity
       ? Optional.of({
@@ -80,37 +103,48 @@ export class TypeOrmChatService implements IChatRepository {
     const queryBuilder = this.chatRepository
       .createQueryBuilder('chat')
       .leftJoinAndSelect('chat.participants', 'participants');
+
+    // Contador para generar nombres únicos de parámetros
+    let parameterCounter = 0;
+
     criteria.filters.forEach((filter) => {
       if (filter instanceof FilterGroup) {
+        const subfilters: string[] = [];
+        const parameters: Record<string, unknown> = {};
         const uuidFields = ['id', 'companyId'];
-        const subfilters = filter.filters.map((f: Filter<Chat>) => {
+
+        filter.filters.forEach((f: Filter<Chat>) => {
           if (f.field === 'participants') {
-            return `chat.id IN (
+            const paramName = `participantId${parameterCounter++}`;
+            subfilters.push(`chat.id IN (
               SELECT cp.chat_id
               FROM chat_participants cp
-              WHERE cp.participant_id ${String(f.operator)} :participantId
-            )`;
+              WHERE cp.participant_id ${String(f.operator)} :${paramName}
+            )`);
+            parameters[paramName] = f.value;
+            return;
           }
+
           if (f.operator === Operator.IS_NULL) {
-            return `chat.${String(f.field)} IS NULL`;
+            subfilters.push(`chat.${String(f.field)} IS NULL`);
+            return;
           }
 
+          const paramName = `param${parameterCounter++}`;
           const fieldName = String(f.field);
-          if (uuidFields.includes(fieldName)) {
-            return `chat.${fieldName} ${String(f.operator)} :${String(f.value)}::uuid`;
-          }
-          return `chat.${fieldName} ${String(f.operator)} :${String(f.value)}`;
-        });
 
-        const parameters = filter.filters.reduce(
-          (acc, f: Filter<Chat>) => {
-            if (f.operator !== Operator.IS_NULL) {
-              acc[String(f.field)] = f.value;
-            }
-            return acc;
-          },
-          {} as Record<string, unknown>,
-        );
+          if (uuidFields.includes(fieldName)) {
+            subfilters.push(
+              `chat.${fieldName} ${String(f.operator)} :${paramName}::uuid`,
+            );
+          } else {
+            subfilters.push(
+              `chat.${fieldName} ${String(f.operator)} :${paramName}`,
+            );
+          }
+
+          parameters[paramName] = f.value;
+        });
 
         queryBuilder.andWhere(
           `(${subfilters.join(` ${filter.operator} `)})`,
@@ -118,39 +152,39 @@ export class TypeOrmChatService implements IChatRepository {
         );
         return;
       }
+
+      // Manejar filtro simple
       if (filter.field === 'participants') {
+        const paramName = `participantId${parameterCounter++}`;
         queryBuilder.andWhere(
           `chat.id IN (
             SELECT cp.chat_id
             FROM chat_participants cp
-            WHERE cp.participant_id ${String(filter.operator)} :participantId
+            WHERE cp.participant_id ${String(filter.operator)} :${paramName}
           )`,
-          { participantId: filter.value },
+          { [paramName]: filter.value },
         );
-
         return;
       }
 
       // Campos que son de tipo UUID en la base de datos
       const uuidFields = ['id', 'companyId'];
       const fieldName = String(filter.field);
+      const paramName = `param${parameterCounter++}`;
 
       if (uuidFields.includes(fieldName)) {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :value::uuid`,
-          {
-            value: filter.value,
-          },
+          `chat.${fieldName} ${String(filter.operator)} :${paramName}::uuid`,
+          { [paramName]: filter.value },
         );
       } else {
         queryBuilder.andWhere(
-          `chat.${fieldName} ${String(filter.operator)} :value`,
-          {
-            value: filter.value,
-          },
+          `chat.${fieldName} ${String(filter.operator)} :${paramName}`,
+          { [paramName]: filter.value },
         );
       }
     });
+
     if (criteria.orderBy && !Array.isArray(criteria.orderBy)) {
       queryBuilder.orderBy(
         `chat.${String(criteria.orderBy.field)}`,

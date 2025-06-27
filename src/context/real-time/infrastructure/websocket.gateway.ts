@@ -161,6 +161,10 @@ export class RealTimeWebSocketGateway
         );
       }
 
+      this.logger.log(
+        `Usuario ${connectionId} conectado con roles: ${roles.join(', ')}`,
+      );
+
       await this.commandBus.execute(
         new ConnectUserCommand(connectionId, roles, socketId, companyId),
       );
