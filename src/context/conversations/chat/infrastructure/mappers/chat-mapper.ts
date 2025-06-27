@@ -35,23 +35,26 @@ export class ChatMapper {
     entity: ChatEntity,
     encryptor: ChatMessageEncryptorService,
   ): Promise<Chat> {
+    // Validar que el chat tenga participantes según las reglas de dominio
+    if (!entity.participants || entity.participants.length === 0) {
+      throw new Error(`Chat ${entity.id} no tiene participantes. Un chat debe tener al menos un participante.`);
+    }
+
     return Chat.fromPrimitives({
       id: entity.id,
       companyId: entity.companyId,
-      participants: entity.participants
-        ? entity.participants.map((participant) => ({
-            id: participant.id,
-            name: participant.name,
-            isCommercial: participant.isCommercial,
-            isVisitor: participant.isVisitor,
-            isOnline: participant.isOnline,
-            assignedAt: participant.assignedAt,
-            lastSeenAt: participant.lastSeenAt,
-            isViewing: participant.isViewing,
-            isTyping: participant.isTyping,
-            isAnonymous: participant.isAnonymous,
-          }))
-        : [],
+      participants: entity.participants.map((participant) => ({
+        id: participant.id,
+        name: participant.name,
+        isCommercial: participant.isCommercial,
+        isVisitor: participant.isVisitor,
+        isOnline: participant.isOnline,
+        assignedAt: participant.assignedAt,
+        lastSeenAt: participant.lastSeenAt,
+        isViewing: participant.isViewing,
+        isTyping: participant.isTyping,
+        isAnonymous: participant.isAnonymous,
+      })),
       status: entity.status,
       lastMessage: entity.lastMessage
         ? await encryptor.decrypt(entity.lastMessage)

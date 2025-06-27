@@ -33,7 +33,7 @@ export class TypeOrmChatService implements IChatRepository {
   async findOne(criteria: Criteria<Chat>): Promise<Optional<{ chat: Chat }>> {
     const queryBuilder = this.chatRepository
       .createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.participants', 'participants');
+      .innerJoinAndSelect('chat.participants', 'participants');
 
     // Contador para generar nombres únicos de parámetros
     let parameterCounter = 0;
@@ -116,7 +116,7 @@ export class TypeOrmChatService implements IChatRepository {
   async find(criteria: Criteria<Chat>): Promise<{ chats: Chat[] }> {
     const queryBuilder = this.chatRepository
       .createQueryBuilder('chat')
-      .leftJoinAndSelect('chat.participants', 'participants');
+      .innerJoinAndSelect('chat.participants', 'participants');
 
     // Contador para generar nombres únicos de parámetros
     let parameterCounter = 0;
