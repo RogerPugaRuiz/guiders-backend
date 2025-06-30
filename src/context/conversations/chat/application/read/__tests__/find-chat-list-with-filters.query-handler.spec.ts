@@ -20,7 +20,12 @@ describe('FindChatListWithFiltersQueryHandler', () => {
     handler = new FindChatListWithFiltersQueryHandler(chatRepository);
   });
 
-  const createMockChat = (id: string, createdAt: Date): Chat => {
+  const createMockChat = (
+    id: string,
+    createdAt: Date,
+    lastMessageAt?: Date,
+  ): Chat => {
+    const lastMsgAt = lastMessageAt || new Date();
     const chatPrimitives: ChatPrimitives = {
       id,
       companyId: 'test-company-id',
@@ -40,13 +45,14 @@ describe('FindChatListWithFiltersQueryHandler', () => {
       ],
       status: 'active',
       lastMessage: 'Hello, how can I help you?',
-      lastMessageAt: new Date(),
+      lastMessageAt: lastMsgAt,
       createdAt,
     };
     return {
       toPrimitives: () => chatPrimitives,
       id: { value: id },
       createdAt: { value: createdAt },
+      lastMessageAt: { value: lastMsgAt },
     } as unknown as Chat;
   };
 
@@ -112,9 +118,10 @@ describe('FindChatListWithFiltersQueryHandler', () => {
   it('debe manejar paginación con cursor correctamente', async () => {
     const participantId = 'commercial-user-uuid';
     const createdAt = new Date('2023-10-15T10:00:00.000Z');
-    const chat = createMockChat('chat-1', createdAt);
+    const lastMessageAt = new Date('2023-10-15T10:30:00.000Z');
+    const chat = createMockChat('chat-1', createdAt, lastMessageAt);
     const cursor = cursorToBase64<Chat>({
-      createdAt,
+      lastMessageAt,
       id: 'chat-1',
     });
 
@@ -138,14 +145,22 @@ describe('FindChatListWithFiltersQueryHandler', () => {
     const participantId = 'commercial-user-uuid';
     const createdAt1 = new Date('2023-10-15T10:00:00.000Z');
     const createdAt2 = new Date('2023-10-15T09:00:00.000Z');
-    const chat1 = createMockChat('chat-1', createdAt1);
-    const chat2 = createMockChat('chat-2', createdAt2);
+    const lastMessageAt1 = new Date('2023-10-15T10:30:00.000Z');
+    const lastMessageAt2 = new Date('2023-10-15T09:30:00.000Z');
+    const chat1 = createMockChat('chat-1', createdAt1, lastMessageAt1);
+    const chat2 = createMockChat('chat-2', createdAt2, lastMessageAt2);
 
     // Mock primera llamada - retorna 2 chats (límite = 2)
     chatRepository.find.mockResolvedValueOnce({ chats: [chat1, chat2] });
     // Mock segunda llamada para verificar hasMore (hay más chats)
     chatRepository.find.mockResolvedValueOnce({
-      chats: [createMockChat('chat-3', new Date('2023-10-15T08:00:00.000Z'))],
+      chats: [
+        createMockChat(
+          'chat-3',
+          new Date('2023-10-15T08:00:00.000Z'),
+          new Date('2023-10-15T08:30:00.000Z'),
+        ),
+      ],
     });
     // Mock tercera llamada para total
     chatRepository.find.mockResolvedValueOnce({ chats: [chat1, chat2] });
@@ -162,13 +177,20 @@ describe('FindChatListWithFiltersQueryHandler', () => {
   it('debe generar cursor correcto basado en el último chat', async () => {
     const participantId = 'commercial-user-uuid';
     const createdAt = new Date('2023-10-15T10:00:00.000Z');
-    const chat = createMockChat('chat-1', createdAt);
+    const lastMessageAt = new Date('2023-10-15T10:30:00.000Z');
+    const chat = createMockChat('chat-1', createdAt, lastMessageAt);
 
     // Mock primera llamada
     chatRepository.find.mockResolvedValueOnce({ chats: [chat] });
     // Mock segunda llamada para verificar hasMore
     chatRepository.find.mockResolvedValueOnce({
-      chats: [createMockChat('chat-2', new Date('2023-10-15T09:00:00.000Z'))],
+      chats: [
+        createMockChat(
+          'chat-2',
+          new Date('2023-10-15T09:00:00.000Z'),
+          new Date('2023-10-15T09:30:00.000Z'),
+        ),
+      ],
     });
     // Mock tercera llamada para total
     chatRepository.find.mockResolvedValueOnce({ chats: [chat] });
@@ -180,7 +202,7 @@ describe('FindChatListWithFiltersQueryHandler', () => {
     expect(result.nextCursor).not.toBeNull();
     if (result.nextCursor) {
       const expectedCursor = cursorToBase64<Chat>({
-        createdAt,
+        lastMessageAt,
         id: 'chat-1',
       });
       expect(result.nextCursor).toBe(expectedCursor);

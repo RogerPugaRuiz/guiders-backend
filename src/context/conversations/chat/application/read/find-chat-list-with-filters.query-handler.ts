@@ -41,7 +41,7 @@ export class FindChatListWithFiltersQueryHandler
 
     // Construir criteria con filtros, orden, limit y cursor
     let criteria = new Criteria<Chat>(filters)
-      .orderByField('createdAt', 'DESC')
+      .orderByField('lastMessageAt', 'DESC')
       .orderByField('id', 'DESC') // Añadir id como orden secundario para consistencia
       .setLimit(limit || 50);
 
@@ -56,7 +56,7 @@ export class FindChatListWithFiltersQueryHandler
     if (chats.length > 0) {
       const lastChat = chats[chats.length - 1];
       nextCursor = cursorToBase64<Chat>({
-        createdAt: lastChat.createdAt.value,
+        lastMessageAt: lastChat.lastMessageAt?.value || null,
         id: lastChat.id.value,
       });
     }
@@ -66,7 +66,7 @@ export class FindChatListWithFiltersQueryHandler
     let hasMore = false;
     if (nextCursor && chats.length === (limit || 50)) {
       const nextCriteria = new Criteria<Chat>(filters)
-        .orderByField('createdAt', 'DESC')
+        .orderByField('lastMessageAt', 'DESC')
         .orderByField('id', 'DESC')
         .setLimit(1)
         .setCursor(base64ToCursor(nextCursor));
