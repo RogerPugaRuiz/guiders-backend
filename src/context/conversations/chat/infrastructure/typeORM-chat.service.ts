@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IChatRepository } from '../domain/chat/chat.repository';
@@ -20,6 +20,8 @@ import { ChatMessageEncryptorService } from './chat-message-encryptor.service';
 
 @Injectable()
 export class TypeOrmChatService implements IChatRepository {
+  private readonly logger = new Logger(TypeOrmChatService.name);
+
   constructor(
     @InjectRepository(ChatEntity)
     private readonly chatRepository: Repository<ChatEntity>,
@@ -104,6 +106,12 @@ export class TypeOrmChatService implements IChatRepository {
         );
       }
     });
+
+    // Log del SQL generado para debugging
+    const sqlQuery = queryBuilder.getSql();
+    const parameters = queryBuilder.getParameters();
+    this.logger.debug('SQL Query for findOne:', sqlQuery);
+    this.logger.debug('Parameters for findOne:', parameters);
 
     const entity = await queryBuilder.getOne();
     return entity
@@ -213,11 +221,32 @@ export class TypeOrmChatService implements IChatRepository {
       }
     });
 
-    if (criteria.orderBy && !Array.isArray(criteria.orderBy)) {
-      queryBuilder.orderBy(
-        `chat.${String(criteria.orderBy.field)}`,
-        criteria.orderBy.direction,
-      );
+    // Manejar ordenamiento múltiple - soporta múltiples llamadas a orderByField
+    if (criteria.orderBy) {
+      if (Array.isArray(criteria.orderBy)) {
+        // Múltiples campos de ordenamiento
+        criteria.orderBy.forEach((order, index) => {
+          if (index === 0) {
+            // Primer campo de ordenamiento usa orderBy
+            queryBuilder.orderBy(
+              `chat.${String(order.field)}`,
+              order.direction,
+            );
+          } else {
+            // Campos adicionales usan addOrderBy
+            queryBuilder.addOrderBy(
+              `chat.${String(order.field)}`,
+              order.direction,
+            );
+          }
+        });
+      } else {
+        // Un solo campo de ordenamiento
+        queryBuilder.orderBy(
+          `chat.${String(criteria.orderBy.field)}`,
+          criteria.orderBy.direction,
+        );
+      }
     }
     if (criteria.limit) {
       queryBuilder.limit(criteria.limit);
@@ -225,6 +254,13 @@ export class TypeOrmChatService implements IChatRepository {
     if (criteria.offset) {
       queryBuilder.offset(criteria.offset);
     }
+
+    // Log del SQL generado para debugging
+    const sqlQuery = queryBuilder.getSql();
+    const parameters = queryBuilder.getParameters();
+    this.logger.debug('SQL Query for find:', sqlQuery);
+    this.logger.debug('Parameters for find:', parameters);
+
     const entities = await queryBuilder.getMany();
 
     return {
@@ -237,6 +273,9 @@ export class TypeOrmChatService implements IChatRepository {
   }
 
   async save(chat: Chat): Promise<void> {
+    // Log de la operación save
+    this.logger.debug('Executing save for chat with id:', chat.id.value);
+
     const entity = await ChatMapper.toPersistence(
       chat,
       this.chatMessageEncryptor,
@@ -245,6 +284,9 @@ export class TypeOrmChatService implements IChatRepository {
   }
 
   async findById(id: ChatId): Promise<Optional<{ chat: Chat }>> {
+    // Log de la operación findById
+    this.logger.debug('Executing findById with id:', id.value);
+
     const entity = await this.chatRepository.findOne({
       where: { id: id.value },
     });
@@ -256,6 +298,9 @@ export class TypeOrmChatService implements IChatRepository {
   }
 
   async findAll(): Promise<{ chats: Chat[] }> {
+    // Log de la operación findAll
+    this.logger.debug('Executing findAll - retrieving all chats');
+
     const entities = await this.chatRepository.find();
     return {
       chats: await Promise.all(
