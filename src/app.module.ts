@@ -67,6 +67,15 @@ export class AppModule {
     // Selección dinámica de variables según NODE_ENV
     const nodeEnv = configService.get<string>('NODE_ENV');
     const isTest = nodeEnv === 'test';
+    
+    // Determinar si es un test e2e basado en variables de entorno o ubicación
+    // Si estamos ejecutando desde la carpeta test/ es un test e2e, de lo contrario es un test unitario
+    const isE2ETest = 
+      isTest && 
+      (process.env.E2E_TEST === 'true' || 
+        process.cwd().includes('/test') || 
+        new Error().stack?.includes('/test/'));
+
     // Se retorna un objeto estrictamente tipado para TypeOrmModuleOptions
     return {
       type: 'postgres', // Tipo de base de datos explícito
@@ -86,8 +95,8 @@ export class AppModule {
         ? configService.get<string>('TEST_DATABASE', 'mydb')
         : configService.get<string>('DATABASE', 'mydb'),
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: false,
-      autoLoadEntities: false, // Permite la carga automática de entidades
+      synchronize: isE2ETest, // Solo sincronizar en tests e2e
+      autoLoadEntities: isE2ETest, // Solo cargar entidades automáticamente en tests e2e
     };
   }
 
