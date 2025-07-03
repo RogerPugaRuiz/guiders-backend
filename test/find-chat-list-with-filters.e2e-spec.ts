@@ -103,7 +103,7 @@ describe('FindChatListWithFiltersQuery (e2e)', () => {
     const typeormRepo = app.get(ChatEntity.name + 'Repository');
 
     // Limpiar y guardar los datos de prueba
-    await typeormRepo.delete({});
+    await typeormRepo.clear(); // Usar clear() en lugar de delete({})
     for (const chat of chats) {
       await chatRepository.save(chat);
     }

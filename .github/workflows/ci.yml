@@ -152,6 +152,9 @@ jobs:
           max_attempts: 3
           command: npm ci
       
+      - name: Clean dist folder to avoid Jest conflicts
+        run: rm -rf dist/
+      
       - name: Ensure coverage directory
         run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
       
@@ -236,6 +239,9 @@ jobs:
           timeout_minutes: 5
           max_attempts: 3
           command: npm ci
+        
+      - name: Clean dist folder to avoid Jest conflicts
+        run: rm -rf dist/
         
       - name: Ensure coverage directory
         run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
@@ -411,6 +417,9 @@ jobs:
           timeout_minutes: 5
           max_attempts: 3
           command: npm ci
+      
+      - name: Clean dist folder to avoid Jest conflicts
+        run: rm -rf dist/
       
       - name: Download build artifacts (requerido)
         uses: actions/download-artifact@v4
