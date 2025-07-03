@@ -184,8 +184,8 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: guiders_test
         options: >-
           --health-cmd pg_isready
@@ -315,12 +315,12 @@ jobs:
       - name: Setup test environment variables
         run: |
           echo "NODE_ENV=test" >> $GITHUB_ENV
-          echo "DATABASE_URL=postgresql://test:test@localhost:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
-          echo "TEST_DATABASE_USERNAME=test" >> $GITHUB_ENV
-          echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
+          echo "TEST_DATABASE_USERNAME=postgres" >> $GITHUB_ENV
+          echo "TEST_DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
       - name: Run integration tests with coverage (CRÍTICO)
@@ -353,8 +353,8 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: guiders_test
         options: >-
           --health-cmd pg_isready
@@ -497,12 +497,12 @@ jobs:
       - name: Setup test environment variables
         run: |
           echo "NODE_ENV=test" >> $GITHUB_ENV
-          echo "DATABASE_URL=postgresql://test:test@localhost:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
-          echo "TEST_DATABASE_USERNAME=test" >> $GITHUB_ENV
-          echo "TEST_DATABASE_PASSWORD=test" >> $GITHUB_ENV
+          echo "TEST_DATABASE_USERNAME=postgres" >> $GITHUB_ENV
+          echo "TEST_DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
       
       - name: Run E2E tests (CRÍTICO)
