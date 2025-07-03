@@ -25,6 +25,12 @@ describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
     // Configuración de los mocks
     mockChat = {
       id: new ChatId(Uuid.random().value),
+      participants: {
+        getParticipant: jest.fn().mockReturnValue({
+          isEmpty: () => false,
+          get: () => ({ isVisitor: false, isCommercial: true }),
+        }),
+      } as any,
       removeCommercial: jest.fn().mockReturnThis(),
       commit: jest.fn(),
     };
@@ -121,6 +127,101 @@ describe('UpdateChatParticipantsOnCommercialsUnassignedEventHandler', () => {
       // Assert
       expect(mockChatRepository.findOne).toHaveBeenCalledTimes(1);
       expect(mockChat.removeCommercial).not.toHaveBeenCalled();
+      expect(mockPublisher.mergeObjectContext).toHaveBeenCalled();
+      expect(mockChatRepository.save).toHaveBeenCalled();
+    });
+
+    it('debe validar que no se intente remover participantes visitantes', async () => {
+      // Arrange
+      const chatId = Uuid.random().value;
+      const visitorId = Uuid.random().value;
+      const commercialIds = [visitorId]; // Se intenta remover un visitante
+      const event = new ChatCommercialsUnassignedEvent(chatId, commercialIds);
+
+      // Mock del participante visitante
+      const mockVisitorParticipant = {
+        id: visitorId,
+        name: 'Test Visitor',
+        isVisitor: true,
+        isCommercial: false,
+      };
+
+      // Mock del chat con participantes que incluye un visitante
+      const mockChatWithVisitor = {
+        ...mockChat,
+        participants: {
+          getParticipant: jest.fn().mockReturnValue({
+            isEmpty: () => false,
+            get: () => mockVisitorParticipant,
+          }),
+        },
+        removeCommercial: jest.fn().mockReturnThis(),
+      };
+
+      // Mock del repository para devolver el chat con el visitante
+      (mockChatRepository.findOne as jest.Mock).mockResolvedValue({
+        isEmpty: () => false,
+        get: () => ({ chat: mockChatWithVisitor }),
+      });
+
+      // Mock del publisher para devolver el chat con commit
+      (mockPublisher.mergeObjectContext as jest.Mock).mockReturnValue({
+        ...mockChatWithVisitor,
+        commit: jest.fn(),
+      });
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      expect(mockChatRepository.findOne).toHaveBeenCalledTimes(1);
+      // Verificar que NO se llamó a removeCommercial porque el participante es visitante
+      expect(mockChatWithVisitor.removeCommercial).not.toHaveBeenCalled();
+      // Verificar que el chat se guardó (el flujo continúa)
+      expect(mockPublisher.mergeObjectContext).toHaveBeenCalled();
+      expect(mockChatRepository.save).toHaveBeenCalled();
+    });
+
+    it('debe continuar el flujo cuando se encuentran errores al remover comerciales', async () => {
+      // Arrange
+      const chatId = Uuid.random().value;
+      const commercialIds = [Uuid.random().value, Uuid.random().value];
+      const event = new ChatCommercialsUnassignedEvent(chatId, commercialIds);
+
+      // Mock del chat que lanza error en removeCommercial
+      const mockChatWithError = {
+        ...mockChat,
+        participants: {
+          getParticipant: jest.fn().mockReturnValue({
+            isEmpty: () => false,
+            get: () => ({ isVisitor: false, isCommercial: true }),
+          }),
+        },
+        removeCommercial: jest.fn().mockImplementation(() => {
+          throw new Error('Participant is not a commercial');
+        }),
+      };
+
+      // Mock del repository
+      (mockChatRepository.findOne as jest.Mock).mockResolvedValue({
+        isEmpty: () => false,
+        get: () => ({ chat: mockChatWithError }),
+      });
+
+      // Mock del publisher
+      (mockPublisher.mergeObjectContext as jest.Mock).mockReturnValue({
+        ...mockChatWithError,
+        commit: jest.fn(),
+      });
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      expect(mockChatRepository.findOne).toHaveBeenCalledTimes(1);
+      // Verificar que se intentó remover ambos comerciales
+      expect(mockChatWithError.removeCommercial).toHaveBeenCalledTimes(2);
+      // Verificar que el chat se guardó a pesar de los errores
       expect(mockPublisher.mergeObjectContext).toHaveBeenCalled();
       expect(mockChatRepository.save).toHaveBeenCalled();
     });

@@ -33,6 +33,14 @@ export class UpdateChatParticipantsOnCommercialsUnassignedEventHandler
     let updatedChat = chat;
     for (const commercialId of commercialIds) {
       try {
+        // Validamos que el participante no sea visitante antes de intentar removerlo
+        const participant =
+          updatedChat.participants.getParticipant(commercialId);
+        if (!participant.isEmpty() && participant.get().isVisitor) {
+          // No removemos visitantes, continuamos con el siguiente comercial
+          continue;
+        }
+
         // Intentamos remover el comercial del chat
         updatedChat = updatedChat.removeCommercial(commercialId);
       } catch {

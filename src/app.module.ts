@@ -67,13 +67,13 @@ export class AppModule {
     // Selección dinámica de variables según NODE_ENV
     const nodeEnv = configService.get<string>('NODE_ENV');
     const isTest = nodeEnv === 'test';
-    
+
     // Determinar si es un test e2e basado en variables de entorno o ubicación
     // Si estamos ejecutando desde la carpeta test/ es un test e2e, de lo contrario es un test unitario
-    const isE2ETest = 
-      isTest && 
-      (process.env.E2E_TEST === 'true' || 
-        process.cwd().includes('/test') || 
+    const isE2ETest =
+      isTest &&
+      (process.env.E2E_TEST === 'true' ||
+        process.cwd().includes('/test') ||
         new Error().stack?.includes('/test/'));
 
     // Se retorna un objeto estrictamente tipado para TypeOrmModuleOptions
