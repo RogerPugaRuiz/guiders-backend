@@ -258,7 +258,7 @@ jobs:
             redis_ready=false
             
             # Verificar PostgreSQL
-            if pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1; then
+            if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
               postgres_ready=true
             fi
             
@@ -284,7 +284,7 @@ jobs:
             # Debug cada 10 intentos
             if [ $((i % 10)) -eq 0 ]; then
               echo "📊 Debug en intento $i:"
-              echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U test 2>&1 || echo 'failed')"
+              echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U postgres 2>&1 || echo 'failed')"
               echo "- Redis ping: $(redis-cli -h localhost -p 6379 ping 2>&1 || echo 'failed')"
               echo "- Port 6379: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
               echo "- Docker containers:"
@@ -295,7 +295,7 @@ jobs:
           done
           
           # Verificación final
-          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1); then
+          if ! (pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1); then
             echo "❌ PostgreSQL no está listo"
             exit 1
           fi
@@ -315,7 +315,11 @@ jobs:
       - name: Setup test environment variables
         run: |
           echo "NODE_ENV=test" >> $GITHUB_ENV
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_HOST=localhost" >> $GITHUB_ENV
+          echo "DATABASE_PORT=5432" >> $GITHUB_ENV
+          echo "DATABASE_USERNAME=postgres" >> $GITHUB_ENV
+          echo "DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
+          echo "DATABASE=guiders_test" >> $GITHUB_ENV          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
@@ -441,7 +445,7 @@ jobs:
             redis_ready=false
             
             # Verificar PostgreSQL
-            if pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1; then
+            if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
               postgres_ready=true
             fi
             
@@ -467,7 +471,7 @@ jobs:
             # Debug cada 10 intentos
             if [ $((i % 10)) -eq 0 ]; then
               echo "📊 Debug en intento $i:"
-              echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U test 2>&1 || echo 'failed')"
+              echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U postgres 2>&1 || echo 'failed')"
               echo "- Redis ping: $(redis-cli -h localhost -p 6379 ping 2>&1 || echo 'failed')"
               echo "- Port 6379: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
               echo "- Docker containers:"
@@ -478,7 +482,7 @@ jobs:
           done
           
           # Verificación final
-          if ! (pg_isready -h localhost -p 5432 -U test >/dev/null 2>&1); then
+          if ! (pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1); then
             echo "❌ PostgreSQL no está listo"
             exit 1
           fi
@@ -498,7 +502,11 @@ jobs:
       - name: Setup test environment variables
         run: |
           echo "NODE_ENV=test" >> $GITHUB_ENV
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_HOST=localhost" >> $GITHUB_ENV
+          echo "DATABASE_PORT=5432" >> $GITHUB_ENV
+          echo "DATABASE_USERNAME=postgres" >> $GITHUB_ENV
+          echo "DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
+          echo "DATABASE=guiders_test" >> $GITHUB_ENV          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
