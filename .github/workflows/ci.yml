@@ -319,7 +319,8 @@ jobs:
           echo "DATABASE_PORT=5432" >> $GITHUB_ENV
           echo "DATABASE_USERNAME=postgres" >> $GITHUB_ENV
           echo "DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
-          echo "DATABASE=guiders_test" >> $GITHUB_ENV          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV
@@ -506,7 +507,8 @@ jobs:
           echo "DATABASE_PORT=5432" >> $GITHUB_ENV
           echo "DATABASE_USERNAME=postgres" >> $GITHUB_ENV
           echo "DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
-          echo "DATABASE=guiders_test" >> $GITHUB_ENV          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
+          echo "DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/guiders_test" >> $GITHUB_ENV
           echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
           echo "TEST_DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "TEST_DATABASE_PORT=5432" >> $GITHUB_ENV

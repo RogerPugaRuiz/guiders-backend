@@ -107,10 +107,12 @@ describe('FindChatListWithFiltersQuery (e2e)', () => {
     for (const chat of chats) {
       await chatRepository.save(chat);
     }
-  });
+  }, 30000); // Timeout de 30 segundos
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('should return the first page of chats for a participant, sorted by lastMessageAt', async () => {
