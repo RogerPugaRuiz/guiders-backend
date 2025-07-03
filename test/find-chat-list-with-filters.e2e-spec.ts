@@ -15,7 +15,7 @@ import {
 import { Uuid } from '../src/context/shared/domain/value-objects/uuid';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppDataSource } from '../src/data-source';
-import { ChatEntity } from '../src/context/conversations/chat/infrastructure/chat.entity';
+import { EntityManager } from 'typeorm';
 
 // Función auxiliar para crear un chat de prueba
 const createTestChat = (
@@ -100,10 +100,18 @@ describe('FindChatListWithFiltersQuery (e2e)', () => {
 
     queryBus = app.get(QueryBus);
     chatRepository = app.get(CHAT_REPOSITORY);
-    const typeormRepo = app.get(ChatEntity.name + 'Repository');
+    const entityManager = app.get(EntityManager);
 
-    // Limpiar y guardar los datos de prueba
-    await typeormRepo.clear(); // Usar clear() en lugar de delete({})
+    // Limpiar los datos de prueba de manera segura
+    try {
+      // Eliminar todos los chats existentes de manera segura
+      await entityManager.query('DELETE FROM participants WHERE 1=1');
+      await entityManager.query('DELETE FROM chats WHERE 1=1');
+    } catch (error) {
+      console.warn('Error al limpiar datos de prueba:', error.message);
+    }
+
+    // Guardar los datos de prueba
     for (const chat of chats) {
       await chatRepository.save(chat);
     }
