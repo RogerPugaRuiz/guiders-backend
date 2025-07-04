@@ -64,14 +64,53 @@ services:
     networks:
       - redis-net
 
+  mongodb:
+    image: mongo:7.0-focal
+    container_name: mongodb-prod
+    restart: always
+    
+    # credenciales via env vars en .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+    
+    # configuración de salud para MongoDB
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+    # logs rotados
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    
+    volumes:
+      - mongodb-data:/data/db:rw
+    
+    networks:
+      - mongodb-net
+
 volumes:
   pgdata:
     driver: local
   redis-data:
+    driver: local
+  mongodb-data:
     driver: local
 
 networks:
   postgres-net:
     driver: bridge
   redis-net:
+    driver: bridge
+  mongodb-net:
     driver: bridge

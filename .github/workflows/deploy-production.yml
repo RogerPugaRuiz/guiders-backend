@@ -82,6 +82,11 @@ jobs:
           echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> .env.production
           echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env.production
           echo 'REDIS_URL=${{ secrets.REDIS_URL }}' >> .env.production
+          echo 'MONGODB_USERNAME=${{ secrets.MONGODB_USERNAME }}' >> .env.production
+          echo 'MONGODB_PASSWORD=${{ secrets.MONGODB_PASSWORD }}' >> .env.production
+          echo 'MONGODB_DATABASE=${{ secrets.MONGODB_DATABASE }}' >> .env.production
+          echo 'MONGODB_PORT=${{ secrets.MONGODB_PORT }}' >> .env.production
+          echo 'MONGODB_URL=${{ secrets.MONGODB_URL }}' >> .env.production
 
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-dist.tar.gz .env.production ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/

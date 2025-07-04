@@ -42,11 +42,28 @@ services:
     networks:
       - redis-net
 
+  mongodb:
+    image: mongo:7-focal
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-guiders}
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - mongodb-net
+
 volumes:
   pgdata:
   sqlite-data:
   redis-data:
+  mongodb-data:
 
 networks:
   postgres-net:
   redis-net:
+  mongodb-net:

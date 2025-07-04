@@ -212,6 +212,22 @@ jobs:
           --name redis-integration
         ports:
           - 6379:6379
+      
+      mongodb:
+        image: mongo:7-focal
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin_test
+          MONGO_INITDB_ROOT_PASSWORD: test_password
+          MONGO_INITDB_DATABASE: guiders_test
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+          --name mongodb-integration
+        ports:
+          - 27017:27017
     
     steps:
       - name: Checkout code
@@ -333,6 +349,11 @@ jobs:
           echo "TEST_DATABASE_USERNAME=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
+          echo "MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
+          echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "MONGODB_PORT=27017" >> $GITHUB_ENV
+          echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
       
       - name: Run integration tests with coverage (CRÍTICO)
@@ -390,6 +411,22 @@ jobs:
           --name redis-e2e
         ports:
           - 6379:6379
+      
+      mongodb:
+        image: mongo:7-focal
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin_test
+          MONGO_INITDB_ROOT_PASSWORD: test_password
+          MONGO_INITDB_DATABASE: guiders_test
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+          --name mongodb-e2e
+        ports:
+          - 27017:27017
     
     steps:
       - name: Checkout code
@@ -524,6 +561,11 @@ jobs:
           echo "TEST_DATABASE_USERNAME=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE_PASSWORD=postgres" >> $GITHUB_ENV
           echo "TEST_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
+          echo "MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
+          echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "MONGODB_PORT=27017" >> $GITHUB_ENV
+          echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
       
       - name: Run E2E tests (CRÍTICO)
