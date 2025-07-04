@@ -65,7 +65,7 @@ services:
       - redis-net
 
   mongodb:
-    image: mongo:7.0-focal
+    image: mongo:7.0
     container_name: mongodb-prod
     restart: always
     

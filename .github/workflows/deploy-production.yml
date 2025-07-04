@@ -120,6 +120,36 @@ jobs:
             docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans \
           "
 
+      # Esperar a que los servicios estén listos antes de ejecutar migraciones
+      - name: Wait for databases to be ready
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔄 Esperando a que las bases de datos estén listas...' && \
+            for i in {1..30}; do \
+              postgres_ready=false; \
+              mongodb_ready=false; \
+              \
+              if docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME >/dev/null 2>&1; then \
+                postgres_ready=true; \
+              fi; \
+              \
+              if docker exec mongodb-prod mongosh --host localhost --port 27017 --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1; then \
+                mongodb_ready=true; \
+              fi; \
+              \
+              echo \"Intento \$i/30: PostgreSQL=\$postgres_ready, MongoDB=\$mongodb_ready\"; \
+              \
+              if \$postgres_ready && \$mongodb_ready; then \
+                echo '✅ Todas las bases de datos están listas!'; \
+                break; \
+              fi; \
+              \
+              sleep 3; \
+            done \
+          "
+
       # Ejecuta migraciones de TypeORM en el servidor antes de reiniciar la app
       - name: Run TypeORM migrations on server
         env:
@@ -147,4 +177,18 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             chmod +x /var/www/guiders-backend/dist/tools/cli.js \
+          "
+
+      # Verificar que todos los servicios estén funcionando
+      - name: Verify deployment status
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Verificando estado del despliegue...' && \
+            echo '📊 Estado de PM2:' && \
+            pm2 list | grep guiders-backend || echo 'App no encontrada en PM2' && \
+            echo '📊 Estado de Docker:' && \
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|redis-prod|mongodb-prod)' && \
+            echo '✅ Verificación de despliegue completada' \
           "

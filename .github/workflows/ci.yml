@@ -214,7 +214,7 @@ jobs:
           - 6379:6379
       
       mongodb:
-        image: mongo:7-focal
+        image: mongo:7.0
         env:
           MONGO_INITDB_ROOT_USERNAME: admin_test
           MONGO_INITDB_ROOT_PASSWORD: test_password
@@ -413,7 +413,7 @@ jobs:
           - 6379:6379
       
       mongodb:
-        image: mongo:7-focal
+        image: mongo:7.0
         env:
           MONGO_INITDB_ROOT_USERNAME: admin_test
           MONGO_INITDB_ROOT_PASSWORD: test_password
