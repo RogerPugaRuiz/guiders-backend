@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { MongooseModule } from '@nestjs/mongoose';
 import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
 import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/auth-visitor.module';
@@ -53,6 +54,12 @@ import { CompanyModule } from './context/company/company.module';
       useFactory: (configService: ConfigService) =>
         AppModule.createTypeOrmOptions(configService),
     }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        AppModule.createMongooseOptions(configService),
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, TokenVerifyService],
@@ -100,6 +107,29 @@ export class AppModule {
     };
   }
 
+  // Método estático para hacer testeable la factory function de Mongoose
+  static createMongooseOptions(configService: ConfigService) {
+    const nodeEnv = configService.get<string>('NODE_ENV');
+    const isTest = nodeEnv === 'test';
+
+    // Configuración de MongoDB
+    const mongoUri = isTest
+      ? configService.get<string>(
+          'TEST_MONGODB_URI',
+          'mongodb://localhost:27017/guiders-test',
+        )
+      : configService.get<string>(
+          'MONGODB_URI',
+          'mongodb://localhost:27017/guiders',
+        );
+
+    return {
+      uri: mongoUri,
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
+  }
+
   constructor(private readonly configService: ConfigService) {
     // Configuración de variables de entorno
     const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');
@@ -113,6 +143,8 @@ export class AppModule {
     const DATABASE_PASSWORD =
       this.configService.get<string>('DATABASE_PASSWORD');
     const DATABASE = this.configService.get<string>('DATABASE');
+    const MONGODB_URI = this.configService.get<string>('MONGODB_URI');
+
     this.logger.log(`NODE_ENV: ${process.env.NODE_ENV}`);
     this.logger.log(`ENCRYPTION_KEY: ${ENCRYPTION_KEY}`);
     this.logger.log(`GLOBAL_TOKEN_SECRET: ${GLOBAL_TOKEN_SECRET}`);
@@ -121,6 +153,7 @@ export class AppModule {
     this.logger.log(`DATABASE_USERNAME: ${DATABASE_USERNAME}`);
     this.logger.log(`DATABASE_PASSWORD: ${DATABASE_PASSWORD}`);
     this.logger.log(`DATABASE: ${DATABASE}`);
+    this.logger.log(`MONGODB_URI: ${MONGODB_URI}`);
 
     this.logger.log(`ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY}`);
   }

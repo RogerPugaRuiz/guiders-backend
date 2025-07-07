@@ -20,5 +20,5 @@ export const AppDataSource = new DataSource({
   // Ajuste: solo buscar entidades compiladas (.js) para generación de migraciones
   entities: [join(__dirname, '/../**/*.entity.js')],
   migrations: [join(__dirname, '/migrations/*{.ts,.js}')],
-  synchronize: false,
+  synchronize: false, // Solo para desarrollo, no usar en producción
 });

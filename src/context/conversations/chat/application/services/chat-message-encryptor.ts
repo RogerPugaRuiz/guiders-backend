@@ -1,4 +1,4 @@
-export const CHAT_MESSAGE_ENCRYPTOR = 'ChatMessageEncryptor';
+export const CHAT_MESSAGE_ENCRYPTOR = Symbol('ChatMessageEncryptor');
 
 /**
  * Servicio para encriptar y desencriptar mensajes de chat usando AES
