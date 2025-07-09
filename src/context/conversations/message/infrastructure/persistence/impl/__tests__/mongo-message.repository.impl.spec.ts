@@ -7,7 +7,7 @@ import { MongoMessageRepository } from '../mongo-message.repository.impl';
 import {
   MessageMongooseEntity,
   MessageMongooseSchema,
-} from '../../entity/message-mongoose.entity';
+} from '../../entity/message-mongoose.mongodb-entity';
 import { Message } from '../../../../domain/message';
 import { MessageId } from '../../../../domain/value-objects/message-id';
 import { Content } from '../../../../domain/value-objects/content';

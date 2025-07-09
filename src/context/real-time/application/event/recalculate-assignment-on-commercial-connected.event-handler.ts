@@ -8,6 +8,10 @@ import {
   CHAT_REPOSITORY,
   IChatRepository,
 } from 'src/context/conversations/chat/domain/chat/chat.repository';
+import {
+  COMERCIAL_CLAIM_REPOSITORY,
+  IComercialClaimRepository,
+} from 'src/context/conversations/chat/domain/claim/comercial-claim.repository';
 import { Operator } from 'src/context/shared/domain/criteria';
 import { CriteriaBuilder } from 'src/context/shared/domain/criteria-builder';
 import { Chat } from 'src/context/conversations/chat/domain/chat/chat';
@@ -27,6 +31,8 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
     private readonly eventBus: EventBus,
     @Inject(CHAT_REPOSITORY)
     private readonly chatRepository: IChatRepository,
+    @Inject(COMERCIAL_CLAIM_REPOSITORY)
+    private readonly comercialClaimRepository: IComercialClaimRepository,
   ) {}
 
   /**
@@ -106,6 +112,77 @@ export class RecalculateAssignmentOnCommercialConnectedEventHandler
 
       this.logger.log(
         `Chat ${chat.id.value} reasignado: ${connectedCommercials.length} comerciales disponibles de la compañía ${event.connection.companyId}`,
+      );
+    }
+
+    // NUEVA FUNCIONALIDAD: Notificar sobre claims disponibles
+    if (event.connection.companyId) {
+      await this.notifyAvailableClaimsToCommercial(
+        event.connection.userId,
+        event.connection.companyId,
+      );
+    }
+  }
+
+  /**
+   * Notifica al comercial conectado sobre chats disponibles para reclamar
+   * @param comercialUserId ID del comercial que se conectó
+   * @param companyId ID de la compañía
+   */
+  private async notifyAvailableClaimsToCommercial(
+    comercialUserId: string,
+    companyId: string,
+  ): Promise<void> {
+    try {
+      // Obtener IDs de chats que ya tienen claims activos
+      const activeClaimsResult =
+        await this.comercialClaimRepository.getActiveChatIds();
+
+      if (activeClaimsResult.isErr()) {
+        this.logger.error(
+          `Error al obtener chats con claims activos: ${activeClaimsResult.error.message}`,
+        );
+        return;
+      }
+
+      const chatIdsWithActiveClaims = activeClaimsResult.value;
+
+      // Buscar chats pendientes sin claims activos
+      const availableChatsCriteria = this.criteriaBuilder
+        .addFilter('status', Operator.EQUALS, Status.PENDING.value)
+        .addFilter('companyId', Operator.EQUALS, companyId)
+        .build();
+
+      const { chats: allPendingChats } = await this.chatRepository.find(
+        availableChatsCriteria,
+      );
+
+      // Filtrar chats que NO tienen claims activos
+      const availableChats = allPendingChats.filter(
+        (chat) => !chatIdsWithActiveClaims.includes(chat.id.value),
+      );
+
+      if (availableChats.length > 0) {
+        this.logger.log(
+          `Comercial ${comercialUserId} conectado: ${availableChats.length} chats disponibles para reclamar en la compañía ${companyId}`,
+        );
+
+        // Aquí podrías publicar un evento específico para notificar al comercial
+        // sobre chats disponibles para reclamar, por ejemplo:
+        // this.eventBus.publish(
+        //   new ChatsAvailableForClaimEvent(
+        //     comercialUserId,
+        //     availableChats.map(chat => chat.id.value)
+        //   )
+        // );
+      } else {
+        this.logger.debug(
+          `No hay chats disponibles para reclamar para el comercial ${comercialUserId} en la compañía ${companyId}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error al notificar claims disponibles al comercial ${comercialUserId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
   }

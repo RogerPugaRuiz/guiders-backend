@@ -5,7 +5,7 @@ import { MessageEntity } from './entities/message.entity';
 import {
   MessageMongooseEntity,
   MessageMongooseSchema,
-} from './persistence/entity/message-mongoose.entity';
+} from './persistence/entity/message-mongoose.mongodb-entity';
 import { HttpModule } from '@nestjs/axios';
 import { MESSAGE_REPOSITORY } from '../domain/message.repository';
 import { MessagePaginateQueryHandler } from '../application/paginate/message-paginate.query-handler';

@@ -121,7 +121,7 @@ describe('Participants', () => {
   });
 
   describe('addParticipant', () => {
-    it('should add new participant even if duplicate id exists', () => {
+    it('should add new participant successfully', () => {
       const participants = Participants.create([validParticipantData]);
       const commercialId = 'commercial-1';
       const commercialName = 'Test Commercial';
@@ -135,9 +135,10 @@ describe('Participants', () => {
       expect(addedParticipant.isVisitor).toBe(false);
     });
 
-    it('should allow duplicate participants with same id', () => {
+    it('should not add duplicate participants with same id', () => {
       const participants = Participants.create([validParticipantData]);
 
+      // Intentar agregar el mismo participante dos veces
       participants.addParticipant(
         validParticipantData.id,
         validParticipantData.name,
@@ -145,7 +146,21 @@ describe('Participants', () => {
         true,
       );
 
-      expect(participants.value).toHaveLength(2); // Allows duplicates
+      // Debe mantenerse con solo 1 participante (no duplicar)
+      expect(participants.value).toHaveLength(1);
+    });
+
+    it('should not add duplicate participant when same id already exists', () => {
+      const participants = Participants.create([validParticipantData]);
+      const existingId = validParticipantData.id;
+
+      // Intentar agregar participante con ID que ya existe
+      participants.addParticipant(existingId, 'Different Name', true, false);
+
+      // No debe duplicar, debe mantener solo el original
+      expect(participants.value).toHaveLength(1);
+      const existingParticipant = participants.getParticipant(existingId).get();
+      expect(existingParticipant.name).toBe(validParticipantData.name); // Mantiene el nombre original
     });
   });
 

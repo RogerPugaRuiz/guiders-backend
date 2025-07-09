@@ -4,7 +4,7 @@ import { Content } from '../../../domain/value-objects/content';
 import { SenderId } from '../../../domain/value-objects/sender-id';
 import { ChatId } from '../../../../chat/domain/chat/value-objects/chat-id';
 import { CreatedAt } from '../../../domain/value-objects/created-at';
-import { MessageMongooseEntity } from '../entity/message-mongoose.entity';
+import { MessageMongooseEntity } from '../entity/message-mongoose.mongodb-entity';
 import { ChatMessageEncryptorService } from '../../../../chat/infrastructure/chat-message-encryptor.service';
 
 /**

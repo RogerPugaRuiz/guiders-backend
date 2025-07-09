@@ -113,21 +113,35 @@ export class AppModule {
     const isTest = nodeEnv === 'test';
 
     // Configuración de MongoDB
-    const mongoUri = isTest
-      ? configService.get<string>(
-          'TEST_MONGODB_URI',
-          'mongodb://localhost:27017/guiders-test',
-        )
-      : configService.get<string>(
-          'MONGODB_URI',
-          'mongodb://localhost:27017/guiders',
-        );
+    const mongoUser = isTest
+      ? configService.get<string>('TEST_MONGODB_USERNAME', 'admin')
+      : configService.get<string>('MONGODB_USERNAME', 'admin');
 
-    return {
+    const mongoPassword = isTest
+      ? configService.get<string>('TEST_MONGODB_PASSWORD', 'password')
+      : configService.get<string>('MONGODB_PASSWORD', 'password');
+
+    const mongoHost = configService.get<string>('MONGODB_HOST', 'localhost');
+    const mongoPort = configService.get<string>('MONGODB_PORT', '27017');
+    const mongoDatabase = isTest
+      ? configService.get<string>('TEST_MONGODB_DATABASE', 'guiders-test')
+      : configService.get<string>('MONGODB_DATABASE', 'guiders');
+
+    // Construir URI con credenciales si están disponibles
+    let mongoUri: string;
+    if (mongoUser && mongoPassword) {
+      mongoUri = `mongodb://${mongoUser}:${mongoPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+    } else {
+      mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
+    }
+
+    const mongoOptions: Record<string, unknown> = {
       uri: mongoUri,
       useNewUrlParser: true,
       useUnifiedTopology: true,
     };
+
+    return mongoOptions;
   }
 
   constructor(private readonly configService: ConfigService) {
@@ -143,7 +157,11 @@ export class AppModule {
     const DATABASE_PASSWORD =
       this.configService.get<string>('DATABASE_PASSWORD');
     const DATABASE = this.configService.get<string>('DATABASE');
-    const MONGODB_URI = this.configService.get<string>('MONGODB_URI');
+    const MONGODB_HOST = this.configService.get<string>('MONGODB_HOST');
+    const MONGODB_PORT = this.configService.get<string>('MONGODB_PORT');
+    const MONGODB_USERNAME = this.configService.get<string>('MONGODB_USERNAME');
+    const MONGODB_PASSWORD = this.configService.get<string>('MONGODB_PASSWORD');
+    const MONGODB_DATABASE = this.configService.get<string>('MONGODB_DATABASE');
 
     this.logger.log(`NODE_ENV: ${process.env.NODE_ENV}`);
     this.logger.log(`ENCRYPTION_KEY: ${ENCRYPTION_KEY}`);
@@ -153,7 +171,13 @@ export class AppModule {
     this.logger.log(`DATABASE_USERNAME: ${DATABASE_USERNAME}`);
     this.logger.log(`DATABASE_PASSWORD: ${DATABASE_PASSWORD}`);
     this.logger.log(`DATABASE: ${DATABASE}`);
-    this.logger.log(`MONGODB_URI: ${MONGODB_URI}`);
+    this.logger.log(`MONGODB_HOST: ${MONGODB_HOST}`);
+    this.logger.log(`MONGODB_PORT: ${MONGODB_PORT}`);
+    this.logger.log(`MONGODB_USERNAME: ${MONGODB_USERNAME}`);
+    this.logger.log(
+      `MONGODB_PASSWORD: ${MONGODB_PASSWORD ? '[HIDDEN]' : '[NOT SET]'}`,
+    );
+    this.logger.log(`MONGODB_DATABASE: ${MONGODB_DATABASE}`);
 
     this.logger.log(`ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY}`);
   }

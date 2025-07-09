@@ -180,6 +180,56 @@ export class Chat extends AggregateRoot {
     return this;
   }
 
+  // Reasigna comerciales removiendo los anteriores primero para evitar duplicados
+  public reassignCommercials(
+    commercials: { id: string; name: string }[],
+  ): Chat {
+    // Primero remover todos los comerciales existentes
+    this.participants.removeAllCommercials();
+
+    // Luego asignar los nuevos comerciales
+    for (const commercial of commercials) {
+      this.participants.addParticipant(
+        commercial.id,
+        commercial.name,
+        true,
+        false,
+      );
+
+      const participantOptional = this.participants.getParticipant(
+        commercial.id,
+      );
+
+      if (participantOptional.isEmpty()) {
+        throw new Error(
+          `Participant ${commercial.id} not found after assignment`,
+        );
+      }
+
+      const participant = participantOptional.get();
+
+      this.apply(
+        new ParticipantAssignedEvent({
+          chat: this.toPrimitives(),
+          newParticipant: {
+            id: participant.id,
+            name: participant.name,
+            isCommercial: participant.isCommercial,
+            isVisitor: participant.isVisitor,
+            isOnline: participant.isOnline,
+            assignedAt: participant.assignedAt,
+            lastSeenAt: participant.lastSeenAt,
+            isViewing: participant.isViewing,
+            isTyping: participant.isTyping,
+            isAnonymous: participant.isAnonymous,
+          },
+        }),
+      );
+    }
+
+    return this;
+  }
+
   public asignCommercial(commercial: { id: string; name: string }): Chat {
     this.participants.addParticipant(
       commercial.id,

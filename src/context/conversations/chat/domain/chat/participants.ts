@@ -56,6 +56,16 @@ export class Participants {
     isCommercial: boolean,
     isVisitor: boolean,
   ): void {
+    // Verificar si el participante ya existe antes de agregarlo
+    const existingParticipant = this._participants.find(
+      (participant) => participant.id === id,
+    );
+
+    if (existingParticipant) {
+      // Si ya existe, no hacer nada para evitar duplicados
+      return;
+    }
+
     const participant = Participant.create({
       id,
       name,
@@ -68,6 +78,13 @@ export class Participants {
   public removeParticipant(id: string): void {
     this._participants = this._participants.filter(
       (participant) => participant.id !== id,
+    );
+  }
+
+  // Remueve todos los comerciales de la lista de participantes
+  public removeAllCommercials(): void {
+    this._participants = this._participants.filter(
+      (participant) => !participant.isCommercial,
     );
   }
 

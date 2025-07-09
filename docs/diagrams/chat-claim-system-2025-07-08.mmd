@@ -1,0 +1,84 @@
+```mermaid
+graph TB
+    subgraph "Sistema de Claim para Chats"
+        direction TB
+        
+        %% Entidades principales
+        Chat[📞 Chat<br/>- id: ChatId<br/>- participants: Participants<br/>- status: Status<br/>- immutable]
+        
+        ComercialClaim[🎯 ComercialClaim<br/>- id: ComercialClaimId<br/>- chatId: ChatId<br/>- comercialId: ComercialId<br/>- claimedAt: Date<br/>- releasedAt: Date?<br/>- status: active/released]
+        
+        %% Base de datos
+        subgraph "MongoDB Collections"
+            ChatsCollection[(chats<br/>Solo se agregan participantes<br/>Never modified)]
+            ClaimsCollection[(comercial_claims<br/>Claims activos y liberados<br/>Append-mostly)]
+        end
+        
+        %% Operaciones
+        subgraph "Operaciones de Claim"
+            ClaimChat[🤝 Reclamar Chat<br/>POST /chat-claims/claim]
+            ReleaseClaim[📤 Liberar Claim<br/>POST /chat-claims/release]
+            GetAvailable[📋 Chats Disponibles<br/>GET /chat-claims/available]
+            GetClaimed[👤 Mis Chats<br/>GET /chat-claims/comercial/:id]
+        end
+        
+        %% Flujo de reclamar chat
+        ClaimChat --> |1. Verificar si chat ya tiene claim activo| ClaimsCollection
+        ClaimChat --> |2. Crear nuevo ComercialClaim| ComercialClaim
+        ComercialClaim --> |3. Guardar claim activo| ClaimsCollection
+        
+        %% Flujo de liberar claim
+        ReleaseClaim --> |1. Buscar claim activo| ClaimsCollection
+        ReleaseClaim --> |2. Actualizar status a 'released'| ComercialClaim
+        ComercialClaim --> |3. Guardar claim liberado| ClaimsCollection
+        
+        %% Flujo de obtener disponibles
+        GetAvailable --> |1. Obtener IDs con claims activos| ClaimsCollection
+        GetAvailable --> |2. Excluir chats con claims| ChatsCollection
+        ChatsCollection --> |3. Retornar chats disponibles| GetAvailable
+        
+        %% Flujo de obtener reclamados
+        GetClaimed --> |1. Buscar claims activos por comercial| ClaimsCollection
+        GetClaimed --> |2. Obtener chats correspondientes| ChatsCollection
+        ChatsCollection --> |3. Retornar chats reclamados| GetClaimed
+        
+        %% Consultas MongoDB optimizadas
+        subgraph "Consultas MongoDB"
+            Query1[db.comercial_claims.distinct<br/>'chat_id', {status: 'active'}]
+            Query2[db.chats.find<br/>{_id: {$nin: activeChatIds}}]
+            Query3[db.comercial_claims.find<br/>{comercial_id: 'X', status: 'active'}]
+        end
+        
+        GetAvailable -.-> Query1
+        GetAvailable -.-> Query2
+        GetClaimed -.-> Query3
+        
+        %% Eventos de dominio
+        subgraph "Eventos de Dominio"
+            ClaimCreated[ComercialClaimCreatedEvent]
+            ClaimReleased[ComercialClaimReleasedEvent]
+        end
+        
+        ComercialClaim --> ClaimCreated
+        ComercialClaim --> ClaimReleased
+    end
+
+    %% Beneficios del sistema
+    subgraph "✅ Beneficios"
+        B1[Chat nunca se modifica<br/>Datos inmutables]
+        B2[Claims son append-mostly<br/>Historial completo]
+        B3[Comerciales controlan carga<br/>No asignaciones forzadas]
+        B4[Consultas optimizadas<br/>Índices en MongoDB]
+        B5[Escalabilidad<br/>Sin bloqueos]
+    end
+
+    style Chat fill:#e1f5fe
+    style ComercialClaim fill:#f3e5f5
+    style ChatsCollection fill:#e8f5e8
+    style ClaimsCollection fill:#fff3e0
+    style B1 fill:#e8f5e8
+    style B2 fill:#e8f5e8
+    style B3 fill:#e8f5e8
+    style B4 fill:#e8f5e8
+    style B5 fill:#e8f5e8
+```

@@ -7,7 +7,7 @@ import { Result, err, okVoid } from 'src/context/shared/domain/result';
 import { Message } from '../../../domain/message';
 import { IMessageRepository } from '../../../domain/message.repository';
 import { SaveMessageError } from '../../../domain/errors';
-import { MessageMongooseEntity } from '../entity/message-mongoose.entity';
+import { MessageMongooseEntity } from '../entity/message-mongoose.mongodb-entity';
 import { MessageMongooseMapper } from '../mappers/message-mongoose.mapper';
 import { ChatMessageEncryptorService } from '../../../../chat/infrastructure/chat-message-encryptor.service';
 import { CHAT_MESSAGE_ENCRYPTOR } from '../../../../chat/application/services/chat-message-encryptor';
