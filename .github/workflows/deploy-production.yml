@@ -201,7 +201,7 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             echo '🔍 Probando conexión a PostgreSQL...' && \
-            docker exec postgres-prod psql -U \$DATABASE_USERNAME -d \$DATABASE -c 'SELECT version();' && \
+            docker exec postgres-prod sh -c 'psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"SELECT version();\"' && \
             echo '✅ PostgreSQL conectado correctamente' \
           "
 
@@ -212,7 +212,7 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             echo '🔍 Probando conexión a MongoDB...' && \
-            docker exec mongodb-prod mongosh --username \$MONGODB_USERNAME --password \$MONGODB_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand(\"listDatabases\")' && \
+            docker exec mongodb-prod sh -c 'mongosh --username \"\$MONGO_INITDB_ROOT_USERNAME\" --password \"\$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval \"db.adminCommand(\\\"listDatabases\\\")\"' && \
             echo '✅ MongoDB conectado correctamente' \
           "
 
@@ -240,7 +240,7 @@ jobs:
             echo '📊 Últimos logs de la aplicación:' && \
             pm2 logs guiders-backend --lines 20 --nostream && \
             echo '🌐 Probando endpoint de salud...' && \
-            curl -f -I http://localhost:\$PORT/health -m 10 || echo 'Endpoint de salud no disponible' && \
+            curl -f -I http://localhost:\\\$PORT/health -m 10 || echo 'Endpoint de salud no disponible' && \
             echo '✅ Verificación del servidor NestJS completada' \
           "
 
