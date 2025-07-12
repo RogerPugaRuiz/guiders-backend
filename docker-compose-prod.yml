@@ -33,7 +33,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data:rw
     networks:
-      - postgres-net
+      - app-network
 
   redis:
     image: redis:7-alpine
@@ -62,7 +62,7 @@ services:
       - redis-data:/data:rw
     
     networks:
-      - redis-net
+      - app-network
 
   mongodb:
     image: mongo:7.0
@@ -75,9 +75,9 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
     
-    # configuración de salud para MongoDB
+    # configuración de salud para MongoDB con autenticación
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD", "mongosh", "--username", "${MONGODB_USERNAME}", "--password", "${MONGODB_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -97,7 +97,7 @@ services:
       - mongodb-data:/data/db:rw
     
     networks:
-      - mongodb-net
+      - app-network
 
 volumes:
   pgdata:
@@ -108,9 +108,5 @@ volumes:
     driver: local
 
 networks:
-  postgres-net:
-    driver: bridge
-  redis-net:
-    driver: bridge
-  mongodb-net:
+  app-network:
     driver: bridge

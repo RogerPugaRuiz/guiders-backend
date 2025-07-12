@@ -10,9 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: C              if docker exec mongodb-prod mongosh --host localhost --port 27017 --username \$MONGODB_USERNAME --password \$MONGODB_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1; then
-                mongodb_ready=true; \
-              fi; \kout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Node.js
@@ -194,4 +192,68 @@ jobs:
             echo '📊 Estado de Docker:' && \
             docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|redis-prod|mongodb-prod)' && \
             echo '✅ Verificación de despliegue completada' \
+          "
+
+      # Probar conexión a PostgreSQL
+      - name: Test PostgreSQL connection
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Probando conexión a PostgreSQL...' && \
+            docker exec postgres-prod psql -U \$DATABASE_USERNAME -d \$DATABASE -c 'SELECT version();' && \
+            echo '✅ PostgreSQL conectado correctamente' \
+          "
+
+      # Probar conexión a MongoDB
+      - name: Test MongoDB connection
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Probando conexión a MongoDB...' && \
+            docker exec mongodb-prod mongosh --username \$MONGODB_USERNAME --password \$MONGODB_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand(\"listDatabases\")' && \
+            echo '✅ MongoDB conectado correctamente' \
+          "
+
+      # Probar conexión a Redis
+      - name: Test Redis connection
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Probando conexión a Redis...' && \
+            docker exec redis-prod redis-cli ping && \
+            echo '✅ Redis conectado correctamente' \
+          "
+
+      # Verificar que el servidor NestJS esté funcionando
+      - name: Test NestJS server health
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Verificando estado del servidor NestJS...' && \
+            sleep 10 && \
+            echo '📊 Estado de PM2 detallado:' && \
+            pm2 show guiders-backend && \
+            echo '📊 Últimos logs de la aplicación:' && \
+            pm2 logs guiders-backend --lines 20 --nostream && \
+            echo '🌐 Probando endpoint de salud...' && \
+            curl -f -I http://localhost:\$PORT/health -m 10 || echo 'Endpoint de salud no disponible' && \
+            echo '✅ Verificación del servidor NestJS completada' \
+          "
+
+      # Verificar logs de errores
+      - name: Check for critical errors
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Verificando logs de errores críticos...' && \
+            echo '📊 Errores recientes en PM2:' && \
+            pm2 logs guiders-backend --err --lines 10 --nostream | grep -i 'error\|exception\|fatal' || echo 'No se encontraron errores críticos' && \
+            echo '📊 Estado de conexiones de base de datos:' && \
+            pm2 logs guiders-backend --lines 50 --nostream | grep -i 'mongodb\|postgres\|redis' | tail -10 || echo 'No hay logs de conexiones recientes' && \
+            echo '✅ Verificación de errores completada' \
           "
