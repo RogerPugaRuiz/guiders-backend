@@ -137,8 +137,8 @@ export class AppModule {
 
     const mongoOptions: Record<string, unknown> = {
       uri: mongoUri,
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // Eliminamos las opciones obsoletas useNewUrlParser y useUnifiedTopology
+      // que causan warnings en versiones modernas de MongoDB driver
     };
 
     return mongoOptions;

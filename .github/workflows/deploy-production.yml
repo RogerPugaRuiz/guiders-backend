@@ -10,7 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: C              if docker exec mongodb-prod mongosh --host localhost --port 27017 --username \$MONGODB_USERNAME --password \$MONGODB_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1; then
+                mongodb_ready=true; \
+              fi; \kout code
         uses: actions/checkout@v3
 
       - name: Set up Node.js
@@ -82,6 +84,7 @@ jobs:
           echo 'REFRESH_TOKEN_EXPIRATION=${{ secrets.REFRESH_TOKEN_EXPIRATION }}' >> .env.production
           echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env.production
           echo 'REDIS_URL=${{ secrets.REDIS_URL }}' >> .env.production
+          echo 'MONGODB_HOST=mongodb' >> .env.production
           echo 'MONGODB_USERNAME=${{ secrets.MONGODB_USERNAME }}' >> .env.production
           echo 'MONGODB_PASSWORD=${{ secrets.MONGODB_PASSWORD }}' >> .env.production
           echo 'MONGODB_DATABASE=${{ secrets.MONGODB_DATABASE }}' >> .env.production
