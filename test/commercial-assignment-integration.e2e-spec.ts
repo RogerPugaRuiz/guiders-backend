@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
+import { CqrsModule } from '@nestjs/cqrs';
 import { AssignOnPendingChatEventHandler } from '../src/context/real-time/application/event/assign-on-pending-chat.event-handler';
 import { UpdateChatParticipantsOnCommercialsAssignedEventHandler } from '../src/context/conversations/chat/application/update/participants/assigne/update-chat-participants-on-commercials-assigned.event-handler';
 import { NewChatCreatedEvent } from '../src/context/conversations/chat/domain/chat/events/new-chat-created.event';
@@ -29,11 +30,10 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
   let module: TestingModule;
   let eventBus: EventBus;
   let assignOnPendingChatHandler: AssignOnPendingChatEventHandler;
-  let updateChatParticipantsHandler: UpdateChatParticipantsOnCommercialsAssignedEventHandler;
+  // let _updateChatParticipantsHandler: UpdateChatParticipantsOnCommercialsAssignedEventHandler;
   let commercialAssignmentService: CommercialAssignmentService;
   let chatRepository: IChatRepository;
   let userFinder: IUserFinder;
-  let eventPublisher: EventPublisher;
 
   // Datos de prueba
   const chatId = Uuid.random();
@@ -59,14 +59,9 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
       findById: jest.fn(),
     };
 
-    // Mock del event publisher
-    const mockEventPublisher = {
-      mergeObjectContext: jest.fn(),
-    };
-
     module = await Test.createTestingModule({
+      imports: [CqrsModule],
       providers: [
-        EventBus,
         AssignOnPendingChatEventHandler,
         UpdateChatParticipantsOnCommercialsAssignedEventHandler,
         {
@@ -81,10 +76,6 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
           provide: USER_FINDER,
           useValue: mockUserFinder,
         },
-        {
-          provide: EventPublisher,
-          useValue: mockEventPublisher,
-        },
       ],
     }).compile();
 
@@ -92,16 +83,15 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     assignOnPendingChatHandler = module.get<AssignOnPendingChatEventHandler>(
       AssignOnPendingChatEventHandler,
     );
-    updateChatParticipantsHandler =
-      module.get<UpdateChatParticipantsOnCommercialsAssignedEventHandler>(
-        UpdateChatParticipantsOnCommercialsAssignedEventHandler,
-      );
+    // _updateChatParticipantsHandler =
+    //   module.get<UpdateChatParticipantsOnCommercialsAssignedEventHandler>(
+    //     UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+    //   );
     commercialAssignmentService = module.get<CommercialAssignmentService>(
       CommercialAssignmentService,
     );
     chatRepository = module.get<IChatRepository>(CHAT_REPOSITORY);
     userFinder = module.get<IUserFinder>(USER_FINDER);
-    eventPublisher = module.get<EventPublisher>(EventPublisher);
 
     // Configurar los mocks
     (
@@ -109,12 +99,12 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     ).mockResolvedValue([
       ConnectionUser.create({
         userId: new ConnectionUserId(commercialId1.value),
-        roles: [ConnectionRole.COMMERCIAL],
+        roles: [ConnectionRole.commercial()],
         companyId: new ConnectionCompanyId(companyId.value),
       }),
       ConnectionUser.create({
         userId: new ConnectionUserId(commercialId2.value),
-        roles: [ConnectionRole.COMMERCIAL],
+        roles: [ConnectionRole.commercial()],
         companyId: new ConnectionCompanyId(companyId.value),
       }),
     ]);
@@ -123,7 +113,9 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
   });
 
   afterEach(async () => {
-    await module.close();
+    if (module) {
+      await module.close();
+    }
   });
 
   it('debe completar todo el flujo de asignación correctamente', async () => {
@@ -152,6 +144,8 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     };
 
     const chat = Chat.fromPrimitives(chatPrimitives);
+
+    // Mock simple que devuelve el chat con un método commit
     const mockChatAggregate = {
       ...chat,
       commit: jest.fn(),
@@ -161,9 +155,41 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     (chatRepository.findOne as jest.Mock).mockResolvedValue(
       Optional.of({ chat }),
     );
-    (eventPublisher.mergeObjectContext as jest.Mock).mockReturnValue(
-      mockChatAggregate,
-    );
+
+    // Mock simple del EventPublisher que devuelve el agregado mockeado
+    const mockEventPublisher = {
+      mergeObjectContext: jest.fn().mockReturnValue(mockChatAggregate),
+    };
+
+    // Configurar el test module para usar nuestro mock
+    const testModule = await Test.createTestingModule({
+      imports: [CqrsModule],
+      providers: [
+        AssignOnPendingChatEventHandler,
+        UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+        {
+          provide: CommercialAssignmentService,
+          useValue: commercialAssignmentService,
+        },
+        {
+          provide: CHAT_REPOSITORY,
+          useValue: chatRepository,
+        },
+        {
+          provide: USER_FINDER,
+          useValue: userFinder,
+        },
+        {
+          provide: EventPublisher,
+          useValue: mockEventPublisher,
+        },
+      ],
+    }).compile();
+
+    const testHandler =
+      testModule.get<UpdateChatParticipantsOnCommercialsAssignedEventHandler>(
+        UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+      );
 
     // Spy en los métodos del chat para verificar que se llaman
     const assignCommercialSpy = jest.spyOn(chat, 'asignCommercial');
@@ -198,7 +224,7 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     expect(publishedEvent.commercialIds).toContain(commercialId2.value);
 
     // 4. Manejar el evento ChatCommercialsAssignedEvent con UpdateChatParticipantsOnCommercialsAssignedEventHandler
-    await updateChatParticipantsHandler.handle(publishedEvent);
+    await testHandler.handle(publishedEvent);
 
     // 5. Verificar que se asignaron los comerciales al chat
     expect(assignCommercialSpy).toHaveBeenCalledTimes(2);
@@ -244,6 +270,8 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     expect(commercial2?.isCommercial).toBe(true);
     expect(commercial2?.isVisitor).toBe(false);
     expect(commercial2?.name).toBe('Usuario Comercial');
+
+    await testModule.close();
   });
 
   it('debe mantener solo el visitante si no hay comerciales conectados', async () => {
@@ -284,9 +312,41 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     (chatRepository.findOne as jest.Mock).mockResolvedValue(
       Optional.of({ chat }),
     );
-    (eventPublisher.mergeObjectContext as jest.Mock).mockReturnValue(
-      mockChatAggregate,
-    );
+
+    // Mock simple del EventPublisher
+    const mockEventPublisher = {
+      mergeObjectContext: jest.fn().mockReturnValue(mockChatAggregate),
+    };
+
+    // Configurar el test module para usar nuestro mock
+    const testModule = await Test.createTestingModule({
+      imports: [CqrsModule],
+      providers: [
+        AssignOnPendingChatEventHandler,
+        UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+        {
+          provide: CommercialAssignmentService,
+          useValue: commercialAssignmentService,
+        },
+        {
+          provide: CHAT_REPOSITORY,
+          useValue: chatRepository,
+        },
+        {
+          provide: USER_FINDER,
+          useValue: userFinder,
+        },
+        {
+          provide: EventPublisher,
+          useValue: mockEventPublisher,
+        },
+      ],
+    }).compile();
+
+    const testHandler =
+      testModule.get<UpdateChatParticipantsOnCommercialsAssignedEventHandler>(
+        UpdateChatParticipantsOnCommercialsAssignedEventHandler,
+      );
 
     const eventBusPublishSpy = jest.spyOn(eventBus, 'publish');
 
@@ -313,11 +373,13 @@ describe('Flujo de Asignación de Comerciales - Integración', () => {
     expect(publishedEvent.commercialIds).toHaveLength(0);
 
     // 4. Manejar el evento con lista vacía
-    await updateChatParticipantsHandler.handle(publishedEvent);
+    await testHandler.handle(publishedEvent);
 
     // 5. Verificar que el chat mantiene solo el visitante
     const participants = chat.toPrimitives().participants;
     expect(participants).toHaveLength(1);
     expect(participants[0].id).toBe(visitorId.value);
+
+    await testModule.close();
   });
 });

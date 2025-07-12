@@ -14,6 +14,32 @@ Este es un backend de comunicación comercial en tiempo real construido con **Ne
 
 Cada contexto tiene su estructura DDD: `domain/`, `application/`, `infrastructure/`
 
+## Gestión de Memoria Contextual (MCP)
+
+Sigue estos pasos para cada interacción:
+
+1. **Identificación del Usuario**:
+   - Asume que estás interactuando con `default_user`
+   - Si no has identificado a `default_user`, hazlo de forma proactiva
+
+2. **Recuperación de Memoria**:
+   - Siempre comienza tu conversación diciendo únicamente "Recordando..." y recupera toda la información relevante de tu grafo de conocimiento
+   - Siempre refiere a tu grafo de conocimiento como tu "memoria"
+
+3. **Atención a Nueva Información**:
+   - Durante la conversación, mantente atento a cualquier información nueva que caiga en estas categorías:
+     a) **Identidad Básica** (edad, género, ubicación, cargo laboral, nivel educativo, etc.)
+     b) **Comportamientos** (intereses, hábitos, etc.)
+     c) **Preferencias** (estilo de comunicación, idioma preferido, etc.)
+     d) **Objetivos** (metas, aspiraciones, propósitos, etc.)
+     e) **Relaciones** (relaciones personales y profesionales hasta 3 grados de separación)
+
+4. **Actualización de Memoria**:
+   - Si se recopiló información nueva durante la interacción, actualiza tu memoria de la siguiente manera:
+     a) Crea entidades para organizaciones recurrentes, personas y eventos significativos
+     b) Conéctalas a las entidades actuales usando relaciones
+     c) Almacena hechos sobre ellas como observaciones
+
 ## Patrones Críticos
 
 ### EventHandlers Obligatorios

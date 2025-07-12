@@ -266,10 +266,10 @@ describe('RedisConnectionService', () => {
       try {
         // Act - Guardar usuarios de diferentes compañías
         await service.save(user1);
-        
+
         // Delay para asegurar que los saves sean secuenciales
         await new Promise((resolve) => setTimeout(resolve, 10));
-        
+
         await service.save(user2);
 
         // Buscar usuarios por companyId específico
