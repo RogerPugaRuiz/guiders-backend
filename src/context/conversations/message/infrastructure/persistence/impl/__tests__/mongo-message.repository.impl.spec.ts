@@ -63,12 +63,18 @@ describe('MongoMessageRepository', () => {
 
     repository = module.get<MongoMessageRepository>(MongoMessageRepository);
     connection = module.get<Connection>(getConnectionToken());
-  });
+  }, 20000); // Aumentar timeout a 20 segundos
 
   afterAll(async () => {
-    await connection.close();
-    await mongoServer.stop();
-    await module.close();
+    if (connection) {
+      await connection.close();
+    }
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+    if (module) {
+      await module.close();
+    }
   });
 
   beforeEach(async () => {

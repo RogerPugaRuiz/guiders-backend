@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Test, TestingModule } from '@nestjs/testing';
+import { randomUUID } from 'crypto';
 import { RedisConnectionService } from '../redis-connection.service';
 import { ConnectionUser } from '../../domain/connection-user';
 import { ConnectionUserId } from '../../domain/value-objects/connection-user-id';
@@ -16,8 +17,13 @@ describe('RedisConnectionService', () => {
   let service: RedisConnectionService;
   let module: TestingModule;
 
-  // Constante para testing
-  const TEST_COMPANY_ID = '550e8400-e29b-41d4-a716-446655440000';
+  // Función para generar IDs únicos por test
+  const generateUniqueId = () =>
+    `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const generateUniqueCompanyId = (): string => {
+    // Generar un UUID válido usando crypto para asegurar unicidad
+    return randomUUID();
+  };
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
@@ -29,6 +35,10 @@ describe('RedisConnectionService', () => {
     try {
       // Asegurar que el servicio esté conectado antes de los tests
       await service.onModuleInit();
+      // Limpiar completamente Redis antes de cada test
+      await service['redis'].flushall();
+      // Pequeño delay para asegurar que la limpieza se complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
     } catch (error) {
       // Si Redis no está disponible, marcar tests como pendientes
       if (
@@ -43,42 +53,8 @@ describe('RedisConnectionService', () => {
   afterEach(async () => {
     // Limpiar datos después de cada test
     try {
-      // Primero buscar todos los usuarios con rol commercial y visitor para limpiarlos
-      const commercialCriteria = new Criteria<ConnectionUser>().addFilter(
-        'roles',
-        Operator.EQUALS,
-        ConnectionRole.COMMERCIAL,
-      );
-      const visitorCriteria = new Criteria<ConnectionUser>().addFilter(
-        'roles',
-        Operator.EQUALS,
-        ConnectionRole.VISITOR,
-      );
-
-      const commercialUsers = await service.find(commercialCriteria);
-      const visitorUsers = await service.find(visitorCriteria);
-
-      // Remover todos los usuarios encontrados
-      for (const user of [...commercialUsers, ...visitorUsers]) {
-        await service.remove(user);
-      }
-
-      // También limpiar IDs específicos de test
-      const testUserIds = [
-        'test-user-1',
-        'test-user-2',
-        'test-user-3',
-        'test-user-remove',
-        'ffcb698d-60e9-46bf-8747-1c700f498519', // ID que aparece en el error
-      ];
-      for (const userId of testUserIds) {
-        const testUser = ConnectionUser.create({
-          userId: ConnectionUserId.create(userId),
-          roles: [new ConnectionRole(ConnectionRoleEnum.VISITOR)],
-          companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
-        });
-        await service.remove(testUser);
-      }
+      // Limpiar completamente Redis para evitar datos residuales
+      await service['redis'].flushall();
     } catch {
       // Ignorar errores de limpieza en tests
     }
@@ -93,33 +69,35 @@ describe('RedisConnectionService', () => {
 
   describe('save and find operations', () => {
     it('should save and retrieve a user with commercial role', async () => {
-      // Arrange
-      const userId = ConnectionUserId.create('test-user-1');
-      const socketId = ConnectionSocketId.create('socket-123');
+      // Arrange - IDs únicos para este test
+      const uniqueUserId = generateUniqueId();
+      const uniqueSocketId = `socket-${Date.now()}`;
+      const uniqueCompanyId = generateUniqueCompanyId();
+
+      const userId = ConnectionUserId.create(uniqueUserId);
+      const socketId = ConnectionSocketId.create(uniqueSocketId);
       const roles = [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)];
 
       const user = ConnectionUser.create({
         userId,
         roles,
-        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+        companyId: ConnectionCompanyId.create(uniqueCompanyId),
       }).connect(socketId);
 
       try {
         // Act
         await service.save(user);
 
-        // Buscar usuarios con rol commercial
-        const criteria = new Criteria<ConnectionUser>().addFilter(
-          'roles',
-          Operator.EQUALS,
-          ConnectionRole.COMMERCIAL,
-        );
+        // Buscar usuarios con rol commercial Y la companyId específica para aislamiento
+        const criteria = new Criteria<ConnectionUser>()
+          .addFilter('roles', Operator.EQUALS, ConnectionRole.COMMERCIAL)
+          .addFilter('companyId', Operator.EQUALS, uniqueCompanyId);
 
         const result = await service.find(criteria);
 
         // Assert
         expect(result).toHaveLength(1);
-        expect(result[0].userId.value).toBe('test-user-1');
+        expect(result[0].userId.value).toBe(uniqueUserId);
         expect(result[0].hasRole('commercial')).toBe(true);
         expect(result[0].isConnected()).toBe(true);
       } catch (error) {
@@ -135,9 +113,13 @@ describe('RedisConnectionService', () => {
     });
 
     it('should find users with multiple roles including commercial', async () => {
-      // Arrange
-      const userId = ConnectionUserId.create('test-user-2');
-      const socketId = ConnectionSocketId.create('socket-456');
+      // Arrange - IDs únicos para este test
+      const uniqueUserId = generateUniqueId();
+      const uniqueSocketId = `socket-${Date.now()}`;
+      const uniqueCompanyId = generateUniqueCompanyId();
+
+      const userId = ConnectionUserId.create(uniqueUserId);
+      const socketId = ConnectionSocketId.create(uniqueSocketId);
       const roles = [
         new ConnectionRole(ConnectionRoleEnum.COMMERCIAL),
         new ConnectionRole(ConnectionRoleEnum.ADMIN),
@@ -146,28 +128,25 @@ describe('RedisConnectionService', () => {
       const user = ConnectionUser.create({
         userId,
         roles,
-        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+        companyId: ConnectionCompanyId.create(uniqueCompanyId),
       }).connect(socketId);
 
       try {
         // Act
         await service.save(user);
 
-        // Buscar usuarios con rol commercial (debe encontrar también usuarios con múltiples roles)
-        const criteria = new Criteria<ConnectionUser>().addFilter(
-          'roles',
-          Operator.EQUALS,
-          ConnectionRole.COMMERCIAL,
-        );
+        // Buscar usuarios con rol commercial Y la companyId específica para aislamiento
+        const criteria = new Criteria<ConnectionUser>()
+          .addFilter('roles', Operator.EQUALS, ConnectionRole.COMMERCIAL)
+          .addFilter('companyId', Operator.EQUALS, uniqueCompanyId);
 
         const result = await service.find(criteria);
 
         // Assert
-        expect(result.length).toBeGreaterThanOrEqual(1);
-        const foundUser = result.find((u) => u.userId.value === 'test-user-2');
-        expect(foundUser).toBeDefined();
-        expect(foundUser!.hasRole('commercial')).toBe(true);
-        expect(foundUser!.hasRole('admin')).toBe(true);
+        expect(result).toHaveLength(1);
+        expect(result[0].userId.value).toBe(uniqueUserId);
+        expect(result[0].hasRole('commercial')).toBe(true);
+        expect(result[0].hasRole('admin')).toBe(true);
       } catch (error) {
         if (
           error.message.includes('Redis') ||
@@ -180,33 +159,34 @@ describe('RedisConnectionService', () => {
     });
 
     it('should not find users without commercial role', async () => {
-      // Arrange
-      const userId = ConnectionUserId.create('test-user-3');
-      const socketId = ConnectionSocketId.create('socket-789');
+      // Arrange - IDs únicos para este test
+      const uniqueUserId = generateUniqueId();
+      const uniqueSocketId = `socket-${Date.now()}`;
+      const uniqueCompanyId = generateUniqueCompanyId();
+
+      const userId = ConnectionUserId.create(uniqueUserId);
+      const socketId = ConnectionSocketId.create(uniqueSocketId);
       const roles = [new ConnectionRole(ConnectionRoleEnum.VISITOR)];
 
       const user = ConnectionUser.create({
         userId,
         roles,
-        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+        companyId: ConnectionCompanyId.create(uniqueCompanyId),
       }).connect(socketId);
 
       try {
         // Act
         await service.save(user);
 
-        // Buscar usuarios con rol commercial (no debe encontrar visitantes)
-        const criteria = new Criteria<ConnectionUser>().addFilter(
-          'roles',
-          Operator.EQUALS,
-          ConnectionRole.COMMERCIAL,
-        );
+        // Buscar usuarios con rol commercial en esta companyId específica
+        const criteria = new Criteria<ConnectionUser>()
+          .addFilter('roles', Operator.EQUALS, ConnectionRole.COMMERCIAL)
+          .addFilter('companyId', Operator.EQUALS, uniqueCompanyId);
 
         const result = await service.find(criteria);
 
         // Assert - no debe encontrar usuarios que solo tienen rol visitor
-        const foundUser = result.find((u) => u.userId.value === 'test-user-3');
-        expect(foundUser).toBeUndefined();
+        expect(result).toHaveLength(0);
       } catch (error) {
         if (
           error.message.includes('Redis') ||
@@ -221,15 +201,19 @@ describe('RedisConnectionService', () => {
 
   describe('remove operations', () => {
     it('should remove user from Redis', async () => {
-      // Arrange
-      const userId = ConnectionUserId.create('test-user-remove');
-      const socketId = ConnectionSocketId.create('socket-remove');
+      // Arrange - IDs únicos para este test
+      const uniqueUserId = generateUniqueId();
+      const uniqueSocketId = `socket-${Date.now()}`;
+      const uniqueCompanyId = generateUniqueCompanyId();
+
+      const userId = ConnectionUserId.create(uniqueUserId);
+      const socketId = ConnectionSocketId.create(uniqueSocketId);
       const roles = [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)];
 
       const user = ConnectionUser.create({
         userId,
         roles,
-        companyId: ConnectionCompanyId.create(TEST_COMPANY_ID),
+        companyId: ConnectionCompanyId.create(uniqueCompanyId),
       }).connect(socketId);
 
       try {
@@ -238,11 +222,9 @@ describe('RedisConnectionService', () => {
         await service.remove(user);
 
         // Verificar que el usuario fue eliminado
-        const criteria = new Criteria<ConnectionUser>().addFilter(
-          'userId',
-          Operator.EQUALS,
-          'test-user-remove',
-        );
+        const criteria = new Criteria<ConnectionUser>()
+          .addFilter('userId', Operator.EQUALS, uniqueUserId)
+          .addFilter('companyId', Operator.EQUALS, uniqueCompanyId);
 
         const result = await service.find(criteria);
 
@@ -262,25 +244,32 @@ describe('RedisConnectionService', () => {
 
   describe('companyId filtering', () => {
     it('should filter users by companyId', async () => {
-      // Arrange
-      const testCompanyId1 = '123e4567-e89b-12d3-a456-426614174000';
-      const testCompanyId2 = '123e4567-e89b-12d3-a456-426614174001';
+      // Arrange - IDs únicos para este test
+      const testCompanyId1 = generateUniqueCompanyId();
+      const testCompanyId2 = generateUniqueCompanyId();
 
       const user1 = ConnectionUser.create({
-        userId: ConnectionUserId.create('test-user-company-1'),
+        userId: ConnectionUserId.create(generateUniqueId()),
         roles: [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)],
         companyId: ConnectionCompanyId.create(testCompanyId1),
-      }).connect(ConnectionSocketId.create('socket-company-1'));
+      }).connect(ConnectionSocketId.create(`socket-${Date.now()}`));
+
+      // Delay para asegurar timestamps únicos
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       const user2 = ConnectionUser.create({
-        userId: ConnectionUserId.create('test-user-company-2'),
+        userId: ConnectionUserId.create(generateUniqueId()),
         roles: [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)],
         companyId: ConnectionCompanyId.create(testCompanyId2),
-      }).connect(ConnectionSocketId.create('socket-company-2'));
+      }).connect(ConnectionSocketId.create(`socket-${Date.now()}-2`));
 
       try {
         // Act - Guardar usuarios de diferentes compañías
         await service.save(user1);
+        
+        // Delay para asegurar que los saves sean secuenciales
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        
         await service.save(user2);
 
         // Buscar usuarios por companyId específico
@@ -294,7 +283,7 @@ describe('RedisConnectionService', () => {
 
         // Assert - Solo debe encontrar el usuario de la compañía especificada
         expect(result).toHaveLength(1);
-        expect(result[0].userId.value).toBe('test-user-company-1');
+        expect(result[0].userId.value).toBe(user1.userId.value);
         expect(result[0].companyId.value).toBe(testCompanyId1);
       } catch (error) {
         if (
@@ -308,20 +297,20 @@ describe('RedisConnectionService', () => {
     });
 
     it('should combine companyId and role filters', async () => {
-      // Arrange
-      const testCompanyId = '123e4567-e89b-12d3-a456-426614174000';
+      // Arrange - IDs únicos para este test
+      const testCompanyId = generateUniqueCompanyId();
 
       const commercial = ConnectionUser.create({
-        userId: ConnectionUserId.create('test-commercial-company'),
+        userId: ConnectionUserId.create(generateUniqueId()),
         roles: [new ConnectionRole(ConnectionRoleEnum.COMMERCIAL)],
         companyId: ConnectionCompanyId.create(testCompanyId),
-      }).connect(ConnectionSocketId.create('socket-commercial-company'));
+      }).connect(ConnectionSocketId.create(`socket-${Date.now()}`));
 
       const visitor = ConnectionUser.create({
-        userId: ConnectionUserId.create('test-visitor-company'),
+        userId: ConnectionUserId.create(generateUniqueId()),
         roles: [new ConnectionRole(ConnectionRoleEnum.VISITOR)],
         companyId: ConnectionCompanyId.create(testCompanyId),
-      }).connect(ConnectionSocketId.create('socket-visitor-company'));
+      }).connect(ConnectionSocketId.create(`socket-${Date.now()}-2`));
 
       try {
         // Act - Guardar usuarios de la misma compañía pero diferentes roles
@@ -337,7 +326,7 @@ describe('RedisConnectionService', () => {
 
         // Assert - Solo debe encontrar el comercial de la compañía
         expect(result).toHaveLength(1);
-        expect(result[0].userId.value).toBe('test-commercial-company');
+        expect(result[0].userId.value).toBe(commercial.userId.value);
         expect(result[0].hasRole('commercial')).toBe(true);
         expect(result[0].companyId.value).toBe(testCompanyId);
       } catch (error) {

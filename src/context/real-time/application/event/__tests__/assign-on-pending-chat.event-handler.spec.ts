@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventBus } from '@nestjs/cqrs';
+import { EventBus, CommandBus } from '@nestjs/cqrs';
 import { AssignOnPendingChatEventHandler } from '../assign-on-pending-chat.event-handler';
 import { NewChatCreatedEvent } from '../../../../conversations/chat/domain/chat/events/new-chat-created.event';
 import { ChatCommercialsAssignedEvent } from '../../../domain/events/chat-commercials-assigned.event';
@@ -30,6 +30,10 @@ describe('AssignOnPendingChatEventHandler', () => {
       publish: jest.fn(),
     };
 
+    const mockCommandBus = {
+      execute: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AssignOnPendingChatEventHandler,
@@ -40,6 +44,10 @@ describe('AssignOnPendingChatEventHandler', () => {
         {
           provide: EventBus,
           useValue: mockEventBus,
+        },
+        {
+          provide: CommandBus,
+          useValue: mockCommandBus,
         },
       ],
     }).compile();

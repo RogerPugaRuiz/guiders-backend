@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventBus } from '@nestjs/cqrs';
+import { EventBus, CommandBus } from '@nestjs/cqrs';
 import { RecalculateAssignmentOnCommercialDisconnectedEventHandler } from '../recalculate-assignment-on-commercial-disconnected.event-handler';
 import { CommercialDisconnectedEvent } from '../../../domain/events/commercial-disconnected.event';
 import { ConnectionRole } from '../../../domain/value-objects/connection-role';
@@ -7,13 +7,19 @@ import {
   CHAT_REPOSITORY,
   IChatRepository,
 } from 'src/context/conversations/chat/domain/chat/chat.repository';
+import {
+  COMERCIAL_CLAIM_REPOSITORY,
+  IComercialClaimRepository,
+} from 'src/context/conversations/chat/domain/claim/comercial-claim.repository';
 import { CommercialAssignmentService } from '../../../domain/commercial-assignment.service';
 import { Chat } from 'src/context/conversations/chat/domain/chat/chat';
 
 describe('RecalculateAssignmentOnCommercialDisconnectedEventHandler', () => {
   let handler: RecalculateAssignmentOnCommercialDisconnectedEventHandler;
   let mockChatRepository: Partial<IChatRepository>;
+  let mockComercialClaimRepository: Partial<IComercialClaimRepository>;
   let mockEventBus: Partial<EventBus>;
+  let mockCommandBus: Partial<CommandBus>;
   let mockCommercialAssignmentService: Partial<CommercialAssignmentService>;
 
   beforeEach(async () => {
@@ -22,8 +28,17 @@ describe('RecalculateAssignmentOnCommercialDisconnectedEventHandler', () => {
       find: jest.fn(),
     };
 
+    mockComercialClaimRepository = {
+      match: jest.fn(),
+      findActiveClaimsByComercial: jest.fn(),
+    };
+
     mockEventBus = {
       publish: jest.fn(),
+    };
+
+    mockCommandBus = {
+      execute: jest.fn(),
     };
 
     mockCommercialAssignmentService = {};
@@ -40,8 +55,16 @@ describe('RecalculateAssignmentOnCommercialDisconnectedEventHandler', () => {
           useValue: mockEventBus,
         },
         {
+          provide: CommandBus,
+          useValue: mockCommandBus,
+        },
+        {
           provide: CHAT_REPOSITORY,
           useValue: mockChatRepository,
+        },
+        {
+          provide: COMERCIAL_CLAIM_REPOSITORY,
+          useValue: mockComercialClaimRepository,
         },
       ],
     }).compile();

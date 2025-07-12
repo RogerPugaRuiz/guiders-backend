@@ -9,7 +9,10 @@ export class ChatCommercialsReassignedEvent extends ChatCommercialsAssignedEvent
     super(chatId, commercialIds);
   }
 
-  public static create(chatId: string, commercialIds: string[]): ChatCommercialsReassignedEvent {
+  public static create(
+    chatId: string,
+    commercialIds: string[],
+  ): ChatCommercialsReassignedEvent {
     return new ChatCommercialsReassignedEvent(chatId, commercialIds);
   }
 }

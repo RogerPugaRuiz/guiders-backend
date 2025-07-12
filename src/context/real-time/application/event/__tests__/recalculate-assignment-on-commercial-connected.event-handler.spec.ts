@@ -4,6 +4,7 @@ import { CommercialConnectedEvent } from '../../../domain/events/commercial-conn
 import { CommercialAssignmentService } from '../../../domain/commercial-assignment.service';
 import { EventBus } from '@nestjs/cqrs';
 import { CHAT_REPOSITORY } from '../../../../conversations/chat/domain/chat/chat.repository';
+import { COMERCIAL_CLAIM_REPOSITORY } from '../../../../conversations/chat/domain/claim/comercial-claim.repository';
 import { ConnectionRole } from '../../../domain/value-objects/connection-role';
 import { ConnectionUser } from '../../../domain/connection-user';
 import { ConnectionUserId } from '../../../domain/value-objects/connection-user-id';
@@ -24,6 +25,9 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
   let mockChatRepository: {
     find: jest.Mock;
   };
+  let mockComercialClaimRepository: {
+    find: jest.Mock;
+  };
 
   beforeEach(async () => {
     mockCommercialAssignmentService = {
@@ -33,6 +37,9 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
       publish: jest.fn(),
     };
     mockChatRepository = {
+      find: jest.fn(),
+    };
+    mockComercialClaimRepository = {
       find: jest.fn(),
     };
 
@@ -50,6 +57,10 @@ describe('RecalculateAssignmentOnCommercialConnectedEventHandler', () => {
         {
           provide: CHAT_REPOSITORY,
           useValue: mockChatRepository,
+        },
+        {
+          provide: COMERCIAL_CLAIM_REPOSITORY,
+          useValue: mockComercialClaimRepository,
         },
       ],
     }).compile();
