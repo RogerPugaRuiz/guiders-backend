@@ -164,11 +164,33 @@ export class AppModule {
 
     // Construir URI con credenciales si están disponibles
     let mongoUri: string;
-    
+
     if (mongoUrl) {
-      // Usar URL directa si está disponible
-      mongoUri = mongoUrl;
-      logger.log('Using direct MONGODB_URL');
+      // Si hay una URL directa, verificar si necesita escapar la contraseña
+      if (mongoUrl.includes('mongodb://') && mongoUrl.includes('@')) {
+        // Extraer y recodificar la contraseña de la URL
+        const urlParts = mongoUrl.split('@');
+        const authPart = urlParts[0];
+        const hostPart = urlParts[1];
+
+        if (authPart.includes(':')) {
+          const protocolAndAuth = authPart.split('://');
+          const protocol = protocolAndAuth[0];
+          const credentials = protocolAndAuth[1];
+          const [username, password] = credentials.split(':');
+
+          // Recodificar la contraseña para manejar caracteres especiales
+          const encodedPassword = encodeURIComponent(password);
+          mongoUri = `${protocol}://${username}:${encodedPassword}@${hostPart}`;
+          logger.log('Using direct MONGODB_URL with encoded password');
+        } else {
+          mongoUri = mongoUrl;
+          logger.log('Using direct MONGODB_URL without password');
+        }
+      } else {
+        mongoUri = mongoUrl;
+        logger.log('Using direct MONGODB_URL as-is');
+      }
     } else if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
       const encodedPassword = encodeURIComponent(mongoPassword);
@@ -203,7 +225,7 @@ export class AppModule {
     this.logger.log(
       `Config file path: ${process.env.NODE_ENV === 'production' ? '.env.production' : '.env'}`,
     );
-    
+
     const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');
     const GLOBAL_TOKEN_SECRET = this.configService.get<string>(
       'GLOBAL_TOKEN_SECRET',
