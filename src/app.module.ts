@@ -132,6 +132,9 @@ export class AppModule {
       ? configService.get<string>('TEST_MONGODB_DATABASE', 'guiders-test')
       : configService.get<string>('MONGODB_DATABASE', 'guiders');
 
+    // Verificar si existe MONGODB_URL directamente
+    const mongoUrl = configService.get<string>('MONGODB_URL');
+
     // Logs detallados de las variables
     logger.log('Raw Environment Variables:');
     logger.log(
@@ -145,6 +148,9 @@ export class AppModule {
     logger.log(
       `  MONGODB_DATABASE: ${process.env.MONGODB_DATABASE || 'NOT SET'}`,
     );
+    logger.log(
+      `  MONGODB_URL: ${process.env.MONGODB_URL ? '[HIDDEN]' : 'NOT SET'}`,
+    );
 
     logger.log('Processed MongoDB Configuration:');
     logger.log(`  User: ${mongoUser}`);
@@ -154,17 +160,25 @@ export class AppModule {
     logger.log(`  Host: ${mongoHost}`);
     logger.log(`  Port: ${mongoPort}`);
     logger.log(`  Database: ${mongoDatabase}`);
+    logger.log(`  URL: ${mongoUrl ? '[HIDDEN]' : 'NOT SET'}`);
 
     // Construir URI con credenciales si están disponibles
     let mongoUri: string;
-    if (mongoUser && mongoPassword) {
+    
+    if (mongoUrl) {
+      // Usar URL directa si está disponible
+      mongoUri = mongoUrl;
+      logger.log('Using direct MONGODB_URL');
+    } else if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
       const encodedPassword = encodeURIComponent(mongoPassword);
       logger.log(`  Encoded Password Length: ${encodedPassword.length}`);
       // Intentar primero con authSource=admin, luego con la base de datos específica
       mongoUri = `mongodb://${mongoUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+      logger.log('Using constructed URI from individual variables');
     } else {
       mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
+      logger.log('Using URI without authentication');
     }
 
     logger.log(`  Final URI: ${mongoUri.replace(/:[^:@]+@/, ':***@')}`);
