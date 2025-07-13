@@ -109,8 +109,13 @@ export class AppModule {
 
   // Método estático para hacer testeable la factory function de Mongoose
   static createMongooseOptions(configService: ConfigService) {
+    const logger = new Logger('MongooseConfiguration');
     const nodeEnv = configService.get<string>('NODE_ENV');
     const isTest = nodeEnv === 'test';
+
+    logger.log('=== MONGODB CONFIGURATION DEBUG ===');
+    logger.log(`NODE_ENV: ${nodeEnv}`);
+    logger.log(`Is Test Environment: ${isTest}`);
 
     // Configuración de MongoDB
     const mongoUser = isTest
@@ -127,25 +132,42 @@ export class AppModule {
       ? configService.get<string>('TEST_MONGODB_DATABASE', 'guiders-test')
       : configService.get<string>('MONGODB_DATABASE', 'guiders');
 
+    // Logs detallados de las variables
+    logger.log('Raw Environment Variables:');
+    logger.log(
+      `  MONGODB_USERNAME: ${process.env.MONGODB_USERNAME || 'NOT SET'}`,
+    );
+    logger.log(
+      `  MONGODB_PASSWORD: ${process.env.MONGODB_PASSWORD ? '[HIDDEN]' : 'NOT SET'}`,
+    );
+    logger.log(`  MONGODB_HOST: ${process.env.MONGODB_HOST || 'NOT SET'}`);
+    logger.log(`  MONGODB_PORT: ${process.env.MONGODB_PORT || 'NOT SET'}`);
+    logger.log(
+      `  MONGODB_DATABASE: ${process.env.MONGODB_DATABASE || 'NOT SET'}`,
+    );
+
+    logger.log('Processed MongoDB Configuration:');
+    logger.log(`  User: ${mongoUser}`);
+    logger.log(
+      `  Password: ${mongoPassword ? '[HIDDEN - LENGTH: ' + mongoPassword.length + ']' : '[NOT SET]'}`,
+    );
+    logger.log(`  Host: ${mongoHost}`);
+    logger.log(`  Port: ${mongoPort}`);
+    logger.log(`  Database: ${mongoDatabase}`);
+
     // Construir URI con credenciales si están disponibles
     let mongoUri: string;
     if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
       const encodedPassword = encodeURIComponent(mongoPassword);
+      logger.log(`  Encoded Password Length: ${encodedPassword.length}`);
       // Intentar primero con authSource=admin, luego con la base de datos específica
       mongoUri = `mongodb://${mongoUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
     } else {
       mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     }
 
-    // Log detallado para debugging
-    console.log('MongoDB Configuration:');
-    console.log(`  User: ${mongoUser}`);
-    console.log(`  Password: ${mongoPassword ? '[HIDDEN]' : '[NOT SET]'}`);
-    console.log(`  Host: ${mongoHost}`);
-    console.log(`  Port: ${mongoPort}`);
-    console.log(`  Database: ${mongoDatabase}`);
-    console.log(`  URI: ${mongoUri.replace(/:[^:@]+@/, ':***@')}`);
+    logger.log(`  Final URI: ${mongoUri.replace(/:[^:@]+@/, ':***@')}`);
 
     const mongoOptions: Record<string, unknown> = {
       uri: mongoUri,
@@ -153,11 +175,21 @@ export class AppModule {
       // que causan warnings en versiones modernas de MongoDB driver
     };
 
+    logger.log('MongoDB Options Object:');
+    logger.log(JSON.stringify(mongoOptions, null, 2));
+    logger.log('=== END MONGODB CONFIGURATION DEBUG ===');
+
     return mongoOptions;
   }
 
   constructor(private readonly configService: ConfigService) {
     // Configuración de variables de entorno
+    this.logger.log('=== ENVIRONMENT CONFIGURATION DEBUG ===');
+    this.logger.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+    this.logger.log(
+      `Config file path: ${process.env.NODE_ENV === 'production' ? '.env.production' : '.env'}`,
+    );
+    
     const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');
     const GLOBAL_TOKEN_SECRET = this.configService.get<string>(
       'GLOBAL_TOKEN_SECRET',
@@ -175,7 +207,6 @@ export class AppModule {
     const MONGODB_PASSWORD = this.configService.get<string>('MONGODB_PASSWORD');
     const MONGODB_DATABASE = this.configService.get<string>('MONGODB_DATABASE');
 
-    this.logger.log(`NODE_ENV: ${process.env.NODE_ENV}`);
     this.logger.log(`ENCRYPTION_KEY: ${ENCRYPTION_KEY}`);
     this.logger.log(`GLOBAL_TOKEN_SECRET: ${GLOBAL_TOKEN_SECRET}`);
     this.logger.log(`DATABASE_HOST: ${DATABASE_HOST}`);
@@ -192,5 +223,6 @@ export class AppModule {
     this.logger.log(`MONGODB_DATABASE: ${MONGODB_DATABASE}`);
 
     this.logger.log(`ENCRYPTION_KEY: ${process.env.ENCRYPTION_KEY}`);
+    this.logger.log('=== END ENVIRONMENT CONFIGURATION DEBUG ===');
   }
 }
