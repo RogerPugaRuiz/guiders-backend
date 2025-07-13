@@ -130,7 +130,9 @@ export class AppModule {
     // Construir URI con credenciales si están disponibles
     let mongoUri: string;
     if (mongoUser && mongoPassword) {
-      mongoUri = `mongodb://${mongoUser}:${mongoPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+      // Codificar la contraseña para manejar caracteres especiales
+      const encodedPassword = encodeURIComponent(mongoPassword);
+      mongoUri = `mongodb://${mongoUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
     } else {
       mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     }
