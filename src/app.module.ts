@@ -132,10 +132,20 @@ export class AppModule {
     if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
       const encodedPassword = encodeURIComponent(mongoPassword);
+      // Intentar primero con authSource=admin, luego con la base de datos específica
       mongoUri = `mongodb://${mongoUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
     } else {
       mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     }
+
+    // Log detallado para debugging
+    console.log('MongoDB Configuration:');
+    console.log(`  User: ${mongoUser}`);
+    console.log(`  Password: ${mongoPassword ? '[HIDDEN]' : '[NOT SET]'}`);
+    console.log(`  Host: ${mongoHost}`);
+    console.log(`  Port: ${mongoPort}`);
+    console.log(`  Database: ${mongoDatabase}`);
+    console.log(`  URI: ${mongoUri.replace(/:[^:@]+@/, ':***@')}`);
 
     const mongoOptions: Record<string, unknown> = {
       uri: mongoUri,
