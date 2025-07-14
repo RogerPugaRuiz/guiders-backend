@@ -1,64 +1,37 @@
 #!/usr/bin/env node
 
 /**
- * Script para probar la conexión a MongoDB usando el mismo patrón que NestJS
- * Sigue exactamente la misma lógica que AppModule.getMongoUri() y AppModule.getMongoOptions()
+ * Script simplificado para probar la conexión a MongoDB
+ * Prueba diferentes configuraciones de autenticación
  */
 
 const { MongoClient } = require('mongodb');
 require('dotenv').config();
 
-// Función que replica AppModule.getMongoUri()
-function getMongoUri() {
-  const nodeEnv = process.env.NODE_ENV;
-  const isTest = nodeEnv === 'test';
-
-  console.log('=== MONGODB URI CONSTRUCTION ===');
-  console.log(`NODE_ENV: ${nodeEnv}`);
-  console.log(`Is Test Environment: ${isTest}`);
-
-  const mongoUser = isTest
-    ? process.env.TEST_MONGODB_USERNAME
-    : process.env.MONGODB_USERNAME;
-
-  const mongoPassword = isTest
-    ? process.env.TEST_MONGODB_PASSWORD
-    : process.env.MONGODB_PASSWORD;
-
+async function testMongoConnection() {
+  console.log('=== TESTING MONGODB CONNECTION ===');
+  
+  const mongoUser = process.env.MONGODB_USERNAME || 'admin';
+  const mongoPassword = process.env.MONGODB_PASSWORD || 'password';
   const mongoHost = process.env.MONGODB_HOST || 'localhost';
   const mongoPort = process.env.MONGODB_PORT || '27017';
-  const mongoDatabase = isTest
-    ? process.env.TEST_MONGODB_DATABASE || 'guiders-test'
-    : process.env.MONGODB_DATABASE || 'guiders';
+  const mongoDatabase = process.env.MONGODB_DATABASE || 'guiders';
 
-  console.log('Raw Environment Variables:');
-  console.log(`  MONGODB_USERNAME: ${mongoUser || 'NOT SET'}`);
-  console.log(`  MONGODB_PASSWORD: ${mongoPassword ? '[HIDDEN]' : 'NOT SET'}`);
-  console.log(`  MONGODB_HOST: ${mongoHost}`);
-  console.log(`  MONGODB_PORT: ${mongoPort}`);
-  console.log(`  MONGODB_DATABASE: ${mongoDatabase}`);
+  console.log('MongoDB Configuration:');
+  console.log(`  User: ${mongoUser}`);
+  console.log(`  Password: ${mongoPassword ? '[HIDDEN - Length: ' + mongoPassword.length + ']' : '[NOT SET]'}`);
+  console.log(`  Host: ${mongoHost}`);
+  console.log(`  Port: ${mongoPort}`);
+  console.log(`  Database: ${mongoDatabase}`);
 
-  let uri;
-  if (mongoUser && mongoPassword) {
-    const encodedUser = encodeURIComponent(mongoUser);
-    const encodedPassword = encodeURIComponent(mongoPassword);
-    uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
-  } else {
-    uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
-  }
-
+  // Configuración estándar de NestJS
+  const uri = `mongodb://${encodeURIComponent(mongoUser)}:${encodeURIComponent(mongoPassword)}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
   const safeUri = uri.replace(/:([^:@]+)@/, ':[HIDDEN]@');
-  console.log(`Final URI (safe): ${safeUri}`);
-  console.log('=== END MONGODB URI CONSTRUCTION ===');
-
-  return uri;
-}
-
-// Función que replica AppModule.getMongoOptions()
-function getMongoOptions() {
-  console.log('=== MONGODB OPTIONS CONSTRUCTION ===');
   
-  const mongooseOptions = {
+  console.log(`\n--- Testing Standard NestJS Configuration ---`);
+  console.log(`URI: ${safeUri}`);
+
+  const options = {
     serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 45000,
     connectTimeoutMS: 10000,
@@ -69,29 +42,18 @@ function getMongoOptions() {
     retryReads: true,
   };
 
-  console.log('MongoDB Options Object:');
-  console.log(JSON.stringify(mongooseOptions, null, 2));
-  console.log('=== END MONGODB OPTIONS CONSTRUCTION ===');
-
-  return mongooseOptions;
-}
-
-async function testMongoConnection() {
-  console.log('=== TESTING MONGODB CONNECTION (NestJS Pattern) ===');
-  
-  const uri = getMongoUri();
-  const options = getMongoOptions();
+  console.log('Options:', JSON.stringify(options, null, 2));
 
   try {
     const client = new MongoClient(uri, options);
     
-    console.log('\nAttempting to connect...');
+    console.log('Attempting to connect...');
     await client.connect();
     
     console.log('✅ Connection successful!');
     
     // Probar una operación simple
-    const db = client.db();
+    const db = client.db(mongoDatabase);
     const collections = await db.listCollections().toArray();
     console.log(`📂 Found ${collections.length} collections`);
     
@@ -103,7 +65,6 @@ async function testMongoConnection() {
     console.log('🔌 Connection closed');
     
     console.log('\n🎉 SUCCESS: MongoDB connection works correctly!');
-    console.log('Your NestJS application should work with these settings.');
     
   } catch (error) {
     console.log(`❌ FAILED: ${error.message}`);
@@ -118,7 +79,6 @@ async function testMongoConnection() {
     console.log('3. Ensure the user has proper permissions');
     console.log('4. Try connecting to MongoDB directly with mongo CLI');
     console.log('5. Check if authSource=admin is correct for your setup');
-    console.log('6. Verify the database name exists and user has access');
     
     process.exit(1);
   }

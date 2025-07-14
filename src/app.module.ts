@@ -54,94 +54,18 @@ import { CompanyModule } from './context/company/company.module';
       useFactory: (configService: ConfigService) =>
         AppModule.createTypeOrmOptions(configService),
     }),
-    MongooseModule.forRoot(
-      AppModule.getMongoUri(),
-      AppModule.getMongoOptions(),
-    ),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) =>
+        AppModule.createMongooseOptions(configService),
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, TokenVerifyService],
 })
 export class AppModule {
   private readonly logger = new Logger(AppModule.name);
-
-  // Método estático para construir la URI de MongoDB
-  static getMongoUri(): string {
-    const logger = new Logger('MongooseConfiguration');
-    const nodeEnv = process.env.NODE_ENV;
-    const isTest = nodeEnv === 'test';
-
-    logger.log('=== MONGODB URI CONSTRUCTION ===');
-    logger.log(`NODE_ENV: ${nodeEnv}`);
-    logger.log(`Is Test Environment: ${isTest}`);
-
-    // Configuración de MongoDB
-    const mongoUser = isTest
-      ? process.env.TEST_MONGODB_USERNAME
-      : process.env.MONGODB_USERNAME;
-
-    const mongoPassword = isTest
-      ? process.env.TEST_MONGODB_PASSWORD
-      : process.env.MONGODB_PASSWORD;
-
-    const mongoHost = process.env.MONGODB_HOST || 'localhost';
-    const mongoPort = process.env.MONGODB_PORT || '27017';
-    const mongoDatabase = isTest
-      ? process.env.TEST_MONGODB_DATABASE || 'guiders-test'
-      : process.env.MONGODB_DATABASE || 'guiders';
-
-    // Logs detallados de las variables
-    logger.log('Raw Environment Variables:');
-    logger.log(`  MONGODB_USERNAME: ${mongoUser || 'NOT SET'}`);
-    logger.log(`  MONGODB_PASSWORD: ${mongoPassword ? '[HIDDEN]' : 'NOT SET'}`);
-    logger.log(`  MONGODB_HOST: ${mongoHost}`);
-    logger.log(`  MONGODB_PORT: ${mongoPort}`);
-    logger.log(`  MONGODB_DATABASE: ${mongoDatabase}`);
-
-    // Construir URI siguiendo el estándar de NestJS
-    let uri: string;
-    if (mongoUser && mongoPassword) {
-      // Codificar credenciales para manejar caracteres especiales
-      const encodedUser = encodeURIComponent(mongoUser);
-      const encodedPassword = encodeURIComponent(mongoPassword);
-      uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
-    } else {
-      uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
-    }
-
-    // Mostrar URI sin contraseña para debugging
-    const safeUri = uri.replace(/:([^:@]+)@/, ':[HIDDEN]@');
-    logger.log(`Final URI (safe): ${safeUri}`);
-    logger.log('=== END MONGODB URI CONSTRUCTION ===');
-
-    return uri;
-  }
-
-  // Método estático para obtener las opciones de MongoDB
-  static getMongoOptions() {
-    const logger = new Logger('MongooseConfiguration');
-
-    logger.log('=== MONGODB OPTIONS CONSTRUCTION ===');
-
-    // Configuración estándar de NestJS Mongoose según la documentación oficial
-    const mongooseOptions = {
-      // Configuraciones estándar recomendadas
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
-      maxPoolSize: 10,
-      minPoolSize: 5,
-      maxIdleTimeMS: 30000,
-      retryWrites: true,
-      retryReads: true,
-    };
-
-    logger.log('MongoDB Options Object:');
-    logger.log(JSON.stringify(mongooseOptions, null, 2));
-    logger.log('=== END MONGODB OPTIONS CONSTRUCTION ===');
-
-    return mongooseOptions;
-  }
 
   // Método estático para hacer testeable la factory function de TypeORM
   static createTypeOrmOptions(
@@ -181,6 +105,90 @@ export class AppModule {
       synchronize: isE2ETest, // Solo sincronizar en tests e2e
       autoLoadEntities: isE2ETest, // Solo cargar entidades automáticamente en tests e2e
     };
+  }
+
+  // Método estático para hacer testeable la factory function de Mongoose
+  static createMongooseOptions(configService: ConfigService) {
+    const logger = new Logger('MongooseConfiguration');
+    const nodeEnv = configService.get<string>('NODE_ENV');
+    const isTest = nodeEnv === 'test';
+
+    logger.log('=== MONGODB CONFIGURATION DEBUG ===');
+    logger.log(`NODE_ENV: ${nodeEnv}`);
+    logger.log(`Is Test Environment: ${isTest}`);
+
+    // Configuración de MongoDB siguiendo las mejores prácticas de NestJS
+    const mongoUser = isTest
+      ? configService.get<string>('TEST_MONGODB_USERNAME')
+      : configService.get<string>('MONGODB_USERNAME');
+
+    const mongoPassword = isTest
+      ? configService.get<string>('TEST_MONGODB_PASSWORD')
+      : configService.get<string>('MONGODB_PASSWORD');
+
+    const mongoHost = configService.get<string>('MONGODB_HOST', 'localhost');
+    const mongoPort = configService.get<string>('MONGODB_PORT', '27017');
+    const mongoDatabase = isTest
+      ? configService.get<string>('TEST_MONGODB_DATABASE', 'guiders-test')
+      : configService.get<string>('MONGODB_DATABASE', 'guiders');
+
+    // Logs detallados de las variables
+    logger.log('Raw Environment Variables:');
+    logger.log(
+      `  MONGODB_USERNAME: ${process.env.MONGODB_USERNAME || 'NOT SET'}`,
+    );
+    logger.log(
+      `  MONGODB_PASSWORD: ${process.env.MONGODB_PASSWORD ? '[HIDDEN]' : 'NOT SET'}`,
+    );
+    logger.log(`  MONGODB_HOST: ${process.env.MONGODB_HOST || 'NOT SET'}`);
+    logger.log(`  MONGODB_PORT: ${process.env.MONGODB_PORT || 'NOT SET'}`);
+    logger.log(
+      `  MONGODB_DATABASE: ${process.env.MONGODB_DATABASE || 'NOT SET'}`,
+    );
+
+    // Construir URI siguiendo el estándar de NestJS
+    let uri: string;
+    if (mongoUser && mongoPassword) {
+      // Codificar credenciales para manejar caracteres especiales
+      const encodedUser = encodeURIComponent(mongoUser);
+      const encodedPassword = encodeURIComponent(mongoPassword);
+      uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+    } else {
+      uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
+    }
+
+    logger.log('Processed MongoDB Configuration:');
+    logger.log(`  User: ${mongoUser || 'NOT SET'}`);
+    logger.log(
+      `  Password: ${mongoPassword ? '[HIDDEN - Length: ' + mongoPassword.length + ']' : 'NOT SET'}`,
+    );
+    logger.log(`  Host: ${mongoHost}`);
+    logger.log(`  Port: ${mongoPort}`);
+    logger.log(`  Database: ${mongoDatabase}`);
+
+    // Mostrar URI sin contraseña para debugging
+    const safeUri = uri.replace(/:([^:@]+)@/, ':[HIDDEN]@');
+    logger.log(`  Final URI (safe): ${safeUri}`);
+
+    // Configuración estándar de NestJS Mongoose según la documentación oficial
+    const mongooseOptions = {
+      uri,
+      // Configuraciones estándar recomendadas
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      maxPoolSize: 10,
+      minPoolSize: 5,
+      maxIdleTimeMS: 30000,
+      retryWrites: true,
+      retryReads: true,
+    };
+
+    logger.log('MongoDB Options Object:');
+    logger.log(JSON.stringify({ ...mongooseOptions, uri: safeUri }, null, 2));
+    logger.log('=== END MONGODB CONFIGURATION DEBUG ===');
+
+    return mongooseOptions;
   }
 
   constructor(private readonly configService: ConfigService) {
