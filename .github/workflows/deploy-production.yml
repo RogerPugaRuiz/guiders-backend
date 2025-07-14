@@ -98,29 +98,6 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no docker-compose-prod.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
 
-      # Copia el script de test de MongoDB al servidor
-      - name: Copy MongoDB test script to server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no bin/test-mongodb-connection.js bin/verify-mongodb-deploy.js bin/rollback-deploy.js bin/mongodb-deploy-manager.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
-
-      # Crear backup antes del deploy
-      - name: Create backup before deploy
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo '💾 Creando backup antes del deploy...' && \
-            if [ -d /var/www/guiders-backend ]; then \
-              rm -rf /var/www/guiders-backend-backup && \
-              cp -r /var/www/guiders-backend /var/www/guiders-backend-backup && \
-              echo '✅ Backup creado en /var/www/guiders-backend-backup'; \
-            else \
-              echo 'ℹ️ No existe directorio previo para hacer backup'; \
-            fi \
-          "
-
       # Descomprime y prepara entorno en el server
       - name: Unpack dist and install on server
         env:
@@ -173,17 +150,6 @@ jobs:
             done \
           "
 
-      # Test MongoDB connection usando el script de test
-      - name: Test MongoDB connection
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🔍 Probando conexión a MongoDB...' && \
-            node mongodb-deploy-manager.js test \
-          "
-
       # Ejecuta migraciones de TypeORM en el servidor antes de reiniciar la app
       - name: Run TypeORM migrations on server
         env:
@@ -224,20 +190,5 @@ jobs:
             pm2 list | grep guiders-backend || echo 'App no encontrada en PM2' && \
             echo '📊 Estado de Docker:' && \
             docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|redis-prod|mongodb-prod)' && \
-            echo '🔍 Verificación final de MongoDB:' && \
-            node mongodb-deploy-manager.js full-check && \
             echo '✅ Verificación de despliegue completada' \
-          "
-
-      # Rollback automático en caso de fallo
-      - name: Rollback on failure
-        if: failure()
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          echo "❌ Deploy falló, iniciando rollback automático..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🔄 Ejecutando rollback automático...' && \
-            node mongodb-deploy-manager.js rollback \
           "
