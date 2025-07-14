@@ -158,7 +158,7 @@ export class AppModule {
 
     if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
-      const encodedPassword = encodeURIComponent(mongoPassword);
+      const encodedPassword = mongoPassword;
       logger.log(`  Encoded Password Length: ${encodedPassword.length}`);
       // Intentar primero con authSource=admin, luego con la base de datos específica
       mongoUri = `mongodb://${mongoUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
