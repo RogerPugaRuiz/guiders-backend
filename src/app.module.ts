@@ -154,10 +154,12 @@ export class AppModule {
       const encodedPassword = encodeURIComponent(mongoPassword);
       uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
     } else {
+      logger.warn(
+        'MongoDB credentials are not set. Using default connection without authentication.',
+      );
       throw new Error(
         'MongoDB credentials are required. Please set MONGODB_USERNAME and MONGODB_PASSWORD in your environment variables.',
       );
-      uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     }
 
     logger.log('Processed MongoDB Configuration:');
