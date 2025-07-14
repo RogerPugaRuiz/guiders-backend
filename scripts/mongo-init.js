@@ -3,13 +3,26 @@
 
 print('====== INICIANDO CONFIGURACIÓN DE MONGODB ======');
 
-// Obtener variables de entorno
-const username = process.env.MONGODB_USERNAME || 'guiders_admin';
-const password = process.env.MONGODB_PASSWORD || 'password';
-const database = process.env.MONGODB_DATABASE || 'guiders_production';
+// Detectar el entorno
+const environment = process.env.NODE_ENV || 'development';
+print(`Entorno detectado: ${environment}`);
+
+// Obtener variables de entorno con valores por defecto según el entorno
+const username = process.env.MONGODB_USERNAME || (environment === 'production' ? 'guiders_admin' : 'admin');
+const password = process.env.MONGODB_PASSWORD || (environment === 'production' ? 'password' : 'admin');
+const database = process.env.MONGODB_DATABASE || (environment === 'production' ? 'guiders_production' : 'guiders');
 
 print(`Configurando base de datos: ${database}`);
 print(`Creando usuario: ${username}`);
+print(`Entorno: ${environment}`);
+
+// Verificar que las variables críticas estén definidas
+if (!process.env.MONGODB_USERNAME || !process.env.MONGODB_PASSWORD) {
+  print(`⚠️  ADVERTENCIA: Variables de entorno no definidas, usando valores por defecto`);
+  print(`   MONGODB_USERNAME: ${process.env.MONGODB_USERNAME ? 'DEFINIDA' : 'NO DEFINIDA'}`);
+  print(`   MONGODB_PASSWORD: ${process.env.MONGODB_PASSWORD ? 'DEFINIDA' : 'NO DEFINIDA'}`);
+  print(`   MONGODB_DATABASE: ${process.env.MONGODB_DATABASE ? 'DEFINIDA' : 'NO DEFINIDA'}`);
+}
 
 // Cambiar a la base de datos de la aplicación
 db = db.getSiblingDB(database);
