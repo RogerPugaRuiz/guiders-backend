@@ -6,10 +6,19 @@
  */
 
 const { MongoClient } = require('mongodb');
-require('dotenv').config();
+const path = require('path');
+
+// Configurar dotenv según NODE_ENV, igual que en app.module.ts
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+const envPath = path.resolve(process.cwd(), envFile);
+
+console.log(`Loading environment from: ${envFile}`);
+require('dotenv').config({ path: envPath });
 
 async function testMongoConnection() {
   console.log('=== TESTING MONGODB CONNECTION ===');
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Config file: ${envFile}`);
   
   const mongoUser = process.env.MONGODB_USERNAME || 'admin';
   const mongoPassword = process.env.MONGODB_PASSWORD || 'password';
