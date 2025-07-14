@@ -148,9 +148,7 @@ export class AppModule {
 
     logger.log('Processed MongoDB Configuration:');
     logger.log(`  User: ${mongoUser}`);
-    logger.log(
-      `  Password: ${mongoPassword ? '[HIDDEN - LENGTH: ' + mongoPassword.length + ']' : '[NOT SET]'}`,
-    );
+    logger.log(`  Password: ${mongoPassword ? mongoPassword : '[NOT SET]'}`);
     logger.log(`  Host: ${mongoHost}`);
     logger.log(`  Port: ${mongoPort}`);
     logger.log(`  Database: ${mongoDatabase}`);
