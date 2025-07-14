@@ -10,9 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: C              if docker exec mongodb-prod mongosh --host localhost --port 27017 --username \$MONGODB_USERNAME --password \$MONGODB_PASSWORD --authenticationDatabase admin --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1; then
-                mongodb_ready=true; \
-              fi; \kout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up Node.js
@@ -89,7 +87,6 @@ jobs:
           echo 'MONGODB_PASSWORD=${{ secrets.MONGODB_PASSWORD }}' >> .env.production
           echo 'MONGODB_DATABASE=${{ secrets.MONGODB_DATABASE }}' >> .env.production
           echo 'MONGODB_PORT=${{ secrets.MONGODB_PORT }}' >> .env.production
-          echo 'MONGODB_URL=${{ secrets.MONGODB_URL }}' >> .env.production
 
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-dist.tar.gz .env.production ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/

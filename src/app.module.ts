@@ -132,9 +132,6 @@ export class AppModule {
       ? configService.get<string>('TEST_MONGODB_DATABASE', 'guiders-test')
       : configService.get<string>('MONGODB_DATABASE', 'guiders');
 
-    // Verificar si existe MONGODB_URL directamente
-    const mongoUrl = configService.get<string>('MONGODB_URL');
-
     // Logs detallados de las variables
     logger.log('Raw Environment Variables:');
     logger.log(
@@ -148,9 +145,6 @@ export class AppModule {
     logger.log(
       `  MONGODB_DATABASE: ${process.env.MONGODB_DATABASE || 'NOT SET'}`,
     );
-    logger.log(
-      `  MONGODB_URL: ${process.env.MONGODB_URL ? '[HIDDEN]' : 'NOT SET'}`,
-    );
 
     logger.log('Processed MongoDB Configuration:');
     logger.log(`  User: ${mongoUser}`);
@@ -160,38 +154,11 @@ export class AppModule {
     logger.log(`  Host: ${mongoHost}`);
     logger.log(`  Port: ${mongoPort}`);
     logger.log(`  Database: ${mongoDatabase}`);
-    logger.log(`  URL: ${mongoUrl ? '[HIDDEN]' : 'NOT SET'}`);
 
-    // Construir URI con credenciales si están disponibles
+    // Construir URI con credenciales usando variables individuales
     let mongoUri: string;
 
-    if (mongoUrl) {
-      // Si hay una URL directa, verificar si necesita escapar la contraseña
-      if (mongoUrl.includes('mongodb://') && mongoUrl.includes('@')) {
-        // Extraer y recodificar la contraseña de la URL
-        const urlParts = mongoUrl.split('@');
-        const authPart = urlParts[0];
-        const hostPart = urlParts[1];
-
-        if (authPart.includes(':')) {
-          const protocolAndAuth = authPart.split('://');
-          const protocol = protocolAndAuth[0];
-          const credentials = protocolAndAuth[1];
-          const [username, password] = credentials.split(':');
-
-          // Recodificar la contraseña para manejar caracteres especiales
-          const encodedPassword = encodeURIComponent(password);
-          mongoUri = `${protocol}://${username}:${encodedPassword}@${hostPart}`;
-          logger.log('Using direct MONGODB_URL with encoded password');
-        } else {
-          mongoUri = mongoUrl;
-          logger.log('Using direct MONGODB_URL without password');
-        }
-      } else {
-        mongoUri = mongoUrl;
-        logger.log('Using direct MONGODB_URL as-is');
-      }
-    } else if (mongoUser && mongoPassword) {
+    if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
       const encodedPassword = encodeURIComponent(mongoPassword);
       logger.log(`  Encoded Password Length: ${encodedPassword.length}`);
