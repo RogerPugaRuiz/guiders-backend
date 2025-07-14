@@ -154,6 +154,9 @@ export class AppModule {
       const encodedPassword = encodeURIComponent(mongoPassword);
       uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
     } else {
+      throw new Error(
+        'MongoDB credentials are required. Please set MONGODB_USERNAME and MONGODB_PASSWORD in your environment variables.',
+      );
       uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     }
 
