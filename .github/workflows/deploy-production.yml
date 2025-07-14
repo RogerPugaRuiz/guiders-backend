@@ -87,6 +87,7 @@ jobs:
           echo 'MONGODB_PASSWORD=${{ secrets.MONGODB_PASSWORD }}' >> .env.production
           echo 'MONGODB_DATABASE=${{ secrets.MONGODB_DATABASE }}' >> .env.production
           echo 'MONGODB_PORT=${{ secrets.MONGODB_PORT }}' >> .env.production
+          echo 'MONGODB_ROOT_PASSWORD=${{ secrets.MONGODB_ROOT_PASSWORD }}' >> .env.production
 
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-dist.tar.gz .env.production ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
@@ -97,6 +98,14 @@ jobs:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no docker-compose-prod.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
+
+      # Copia el script de inicialización de MongoDB al servidor
+      - name: Copy MongoDB initialization script to server
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/scripts/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/scripts/
 
       # Copia el script de test de MongoDB al servidor
       - name: Copy MongoDB test script to server

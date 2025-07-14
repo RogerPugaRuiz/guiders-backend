@@ -71,9 +71,13 @@ services:
     
     # credenciales via env vars en .env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-admin123}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+      # Variables para el script de inicialización
+      MONGODB_USERNAME: ${MONGODB_USERNAME}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
     
     # configuración de salud para MongoDB
     healthcheck:
@@ -95,6 +99,7 @@ services:
     
     volumes:
       - mongodb-data:/data/db:rw
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     
     networks:
       - mongodb-net
