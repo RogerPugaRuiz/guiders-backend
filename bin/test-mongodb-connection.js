@@ -19,14 +19,14 @@ async function testMongoConnection() {
 
   console.log('MongoDB Configuration:');
   console.log(`  User: ${mongoUser}`);
-  console.log(`  Password: ${mongoPassword ? '[HIDDEN - Length: ' + mongoPassword.length + ']' : '[NOT SET]'}`);
+  console.log(`  Password: ${mongoPassword ? mongoPassword : '[NOT SET]'}`);
   console.log(`  Host: ${mongoHost}`);
   console.log(`  Port: ${mongoPort}`);
   console.log(`  Database: ${mongoDatabase}`);
 
   // Configuración estándar de NestJS
   const uri = `mongodb://${encodeURIComponent(mongoUser)}:${encodeURIComponent(mongoPassword)}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
-  const safeUri = uri.replace(/:([^:@]+)@/, ':[HIDDEN]@');
+  const safeUri = uri //uri.replace(/:([^:@]+)@/, ':[HIDDEN]@');
   
   console.log(`\n--- Testing Standard NestJS Configuration ---`);
   console.log(`URI: ${safeUri}`);
