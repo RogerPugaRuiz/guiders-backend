@@ -158,10 +158,10 @@ export class AppModule {
 
     if (mongoUser && mongoPassword) {
       // Codificar la contraseña para manejar caracteres especiales
-      const encodedPassword = mongoPassword;
+      const encodedPassword = encodeURIComponent(mongoPassword);
       logger.log(`  Encoded Password Length: ${encodedPassword.length}`);
       // Intentar primero con authSource=admin, luego con la base de datos específica
-      mongoUri = `mongodb://${mongoUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+      mongoUri = `mongodb://${encodeURIComponent(mongoUser)}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
       logger.log('Using constructed URI from individual variables');
     } else {
       mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
@@ -174,6 +174,14 @@ export class AppModule {
       uri: mongoUri,
       // Eliminamos las opciones obsoletas useNewUrlParser y useUnifiedTopology
       // que causan warnings en versiones modernas de MongoDB driver
+      // Agregamos opciones de conexión más robustas
+      serverSelectionTimeoutMS: 5000, // Timeout de selección de servidor
+      socketTimeoutMS: 45000, // Timeout de socket
+      connectTimeoutMS: 10000, // Timeout de conexión
+      maxPoolSize: 10, // Máximo de conexiones en pool
+      minPoolSize: 5, // Mínimo de conexiones en pool
+      retryWrites: true, // Reintentar escrituras en caso de error
+      retryReads: true, // Reintentar lecturas en caso de error
     };
 
     logger.log('MongoDB Options Object:');
@@ -219,7 +227,7 @@ export class AppModule {
     this.logger.log(`MONGODB_PORT: ${MONGODB_PORT}`);
     this.logger.log(`MONGODB_USERNAME: ${MONGODB_USERNAME}`);
     this.logger.log(
-      `MONGODB_PASSWORD: ${MONGODB_PASSWORD ? MONGODB_PASSWORD : '[NOT SET]'}`
+      `MONGODB_PASSWORD: ${MONGODB_PASSWORD ? MONGODB_PASSWORD : '[NOT SET]'}`,
     );
     this.logger.log(`MONGODB_DATABASE: ${MONGODB_DATABASE}`);
 
