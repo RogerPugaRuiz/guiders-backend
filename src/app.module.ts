@@ -146,9 +146,30 @@ export class AppModule {
       `  MONGODB_DATABASE: ${process.env.MONGODB_DATABASE || 'NOT SET'}`,
     );
 
+    return AppModule.createMongooseUri(
+      logger,
+      mongoUser,
+      mongoPassword,
+      mongoHost,
+      mongoPort,
+      mongoDatabase,
+    );
+  }
+
+  // Método auxiliar para construir la URI de MongoDB con diferentes estrategias
+  private static createMongooseUri(
+    logger: Logger,
+    mongoUser: string,
+    mongoPassword: string,
+    mongoHost: string,
+    mongoPort: string,
+    mongoDatabase: string,
+  ) {
     logger.log('Processed MongoDB Configuration:');
     logger.log(`  User: ${mongoUser}`);
-    logger.log(`  Password: ${mongoPassword ? mongoPassword : '[NOT SET]'}`);
+    logger.log(
+      `  Password: ${mongoPassword ? '[HIDDEN - Length: ' + mongoPassword.length + ']' : '[NOT SET]'}`,
+    );
     logger.log(`  Host: ${mongoHost}`);
     logger.log(`  Port: ${mongoPort}`);
     logger.log(`  Database: ${mongoDatabase}`);
@@ -160,16 +181,21 @@ export class AppModule {
       // Codificar la contraseña para manejar caracteres especiales
       const encodedPassword = encodeURIComponent(mongoPassword);
       logger.log(`  Encoded Password Length: ${encodedPassword.length}`);
-      // Intentar primero con authSource=admin, luego con la base de datos específica
+
+      // Intentar diferentes configuraciones de authSource
+      // Primero con authSource=admin (más común)
       mongoUri = `mongodb://${encodeURIComponent(mongoUser)}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
-      logger.log('Using constructed URI from individual variables');
+      logger.log('Using constructed URI with authSource=admin');
     } else {
       mongoUri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
       logger.log('Using URI without authentication');
     }
 
-    logger.log(`  Final URI: ${mongoUri}`);
+    // Mostrar URI sin contraseña para debugging
+    const safeUri = mongoUri.replace(/:([^:@]+)@/, ':[HIDDEN]@');
+    logger.log(`  Final URI (safe): ${safeUri}`);
 
+    // Configuración de opciones con diferentes estrategias de autenticación
     const mongoOptions: Record<string, unknown> = {
       uri: mongoUri,
       // Eliminamos las opciones obsoletas useNewUrlParser y useUnifiedTopology
@@ -182,6 +208,12 @@ export class AppModule {
       minPoolSize: 5, // Mínimo de conexiones en pool
       retryWrites: true, // Reintentar escrituras en caso de error
       retryReads: true, // Reintentar lecturas en caso de error
+      // Opciones adicionales para autenticación
+      authMechanism: 'SCRAM-SHA-256', // Mecanismo de autenticación explícito
+      authSource: 'admin', // Fuente de autenticación
+      directConnection: false, // Permitir descubrimiento de servidores
+      maxIdleTimeMS: 30000, // Tiempo máximo de inactividad
+      heartbeatFrequencyMS: 10000, // Frecuencia de heartbeat
     };
 
     logger.log('MongoDB Options Object:');
