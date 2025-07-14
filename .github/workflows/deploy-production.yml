@@ -157,15 +157,15 @@ jobs:
             done \
           "
 
-      # Test MongoDB connection usando el script de test
+      # Test MongoDB connection usando el script de test en modo producción
       - name: Test MongoDB connection
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             cd /var/www/guiders-backend/ && \
-            echo '🔍 Probando conexión a MongoDB...' && \
-            node test-mongodb-connection.js \
+            echo '🔍 Probando conexión a MongoDB en modo producción...' && \
+            NODE_ENV=production node test-mongodb-connection.js \
           "
 
       # Ejecuta migraciones de TypeORM en el servidor antes de reiniciar la app
