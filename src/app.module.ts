@@ -118,13 +118,11 @@ export class AppModule {
     logger.log(`Is Test Environment: ${isTest}`);
 
     // Configuración de MongoDB siguiendo las mejores prácticas de NestJS
-    const mongoUser = isTest
-      ? configService.get<string>('TEST_MONGODB_USERNAME')
-      : configService.get<string>('MONGODB_USERNAME');
+    const mongoUser = 'admin'; // Usuario por defecto
 
     const mongoPassword = isTest
       ? configService.get<string>('TEST_MONGODB_PASSWORD')
-      : configService.get<string>('MONGODB_PASSWORD');
+      : configService.get<string>('MONGODB_ROOT_PASSWORD');
 
     const mongoHost = configService.get<string>('MONGODB_HOST', 'localhost');
     const mongoPort = configService.get<string>('MONGODB_PORT', '27017');
@@ -135,10 +133,7 @@ export class AppModule {
     // Logs detallados de las variables
     logger.log('Raw Environment Variables:');
     logger.log(
-      `  MONGODB_USERNAME: ${process.env.MONGODB_USERNAME || 'NOT SET'}`,
-    );
-    logger.log(
-      `  MONGODB_PASSWORD: ${process.env.MONGODB_PASSWORD ? '[HIDDEN]' : 'NOT SET'}`,
+      `  MONGODB_PASSWORD: ${process.env.MONGODB_ROOT_PASSWORD ? '[HIDDEN]' : 'NOT SET'}`,
     );
     logger.log(`  MONGODB_HOST: ${process.env.MONGODB_HOST || 'NOT SET'}`);
     logger.log(`  MONGODB_PORT: ${process.env.MONGODB_PORT || 'NOT SET'}`);

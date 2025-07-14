@@ -69,8 +69,8 @@ async function testMongoConnection() {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Config file: ${envFile}`);
   
-  const mongoUser = process.env.MONGODB_USERNAME || 'admin';
-  const mongoPassword = process.env.MONGODB_PASSWORD || 'password';
+  const mongoUser = 'admin';
+  const mongoPassword = process.env.MONGODB_ROOT_PASSWORD || 'password';
   const mongoHost = process.env.MONGODB_HOST || 'localhost';
   const mongoPort = process.env.MONGODB_PORT || '27017';
   const mongoDatabase = process.env.MONGODB_DATABASE || 'guiders';
