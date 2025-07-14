@@ -168,7 +168,7 @@ export class AppModule {
       logger.log('Using URI without authentication');
     }
 
-    logger.log(`  Final URI: ${mongoUri.replace(/:[^:@]+@/, ':***@')}`);
+    logger.log(`  Final URI: ${mongoUri}`);
 
     const mongoOptions: Record<string, unknown> = {
       uri: mongoUri,
