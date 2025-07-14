@@ -219,7 +219,7 @@ export class AppModule {
     this.logger.log(`MONGODB_PORT: ${MONGODB_PORT}`);
     this.logger.log(`MONGODB_USERNAME: ${MONGODB_USERNAME}`);
     this.logger.log(
-      `MONGODB_PASSWORD: ${MONGODB_PASSWORD ? '[HIDDEN]' : '[NOT SET]'}`,
+      `MONGODB_PASSWORD: ${MONGODB_PASSWORD ? MONGODB_PASSWORD : '[NOT SET]'}`
     );
     this.logger.log(`MONGODB_DATABASE: ${MONGODB_DATABASE}`);
 
