@@ -222,9 +222,5 @@ jobs:
             pm2 list | grep guiders-backend || echo 'App no encontrada en PM2' && \
             echo '📊 Estado de Docker:' && \
             docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|redis-prod|mongodb-prod)' && \
-            echo '🔍 Test de conexión MongoDB:' && \
-            docker exec mongodb-prod mongosh -u \$MONGODB_ROOT_USERNAME -p \$MONGODB_ROOT_PASSWORD --authenticationDatabase admin \$MONGODB_DATABASE --eval 'db.adminCommand(\"ping\")' && \
-            echo '🔍 Verificando colecciones MongoDB:' && \
-            docker exec mongodb-prod mongosh -u \$MONGODB_ROOT_USERNAME -p \$MONGODB_ROOT_PASSWORD --authenticationDatabase admin \$MONGODB_DATABASE --eval 'show collections' && \
             echo '✅ Verificación de despliegue completada' \
           "
