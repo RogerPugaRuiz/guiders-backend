@@ -83,10 +83,9 @@ jobs:
           echo 'REDIS_PORT=${{ secrets.REDIS_PORT }}' >> .env.production
           echo 'REDIS_URL=${{ secrets.REDIS_URL }}' >> .env.production
           echo 'MONGODB_HOST=localhost' >> .env.production
-          echo 'MONGODB_USERNAME=${{ secrets.MONGODB_USERNAME }}' >> .env.production
-          echo 'MONGODB_PASSWORD=${{ secrets.MONGODB_PASSWORD }}' >> .env.production
           echo 'MONGODB_DATABASE=${{ secrets.MONGODB_DATABASE }}' >> .env.production
           echo 'MONGODB_PORT=${{ secrets.MONGODB_PORT }}' >> .env.production
+          echo 'MONGODB_ROOT_USERNAME=${{ secrets.MONGODB_ROOT_USERNAME }}' >> .env.production
           echo 'MONGODB_ROOT_PASSWORD=${{ secrets.MONGODB_ROOT_PASSWORD }}' >> .env.production
           echo 'NODE_ENV=production' >> .env.production
 

@@ -47,13 +47,29 @@ services:
     container_name: mongodb
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-password}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD:-password}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:-guiders}
     ports:
       - "${MONGODB_PORT:-27017}:27017"
     volumes:
       - mongodb-data:/data/db
+    networks:
+      - mongodb-net
+
+  mongodb-test:
+    image: mongo:7.0
+    container_name: mongodb-test
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${TEST_MONGODB_ROOT_USERNAME:-admin_test}
+      MONGO_INITDB_ROOT_PASSWORD: ${TEST_MONGODB_ROOT_PASSWORD:-admin123}
+      MONGO_INITDB_DATABASE: ${TEST_MONGODB_DATABASE:-guiders-test}
+    ports:
+      - "${TEST_MONGODB_PORT:-27018}:27017"
+    tmpfs:
+      - /data/db:rw,noexec,nosuid,size=1024m
+    command: ["mongod", "--storageEngine", "wiredTiger", "--wiredTigerCacheSizeGB", "0.25"]
     networks:
       - mongodb-net
 

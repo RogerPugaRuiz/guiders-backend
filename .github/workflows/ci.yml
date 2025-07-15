@@ -354,9 +354,8 @@ jobs:
           echo "MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
           echo "MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "TEST_MONGODB_ROOT_USERNAME=admin_test" >> $GITHUB_ENV
           echo "TEST_MONGODB_ROOT_PASSWORD=test_password" >> $GITHUB_ENV
-          echo "TEST_MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
-          echo "TEST_MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "TEST_MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
           echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
