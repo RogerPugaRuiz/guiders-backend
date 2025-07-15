@@ -1,0 +1,77 @@
+config:
+  target: http://localhost:8080
+  phases:
+    # Fase 1: Carga inicial gradual
+    - duration: 30
+      arrivalRate: 2  # 2 nuevos usuarios por segundo
+    # Fase 2: Carga media
+    - duration: 60
+      arrivalRate: 5  # 5 nuevos usuarios por segundo
+    # Fase 3: Carga alta
+    - duration: 30
+      arrivalRate: 10  # 10 nuevos usuarios por segundo
+  processor: "./custom-functions.js"
+  http:
+    timeout: 30
+
+scenarios:
+  - name: "Simular visitantes navegando el sitio"
+    weight: 100
+    beforeRequest: "generateRandomVisitor"
+    flow:
+      # Entrada inicial al sitio
+      - get:
+          url: "/"
+          headers:
+            User-Agent: "Artillery-Visitor-{{ $randomNumber(1, 10000) }}"
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            Accept-Language: "es-ES,es;q=0.5"
+            Accept-Encoding: "gzip, deflate"
+            Connection: "keep-alive"
+            Upgrade-Insecure-Requests: "1"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Simular tiempo de lectura
+      - think: 3
+      
+      # Verificar health check
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+      
+      # Simular navegación por la aplicación
+      - get:
+          url: "/api/visitors/current"
+          headers:
+            Accept: "application/json"
+            Content-Type: "application/json"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Pausa realista entre acciones
+      - think: 5
+      
+      # Simular interacción con chat (si existe)
+      - get:
+          url: "/api/conversations/active"
+          headers:
+            Accept: "application/json"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Pausa final
+      - think: 2
+      
+      # Simular salida del sitio
+      - get:
+          url: "/api/tracking/page-exit"
+          headers:
+            Accept: "application/json"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"

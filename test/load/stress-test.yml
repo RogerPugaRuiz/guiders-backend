@@ -1,0 +1,45 @@
+config:
+  target: http://localhost:8080
+  phases:
+    # Prueba de estrés - muchos usuarios simultáneos
+    - duration: 60
+      arrivalRate: 20  # 20 nuevos usuarios por segundo
+    - duration: 120
+      arrivalRate: 50  # 50 nuevos usuarios por segundo
+    - duration: 60
+      arrivalRate: 100  # 100 nuevos usuarios por segundo
+  processor: "./custom-functions.js"
+  http:
+    timeout: 10
+
+scenarios:
+  - name: "Prueba de estrés - Múltiples visitantes simultáneos"
+    weight: 100
+    beforeRequest: "generateRandomVisitor"
+    flow:
+      # Entrada masiva al sitio
+      - get:
+          url: "/"
+          headers:
+            User-Agent: "{{ userAgent }}"
+            Accept-Language: "{{ language }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Verificación rápida de health
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+      
+      # Simular carga en endpoints críticos
+      - loop:
+          - get:
+              url: "/api/visitors/current"
+              headers:
+                Accept: "application/json"
+              cookie:
+                visitorId: "{{ visitorId }}"
+          - think: 1
+        count: 3

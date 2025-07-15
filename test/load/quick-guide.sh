@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Guía rápida para usar load testing en producción
+# Ejecutar desde el servidor de producción
+
+echo "🚀 GUÍA RÁPIDA - Load Testing en Producción"
+echo "=============================================="
+echo ""
+echo "📍 Ubicación: /var/www/guiders-backend/load-tests/"
+echo ""
+echo "✅ Comandos disponibles:"
+echo "  ./run-production-load-tests.sh simple    # Prueba suave (1 usuario/s)"
+echo "  ./run-production-load-tests.sh normal    # Prueba normal (2-8 usuarios/s)"
+echo "  ./run-production-load-tests.sh stress    # Prueba estrés (10-30 usuarios/s)"
+echo "  ./run-production-load-tests.sh monitor   # Monitoreo continuo (5 min)"
+echo ""
+echo "⚠️  RECOMENDACIONES:"
+echo "  - Usar 'simple' para verificar funcionamiento"
+echo "  - Usar 'normal' en horarios de baja actividad"
+echo "  - Usar 'stress' solo en mantenimiento programado"
+echo "  - Monitorear recursos del servidor durante las pruebas"
+echo ""
+echo "📊 Monitoreo durante pruebas:"
+echo "  pm2 logs guiders-backend    # Logs de la aplicación"
+echo "  htop                        # Recursos del sistema"
+echo "  docker stats                # Recursos de containers"
+echo ""
+echo "📄 Documentación completa: cat PRODUCTION-README.md"
+echo ""
+echo "💡 Ejemplo de uso:"
+echo "  cd /var/www/guiders-backend/load-tests/"
+echo "  ./run-production-load-tests.sh simple"
+echo ""

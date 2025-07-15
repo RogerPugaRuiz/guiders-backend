@@ -1,0 +1,46 @@
+config:
+  target: http://localhost:3000  # Se ejecutará desde el servidor de producción
+  phases:
+    # Prueba de estrés moderada para producción
+    - duration: 60
+      arrivalRate: 10  # 10 usuarios por segundo
+    - duration: 120
+      arrivalRate: 20  # 20 usuarios por segundo
+    - duration: 60
+      arrivalRate: 30  # 30 usuarios por segundo (máximo recomendado)
+  processor: "./custom-functions.js"
+  http:
+    timeout: 15
+
+scenarios:
+  - name: "Prueba de estrés en servidor de producción"
+    weight: 100
+    beforeRequest: "generateRandomVisitor"
+    flow:
+      # Verificación rápida de health
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+      
+      # Entrada rápida al sitio
+      - get:
+          url: "/"
+          headers:
+            User-Agent: "{{ userAgent }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+      
+      # Pausa mínima
+      - think: 1
+      
+      # Carga en endpoints críticos
+      - loop:
+          - get:
+              url: "/api/visitors/current"
+              headers:
+                Accept: "application/json"
+              cookie:
+                visitorId: "{{ visitorId }}"
+          - think: 0.5
+        count: 2

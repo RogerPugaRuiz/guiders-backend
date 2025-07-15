@@ -1,0 +1,29 @@
+config:
+  target: http://localhost:8080
+  phases:
+    - duration: 30
+      arrivalRate: 1  # 1 usuario por segundo - prueba suave
+  processor: "./custom-functions.js"
+
+scenarios:
+  - name: "Prueba simple - Un visitante por segundo"
+    weight: 100
+    beforeRequest: "generateRandomVisitor"
+    flow:
+      # Entrada al sitio
+      - get:
+          url: "/"
+          headers:
+            User-Agent: "{{ userAgent }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Verificar salud del sistema
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+      
+      # Breve pausa
+      - think: 2

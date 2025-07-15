@@ -1,0 +1,70 @@
+config:
+  target: http://localhost:3000  # Se ejecutará desde el servidor de producción
+  phases:
+    # Configuración para pruebas en producción
+    - duration: 30
+      arrivalRate: 2  # 2 usuarios por segundo
+    - duration: 60
+      arrivalRate: 5  # 5 usuarios por segundo
+    - duration: 30
+      arrivalRate: 8  # 8 usuarios por segundo
+  processor: "./custom-functions.js"
+  http:
+    timeout: 30
+
+scenarios:
+  - name: "Prueba de carga en servidor de producción"
+    weight: 100
+    beforeRequest: "generateRandomVisitor"
+    flow:
+      # Verificar health check
+      - get:
+          url: "/health"
+          headers:
+            User-Agent: "{{ userAgent }}"
+            Accept: "application/json"
+          expect:
+            - statusCode: 200
+      
+      # Breve pausa
+      - think: 2
+      
+      # Entrada al sitio principal
+      - get:
+          url: "/"
+          headers:
+            User-Agent: "{{ userAgent }}"
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            Accept-Language: "{{ language }}"
+            Connection: "keep-alive"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Pausa realista
+      - think: 3
+      
+      # Test de API de visitantes
+      - get:
+          url: "/api/visitors/current"
+          headers:
+            Accept: "application/json"
+            User-Agent: "{{ userAgent }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Pausa antes de la siguiente acción
+      - think: 4
+      
+      # Simular interacción con chat
+      - get:
+          url: "/api/conversations/active"
+          headers:
+            Accept: "application/json"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # Pausa final
+      - think: 2

@@ -224,3 +224,60 @@ jobs:
             docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|redis-prod|mongodb-prod)' && \
             echo '✅ Verificación de despliegue completada' \
           "
+
+      # Instalar Artillery en el servidor para load testing
+      - name: Install Artillery for load testing
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔧 Instalando Artillery para load testing...' && \
+            npm install -g artillery && \
+            echo '✅ Artillery instalado correctamente' \
+          "
+
+      # Crear directorio para load testing y copiar archivos
+      - name: Setup load testing tools on server
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          # Crear directorio para load testing
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/load-tests/"
+          
+          # Copiar archivos de load testing
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/custom-functions.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/production-load-test.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/production-stress-test.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/simple-test.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/run-production-load-tests.sh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/PRODUCTION-README.md ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/quick-guide.sh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
+          
+          # Dar permisos de ejecución al script
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            chmod +x /var/www/guiders-backend/load-tests/run-production-load-tests.sh && \
+            chmod +x /var/www/guiders-backend/load-tests/quick-guide.sh && \
+            echo '✅ Herramientas de load testing configuradas en /var/www/guiders-backend/load-tests/' \
+          "
+
+      # Verificar instalación de load testing
+      - name: Verify load testing installation
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd /var/www/guiders-backend/load-tests/ && \
+            echo '🔍 Verificando instalación de load testing...' && \
+            echo '📁 Archivos disponibles:' && \
+            ls -la && \
+            echo '' && \
+            echo '🔧 Versión de Artillery:' && \
+            artillery --version && \
+            echo '' && \
+            echo '💡 Para usar las pruebas de carga:' && \
+            echo '   cd /var/www/guiders-backend/load-tests/' && \
+            echo '   ./run-production-load-tests.sh simple' && \
+            echo '   ./run-production-load-tests.sh normal' && \
+            echo '   ./run-production-load-tests.sh stress' && \
+            echo '✅ Load testing tools ready!' \
+          "
