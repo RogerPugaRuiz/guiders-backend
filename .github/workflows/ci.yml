@@ -354,6 +354,7 @@ jobs:
           echo "MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
           echo "MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "TEST_MONGODB_ROOT_PASSWORD=test_password" >> $GITHUB_ENV
           echo "TEST_MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
           echo "TEST_MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "TEST_MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV

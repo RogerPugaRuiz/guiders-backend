@@ -121,7 +121,7 @@ export class AppModule {
     const mongoUser = 'admin'; // Usuario por defecto
 
     const mongoPassword = isTest
-      ? configService.get<string>('TEST_MONGODB_PASSWORD')
+      ? configService.get<string>('TEST_MONGODB_ROOT_PASSWORD')
       : configService.get<string>('MONGODB_ROOT_PASSWORD');
 
     const mongoHost = configService.get<string>('MONGODB_HOST', 'localhost');
