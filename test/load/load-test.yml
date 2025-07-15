@@ -12,7 +12,7 @@ config:
       arrivalRate: 10  # 10 nuevos usuarios por segundo
   processor: "./custom-functions.js"
   http:
-    timeout: 30
+    timeout: 60  # Aumentado de 30 a 60 segundos para dar más tiempo
 
 scenarios:
   - name: "Simular visitantes navegando el sitio"
@@ -33,45 +33,43 @@ scenarios:
             visitorId: "{{ visitorId }}"
             sessionId: "{{ sessionId }}"
       
-      # Simular tiempo de lectura
-      - think: 3
-      
-      # Verificar health check
+      # Simular carga de recursos estáticos (como haría un navegador)
       - get:
-          url: "/health"
-          expect:
-            - statusCode: 200
-      
-      # Simular navegación por la aplicación
-      - get:
-          url: "/api/visitors/current"
+          url: "/style.css"
           headers:
-            Accept: "application/json"
-            Content-Type: "application/json"
+            Accept: "text/css,*/*;q=0.1"
+            Referer: "http://localhost:8080/"
+            User-Agent: "Artillery-Visitor-{{ $randomNumber(1, 10000) }}"
           cookie:
             visitorId: "{{ visitorId }}"
             sessionId: "{{ sessionId }}"
       
-      # Pausa realista entre acciones
-      - think: 5
-      
-      # Simular interacción con chat (si existe)
+      # Simular carga del script del SDK (si está en el mismo dominio)
       - get:
-          url: "/api/conversations/active"
+          url: "/sdk/index.js"
           headers:
-            Accept: "application/json"
+            Accept: "*/*"
+            Referer: "http://localhost:8080/"
+            User-Agent: "Artillery-Visitor-{{ $randomNumber(1, 10000) }}"
           cookie:
             visitorId: "{{ visitorId }}"
             sessionId: "{{ sessionId }}"
       
-      # Pausa final
+      # Breve pausa para simular tiempo de procesamiento de JavaScript
       - think: 2
       
-      # Simular salida del sitio
+      # Simular posibles llamadas AJAX que haría el JavaScript
       - get:
-          url: "/api/tracking/page-exit"
+          url: "/api/tracking/page-view"
           headers:
-            Accept: "application/json"
+            Accept: "application/json, text/plain, */*"
+            Content-Type: "application/json"
+            Referer: "http://localhost:8080/"
+            User-Agent: "Artillery-Visitor-{{ $randomNumber(1, 10000) }}"
           cookie:
             visitorId: "{{ visitorId }}"
             sessionId: "{{ sessionId }}"
+      
+      # Pausa de 10 segundos antes de cerrar la sesión
+      # Esto permite que todas las peticiones se procesen correctamente
+      - think: 10

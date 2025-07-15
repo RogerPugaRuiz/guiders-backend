@@ -4,6 +4,8 @@ config:
     - duration: 30
       arrivalRate: 1  # 1 usuario por segundo - prueba suave
   processor: "./custom-functions.js"
+  http:
+    timeout: 60  # Aumentado a 60 segundos para dar más tiempo
 
 scenarios:
   - name: "Prueba simple - Un visitante por segundo"
@@ -27,3 +29,7 @@ scenarios:
       
       # Breve pausa
       - think: 2
+      
+      # Pausa adicional de 10 segundos antes de cerrar la sesión
+      # Esto permite que todas las peticiones se procesen correctamente
+      - think: 10

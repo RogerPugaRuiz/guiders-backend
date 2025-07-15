@@ -51,6 +51,19 @@ case $TEST_TYPE in
             exit 0
         fi
         ;;
+    "browser")
+        echo -e "${YELLOW}Ejecutando simulación de navegador real...${NC}"
+        artillery run browser-simulation-test.yml
+        ;;
+    "javascript")
+        echo -e "${YELLOW}Ejecutando test con JavaScript real usando Playwright...${NC}"
+        if command -v node &> /dev/null; then
+            node browser-javascript-test.js
+        else
+            echo -e "${RED}Node.js no está instalado${NC}"
+            exit 1
+        fi
+        ;;
     "report")
         echo -e "${YELLOW}Ejecutando prueba normal con reporte HTML...${NC}"
         artillery run load-test.yml --output report.json
@@ -58,10 +71,12 @@ case $TEST_TYPE in
         echo -e "${GREEN}Reporte generado como report.json.html${NC}"
         ;;
     *)
-        echo -e "${RED}Uso: $0 [simple|normal|stress|report]${NC}"
+        echo -e "${RED}Uso: $0 [simple|normal|stress|browser|javascript|report]${NC}"
         echo -e "${YELLOW}  simple: Prueba suave (1 usuario/segundo)${NC}"
         echo -e "${YELLOW}  normal: Prueba gradual (2-10 usuarios/segundo)${NC}"
         echo -e "${YELLOW}  stress: Prueba de estrés (20-100 usuarios/segundo)${NC}"
+        echo -e "${YELLOW}  browser: Simulación de navegador con recursos${NC}"
+        echo -e "${YELLOW}  javascript: Test con JavaScript real (Playwright)${NC}"
         echo -e "${YELLOW}  report: Prueba normal con reporte HTML${NC}"
         exit 1
         ;;

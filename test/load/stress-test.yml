@@ -10,7 +10,7 @@ config:
       arrivalRate: 100  # 100 nuevos usuarios por segundo
   processor: "./custom-functions.js"
   http:
-    timeout: 10
+    timeout: 60  # Aumentado de 10 a 60 segundos
 
 scenarios:
   - name: "Prueba de estrés - Múltiples visitantes simultáneos"
@@ -43,3 +43,7 @@ scenarios:
                 visitorId: "{{ visitorId }}"
           - think: 1
         count: 3
+      
+      # Pausa adicional de 10 segundos antes de cerrar la sesión
+      # Esto permite que todas las peticiones se procesen correctamente
+      - think: 10

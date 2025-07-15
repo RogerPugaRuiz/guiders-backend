@@ -58,6 +58,7 @@
     "mongoose": "^8.16.1",
     "nodemailer": "^7.0.3",
     "pg": "^8.13.3",
+    "playwright": "^1.54.1",
     "redis": "^4.7.0",
     "reflect-metadata": "^0.2.2",
     "resend": "^4.5.1",

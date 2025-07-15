@@ -1,0 +1,133 @@
+config:
+  target: http://localhost:8080
+  phases:
+    # Prueba más realista con simulación de navegador
+    - duration: 60
+      arrivalRate: 3  # 3 nuevos usuarios por segundo
+  processor: "./custom-functions.js"
+  http:
+    timeout: 60
+
+scenarios:
+  - name: "Simular navegador real con JavaScript"
+    weight: 100
+    beforeRequest: "generateRandomVisitor"
+    flow:
+      # 1. Cargar página principal
+      - get:
+          url: "/"
+          headers:
+            User-Agent: "{{ userAgent }}"
+            Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            Accept-Language: "{{ language }}"
+            Accept-Encoding: "gzip, deflate, br"
+            Connection: "keep-alive"
+            Upgrade-Insecure-Requests: "1"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 2. Cargar CSS (paralelo, como navegador)
+      - get:
+          url: "/style.css"
+          headers:
+            Accept: "text/css,*/*;q=0.1"
+            Referer: "http://localhost:8080/"
+            User-Agent: "{{ userAgent }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 3. Simular tiempo de parseo HTML
+      - think: 0.5
+      
+      # 4. Simular llamadas que haría el JavaScript del SDK
+      - get:
+          url: "/api/visitors/init"
+          headers:
+            Accept: "application/json, text/plain, */*"
+            Content-Type: "application/json"
+            Referer: "http://localhost:8080/"
+            User-Agent: "{{ userAgent }}"
+            X-Requested-With: "XMLHttpRequest"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 5. Tracking de página vista
+      - post:
+          url: "/api/tracking/page-view"
+          headers:
+            Accept: "application/json, text/plain, */*"
+            Content-Type: "application/json"
+            Referer: "http://localhost:8080/"
+            User-Agent: "{{ userAgent }}"
+            X-Requested-With: "XMLHttpRequest"
+          json:
+            page: "/"
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+            timestamp: "{{ $timestamp }}"
+            userAgent: "{{ userAgent }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 6. Simular heartbeat del SDK cada 10 segundos
+      - think: 10
+      
+      - get:
+          url: "/api/visitors/heartbeat"
+          headers:
+            Accept: "application/json, text/plain, */*"
+            Referer: "http://localhost:8080/"
+            User-Agent: "{{ userAgent }}"
+            X-Requested-With: "XMLHttpRequest"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 7. Simular interacción del usuario (scroll, clicks, etc.)
+      - think: 5
+      
+      - post:
+          url: "/api/tracking/user-interaction"
+          headers:
+            Accept: "application/json, text/plain, */*"
+            Content-Type: "application/json"
+            Referer: "http://localhost:8080/"
+            User-Agent: "{{ userAgent }}"
+            X-Requested-With: "XMLHttpRequest"
+          json:
+            event: "scroll"
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+            scrollPosition: "{{ $randomNumber(0, 1000) }}"
+            timestamp: "{{ $timestamp }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 8. Simular salida de página
+      - think: 3
+      
+      - post:
+          url: "/api/tracking/page-exit"
+          headers:
+            Accept: "application/json, text/plain, */*"
+            Content-Type: "application/json"
+            Referer: "http://localhost:8080/"
+            User-Agent: "{{ userAgent }}"
+            X-Requested-With: "XMLHttpRequest"
+          json:
+            page: "/"
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+            timeOnPage: 18000  # 18 segundos
+            timestamp: "{{ $timestamp }}"
+          cookie:
+            visitorId: "{{ visitorId }}"
+            sessionId: "{{ sessionId }}"
+      
+      # 9. Pausa final para procesar
+      - think: 5
