@@ -145,26 +145,24 @@ jobs:
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo '🔍 Verificando que los contenedores se iniciaron correctamente...' && \
-            sleep 10 && \
-            \
-            # Verificar que los contenedores esperados existen \
-            containers=('postgres-prod' 'mongodb-prod' 'redis-prod') && \
-            for container in \"\${containers[@]}\"; do \
-              if docker ps --format '{{.Names}}' | grep -q \"^\$container\$\"; then \
-                status=\$(docker ps --format '{{.Names}}\t{{.Status}}' | grep \"^\$container\" | cut -f2) && \
-                echo \"  ✅ \$container: \$status\"; \
-              else \
-                echo \"  ❌ \$container: NO ENCONTRADO\"; \
-                echo \"📋 Contenedores disponibles:\"; \
-                docker ps --format 'table {{.Names}}\t{{.Status}}' && \
-                echo \"📋 Logs de docker-compose:\"; \
-                docker compose --env-file .env.production -f docker-compose-prod.yml logs --tail 20 && \
-                exit 1; \
-              fi; \
-            done && \
-            echo '✅ Todos los contenedores esperados están iniciados' \
+          echo "🔍 Verificando contenedores iniciados..."
+          
+          # Comando más simple dividido
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd /var/www/guiders-backend/ && \
+            echo '� Verificando contenedores...' && \
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' \
+          "
+          
+          # Verificar contenedores específicos
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd /var/www/guiders-backend/ && \
+            echo '🔍 Verificando postgres-prod...' && \
+            docker ps | grep postgres-prod || echo 'postgres-prod no encontrado' && \
+            echo '� Verificando mongodb-prod...' && \
+            docker ps | grep mongodb-prod || echo 'mongodb-prod no encontrado' && \
+            echo '🔍 Verificando redis-prod...' && \
+            docker ps | grep redis-prod || echo 'redis-prod no encontrado' \
           "
 
       # Método alternativo más rápido: usar docker-compose para esperar health checks
@@ -172,107 +170,106 @@ jobs:
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🚀 Método rápido: Esperando health checks con docker-compose...' && \
-            \
-            # Esperar 30 segundos y luego verificar health status \
-            echo '⏳ Esperando 30s para que los contenedores se inicialicen...' && \
-            sleep 30 && \
-            \
-            # Verificar health status con timeout \
-            for i in {1..12}; do \
-              postgres_health=\$(docker inspect --format='{{.State.Health.Status}}' postgres-prod 2>/dev/null || echo 'starting'); \
-              mongodb_health=\$(docker inspect --format='{{.State.Health.Status}}' mongodb-prod 2>/dev/null || echo 'starting'); \
-              redis_health=\$(docker inspect --format='{{.State.Health.Status}}' redis-prod 2>/dev/null || echo 'starting'); \
-              \
-              echo \"Intento \$i/12: PostgreSQL=\$postgres_health, MongoDB=\$mongodb_health, Redis=\$redis_health\"; \
-              \
-              if [ \"\$postgres_health\" = 'healthy' ] && [ \"\$mongodb_health\" = 'healthy' ] && [ \"\$redis_health\" = 'healthy' ]; then \
-                echo '✅ Todos los servicios están healthy!'; \
-                exit 0; \
-              fi; \
-              \
-              sleep 10; \
-            done; \
-            \
-            echo '⚠️  Método rápido no completó en 2 minutos, continuando con método detallado...' \
-          " || true
+          echo "🚀 Iniciando método rápido de espera..."
+          
+          # Esperar inicial
+          echo "⏳ Esperando 30 segundos para inicialización..."
+          sleep 30
+          
+          # Verificar health status en bucles más cortos
+          for attempt in {1..12}; do
+            echo "🔄 Intento $attempt/12..."
+            
+            # Verificar PostgreSQL
+            postgres_status=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+              docker inspect --format='{{.State.Health.Status}}' postgres-prod 2>/dev/null || echo 'unknown'" || echo 'error')
+            
+            # Verificar MongoDB  
+            mongodb_status=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+              docker inspect --format='{{.State.Health.Status}}' mongodb-prod 2>/dev/null || echo 'unknown'" || echo 'error')
+            
+            # Verificar Redis
+            redis_status=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+              docker inspect --format='{{.State.Health.Status}}' redis-prod 2>/dev/null || echo 'unknown'" || echo 'error')
+            
+            echo "📊 PostgreSQL: $postgres_status, MongoDB: $mongodb_status, Redis: $redis_status"
+            
+            # Si todos están healthy, continuar
+            if [[ "$postgres_status" == "healthy" && "$mongodb_status" == "healthy" && "$redis_status" == "healthy" ]]; then
+              echo "✅ Todos los servicios están healthy!"
+              exit 0
+            fi
+            
+            # Esperar 10 segundos antes del siguiente intento
+            if [[ $attempt -lt 12 ]]; then
+              echo "⏳ Esperando 10 segundos..."
+              sleep 10
+            fi
+          done
+          
+          echo "⚠️ Método rápido no completó, continuando con método detallado..."
 
       # Esperar a que los servicios estén listos antes de ejecutar migraciones
       - name: Wait for databases to be ready (detailed method)
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo '🔄 Método detallado: Verificando estado de bases de datos...' && \
-            echo '📊 Estado inicial de contenedores:' && \
-            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|mongodb-prod|redis-prod)' || echo 'No se encontraron contenedores de BD' && \
-            echo '' && \
-            \
-            # Configuración de timeout \
-            max_attempts=18 && \
-            interval=10 && \
-            \
-            for i in \$(seq 1 \$max_attempts); do \
-              postgres_ready=false && \
-              mongodb_ready=false && \
-              redis_ready=false && \
-              \
-              echo \"⏱️  Intento \$i/\$max_attempts:\"; \
-              \
-              # Verificar PostgreSQL \
-              if docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME >/dev/null 2>&1; then \
-                postgres_ready=true && \
-                echo '  ✅ PostgreSQL: READY'; \
-              else \
-                echo '  ❌ PostgreSQL: NOT READY'; \
-              fi; \
-              \
-              # Verificar MongoDB \
-              if docker exec mongodb-prod mongosh --eval 'db.adminCommand(\"ping\")' --quiet >/dev/null 2>&1; then \
-                mongodb_ready=true && \
-                echo '  ✅ MongoDB: READY'; \
-              else \
-                echo '  ❌ MongoDB: NOT READY'; \
-              fi; \
-              \
-              # Verificar Redis \
-              if docker exec redis-prod redis-cli ping >/dev/null 2>&1; then \
-                redis_ready=true && \
-                echo '  ✅ Redis: READY'; \
-              else \
-                echo '  ❌ Redis: NOT READY'; \
-              fi; \
-              \
-              # Si todos están listos, salir \
-              if [ \"\$postgres_ready\" = true ] && [ \"\$mongodb_ready\" = true ] && [ \"\$redis_ready\" = true ]; then \
-                echo ''; \
-                echo '✅ ¡Todas las bases de datos están listas!'; \
-                break; \
-              fi; \
-              \
-              # Si es el último intento, fallar \
-              if [ \$i -eq \$max_attempts ]; then \
-                echo ''; \
-                echo '❌ TIMEOUT: Las bases de datos no estuvieron listas en 3 minutos'; \
-                echo '📊 Estado final:'; \
-                docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E '(postgres-prod|mongodb-prod|redis-prod)' || true; \
-                echo ''; \
-                echo '📋 Logs recientes:'; \
-                echo '--- PostgreSQL ---'; \
-                docker logs postgres-prod --tail 5 2>/dev/null || echo 'No logs disponibles'; \
-                echo '--- MongoDB ---'; \
-                docker logs mongodb-prod --tail 5 2>/dev/null || echo 'No logs disponibles'; \
-                echo '--- Redis ---'; \
-                docker logs redis-prod --tail 5 2>/dev/null || echo 'No logs disponibles'; \
-                exit 1; \
-              fi; \
-              \
-              echo \"  ⏳ Esperando \${interval}s...\"; \
-              sleep \$interval; \
-            done \
+          echo "🔄 Iniciando método detallado de verificación..."
+          
+          # Verificar estado inicial
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo ' Estado inicial de contenedores:' && \
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|mongodb-prod|redis-prod)' || echo 'No se encontraron contenedores' \
           "
+          
+          # Loop de verificación en el runner de GitHub Actions
+          for attempt in {1..18}; do
+            echo "⏱️ Intento $attempt/18..."
+            
+            # Verificar PostgreSQL
+            postgres_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+              docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
+            
+            # Verificar MongoDB
+            mongodb_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+              docker exec mongodb-prod mongosh --eval 'db.adminCommand(\"ping\")' --quiet >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
+            
+            # Verificar Redis
+            redis_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+              docker exec redis-prod redis-cli ping >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
+            
+            echo "📋 PostgreSQL: $postgres_ready, MongoDB: $mongodb_ready, Redis: $redis_ready"
+            
+            # Si todos están listos, salir
+            if [[ "$postgres_ready" == "true" && "$mongodb_ready" == "true" && "$redis_ready" == "true" ]]; then
+              echo "✅ ¡Todas las bases de datos están listas!"
+              exit 0
+            fi
+            
+            # Si es el último intento, mostrar logs y fallar
+            if [[ $attempt -eq 18 ]]; then
+              echo "❌ TIMEOUT: Las bases de datos no estuvieron listas en 3 minutos"
+              
+              # Mostrar logs de error
+              echo "📋 Logs de PostgreSQL:"
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker logs postgres-prod --tail 5 2>/dev/null || echo 'No logs disponibles'" || true
+              
+              echo "📋 Logs de MongoDB:"
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker logs mongodb-prod --tail 5 2>/dev/null || echo 'No logs disponibles'" || true
+              
+              echo "📋 Logs de Redis:"
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker logs redis-prod --tail 5 2>/dev/null || echo 'No logs disponibles'" || true
+              
+              exit 1
+            fi
+            
+            # Esperar 10 segundos
+            echo "⏳ Esperando 10 segundos..."
+            sleep 10
+          done
 
       # Test MongoDB connection usando el script de test en modo producción
       - name: Test MongoDB connection
