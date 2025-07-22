@@ -17,6 +17,7 @@ describe('VisitorMapper', () => {
       entity.tags = ['premium', 'vip'];
       entity.notes = ['Primera nota', 'Segunda nota'];
       entity.currentPage = '/home';
+      entity.connectionTime = 5000;
 
       // Act
       const visitor = VisitorMapper.fromPersistence(entity);
@@ -31,6 +32,7 @@ describe('VisitorMapper', () => {
       expect(primitives.tags).toEqual(['premium', 'vip']);
       expect(primitives.notes).toEqual(['Primera nota', 'Segunda nota']);
       expect(primitives.currentPage).toBe('/home');
+      expect(primitives.connectionTime).toBe(5000);
     });
 
     it('debe manejar entidad con valores nulos/opcionales', () => {
@@ -43,6 +45,7 @@ describe('VisitorMapper', () => {
       entity.tags = [];
       entity.notes = [];
       entity.currentPage = null;
+      entity.connectionTime = null;
 
       // Act
       const visitor = VisitorMapper.fromPersistence(entity);
@@ -57,6 +60,7 @@ describe('VisitorMapper', () => {
       expect(primitives.tags).toEqual([]);
       expect(primitives.notes).toEqual([]);
       expect(primitives.currentPage).toBeNull();
+      expect(primitives.connectionTime).toBeNull();
     });
   });
 
@@ -72,6 +76,7 @@ describe('VisitorMapper', () => {
         tags: ['standard'],
         notes: ['Nota de prueba'],
         currentPage: '/contact',
+        connectionTime: 3000,
       });
 
       // Act
@@ -86,6 +91,7 @@ describe('VisitorMapper', () => {
       expect(entity.tags).toEqual(['standard']);
       expect(entity.notes).toEqual(['Nota de prueba']);
       expect(entity.currentPage).toBe('/contact');
+      expect(entity.connectionTime).toBe(3000);
     });
 
     it('debe manejar visitor con valores opcionales nulos', () => {
@@ -99,6 +105,7 @@ describe('VisitorMapper', () => {
         tags: [],
         notes: [],
         currentPage: null,
+        connectionTime: null,
       });
 
       // Act
@@ -113,6 +120,7 @@ describe('VisitorMapper', () => {
       expect(entity.tags).toEqual([]);
       expect(entity.notes).toEqual([]);
       expect(entity.currentPage).toBeNull();
+      expect(entity.connectionTime).toBeNull();
     });
   });
 
@@ -128,6 +136,7 @@ describe('VisitorMapper', () => {
         tags: ['test', 'bidirectional'],
         notes: ['Nota 1', 'Nota 2'],
         currentPage: '/test-page',
+        connectionTime: 2500,
       };
 
       // Act

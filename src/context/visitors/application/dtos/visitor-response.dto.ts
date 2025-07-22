@@ -28,4 +28,10 @@ export class VisitorResponseDto {
 
   @ApiProperty({ description: 'Página actual del visitante', nullable: true })
   currentPage: string | null;
+
+  @ApiProperty({
+    description: 'Tiempo de conexión de la sesión en milisegundos',
+    nullable: true,
+  })
+  connectionTime: number | null;
 }

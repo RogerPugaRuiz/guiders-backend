@@ -11,10 +11,12 @@ import { OnVisitorAliasAssignedUpdateParticipantEventHandler } from '../applicat
 import { VisitorController } from './controllers/visitor.controller';
 import { GetVisitorByIdQueryHandler } from '../application/queries/get-visitor-by-id.query-handler';
 import { UpdateVisitorCurrentPageCommandHandler } from '../application/commands/update-visitor-current-page-command.handler';
+import { UpdateVisitorConnectionTimeCommandHandler } from '../application/commands/update-visitor-connection-time-command.handler';
 import { UpdateVisitorEmailCommandHandler } from '../application/commands/update-visitor-email-command.handler';
 import { UpdateVisitorNameCommandHandler } from '../application/commands/update-visitor-name-command.handler';
 import { UpdateVisitorTelCommandHandler } from '../application/commands/update-visitor-tel-command.handler';
 import { UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler } from '../application/events/update-visitor-current-page-on-tracking-event-created.event-handler';
+import { UpdateVisitorConnectionTimeOnTrackingEventCreatedEventHandler } from '../application/events/update-visitor-connection-time-on-tracking-event-created.event-handler';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { HttpModule } from '@nestjs/axios';
 import { ALIAS_GENERATOR_SERVICE } from '../application/services/alias-generator.service';
@@ -24,6 +26,7 @@ import { FakerAliasGeneratorAdapter } from './services/faker-alias-generator.ada
 const CommandHandlers = [
   CreateDefaultVisitorCommandHandler,
   UpdateVisitorCurrentPageCommandHandler,
+  UpdateVisitorConnectionTimeCommandHandler,
   UpdateVisitorEmailCommandHandler,
   UpdateVisitorNameCommandHandler,
   UpdateVisitorTelCommandHandler,
@@ -33,6 +36,7 @@ const EventHandlers = [
   OnVisitorCreatedUpdateParticipantNameEventHandler,
   OnVisitorAliasAssignedUpdateParticipantEventHandler,
   UpdateVisitorCurrentPageOnTrackingEventCreatedEventHandler,
+  UpdateVisitorConnectionTimeOnTrackingEventCreatedEventHandler,
 ];
 const QueryHandlers = [GetVisitorByIdQueryHandler];
 

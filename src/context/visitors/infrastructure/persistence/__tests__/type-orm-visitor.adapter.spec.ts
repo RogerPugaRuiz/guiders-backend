@@ -127,6 +127,7 @@ describe('TypeOrmVisitorAdapter', () => {
         tags: ['test'],
         notes: ['nota'],
         currentPage: '/home',
+        connectionTime: 1500,
       });
 
       jest
@@ -151,6 +152,7 @@ describe('TypeOrmVisitorAdapter', () => {
         tags: ['test'],
         notes: ['nota'],
         currentPage: '/home',
+        connectionTime: 1500,
       });
 
       const saveError = new Error('Database save failed');
@@ -188,6 +190,7 @@ describe('TypeOrmVisitorAdapter', () => {
           tags: ['test'],
           notes: ['nota'],
           currentPage: '/home',
+          connectionTime: 2000,
         },
       ];
       queryBuilder.getMany.mockResolvedValue(mockEntities);

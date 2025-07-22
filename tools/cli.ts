@@ -14,6 +14,8 @@ import { CreateCompanyCommand } from '../src/context/company/application/command
 import { CreateCompanyWithAdminCommand } from '../src/context/company/application/commands/create-company-with-admin.command';
 import { DataSource } from 'typeorm';
 import { Logger } from '@nestjs/common';
+import { getConnectionToken } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
 const program = new Command();
 
@@ -121,6 +123,73 @@ program
       await app.close();
     } catch (error: any) {
       logger.error(`Error al limpiar la base de datos: ${error?.message || 'Error desconocido'}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('clean-mongodb')
+  .description('Limpia todas las colecciones de MongoDB (chats y mensajes)')
+  .option('--force', 'Fuerza la limpieza sin confirmación')
+  .action(async (options: { force?: boolean }) => {
+    if (!options.force) {
+      console.log(
+        '⚠️  ADVERTENCIA: Esta operación eliminará TODOS los chats y mensajes de MongoDB.',
+      );
+      console.log('Para ejecutar, añade la opción --force');
+      return;
+    }
+
+    const logger = new Logger('CleanMongoDB');
+    logger.log('Iniciando limpieza de MongoDB...');
+
+    try {
+      const app = await NestFactory.createApplicationContext(AppModule);
+      
+      // Obtener la conexión de MongoDB
+      const mongoConnection = app.get(getConnectionToken()) as Connection;
+      
+      if (!mongoConnection) {
+        throw new Error('No se pudo obtener la conexión de MongoDB');
+      }
+
+      logger.log('Conexión a MongoDB obtenida correctamente');
+
+      // Verificar que la base de datos esté disponible
+      if (!mongoConnection.db) {
+        throw new Error('Base de datos MongoDB no disponible');
+      }
+
+      // Obtener todas las colecciones
+      const collections = await mongoConnection.db.collections();
+      
+      logger.log(`Encontradas ${collections.length} colecciones en MongoDB`);
+
+      // Limpiar cada colección
+      for (const collection of collections) {
+        try {
+          const collectionName = collection.collectionName;
+          logger.log(`Limpiando colección: ${collectionName}`);
+          
+          const result = await collection.deleteMany({});
+          logger.log(
+            `Colección ${collectionName} limpiada: ${result.deletedCount} documentos eliminados`,
+          );
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Error desconocido';
+          logger.error(
+            `Error al limpiar la colección ${collection.collectionName}: ${errorMessage}`,
+          );
+        }
+      }
+      
+      logger.log('🧹 MongoDB limpiado correctamente');
+      await app.close();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      logger.error(`Error al limpiar MongoDB: ${errorMessage}`);
       process.exit(1);
     }
   });

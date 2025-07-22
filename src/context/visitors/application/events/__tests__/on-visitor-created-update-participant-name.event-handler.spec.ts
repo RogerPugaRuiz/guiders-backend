@@ -45,6 +45,7 @@ describe('OnVisitorCreatedUpdateParticipantNameEventHandler', () => {
         tags: [],
         notes: [],
         currentPage: null,
+        connectionTime: null,
       };
 
       const event = new VisitorCreatedEvent({
@@ -71,6 +72,7 @@ describe('OnVisitorCreatedUpdateParticipantNameEventHandler', () => {
         tags: [],
         notes: [],
         currentPage: null,
+        connectionTime: null,
       };
 
       const event = new VisitorCreatedEvent({
@@ -94,6 +96,7 @@ describe('OnVisitorCreatedUpdateParticipantNameEventHandler', () => {
         tags: [],
         notes: [],
         currentPage: null,
+        connectionTime: null,
       };
 
       const event = new VisitorCreatedEvent({
@@ -117,6 +120,7 @@ describe('OnVisitorCreatedUpdateParticipantNameEventHandler', () => {
         tags: [],
         notes: [],
         currentPage: null,
+        connectionTime: null,
       };
 
       const event = new VisitorCreatedEvent({
