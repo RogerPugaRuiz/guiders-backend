@@ -134,6 +134,12 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             cd /var/www/guiders-backend/ && \
             echo '🐳 Iniciando contenedores con docker-compose...' && \
+            echo '🔍 Verificando variables de entorno críticas:' && \
+            echo \"DATABASE_USERNAME: \$DATABASE_USERNAME\" && \
+            echo \"DATABASE_PASSWORD: [HIDDEN]\" && \
+            echo \"DATABASE: \$DATABASE\" && \
+            echo \"DATABASE_HOST: \$DATABASE_HOST\" && \
+            echo \"DATABASE_PORT: \$DATABASE_PORT\" && \
             docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans && \
             echo '✅ Comando docker-compose completado' && \
             echo '📊 Estado inmediato de contenedores:' && \
@@ -194,6 +200,17 @@ jobs:
             
             echo "📊 PostgreSQL: $postgres_status, MongoDB: $mongodb_status, Redis: $redis_status"
             
+            # Si PostgreSQL está unhealthy, intentar reiniciarlo una vez
+            if [[ "$postgres_status" == "unhealthy" && $attempt -eq 6 ]]; then
+              echo "🔄 PostgreSQL está unhealthy, intentando reiniciar..."
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                cd /var/www/guiders-backend/ && \
+                docker compose --env-file .env.production -f docker-compose-prod.yml restart postgres && \
+                echo '🔄 PostgreSQL reiniciado, esperando 20s...' && \
+                sleep 20 \
+              " || true
+            fi
+            
             # Si todos están healthy, continuar
             if [[ "$postgres_status" == "healthy" && "$mongodb_status" == "healthy" && "$redis_status" == "healthy" ]]; then
               echo "✅ Todos los servicios están healthy!"
@@ -216,19 +233,49 @@ jobs:
         run: |
           echo "🔄 Iniciando método detallado de verificación..."
           
-          # Verificar estado inicial
+          # Verificar estado inicial con más detalle
+          echo "📊 Estado detallado de contenedores:"
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo ' Estado inicial de contenedores:' && \
-            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|mongodb-prod|redis-prod)' || echo 'No se encontraron contenedores' \
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.State}}' && \
+            echo '' && \
+            echo '🔍 Health status de contenedores:' && \
+            docker inspect postgres-prod --format='postgres-prod: {{.State.Health.Status}}' 2>/dev/null || echo 'postgres-prod: sin health check' && \
+            docker inspect mongodb-prod --format='mongodb-prod: {{.State.Health.Status}}' 2>/dev/null || echo 'mongodb-prod: sin health check' && \
+            docker inspect redis-prod --format='redis-prod: {{.State.Health.Status}}' 2>/dev/null || echo 'redis-prod: sin health check' \
           "
           
           # Loop de verificación en el runner de GitHub Actions
           for attempt in {1..18}; do
             echo "⏱️ Intento $attempt/18..."
             
-            # Verificar PostgreSQL
+            # Verificar PostgreSQL con más detalle
+            echo "🔍 Verificando PostgreSQL detalladamente..."
             postgres_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
+              echo 'Probando pg_isready...' && \
+              docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME -d \$DATABASE && \
+              echo 'PostgreSQL responde correctamente' && \
+              echo 'true'" 2>/dev/null || echo 'false')
+            
+            # Si PostgreSQL falla, mostrar más información
+            if [[ "$postgres_ready" == "false" ]]; then
+              echo "❌ PostgreSQL no está listo. Investigando..."
+              
+              # Verificar si el contenedor está corriendo
+              pg_running=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker ps | grep postgres-prod | wc -l" 2>/dev/null || echo '0')
+              
+              echo "📊 PostgreSQL contenedor corriendo: $pg_running"
+              
+              # Verificar logs de PostgreSQL
+              echo "📋 Últimos logs de PostgreSQL:"
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker logs postgres-prod --tail 10 2>/dev/null || echo 'No se pudieron obtener logs'" || true
+              
+              # Verificar variables de entorno
+              echo "🔧 Variables de entorno de PostgreSQL:"
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker exec postgres-prod env | grep POSTGRES || echo 'No se pudieron obtener variables'" || true
+            fi
             
             # Verificar MongoDB
             mongodb_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
@@ -246,22 +293,31 @@ jobs:
               exit 0
             fi
             
-            # Si es el último intento, mostrar logs y fallar
+            # Si es el último intento, mostrar información completa de PostgreSQL
             if [[ $attempt -eq 18 ]]; then
               echo "❌ TIMEOUT: Las bases de datos no estuvieron listas en 3 minutos"
+              echo "🔍 PostgreSQL parece ser el problema. Información completa:"
               
-              # Mostrar logs de error
-              echo "📋 Logs de PostgreSQL:"
+              # Estado completo de PostgreSQL
+              echo "� Estado completo de postgres-prod:"
               sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker logs postgres-prod --tail 5 2>/dev/null || echo 'No logs disponibles'" || true
+                docker inspect postgres-prod | grep -A 20 'State' || echo 'No se pudo inspeccionar'" || true
               
-              echo "📋 Logs de MongoDB:"
+              # Logs completos de PostgreSQL
+              echo "📋 Logs completos de PostgreSQL (últimas 20 líneas):"
               sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker logs mongodb-prod --tail 5 2>/dev/null || echo 'No logs disponibles'" || true
+                docker logs postgres-prod --tail 20 2>/dev/null || echo 'No logs disponibles'" || true
               
-              echo "📋 Logs de Redis:"
+              # Verificar archivo .env.production
+              echo "� Variables de base de datos en .env.production:"
               sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker logs redis-prod --tail 5 2>/dev/null || echo 'No logs disponibles'" || true
+                cd /var/www/guiders-backend/ && \
+                grep -E '^DATABASE_' .env.production || echo 'No se encontraron variables DATABASE_'" || true
+              
+              # Verificar si podemos conectar manualmente
+              echo "🔧 Intentando conexión manual a PostgreSQL:"
+              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+                docker exec postgres-prod psql -U \$DATABASE_USERNAME -d \$DATABASE -c 'SELECT 1;' 2>&1 || echo 'Conexión manual falló'" || true
               
               exit 1
             fi
