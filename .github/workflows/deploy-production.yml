@@ -1,4 +1,4 @@
-name: Deploy to Production
+name: Deploy to Production (Simplified)
 
 on:
   push:
@@ -18,21 +18,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Cache Node.js modules
-        uses: actions/cache@v3
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-
       - name: Install OpenVPN and sshpass
         run: sudo apt-get update && sudo apt-get install -y openvpn sshpass
 
       - name: Setup OpenVPN config
-        run: |
-          echo "${{ secrets.OVPN_CONFIG }}" > vpn.conf
-        shell: bash
+        run: echo "${{ secrets.OVPN_CONFIG }}" > vpn.conf
 
       - name: Connect to VPN
         run: sudo openvpn --config vpn.conf --daemon && sleep 15
@@ -42,33 +32,19 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan 10.8.0.1 >> ~/.ssh/known_hosts
 
-      - name: Test SSH connection with password
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "echo '✔️ SSH OK with password'"
-      
-      #Instala nestJs CLI en el server
-      - name: Install nestJs CLI
-        run: |
-          npm install -g @nestjs/cli
-
-      # Instala dependencias de producción y compila el proyecto localmente
-      - name: Install prod dependencies and build
+      - name: Build and prepare deployment
         run: |
           npm install --omit=dev
           npm run build
-
-      # Empaqueta dist, package.json, package-lock.json para enviar al server
-      - name: Prepare dist for deploy
-        run: |
           tar czf deploy-dist.tar.gz dist package.json package-lock.json
 
-      # Genera .env.production localmente y copia todo a /var/www/guiders-backend/ en el server
-      - name: Copy dist and .env.production to server
+      - name: Deploy to server
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
+          echo "🚀 Iniciando deployment simplificado..."
+          
+          # Crear .env.production
           echo 'PORT=${{ secrets.PORT }}' > .env.production
           echo 'DATABASE_HOST=${{ secrets.DATABASE_HOST }}' >> .env.production
           echo 'DATABASE_PORT=${{ secrets.DATABASE_PORT }}' >> .env.production
@@ -89,348 +65,80 @@ jobs:
           echo 'MONGODB_ROOT_PASSWORD=${{ secrets.MONGODB_ROOT_PASSWORD }}' >> .env.production
           echo 'NODE_ENV=production' >> .env.production
 
+          # Subir archivos al servidor
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-dist.tar.gz .env.production ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-dist.tar.gz .env.production docker-compose-prod.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
 
-      # Copia docker-compose-prod.yml al servidor
-      - name: Copy docker-compose-prod.yml to server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no docker-compose-prod.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
-
-      # Copia el script de inicialización de MongoDB al servidor
-      - name: Copy MongoDB initialization script to server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
+          # Copiar scripts necesarios
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/scripts/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/scripts/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
 
-      # Copia el script de test de MongoDB al servidor
-      - name: Copy MongoDB test script to server
+      - name: Deploy and start services
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no bin/test-mongodb-connection.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
-
-      # Descomprime y prepara entorno en el server
-      - name: Unpack dist and install on server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            tar xzf deploy-dist.tar.gz && \
-            rm -rf node_modules && \
-            npm install --omit=dev \
-          "
-
-      # Levanta la base de datos con docker-compose
-      - name: Start database with docker-compose
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🐳 Iniciando contenedores con docker-compose...' && \
-            echo '🔍 Verificando variables de entorno críticas:' && \
-            echo \"DATABASE_USERNAME: \$DATABASE_USERNAME\" && \
-            echo \"DATABASE_PASSWORD: [HIDDEN]\" && \
-            echo \"DATABASE: \$DATABASE\" && \
-            echo \"DATABASE_HOST: \$DATABASE_HOST\" && \
-            echo \"DATABASE_PORT: \$DATABASE_PORT\" && \
-            docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans && \
-            echo '✅ Comando docker-compose completado' && \
-            echo '📊 Estado inmediato de contenedores:' && \
-            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' \
-          "
-
-      # Verificar que los contenedores se iniciaron correctamente
-      - name: Verify containers started
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          echo "🔍 Verificando contenedores iniciados..."
-          
-          # Comando más simple dividido
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '� Verificando contenedores...' && \
-            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' \
-          "
-          
-          # Verificar contenedores específicos
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🔍 Verificando postgres-prod...' && \
-            docker ps | grep postgres-prod || echo 'postgres-prod no encontrado' && \
-            echo '� Verificando mongodb-prod...' && \
-            docker ps | grep mongodb-prod || echo 'mongodb-prod no encontrado' && \
-            echo '🔍 Verificando redis-prod...' && \
-            docker ps | grep redis-prod || echo 'redis-prod no encontrado' \
-          "
-
-      # Método alternativo más rápido: usar docker-compose para esperar health checks
-      - name: Wait for databases using docker-compose (fast method)
-        id: fast_method
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          echo "🚀 Iniciando método rápido de espera..."
-          
-          # Esperar inicial
-          echo "⏳ Esperando 30 segundos para inicialización..."
-          sleep 30
-          
-          # Variable para controlar si el método rápido funciona
-          FAST_METHOD_SUCCESS=false
-          
-          # Verificar health status en bucles más cortos
-          for attempt in {1..12}; do
-            echo "🔄 Intento $attempt/12..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
             
-            # Verificar PostgreSQL
-            postgres_status=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              docker inspect --format='{{.State.Health.Status}}' postgres-prod 2>/dev/null || echo 'unknown'" || echo 'error')
+            echo "📦 Descomprimiendo aplicación..."
+            tar xzf deploy-dist.tar.gz
+            rm -rf node_modules
+            npm install --omit=dev
             
-            # Verificar MongoDB  
-            mongodb_status=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              docker inspect --format='{{.State.Health.Status}}' mongodb-prod 2>/dev/null || echo 'unknown'" || echo 'error')
+            echo "🐳 Iniciando servicios de base de datos..."
+            docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans
             
-            # Verificar Redis
-            redis_status=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              docker inspect --format='{{.State.Health.Status}}' redis-prod 2>/dev/null || echo 'unknown'" || echo 'error')
-            
-            echo "📊 PostgreSQL: $postgres_status, MongoDB: $mongodb_status, Redis: $redis_status"
-            
-            # Si PostgreSQL está unhealthy, intentar reiniciarlo una vez
-            if [[ "$postgres_status" == "unhealthy" && $attempt -eq 6 ]]; then
-              echo "🔄 PostgreSQL está unhealthy, intentando reiniciar..."
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                cd /var/www/guiders-backend/ && \
-                docker compose --env-file .env.production -f docker-compose-prod.yml restart postgres && \
-                echo '🔄 PostgreSQL reiniciado, esperando 20s...' && \
-                sleep 20 \
-              " || true
-            fi
-            
-            # Si todos están healthy, continuar
-            if [[ "$postgres_status" == "healthy" && "$mongodb_status" == "healthy" && "$redis_status" == "healthy" ]]; then
-              echo "✅ Todos los servicios están healthy!"
-              FAST_METHOD_SUCCESS=true
-              break
-            fi
-            
-            # Esperar 10 segundos antes del siguiente intento
-            if [[ $attempt -lt 12 ]]; then
-              echo "⏳ Esperando 10 segundos..."
-              sleep 10
-            fi
-          done
-          
-          # Si el método rápido funcionó, marcar como exitoso
-          if [[ "$FAST_METHOD_SUCCESS" == "true" ]]; then
-            echo "✅ Método rápido completado exitosamente"
-            echo "success=true" >> $GITHUB_OUTPUT
-          else
-            echo "⚠️ Método rápido no completó, continuando con método detallado..."
-            echo "success=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Esperar a que los servicios estén listos antes de ejecutar migraciones
-      - name: Wait for databases to be ready (detailed method)
-        if: ${{ steps.fast_method.outputs.success == 'false' }}
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          echo "🔄 Iniciando método detallado de verificación..."
-          
-          # Verificar estado inicial con más detalle
-          echo "📊 Estado detallado de contenedores:"
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}\t{{.State}}' && \
-            echo '' && \
-            echo '🔍 Health status de contenedores:' && \
-            docker inspect postgres-prod --format='postgres-prod: {{.State.Health.Status}}' 2>/dev/null || echo 'postgres-prod: sin health check' && \
-            docker inspect mongodb-prod --format='mongodb-prod: {{.State.Health.Status}}' 2>/dev/null || echo 'mongodb-prod: sin health check' && \
-            docker inspect redis-prod --format='redis-prod: {{.State.Health.Status}}' 2>/dev/null || echo 'redis-prod: sin health check' \
-          "
-          
-          # Loop de verificación en el runner de GitHub Actions
-          for attempt in {1..3}; do
-            echo "⏱️ Intento $attempt/3..."
-            
-            # Verificar PostgreSQL (simplificado)
-            postgres_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              cd /var/www/guiders-backend/ && \
-              source .env.production && \
-              docker exec postgres-prod pg_isready -U \"\$DATABASE_USERNAME\" -d \"\$DATABASE\" >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
-            
-            # Verificar MongoDB
-            mongodb_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              docker exec mongodb-prod mongosh --eval 'db.adminCommand(\"ping\")' --quiet >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
-            
-            # Verificar Redis
-            redis_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              docker exec redis-prod redis-cli ping >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
-            
-            echo "📋 PostgreSQL: $postgres_ready, MongoDB: $mongodb_ready, Redis: $redis_ready"
-            
-            # Si todos están listos, salir
-            if [[ "$postgres_ready" == "true" && "$mongodb_ready" == "true" && "$redis_ready" == "true" ]]; then
-              echo "✅ ¡Todas las bases de datos están listas!"
-              exit 0
-            fi
-            
-            # Si es el último intento, mostrar información completa de PostgreSQL
-            if [[ $attempt -eq 3 ]]; then
-              echo "❌ TIMEOUT: Las bases de datos no estuvieron listas en 3 minutos"
-              echo "🔍 PostgreSQL parece ser el problema. Información completa:"
+            echo "⏳ Esperando que las bases de datos estén listas (60 segundos máximo)..."
+            for i in {1..12}; do
+              echo "  Intento $i/12..."
               
-              # Estado completo de PostgreSQL
-              echo "� Estado completo de postgres-prod:"
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker inspect postgres-prod | grep -A 20 'State' || echo 'No se pudo inspeccionar'" || true
+              # Verificar todos los servicios en paralelo
+              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres-prod 2>/dev/null | grep -c "healthy" || echo "0")
+              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb-prod 2>/dev/null | grep -c "healthy" || echo "0")
+              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis-prod 2>/dev/null | grep -c "healthy" || echo "0")
               
-              # Logs completos de PostgreSQL
-              echo "📋 Logs completos de PostgreSQL (últimas 20 líneas):"
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker logs postgres-prod --tail 20 2>/dev/null || echo 'No logs disponibles'" || true
+              if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
+                echo "  ✅ Todas las bases de datos están listas!"
+                break
+              fi
               
-              # Verificar archivo .env.production
-              echo "� Variables de base de datos en .env.production:"
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                cd /var/www/guiders-backend/ && \
-                grep -E '^DATABASE_' .env.production || echo 'No se encontraron variables DATABASE_'" || true
+              if [[ $i -eq 12 ]]; then
+                echo "  ❌ Timeout esperando bases de datos"
+                docker ps
+                exit 1
+              fi
               
-              # Verificar si podemos conectar manualmente
-              echo "🔧 Intentando conexión manual a PostgreSQL:"
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                cd /var/www/guiders-backend/ && \
-                source .env.production && \
-                docker exec postgres-prod psql -U \"\$DATABASE_USERNAME\" -d \"\$DATABASE\" -c 'SELECT 1;' 2>&1 || echo 'Conexión manual falló'" || true
-              
-              exit 1
-            fi
+              sleep 5
+            done
             
-            # Esperar 10 segundos
-            echo "⏳ Esperando 10 segundos..."
-            sleep 10
-          done
+            echo "🔄 Ejecutando migraciones..."
+            NODE_ENV=production npx typeorm migration:run -d dist/src/data-source.js
+            
+            echo "🚀 Reiniciando aplicación..."
+            pm2 delete guiders-backend 2>/dev/null || true
+            NODE_ENV=production pm2 start dist/src/main.js --name guiders-backend
+            
+            echo "✅ Deployment completado!"
+            echo "📊 Estado de servicios:"
+            pm2 list | grep guiders-backend
+            docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(postgres-prod|mongodb-prod|redis-prod)"
+          '
 
-      # Test MongoDB connection usando el script de test en modo producción
-      - name: Test MongoDB connection
+      - name: Verify deployment
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🔍 Probando conexión a MongoDB en modo producción...' && \
-            NODE_ENV=production node test-mongodb-connection.js \
-          "
-
-      # Ejecuta migraciones de TypeORM en el servidor antes de reiniciar la app
-      - name: Run TypeORM migrations on server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            NODE_ENV=production npx typeorm migration:run -d dist/src/data-source.js \
-          "
-
-      # Reinicia la app con pm2 del sistema
-      - name: Restart app with pm2
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            pm2 delete guiders-backend || true && \
-            NODE_ENV=production pm2 start dist/src/main.js --name guiders-backend \
-          "
+          echo "🔍 Verificando deployment..."
           
-      # dar permisos de ejecución a /dist/tools/cli.js
-      - name: Set execute permissions for cli.js
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            chmod +x /var/www/guiders-backend/dist/tools/cli.js \
-          "
-
-      # Verificar que todos los servicios estén funcionando
-      - name: Verify deployment status
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/ && \
-            echo '🔍 Verificando estado del despliegue...' && \
-            echo '📋 Configuración .env.production:' && \
-            cat .env.production && \
-            echo '' && \
-            echo '📊 Estado de PM2:' && \
-            pm2 list | grep guiders-backend || echo 'App no encontrada en PM2' && \
-            echo '📊 Estado de Docker:' && \
-            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|redis-prod|mongodb-prod)' && \
-            echo '✅ Verificación de despliegue completada' \
-          "
-
-      # Instalar Artillery en el servidor para load testing
-      - name: Install Artillery for load testing
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            echo '🔧 Instalando Artillery para load testing...' && \
-            npm install -g artillery && \
-            echo '✅ Artillery instalado correctamente' \
-          "
-
-      # Crear directorio para load testing y copiar archivos
-      - name: Setup load testing tools on server
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          # Crear directorio para load testing
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/load-tests/"
-          
-          # Copiar archivos de load testing
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/custom-functions.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/production-load-test.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/production-stress-test.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/simple-test.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/run-production-load-tests.sh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/PRODUCTION-README.md ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no test/load/quick-guide.sh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/load-tests/
-          
-          # Dar permisos de ejecución al script
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            chmod +x /var/www/guiders-backend/load-tests/run-production-load-tests.sh && \
-            chmod +x /var/www/guiders-backend/load-tests/quick-guide.sh && \
-            echo '✅ Herramientas de load testing configuradas en /var/www/guiders-backend/load-tests/' \
-          "
-
-      # Verificar instalación de load testing
-      - name: Verify load testing installation
-        env:
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-        run: |
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-            cd /var/www/guiders-backend/load-tests/ && \
-            echo '🔍 Verificando instalación de load testing...' && \
-            echo '📁 Archivos disponibles:' && \
-            ls -la && \
-            echo '' && \
-            echo '🔧 Versión de Artillery:' && \
-            artillery --version && \
-            echo '' && \
-            echo '💡 Para usar las pruebas de carga:' && \
-            echo '   cd /var/www/guiders-backend/load-tests/' && \
-            echo '   ./run-production-load-tests.sh simple' && \
-            echo '   ./run-production-load-tests.sh normal' && \
-            echo '   ./run-production-load-tests.sh stress' && \
-            echo '✅ Load testing tools ready!' \
-          "
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+            
+            echo "🔍 Probando conexión a MongoDB..."
+            NODE_ENV=production node test-mongodb-connection.js
+            
+            echo "📊 Estado final:"
+            pm2 list
+            docker ps
+            
+            echo "✅ ¡Deployment verificado exitosamente!"
+          '
