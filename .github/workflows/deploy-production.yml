@@ -173,6 +173,7 @@ jobs:
 
       # Método alternativo más rápido: usar docker-compose para esperar health checks
       - name: Wait for databases using docker-compose (fast method)
+        id: fast_method
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -181,6 +182,9 @@ jobs:
           # Esperar inicial
           echo "⏳ Esperando 30 segundos para inicialización..."
           sleep 30
+          
+          # Variable para controlar si el método rápido funciona
+          FAST_METHOD_SUCCESS=false
           
           # Verificar health status en bucles más cortos
           for attempt in {1..12}; do
@@ -214,7 +218,8 @@ jobs:
             # Si todos están healthy, continuar
             if [[ "$postgres_status" == "healthy" && "$mongodb_status" == "healthy" && "$redis_status" == "healthy" ]]; then
               echo "✅ Todos los servicios están healthy!"
-              exit 0
+              FAST_METHOD_SUCCESS=true
+              break
             fi
             
             # Esperar 10 segundos antes del siguiente intento
@@ -224,10 +229,18 @@ jobs:
             fi
           done
           
-          echo "⚠️ Método rápido no completó, continuando con método detallado..."
+          # Si el método rápido funcionó, marcar como exitoso
+          if [[ "$FAST_METHOD_SUCCESS" == "true" ]]; then
+            echo "✅ Método rápido completado exitosamente"
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Método rápido no completó, continuando con método detallado..."
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
 
       # Esperar a que los servicios estén listos antes de ejecutar migraciones
       - name: Wait for databases to be ready (detailed method)
+        if: ${{ steps.fast_method.outputs.success == 'false' }}
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
@@ -245,37 +258,14 @@ jobs:
           "
           
           # Loop de verificación en el runner de GitHub Actions
-          for attempt in {1..18}; do
-            echo "⏱️ Intento $attempt/18..."
+          for attempt in {1..3}; do
+            echo "⏱️ Intento $attempt/3..."
             
-            # Verificar PostgreSQL con más detalle
-            echo "🔍 Verificando PostgreSQL detalladamente..."
+            # Verificar PostgreSQL (simplificado)
             postgres_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-              echo 'Probando pg_isready...' && \
-              docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME -d \$DATABASE && \
-              echo 'PostgreSQL responde correctamente' && \
-              echo 'true'" 2>/dev/null || echo 'false')
-            
-            # Si PostgreSQL falla, mostrar más información
-            if [[ "$postgres_ready" == "false" ]]; then
-              echo "❌ PostgreSQL no está listo. Investigando..."
-              
-              # Verificar si el contenedor está corriendo
-              pg_running=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker ps | grep postgres-prod | wc -l" 2>/dev/null || echo '0')
-              
-              echo "📊 PostgreSQL contenedor corriendo: $pg_running"
-              
-              # Verificar logs de PostgreSQL
-              echo "📋 Últimos logs de PostgreSQL:"
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker logs postgres-prod --tail 10 2>/dev/null || echo 'No se pudieron obtener logs'" || true
-              
-              # Verificar variables de entorno
-              echo "🔧 Variables de entorno de PostgreSQL:"
-              sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker exec postgres-prod env | grep POSTGRES || echo 'No se pudieron obtener variables'" || true
-            fi
+              cd /var/www/guiders-backend/ && \
+              source .env.production && \
+              docker exec postgres-prod pg_isready -U \"\$DATABASE_USERNAME\" -d \"\$DATABASE\" >/dev/null 2>&1 && echo 'true' || echo 'false'" 2>/dev/null || echo 'false')
             
             # Verificar MongoDB
             mongodb_ready=$(sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
@@ -294,7 +284,7 @@ jobs:
             fi
             
             # Si es el último intento, mostrar información completa de PostgreSQL
-            if [[ $attempt -eq 18 ]]; then
+            if [[ $attempt -eq 3 ]]; then
               echo "❌ TIMEOUT: Las bases de datos no estuvieron listas en 3 minutos"
               echo "🔍 PostgreSQL parece ser el problema. Información completa:"
               
@@ -317,7 +307,9 @@ jobs:
               # Verificar si podemos conectar manualmente
               echo "🔧 Intentando conexión manual a PostgreSQL:"
               sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
-                docker exec postgres-prod psql -U \$DATABASE_USERNAME -d \$DATABASE -c 'SELECT 1;' 2>&1 || echo 'Conexión manual falló'" || true
+                cd /var/www/guiders-backend/ && \
+                source .env.production && \
+                docker exec postgres-prod psql -U \"\$DATABASE_USERNAME\" -d \"\$DATABASE\" -c 'SELECT 1;' 2>&1 || echo 'Conexión manual falló'" || true
               
               exit 1
             fi
