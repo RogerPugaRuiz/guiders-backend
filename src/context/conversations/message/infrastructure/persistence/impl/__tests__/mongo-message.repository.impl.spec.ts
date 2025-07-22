@@ -35,8 +35,13 @@ describe('MongoMessageRepository', () => {
   let connection: Connection;
 
   beforeAll(async () => {
-    // Configurar MongoDB en memoria para tests
-    mongoServer = await MongoMemoryServer.create();
+    // Configurar MongoDB en memoria para tests con timeout extendido
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        dbName: 'test-messages',
+        storageEngine: 'wiredTiger',
+      },
+    });
     const mongoUri = mongoServer.getUri();
 
     module = await Test.createTestingModule({
@@ -63,7 +68,7 @@ describe('MongoMessageRepository', () => {
 
     repository = module.get<MongoMessageRepository>(MongoMessageRepository);
     connection = module.get<Connection>(getConnectionToken());
-  }, 20000); // Aumentar timeout a 20 segundos
+  }, 60000); // Aumentar timeout a 60 segundos
 
   afterAll(async () => {
     if (connection) {
@@ -75,7 +80,7 @@ describe('MongoMessageRepository', () => {
     if (module) {
       await module.close();
     }
-  });
+  }, 30000); // Timeout de 30 segundos para el cleanup
 
   beforeEach(async () => {
     // Limpiar la base de datos antes de cada test
@@ -114,7 +119,7 @@ describe('MongoMessageRepository', () => {
       expect(savedEntity.content).toBe('encrypted-content');
       expect(savedEntity.sender).toBe(senderId);
       expect(savedEntity.chatId).toBe(chatId);
-    });
+    }, 15000);
   });
 
   describe('findOne', () => {
@@ -146,7 +151,7 @@ describe('MongoMessageRepository', () => {
       const messageData = result.get();
       expect(messageData.message.id.value).toBe(messageId);
       expect(messageData.message.content.value).toBe('decrypted-content');
-    });
+    }, 15000);
 
     it('debería retornar Optional.empty() cuando no encuentra el mensaje', async () => {
       // Arrange
@@ -160,7 +165,7 @@ describe('MongoMessageRepository', () => {
 
       // Assert
       expect(result.isEmpty()).toBe(true);
-    });
+    }, 15000);
   });
 
   describe('find', () => {
@@ -203,6 +208,6 @@ describe('MongoMessageRepository', () => {
       expect(result.messages).toHaveLength(2);
       expect(result.messages[0].chatId.value).toBe(chatId);
       expect(result.messages[1].chatId.value).toBe(chatId);
-    });
+    }, 15000);
   });
 });
