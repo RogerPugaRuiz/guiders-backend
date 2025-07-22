@@ -18,6 +18,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
       - name: Install OpenVPN and sshpass
         run: sudo apt-get update && sudo apt-get install -y openvpn sshpass
 
@@ -34,9 +42,21 @@ jobs:
 
       - name: Build and prepare deployment
         run: |
-          npm install --omit=dev
+          # Instalar solo dependencias necesarias para el build
+          npm ci --include=dev
           npm run build
-          tar czf deploy-dist.tar.gz dist package.json package-lock.json
+          
+          # Crear package.json optimizado para producción (sin sqlite3)
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json'));
+            // Remover sqlite3 de las dependencias ya que solo se usa en tests
+            if (pkg.dependencies && pkg.dependencies.sqlite3) {
+              delete pkg.dependencies.sqlite3;
+            }
+            require('fs').writeFileSync('package-prod.json', JSON.stringify(pkg, null, 2));
+          "
+          
+          tar czf deploy-dist.tar.gz dist package-prod.json package-lock.json
 
       - name: Deploy to server
         env:
@@ -82,6 +102,13 @@ jobs:
             
             echo "📦 Descomprimiendo aplicación..."
             tar xzf deploy-dist.tar.gz
+            
+            # Usar el package.json optimizado sin sqlite3
+            if [ -f package-prod.json ]; then
+              mv package-prod.json package.json
+              echo "✅ Usando package.json optimizado para producción"
+            fi
+            
             rm -rf node_modules
             npm install --omit=dev
             
