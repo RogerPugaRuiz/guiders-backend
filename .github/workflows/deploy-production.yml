@@ -133,8 +133,54 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             cd /var/www/guiders-backend/ && \
-            docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans \
+            echo '🐳 Iniciando contenedores con docker-compose...' && \
+            docker compose --env-file .env.production -f docker-compose-prod.yml up -d --remove-orphans && \
+            echo '✅ Comando docker-compose completado' && \
+            echo '📊 Estado inmediato de contenedores:' && \
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' \
           "
+
+      # Verificar que los contenedores se iniciaron correctamente
+      - name: Verify containers started
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            echo '🔍 Verificando que los contenedores se iniciaron correctamente...' && \
+            sleep 10 && \
+            \
+            # Verificar que los contenedores esperados existen \
+            containers=('postgres-prod' 'mongodb-prod' 'redis-prod') && \
+            for container in \"\${containers[@]}\"; do \
+              if docker ps --format '{{.Names}}' | grep -q \"^\$container\$\"; then \
+                status=\$(docker ps --format '{{.Names}}\t{{.Status}}' | grep \"^\$container\" | cut -f2) && \
+                echo \"  ✅ \$container: \$status\"; \
+              else \
+                echo \"  ❌ \$container: NO ENCONTRADO\"; \
+                echo \"📋 Contenedores disponibles:\"; \
+                docker ps --format 'table {{.Names}}\t{{.Status}}' && \
+                echo \"📋 Logs de docker-compose:\"; \
+                docker compose --env-file .env.production -f docker-compose-prod.yml logs --tail 20 && \
+                exit 1; \
+              fi; \
+            done && \
+            echo '✅ Todos los contenedores esperados están iniciados' \
+          "
+
+      # Método alternativo más rápido: usar docker-compose para esperar health checks
+      - name: Wait for databases using docker-compose (fast method)
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
+            cd /var/www/guiders-backend/ && \
+            echo '🚀 Método rápido: Esperando health checks con docker-compose...' && \
+            \
+            # Intentar usar docker-compose para esperar a que los servicios estén healthy \
+            timeout 120 sh -c 'while ! docker-compose --env-file .env.production -f docker-compose-prod.yml ps | grep -E \"postgres-prod.*healthy\" && docker-compose --env-file .env.production -f docker-compose-prod.yml ps | grep -E \"mongodb-prod.*healthy\" && docker-compose --env-file .env.production -f docker-compose-prod.yml ps | grep -E \"redis-prod.*healthy\"; do echo \"⏳ Esperando health checks...\"; sleep 5; done' && \
+            echo '✅ Health checks completados!' || \
+            echo '⚠️  Método rápido falló, continuando con método detallado...' \
+          " || true
 
       # Esperar a que los servicios estén listos antes de ejecutar migraciones
       - name: Wait for databases to be ready
@@ -143,26 +189,104 @@ jobs:
         run: |
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "\
             echo '🔄 Esperando a que las bases de datos estén listas...' && \
-            for i in {1..30}; do \
-              postgres_ready=false; \
-              mongodb_ready=false; \
+            echo '📊 Verificando estado inicial de contenedores:' && \
+            docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|mongodb-prod|redis-prod)' || echo 'No se encontraron contenedores de BD' && \
+            echo '' && \
+            \
+            timeout=180 && \
+            interval=10 && \
+            attempts=\$((timeout / interval)) && \
+            \
+            for i in \$(seq 1 \$attempts); do \
+              postgres_healthy=false; \
+              mongodb_healthy=false; \
+              redis_healthy=false; \
+              all_healthy=true; \
               \
-              if docker exec postgres-prod pg_isready -U \$DATABASE_USERNAME >/dev/null 2>&1; then \
-                postgres_ready=true; \
-              fi; \
+              echo \"⏱️  Intento \$i/\$attempts (timeout en \$((timeout - (i-1)*interval))s):\"; \
               \
-              if docker exec mongodb-prod mongosh --host localhost --port 27017 --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1; then \
-                mongodb_ready=true; \
-              fi; \
+              # Verificar health status de cada contenedor usando Docker health checks \
+              for service in postgres-prod mongodb-prod redis-prod; do \
+                health_status=\$(docker inspect --format='{{.State.Health.Status}}' \$service 2>/dev/null || echo 'no-healthcheck'); \
+                \
+                case \$health_status in \
+                  'healthy') \
+                    echo \"  ✅ \$service: HEALTHY\"; \
+                    case \$service in \
+                      'postgres-prod') postgres_healthy=true ;; \
+                      'mongodb-prod') mongodb_healthy=true ;; \
+                      'redis-prod') redis_healthy=true ;; \
+                    esac ;; \
+                  'starting') \
+                    echo \"  🔄 \$service: STARTING...\"; \
+                    all_healthy=false ;; \
+                  'unhealthy') \
+                    echo \"  ❌ \$service: UNHEALTHY\"; \
+                    all_healthy=false ;; \
+                  'no-healthcheck') \
+                    # Fallback a verificación manual si no hay health check \
+                    if [ \$service = 'postgres-prod' ]; then \
+                      if docker exec \$service pg_isready -U \$DATABASE_USERNAME >/dev/null 2>&1; then \
+                        echo \"  ✅ \$service: READY (manual check)\"; \
+                        postgres_healthy=true; \
+                      else \
+                        echo \"  ❌ \$service: NOT READY (manual check)\"; \
+                        all_healthy=false; \
+                      fi; \
+                    elif [ \$service = 'mongodb-prod' ]; then \
+                      if docker exec \$service mongosh --eval 'db.adminCommand(\"ping\")' --quiet >/dev/null 2>&1; then \
+                        echo \"  ✅ \$service: READY (manual check)\"; \
+                        mongodb_healthy=true; \
+                      else \
+                        echo \"  ❌ \$service: NOT READY (manual check)\"; \
+                        all_healthy=false; \
+                      fi; \
+                    elif [ \$service = 'redis-prod' ]; then \
+                      if docker exec \$service redis-cli ping >/dev/null 2>&1; then \
+                        echo \"  ✅ \$service: READY (manual check)\"; \
+                        redis_healthy=true; \
+                      else \
+                        echo \"  ❌ \$service: NOT READY (manual check)\"; \
+                        all_healthy=false; \
+                      fi; \
+                    fi ;; \
+                  *) \
+                    echo \"  ⚠️  \$service: UNKNOWN STATUS (\$health_status)\"; \
+                    all_healthy=false ;; \
+                esac; \
+              done; \
               \
-              echo \"Intento \$i/30: PostgreSQL=\$postgres_ready, MongoDB=\$mongodb_ready\"; \
-              \
-              if \$postgres_ready && \$mongodb_ready; then \
-                echo '✅ Todas las bases de datos están listas!'; \
+              # Si todos están healthy, salir del loop \
+              if \$postgres_healthy && \$mongodb_healthy && \$redis_healthy; then \
+                echo ''; \
+                echo '✅ ¡Todas las bases de datos están healthy y listas!'; \
                 break; \
               fi; \
               \
-              sleep 3; \
+              # Si es el último intento, mostrar error detallado y fallar \
+              if [ \$i -eq \$attempts ]; then \
+                echo ''; \
+                echo '❌ TIMEOUT: Las bases de datos no estuvieron listas en \${timeout}s'; \
+                echo '📊 Estado final de contenedores:'; \
+                docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep -E '(postgres-prod|mongodb-prod|redis-prod)' || true; \
+                echo ''; \
+                echo '🏥 Health status detallado:'; \
+                for service in postgres-prod mongodb-prod redis-prod; do \
+                  health=\$(docker inspect --format='{{.State.Health.Status}}' \$service 2>/dev/null || echo 'no-healthcheck'); \
+                  echo \"  \$service: \$health\"; \
+                done; \
+                echo ''; \
+                echo '📋 Últimos logs de contenedores:'; \
+                for service in postgres-prod mongodb-prod redis-prod; do \
+                  echo \"--- \$service logs (últimas 5 líneas) ---\"; \
+                  docker logs \$service --tail 5 2>/dev/null || echo \"No se pudieron obtener logs de \$service\"; \
+                  echo ''; \
+                done; \
+                exit 1; \
+              fi; \
+              \
+              echo \"  ⏳ Esperando \${interval}s antes del siguiente intento...\"; \
+              sleep \$interval; \
             done \
           "
 
