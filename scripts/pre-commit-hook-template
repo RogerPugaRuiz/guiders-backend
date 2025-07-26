@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# Pre-commit hook para validar nomenclatura de ramas
+# Para activar este hook:
+# 1. Copia este archivo a .git/hooks/pre-commit
+# 2. Dale permisos de ejecución: chmod +x .git/hooks/pre-commit
+
+# Script de validación
+VALIDATE_SCRIPT="./scripts/validate-branch.sh"
+
+# Verificar que el script de validación existe
+if [ ! -f "$VALIDATE_SCRIPT" ]; then
+    echo "⚠️  Script de validación no encontrado: $VALIDATE_SCRIPT"
+    echo "Continuando sin validación..."
+    exit 0
+fi
+
+# Ejecutar validación de rama
+echo "🔍 Validando nomenclatura de rama..."
+
+if ! "$VALIDATE_SCRIPT"; then
+    echo ""
+    echo "❌ La rama actual no cumple con los estándares de nomenclatura."
+    echo ""
+    echo "Para corregir:"
+    echo "1. Cambia el nombre de la rama con: git branch -m nuevo/nombreValido"
+    echo "2. Consulta la documentación: docs/git-branch-standards.md"
+    echo "3. Usa el script de ayuda: ./scripts/create-branch.sh <tipo> <nombre>"
+    echo ""
+    echo "Para omitir esta validación (no recomendado): git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ Nomenclatura de rama válida"
+exit 0

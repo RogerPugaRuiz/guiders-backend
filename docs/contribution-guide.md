@@ -46,19 +46,31 @@ El servidor estará disponible en `http://localhost:3000` por defecto.
 
 ### Estructura de Ramas
 
-- `main`: Rama principal, contiene código estable listo para producción.
-- `develop`: Rama de desarrollo, donde se integran las nuevas funcionalidades.
-- `feature/*`: Ramas para nuevas funcionalidades (ej: `feature/auth-improvements`).
-- `fix/*`: Ramas para correcciones de bugs (ej: `fix/login-issue`).
-- `docs/*`: Ramas para cambios en documentación (ej: `docs/api-docs`).
+Este proyecto sigue estándares específicos de nomenclatura de ramas Git. **Consulta la [Guía de Estándares de Ramas Git](git-branch-standards.md) para información detallada**.
+
+#### Ramas Permanentes
+- `master`: Producción - código estable listo para producción
+- `develop`: Desarrollo - integración de nuevas funcionalidades  
+- `staging`: Testing/QA - pruebas de integración y QA
+- `UAT`: User Acceptance Testing - pruebas de aceptación de usuarios
+
+#### Tipos de Ramas de Desarrollo
+- `add/*`: Nuevas funcionalidades (ej: `add/userAuth`)
+- `fix/*`: Corrección de bugs (ej: `fix/loginError`)
+- `refactor/*`: Mejoras y refactorización (ej: `refactor/authService`)
+- `delete/*`: Eliminación de código (ej: `delete/oldFeature`)
+- `docs/*`: Cambios en documentación (ej: `docs/apiGuide`)
+- `hotfix/*`: Cambios directos a producción (ej: `hotfix/securityPatch`)
+
+**Formato obligatorio:** `tipo/nombreEnLowerCamelCase` (máximo 30 caracteres)
 
 ### Proceso de Desarrollo
 
-1. **Crear una nueva rama** desde `develop`:
+1. **Crear una nueva rama** desde `develop` siguiendo los [Estándares de Nomenclatura](git-branch-standards.md):
    ```bash
    git checkout develop
-   git pull
-   git checkout -b feature/mi-nueva-funcionalidad
+   git pull origin develop
+   git checkout -b add/newFeatureName
    ```
 
 2. **Desarrollar la funcionalidad** siguiendo los estándares del proyecto.
@@ -74,7 +86,7 @@ El servidor estará disponible en `http://localhost:3000` por defecto.
    npm run lint
    ```
 
-5. **Realizar commit** de los cambios siguiendo las convenciones de mensajes:
+5. **Realizar commit** de los cambios siguiendo las [convenciones de mensajes](#convenciones-de-mensajes-de-commit):
    ```bash
    git add .
    git commit -m "feat: añadir funcionalidad de autenticación con Google"
@@ -82,10 +94,16 @@ El servidor estará disponible en `http://localhost:3000` por defecto.
 
 6. **Subir la rama** al repositorio remoto:
    ```bash
-   git push -u origin feature/mi-nueva-funcionalidad
+   git push -u origin add/newFeatureName
    ```
 
 7. **Crear un Pull Request** hacia la rama `develop`.
+
+8. **Eliminar la rama** después del merge exitoso:
+   ```bash
+   git branch -d add/newFeatureName
+   git push origin --delete add/newFeatureName
+   ```
 
 ## Convenciones de Código
 
@@ -96,6 +114,36 @@ El servidor estará disponible en `http://localhost:3000` por defecto.
 - **Archivos**: kebab-case (ej: `user-controller.ts`, `auth-service.ts`)
 - **Constantes**: UPPER_SNAKE_CASE (ej: `MAX_RETRY_COUNT`, `DEFAULT_TIMEOUT`)
 - **EventHandlers**: Patrón `<NewAction>On<OldAction>EventHandler` (ej: `CreateUserOnRegisterEventHandler`)
+
+### Convenciones de Mensajes de Commit
+
+Seguimos el estándar [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+tipo(alcance): descripción
+
+[cuerpo opcional]
+
+[pie de página opcional]
+```
+
+**Tipos disponibles:**
+- `feat`: Nueva funcionalidad
+- `fix`: Corrección de bug
+- `docs`: Cambios en documentación
+- `refactor`: Refactorización de código
+- `test`: Agregar o modificar pruebas
+- `chore`: Mantenimiento (dependencias, configuración, etc.)
+- `perf`: Mejoras de rendimiento
+- `style`: Cambios de formato (espacios, comas, etc.)
+
+**Ejemplos:**
+```bash
+feat(auth): add Google OAuth integration
+fix(websocket): resolve connection timeout issue
+docs: update branch naming standards
+refactor(user): simplify user validation logic
+```
 
 ### Estructura de Carpetas
 
@@ -119,6 +167,22 @@ npm run start:dev           # Inicia el servidor en modo desarrollo
 npm run start:debug         # Inicia el servidor en modo depuración
 npm run lint                # Ejecuta el linter
 npm run format              # Formatea el código con Prettier
+```
+
+### Gestión de Ramas
+
+```bash
+# Crear nueva rama con nomenclatura estándar
+./scripts/create-branch.sh add userAuth       # Nueva funcionalidad
+./scripts/create-branch.sh fix loginError     # Corrección de bug
+./scripts/create-branch.sh docs apiGuide      # Documentación
+
+# Validar nomenclatura de rama
+./scripts/validate-branch.sh                  # Valida rama actual
+./scripts/validate-branch.sh add/userAuth     # Valida rama específica
+
+# Instalar validación automática (opcional)
+./scripts/install-git-hooks.sh               # Instala pre-commit hook
 ```
 
 ### Pruebas

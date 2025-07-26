@@ -145,7 +145,20 @@ Si deseas contribuir al desarrollo de este proyecto, por favor consulta nuestra 
 - Configuración del entorno de desarrollo
 - Flujo de trabajo para contribuciones
 - Convenciones de código y nomenclatura
+- **[Estándares de nomenclatura de ramas Git](/docs/git-branch-standards.md)**
 - Proceso para crear Pull Requests
+
+### Scripts de Utilidad
+
+El proyecto incluye scripts para facilitar el trabajo con ramas:
+
+```bash
+# Crear una nueva rama con nomenclatura estándar
+./scripts/create-branch.sh add userAuthentication
+
+# Validar que una rama cumple los estándares
+./scripts/validate-branch.sh fix/loginError
+```
 
 ### Requisitos previos
 
