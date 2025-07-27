@@ -14,7 +14,7 @@ export class MessageId {
     if (!value || value.trim() === '') {
       throw new ValidationError('Message ID debe ser un UUID válido');
     }
-    
+
     try {
       return new MessageId(Uuid.create(value));
     } catch {

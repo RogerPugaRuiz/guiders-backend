@@ -261,3 +261,6 @@ node bin/guiders-cli.js create-company-with-admin \
   --adminName "Admin" \
   --adminEmail "admin@test.com"
 ```
+
+### Context7
+Si te preguntan sobre documentación de lenguajes, frameworks o librerías tienes que usar la herramienta `context7` para buscar la documentación oficial y proporcionar un resumen claro y conciso.

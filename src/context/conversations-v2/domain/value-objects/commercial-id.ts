@@ -14,7 +14,7 @@ export class CommercialId {
     if (!value || value.trim() === '') {
       throw new ValidationError('Commercial ID debe ser un UUID válido');
     }
-    
+
     try {
       return new CommercialId(Uuid.create(value));
     } catch {

@@ -114,7 +114,7 @@ export class VisitorInfo extends PrimitiveValueObject<VisitorInfoData> {
     if (!(other instanceof VisitorInfo)) {
       return false;
     }
-    
+
     return JSON.stringify(this.value) === JSON.stringify(other.value);
   }
 }

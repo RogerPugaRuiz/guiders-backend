@@ -51,7 +51,18 @@ export class MessageMapper {
     };
 
     // Campos adicionales según el tipo de mensaje
-    if (message.type.value === 'file' && messagePrimitives.attachment) {
+    if (message.type.isFile() && messagePrimitives.attachment) {
+      schema.fileInfo = {
+        originalName: messagePrimitives.attachment.fileName,
+        mimeType: messagePrimitives.attachment.mimeType,
+        size: messagePrimitives.attachment.fileSize,
+        url: messagePrimitives.attachment.url,
+        downloadCount: 0,
+      };
+    }
+
+    // Para mensajes de imagen también establecer fileInfo
+    if (message.type.isImage() && messagePrimitives.attachment) {
       schema.fileInfo = {
         originalName: messagePrimitives.attachment.fileName,
         mimeType: messagePrimitives.attachment.mimeType,
@@ -62,7 +73,7 @@ export class MessageMapper {
     }
 
     // Para mensajes del sistema
-    if (message.type.value === 'system' && messagePrimitives.systemData) {
+    if (message.type.isSystem() && messagePrimitives.systemData) {
       schema.systemInfo = {
         action: messagePrimitives.systemData.action || 'unknown',
         previousValue: undefined,

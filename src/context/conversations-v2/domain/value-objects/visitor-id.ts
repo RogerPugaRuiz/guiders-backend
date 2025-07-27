@@ -14,7 +14,7 @@ export class VisitorId {
     if (!value || value.trim() === '') {
       throw new ValidationError('Visitor ID debe ser un UUID válido');
     }
-    
+
     try {
       return new VisitorId(Uuid.create(value));
     } catch {

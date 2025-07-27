@@ -267,6 +267,11 @@ ChatSchemaDefinition.pre('save', function (next) {
     this.updatedAt = new Date();
   }
 
+  // Marcar como inactivo cuando se establece closedAt
+  if (this.closedAt && this.isActive) {
+    this.isActive = false;
+  }
+
   // Sincronizar campos derivados
   if (this.visitorInfo?.id) {
     this.visitorId = this.visitorInfo.id;

@@ -20,7 +20,9 @@ describe('CompanyId', () => {
       const invalidUuid = 'invalid-uuid';
 
       // Act & Assert
-      expect(() => CompanyId.create(invalidUuid)).toThrow('Invalid Uuid format');
+      expect(() => CompanyId.create(invalidUuid)).toThrow(
+        'Invalid Uuid format',
+      );
     });
 
     it('debería lanzar error con string vacío', () => {
