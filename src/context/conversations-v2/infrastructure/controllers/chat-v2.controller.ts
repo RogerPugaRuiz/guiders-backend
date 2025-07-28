@@ -1,12 +1,9 @@
 import {
   Controller,
   Get,
-  Post,
   Put,
-  Delete,
   Param,
   Query,
-  Body,
   HttpException,
   HttpStatus,
   Logger,
@@ -29,7 +26,6 @@ import {
   RolesGuard,
   RequiredRoles,
 } from 'src/context/shared/infrastructure/guards/role.guard';
-import { Result } from 'src/context/shared/domain/result';
 
 // DTOs
 import {
@@ -38,7 +34,6 @@ import {
 } from '../../application/dtos/chat-response.dto';
 import {
   GetChatsQueryDto,
-  ChatFiltersDto,
   PaginationDto,
   CommercialMetricsResponseDto,
   ResponseTimeStatsDto,
@@ -82,10 +77,10 @@ export class ChatV2Controller {
     status: 403,
     description: 'Usuario sin permisos suficientes',
   })
-  async getChats(
+  getChats(
     @Query() queryParams: GetChatsQueryDto,
     @Req() req: AuthenticatedRequest,
-  ): Promise<ChatListResponseDto> {
+  ): ChatListResponseDto {
     try {
       this.logger.log(`Obteniendo chats para usuario: ${req.user.id}`);
 
@@ -148,10 +143,10 @@ export class ChatV2Controller {
     status: 404,
     description: 'Chat no encontrado',
   })
-  async getChatById(
+  getChatById(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
-  ): Promise<ChatResponseDto> {
+  ): ChatResponseDto {
     try {
       this.logger.log(`Obteniendo chat ${chatId} para usuario: ${req.user.id}`);
 
@@ -197,11 +192,10 @@ export class ChatV2Controller {
     description: 'ID del comercial',
     example: '550e8400-e29b-41d4-a716-446655440001',
   })
-  async getCommercialChats(
+  getCommercialChats(
     @Param('commercialId') commercialId: string,
     @Query() queryParams: GetChatsQueryDto,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ChatListResponseDto> {
+  ): ChatListResponseDto {
     try {
       this.logger.log(`Obteniendo chats del comercial ${commercialId}`);
 
@@ -248,11 +242,10 @@ export class ChatV2Controller {
     description: 'ID del visitante',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
-  async getVisitorChats(
+  getVisitorChats(
     @Param('visitorId') visitorId: string,
     @Query() queryParams: PaginationDto,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ChatListResponseDto> {
+  ): ChatListResponseDto {
     try {
       this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
 
@@ -305,11 +298,7 @@ export class ChatV2Controller {
     required: false,
     example: 50,
   })
-  async getPendingQueue(
-    @Query('department') department?: string,
-    @Query('limit') limit?: number,
-    @Req() req?: AuthenticatedRequest,
-  ): Promise<ChatResponseDto[]> {
+  getPendingQueue(): ChatResponseDto[] {
     try {
       this.logger.log('Obteniendo cola de chats pendientes');
 
@@ -353,11 +342,9 @@ export class ChatV2Controller {
     required: false,
     example: '2025-07-31T23:59:59Z',
   })
-  async getCommercialMetrics(
+  getCommercialMetrics(
     @Param('commercialId') commercialId: string,
-    @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo') dateTo?: string,
-  ): Promise<CommercialMetricsResponseDto> {
+  ): CommercialMetricsResponseDto {
     try {
       this.logger.log(`Obteniendo métricas del comercial ${commercialId}`);
 
@@ -393,37 +380,16 @@ export class ChatV2Controller {
   /**
    * Obtiene estadísticas de tiempo de respuesta
    */
-  @Get('stats/response-time')
-  @RequiredRoles('admin', 'supervisor')
-  @ApiOperation({
-    summary: 'Obtener estadísticas de tiempo de respuesta',
-    description:
-      'Retorna estadísticas de tiempo de respuesta agrupadas por período',
+  @Get('response-time-stats')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial', 'admin')
+  @ApiOperation({ summary: 'Obtener estadísticas de tiempo de respuesta' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas de tiempo de respuesta',
+    type: ResponseTimeStatsDto,
   })
-  @ApiQuery({
-    name: 'dateFrom',
-    description: 'Fecha de inicio del período (ISO 8601)',
-    required: true,
-    example: '2025-07-01T00:00:00Z',
-  })
-  @ApiQuery({
-    name: 'dateTo',
-    description: 'Fecha de fin del período (ISO 8601)',
-    required: true,
-    example: '2025-07-31T23:59:59Z',
-  })
-  @ApiQuery({
-    name: 'groupBy',
-    description: 'Agrupar estadísticas por',
-    enum: ['hour', 'day', 'week'],
-    required: false,
-    example: 'day',
-  })
-  async getResponseTimeStats(
-    @Query('dateFrom') dateFrom: string,
-    @Query('dateTo') dateTo: string,
-    @Query('groupBy') groupBy: 'hour' | 'day' | 'week' = 'day',
-  ): Promise<ResponseTimeStatsDto[]> {
+  getResponseTimeStats(): ResponseTimeStatsDto {
     try {
       this.logger.log('Obteniendo estadísticas de tiempo de respuesta');
 
@@ -435,7 +401,11 @@ export class ChatV2Controller {
       // });
 
       // Respuesta temporal
-      return [];
+      return {
+        period: 'daily',
+        avgResponseTime: 0,
+        count: 0,
+      };
     } catch (error) {
       this.logger.error(
         'Error al obtener estadísticas de tiempo de respuesta:',
@@ -476,11 +446,10 @@ export class ChatV2Controller {
     status: 404,
     description: 'Chat no encontrado',
   })
-  async assignChat(
+  assignChat(
     @Param('chatId') chatId: string,
     @Param('commercialId') commercialId: string,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ChatResponseDto> {
+  ): ChatResponseDto {
     try {
       this.logger.log(`Asignando chat ${chatId} al comercial ${commercialId}`);
 
@@ -529,10 +498,7 @@ export class ChatV2Controller {
     description: 'Chat cerrado exitosamente',
     type: ChatResponseDto,
   })
-  async closeChat(
-    @Param('chatId') chatId: string,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ChatResponseDto> {
+  closeChat(@Param('chatId') chatId: string): ChatResponseDto {
     try {
       this.logger.log(`Cerrando chat ${chatId}`);
 

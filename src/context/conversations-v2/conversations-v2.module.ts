@@ -3,10 +3,10 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 
 // Controllers
-import { ChatV2Controller } from './controllers/chat-v2.controller';
+import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
 
 // Infrastructure
-import { ChatSchema, ChatSchemaDefinition } from './schemas/chat.schema';
+import { ChatSchemaDefinition } from './infrastructure/schemas/chat.schema';
 
 // Guards
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';

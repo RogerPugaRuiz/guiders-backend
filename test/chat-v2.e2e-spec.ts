@@ -157,9 +157,9 @@ class CloseChatCommand {
 class GetChatsWithFiltersQueryHandler
   implements IQueryHandler<GetChatsWithFiltersQuery>
 {
-  async execute(query: GetChatsWithFiltersQuery): Promise<ChatListResponse> {
+  execute(query: GetChatsWithFiltersQuery): Promise<ChatListResponse> {
     const { limit = 20, page = 1 } = query;
-    
+
     // Simular datos de prueba
     const chats = Array(Math.min(limit, 3))
       .fill(0)
@@ -177,25 +177,25 @@ class GetChatsWithFiltersQueryHandler
         },
       }));
 
-    return {
+    return Promise.resolve({
       chats,
       total: 10,
       hasMore: page < 3,
       page,
       limit,
-    };
+    });
   }
 }
 
 @Injectable()
 @QueryHandler(GetChatByIdQuery)
 class GetChatByIdQueryHandler implements IQueryHandler<GetChatByIdQuery> {
-  async execute(query: GetChatByIdQuery): Promise<ChatResponse> {
+  execute(query: GetChatByIdQuery): Promise<ChatResponse> {
     if (query.chatId === 'nonexistent') {
       throw new Error('Chat no encontrado');
     }
 
-    return {
+    return Promise.resolve({
       id: query.chatId,
       status: 'ACTIVE',
       visitorInfo: {
@@ -207,7 +207,7 @@ class GetChatByIdQueryHandler implements IQueryHandler<GetChatByIdQuery> {
         content: 'Mensaje de prueba',
         timestamp: new Date().toISOString(),
       },
-    };
+    });
   }
 }
 
@@ -216,10 +216,10 @@ class GetChatByIdQueryHandler implements IQueryHandler<GetChatByIdQuery> {
 class GetCommercialChatsQueryHandler
   implements IQueryHandler<GetCommercialChatsQuery>
 {
-  async execute(query: GetCommercialChatsQuery): Promise<ChatListResponse> {
+  execute(query: GetCommercialChatsQuery): Promise<ChatListResponse> {
     const { limit = 20, page = 1 } = query;
-    
-    return {
+
+    return Promise.resolve({
       chats: [
         {
           id: 'commercial-chat-1',
@@ -231,7 +231,7 @@ class GetCommercialChatsQueryHandler
       hasMore: false,
       page,
       limit,
-    };
+    });
   }
 }
 
@@ -240,10 +240,10 @@ class GetCommercialChatsQueryHandler
 class GetVisitorChatsQueryHandler
   implements IQueryHandler<GetVisitorChatsQuery>
 {
-  async execute(query: GetVisitorChatsQuery): Promise<ChatListResponse> {
+  execute(query: GetVisitorChatsQuery): Promise<ChatListResponse> {
     const { limit = 20, page = 1 } = query;
-    
-    return {
+
+    return Promise.resolve({
       chats: [
         {
           id: 'visitor-chat-1',
@@ -255,7 +255,7 @@ class GetVisitorChatsQueryHandler
       hasMore: false,
       page,
       limit,
-    };
+    });
   }
 }
 
@@ -264,19 +264,21 @@ class GetVisitorChatsQueryHandler
 class GetPendingQueueQueryHandler
   implements IQueryHandler<GetPendingQueueQuery>
 {
-  async execute(query: GetPendingQueueQuery): Promise<ChatResponse[]> {
+  execute(query: GetPendingQueueQuery): Promise<ChatResponse[]> {
     const limit = query.limit || 10;
-    
-    return Array(Math.min(limit, 2))
-      .fill(0)
-      .map((_, index) => ({
-        id: `pending-chat-${index + 1}`,
-        status: 'PENDING',
-        visitorInfo: {
-          id: `visitor-${index + 1}`,
-          name: `Visitante Pendiente ${index + 1}`,
-        },
-      }));
+
+    return Promise.resolve(
+      Array(Math.min(limit, 2))
+        .fill(0)
+        .map((_, index) => ({
+          id: `pending-chat-${index + 1}`,
+          status: 'PENDING',
+          visitorInfo: {
+            id: `visitor-${index + 1}`,
+            name: `Visitante Pendiente ${index + 1}`,
+          },
+        })),
+    );
   }
 }
 
@@ -285,9 +287,11 @@ class GetPendingQueueQueryHandler
 class GetCommercialMetricsQueryHandler
   implements IQueryHandler<GetCommercialMetricsQuery>
 {
-  async execute(query: GetCommercialMetricsQuery): Promise<CommercialMetricsResponse> {
+  async execute(
+    query: GetCommercialMetricsQuery,
+  ): Promise<CommercialMetricsResponse> {
     await Promise.resolve(query); // Evitar warning de variable no usada
-    
+
     return {
       totalChats: 50,
       activeChats: 5,
@@ -305,10 +309,12 @@ class GetCommercialMetricsQueryHandler
 class GetResponseTimeStatsQueryHandler
   implements IQueryHandler<GetResponseTimeStatsQuery>
 {
-  async execute(query: GetResponseTimeStatsQuery): Promise<ResponseTimeStatsResponse[]> {
+  execute(
+    query: GetResponseTimeStatsQuery,
+  ): Promise<ResponseTimeStatsResponse[]> {
     const { groupBy } = query;
-    
-    return [
+
+    return Promise.resolve([
       {
         period: groupBy === 'day' ? '2025-07-28' : '2025-07-28 10:00',
         averageResponseTime: 90,
@@ -319,7 +325,7 @@ class GetResponseTimeStatsQueryHandler
         averageResponseTime: 110,
         totalMessages: 85,
       },
-    ];
+    ]);
   }
 }
 
@@ -329,38 +335,38 @@ class GetResponseTimeStatsQueryHandler
 class AssignChatToCommercialCommandHandler
   implements ICommandHandler<AssignChatToCommercialCommand>
 {
-  async execute(command: AssignChatToCommercialCommand): Promise<ChatResponse> {
+  execute(command: AssignChatToCommercialCommand): Promise<ChatResponse> {
     if (command.chatId === 'nonexistent') {
       throw new Error('Chat no encontrado');
     }
 
-    return {
+    return Promise.resolve({
       id: command.chatId,
       status: 'ACTIVE',
       visitorInfo: {
         id: 'visitor-1',
         name: 'Visitante Test',
       },
-    };
+    });
   }
 }
 
 @Injectable()
 @CommandHandler(CloseChatCommand)
 class CloseChatCommandHandler implements ICommandHandler<CloseChatCommand> {
-  async execute(command: CloseChatCommand): Promise<ChatResponse> {
+  execute(command: CloseChatCommand): Promise<ChatResponse> {
     if (command.chatId === 'nonexistent') {
       throw new Error('Chat no encontrado');
     }
 
-    return {
+    return Promise.resolve({
       id: command.chatId,
       status: 'CLOSED',
       visitorInfo: {
         id: 'visitor-1',
         name: 'Visitante Test',
       },
-    };
+    });
   }
 }
 
@@ -647,14 +653,14 @@ describe('ChatV2Controller (e2e)', () => {
       const query = new GetChatsWithFiltersQuery(
         {}, // filters
         {}, // sort
-        1,  // page
+        1, // page
         20, // limit
         'user-id',
         'commercial',
       );
 
       const result = await queryBus.execute(query);
-      
+
       expect(result).toBeDefined();
       expect(result).toHaveProperty('chats');
       expect(result).toHaveProperty('total');
@@ -664,9 +670,9 @@ describe('ChatV2Controller (e2e)', () => {
 
     it('debe ejecutar GetChatByIdQuery correctamente', async () => {
       const query = new GetChatByIdQuery('chat-123', 'user-id', 'commercial');
-      
+
       const result = await queryBus.execute(query);
-      
+
       expect(result).toBeDefined();
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('status');
@@ -681,7 +687,7 @@ describe('ChatV2Controller (e2e)', () => {
       );
 
       const result = await commandBus.execute(command);
-      
+
       expect(result).toBeDefined();
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('status');
@@ -691,7 +697,7 @@ describe('ChatV2Controller (e2e)', () => {
       const command = new CloseChatCommand('chat-123', 'commercial-user');
 
       const result = await commandBus.execute(command);
-      
+
       expect(result).toBeDefined();
       expect(result).toHaveProperty('id');
       expect(result.status).toBe('CLOSED');
