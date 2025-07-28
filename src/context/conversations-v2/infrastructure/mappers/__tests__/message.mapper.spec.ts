@@ -11,7 +11,6 @@ describe('MessageMapper', () => {
   const mockChatId = Uuid.random().value;
   const mockSenderId = Uuid.random().value;
   const mockCommercialId = `commercial_${Uuid.random().value}`;
-  const mockSystemSenderId = 'system';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

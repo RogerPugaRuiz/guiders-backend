@@ -3,7 +3,6 @@ import { ChatMapper } from '../chat.mapper';
 import { Chat } from '../../../domain/entities/chat';
 import { ChatSchema } from '../../schemas/chat.schema';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
-import { CommercialId } from '../../../domain/value-objects/commercial-id';
 
 describe('ChatMapper', () => {
   let mapper: ChatMapper;

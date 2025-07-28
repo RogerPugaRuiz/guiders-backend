@@ -90,7 +90,14 @@ export class ChatSchema {
   @Prop({
     type: String,
     required: true,
-    enum: ['pending', 'assigned', 'in_progress', 'closed', 'transferred'],
+    enum: [
+      'PENDING',
+      'ASSIGNED',
+      'ACTIVE',
+      'CLOSED',
+      'TRANSFERRED',
+      'ABANDONED',
+    ],
     index: true,
   })
   status: string;
@@ -98,7 +105,7 @@ export class ChatSchema {
   @Prop({
     type: String,
     required: true,
-    enum: ['low', 'normal', 'high', 'urgent'],
+    enum: ['LOW', 'MEDIUM', 'NORMAL', 'HIGH', 'URGENT'],
     index: true,
   })
   priority: string;
@@ -116,6 +123,13 @@ export class ChatSchema {
     sparse: true,
   })
   assignedCommercialId?: string;
+
+  @Prop({
+    type: [String],
+    required: false,
+    index: true,
+  })
+  availableCommercialIds?: string[];
 
   @Prop({
     type: ChatMetadataSchemaDefinition,

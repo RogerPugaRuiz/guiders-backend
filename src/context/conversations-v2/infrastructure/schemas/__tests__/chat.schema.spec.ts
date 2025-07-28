@@ -38,8 +38,8 @@ describe('ChatSchema (MongoDB Integration)', () => {
   const createValidChatDocument = (): Partial<ChatSchema> => ({
     id: Uuid.random().value,
     visitorId: Uuid.random().value,
-    status: 'pending',
-    priority: 'normal',
+    status: 'PENDING',
+    priority: 'NORMAL',
     department: 'ventas',
     visitorInfo: {
       id: Uuid.random().value,
@@ -82,8 +82,8 @@ describe('ChatSchema (MongoDB Integration)', () => {
       // Assert
       expect(savedChat).toBeDefined();
       expect(savedChat.id).toBe(chatData.id);
-      expect(savedChat.status).toBe('pending');
-      expect(savedChat.priority).toBe('normal');
+      expect(savedChat.status).toBe('PENDING');
+      expect(savedChat.priority).toBe('NORMAL');
       expect(savedChat.visitorInfo.name).toBe('Usuario Test');
       expect(savedChat.metadata.department).toBe('ventas');
       expect(savedChat.isActive).toBe(true);
@@ -94,7 +94,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
     it('debería crear un chat asignado con comercial', async () => {
       // Arrange
       const chatData = createValidChatDocument();
-      chatData.status = 'assigned';
+      chatData.status = 'ASSIGNED';
       chatData.assignedCommercialId = Uuid.random().value;
       chatData.assignedAt = new Date();
       chatData.totalMessages = 5;
@@ -103,7 +103,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
       const savedChat = await chatModel.create(chatData);
 
       // Assert
-      expect(savedChat.status).toBe('assigned');
+      expect(savedChat.status).toBe('ASSIGNED');
       expect(savedChat.assignedCommercialId).toBeDefined();
       expect(savedChat.assignedAt).toBeDefined();
       expect(savedChat.totalMessages).toBe(5);
@@ -112,7 +112,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
     it('debería crear un chat cerrado', async () => {
       // Arrange
       const chatData = createValidChatDocument();
-      chatData.status = 'closed';
+      chatData.status = 'CLOSED';
       chatData.assignedCommercialId = Uuid.random().value;
       chatData.assignedAt = new Date();
       chatData.closedAt = new Date();
@@ -123,7 +123,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
       const savedChat = await chatModel.create(chatData);
 
       // Assert
-      expect(savedChat.status).toBe('closed');
+      expect(savedChat.status).toBe('CLOSED');
       expect(savedChat.closedAt).toBeDefined();
       expect(savedChat.isActive).toBe(false);
       expect(savedChat.resolutionStatus).toBe('resolved');
@@ -181,25 +181,25 @@ describe('ChatSchema (MongoDB Integration)', () => {
     beforeEach(async () => {
       // Crear varios chats de prueba
       const chatData1 = createValidChatDocument();
-      chatData1.status = 'pending';
+      chatData1.status = 'PENDING';
       await chatModel.create(chatData1);
 
       const chatData2 = createValidChatDocument();
-      chatData2.status = 'assigned';
+      chatData2.status = 'ASSIGNED';
       chatData2.assignedCommercialId = 'commercial-123';
       await chatModel.create(chatData2);
 
       const chatData3 = createValidChatDocument();
-      chatData3.status = 'closed';
+      chatData3.status = 'CLOSED';
       chatData3.isActive = false;
       await chatModel.create(chatData3);
     });
 
     it('debería encontrar chats por status', async () => {
       // Act
-      const pendingChats = await chatModel.find({ status: 'pending' });
-      const assignedChats = await chatModel.find({ status: 'assigned' });
-      const closedChats = await chatModel.find({ status: 'closed' });
+      const pendingChats = await chatModel.find({ status: 'PENDING' });
+      const assignedChats = await chatModel.find({ status: 'ASSIGNED' });
+      const closedChats = await chatModel.find({ status: 'CLOSED' });
 
       // Assert
       expect(pendingChats).toHaveLength(1);
@@ -215,7 +215,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
 
       // Assert
       expect(commercialChats).toHaveLength(1);
-      expect(commercialChats[0].status).toBe('assigned');
+      expect(commercialChats[0].status).toBe('ASSIGNED');
     });
 
     it('debería encontrar chats activos', async () => {
@@ -223,7 +223,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
       const activeChats = await chatModel.find({ isActive: true });
 
       // Assert
-      expect(activeChats).toHaveLength(2); // pending y assigned
+      expect(activeChats).toHaveLength(2); // PENDING y ASSIGNED
     });
 
     it('debería ordenar chats por fecha de creación', async () => {
@@ -303,8 +303,8 @@ describe('ChatSchema (MongoDB Integration)', () => {
       // Chat de alta prioridad activo
       const highPriorityChat = { ...baseData };
       highPriorityChat.id = Uuid.random().value;
-      highPriorityChat.priority = 'high';
-      highPriorityChat.status = 'pending';
+      highPriorityChat.priority = 'HIGH';
+      highPriorityChat.status = 'PENDING';
       if (highPriorityChat.metadata) {
         highPriorityChat.metadata.department = 'soporte';
       }
@@ -314,8 +314,8 @@ describe('ChatSchema (MongoDB Integration)', () => {
       // Chat de prioridad normal asignado
       const normalPriorityChat = { ...baseData };
       normalPriorityChat.id = Uuid.random().value;
-      normalPriorityChat.priority = 'normal';
-      normalPriorityChat.status = 'assigned';
+      normalPriorityChat.priority = 'NORMAL';
+      normalPriorityChat.status = 'ASSIGNED';
       normalPriorityChat.assignedCommercialId = 'commercial-456';
       normalPriorityChat.department = 'ventas';
       if (normalPriorityChat.metadata) {
@@ -326,7 +326,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
       // Chat cerrado
       const closedChat = { ...baseData };
       closedChat.id = Uuid.random().value;
-      closedChat.status = 'closed';
+      closedChat.status = 'CLOSED';
       closedChat.isActive = false;
       closedChat.closedAt = new Date();
       closedChat.department = 'marketing';
@@ -339,14 +339,14 @@ describe('ChatSchema (MongoDB Integration)', () => {
     it('debería filtrar por múltiples criterios', async () => {
       // Act
       const highPriorityActiveChats = await chatModel.find({
-        priority: 'high',
+        priority: 'HIGH',
         isActive: true,
       });
 
       // Assert
       expect(highPriorityActiveChats).toHaveLength(1);
-      expect(highPriorityActiveChats[0].priority).toBe('high');
-      expect(highPriorityActiveChats[0].status).toBe('pending');
+      expect(highPriorityActiveChats[0].priority).toBe('HIGH');
+      expect(highPriorityActiveChats[0].status).toBe('PENDING');
     });
 
     it('debería buscar por departamento en metadata', async () => {
@@ -376,9 +376,9 @@ describe('ChatSchema (MongoDB Integration)', () => {
       const statusCountMap = Object.fromEntries(
         statusCounts.map((item) => [item._id, item.count]),
       );
-      expect(statusCountMap.pending).toBe(1);
-      expect(statusCountMap.assigned).toBe(1);
-      expect(statusCountMap.closed).toBe(1);
+      expect(statusCountMap.PENDING).toBe(1);
+      expect(statusCountMap.ASSIGNED).toBe(1);
+      expect(statusCountMap.CLOSED).toBe(1);
     });
   });
 });

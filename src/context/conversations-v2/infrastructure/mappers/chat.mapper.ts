@@ -18,6 +18,7 @@ export class ChatMapper {
     schema.status = chat.status.value;
     schema.priority = chat.priority.value;
     schema.assignedCommercialId = chatPrimitives.assignedCommercialId;
+    schema.availableCommercialIds = chatPrimitives.availableCommercialIds;
     schema.createdAt = chat.createdAt;
     schema.assignedAt = chatPrimitives.firstResponseTime || undefined;
     schema.closedAt = chatPrimitives.closedAt;
@@ -77,7 +78,7 @@ export class ChatMapper {
       priority: schema.priority,
       visitorId: schema.visitorId,
       assignedCommercialId: schema.assignedCommercialId,
-      availableCommercialIds: [], // Se cargarán por separado si es necesario
+      availableCommercialIds: schema.availableCommercialIds || [], // Se cargarán por separado si es necesario
       lastMessageDate: schema.lastMessageDate,
       lastMessageContent: undefined,
       lastMessageSenderId: undefined,

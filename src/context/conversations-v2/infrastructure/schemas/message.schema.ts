@@ -65,7 +65,7 @@ export class MessageSchema {
   @Prop({
     type: String,
     required: true,
-    enum: ['text', 'system', 'file', 'image', 'notification'],
+    enum: ['TEXT', 'SYSTEM', 'FILE', 'IMAGE', 'TRANSFER', 'ASSIGNMENT'],
     index: true,
   })
   type: string;
