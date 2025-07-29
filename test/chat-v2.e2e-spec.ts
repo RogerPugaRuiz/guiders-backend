@@ -20,14 +20,14 @@ import {
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
 
 // Tipos para evitar problemas de importación
 interface ChatListResponse {
   chats: unknown[];
   total: number;
   hasMore: boolean;
-  page: number;
-  limit: number;
+  nextCursor: string | null;
 }
 
 interface ChatResponse {
@@ -76,17 +76,6 @@ interface MockRequest {
 }
 
 // Queries y Commands mock para testing
-class GetChatsWithFiltersQuery {
-  constructor(
-    public filters: any,
-    public sort: any,
-    public page: number,
-    public limit: number,
-    public userId: string,
-    public userRole: string,
-  ) {}
-}
-
 class GetChatByIdQuery {
   constructor(
     public chatId: string,
@@ -100,7 +89,7 @@ class GetCommercialChatsQuery {
     public commercialId: string,
     public filters: any,
     public sort: any,
-    public page: number,
+    public cursor: string | null,
     public limit: number,
   ) {}
 }
@@ -108,7 +97,7 @@ class GetCommercialChatsQuery {
 class GetVisitorChatsQuery {
   constructor(
     public visitorId: string,
-    public page: number,
+    public cursor: string | null,
     public limit: number,
   ) {}
 }
@@ -158,7 +147,7 @@ class GetChatsWithFiltersQueryHandler
   implements IQueryHandler<GetChatsWithFiltersQuery>
 {
   execute(query: GetChatsWithFiltersQuery): Promise<ChatListResponse> {
-    const { limit = 20, page = 1 } = query;
+    const { limit = 20, cursor } = query;
 
     // Simular datos de prueba
     const chats = Array(Math.min(limit, 3))
@@ -177,12 +166,17 @@ class GetChatsWithFiltersQueryHandler
         },
       }));
 
+    // Simular nextCursor basado en si hay más datos
+    const hasMore = !cursor || chats.length === limit;
+    const nextCursor = hasMore
+      ? 'eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDExOjE1OjAwLjAwMFoiLCJpZCI6ImNoYXQtMyJ9'
+      : null;
+
     return Promise.resolve({
       chats,
       total: 10,
-      hasMore: page < 3,
-      page,
-      limit,
+      hasMore,
+      nextCursor,
     });
   }
 }
@@ -217,7 +211,8 @@ class GetCommercialChatsQueryHandler
   implements IQueryHandler<GetCommercialChatsQuery>
 {
   execute(query: GetCommercialChatsQuery): Promise<ChatListResponse> {
-    const { limit = 20, page = 1 } = query;
+    // Las variables cursor y limit están disponibles si las necesitamos
+    // const { limit = 20, cursor } = query;
 
     return Promise.resolve({
       chats: [
@@ -229,8 +224,7 @@ class GetCommercialChatsQueryHandler
       ],
       total: 1,
       hasMore: false,
-      page,
-      limit,
+      nextCursor: null,
     });
   }
 }
@@ -241,7 +235,8 @@ class GetVisitorChatsQueryHandler
   implements IQueryHandler<GetVisitorChatsQuery>
 {
   execute(query: GetVisitorChatsQuery): Promise<ChatListResponse> {
-    const { limit = 20, page = 1 } = query;
+    // Las variables cursor y limit están disponibles si las necesitamos
+    // const { limit = 20, cursor } = query;
 
     return Promise.resolve({
       chats: [
@@ -253,8 +248,7 @@ class GetVisitorChatsQueryHandler
       ],
       total: 1,
       hasMore: false,
-      page,
-      limit,
+      nextCursor: null,
     });
   }
 }
@@ -467,15 +461,16 @@ describe('ChatV2Controller (e2e)', () => {
       const mockToken = 'mock-commercial-token';
 
       return request(app.getHttpServer())
-        .get('/v2/chats?page=1&limit=10')
+        .get(
+          '/v2/chats?cursor=eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=&limit=10',
+        )
         .set('Authorization', `Bearer ${mockToken}`)
         .expect(200)
         .expect((res) => {
           expect(res.body).toHaveProperty('chats');
           expect(res.body).toHaveProperty('total');
           expect(res.body).toHaveProperty('hasMore');
-          expect(res.body).toHaveProperty('page');
-          expect(res.body).toHaveProperty('limit');
+          expect(res.body).toHaveProperty('nextCursor');
           expect(Array.isArray(res.body.chats)).toBe(true);
         });
     });
@@ -516,6 +511,7 @@ describe('ChatV2Controller (e2e)', () => {
           expect(res.body).toHaveProperty('chats');
           expect(res.body).toHaveProperty('total');
           expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
         });
     });
   });
@@ -533,6 +529,7 @@ describe('ChatV2Controller (e2e)', () => {
           expect(res.body).toHaveProperty('chats');
           expect(res.body).toHaveProperty('total');
           expect(res.body).toHaveProperty('hasMore');
+          expect(res.body).toHaveProperty('nextCursor');
         });
     });
   });
@@ -650,14 +647,17 @@ describe('ChatV2Controller (e2e)', () => {
 
   describe('Tests directos de QueryBus y CommandBus', () => {
     it('debe ejecutar GetChatsWithFiltersQuery correctamente', async () => {
-      const query = new GetChatsWithFiltersQuery(
-        {}, // filters
-        {}, // sort
-        1, // page
-        20, // limit
-        'user-id',
-        'commercial',
-      );
+      const query = GetChatsWithFiltersQuery.create({
+        userId: 'user-id',
+        userRole: 'commercial',
+        filters: {},
+        sort: {
+          field: 'createdAt',
+          direction: 'DESC',
+        },
+        cursor: undefined,
+        limit: 20,
+      });
 
       const result = await queryBus.execute(query);
 
@@ -665,6 +665,7 @@ describe('ChatV2Controller (e2e)', () => {
       expect(result).toHaveProperty('chats');
       expect(result).toHaveProperty('total');
       expect(result).toHaveProperty('hasMore');
+      expect(result).toHaveProperty('nextCursor');
       expect(Array.isArray(result.chats)).toBe(true);
     });
 
