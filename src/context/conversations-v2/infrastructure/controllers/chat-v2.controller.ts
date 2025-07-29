@@ -121,6 +121,56 @@ export class ChatV2Controller {
   }
 
   /**
+   * Obtiene estadísticas de tiempo de respuesta
+   */
+  @Get('response-time-stats')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial', 'admin')
+  @ApiOperation({ summary: 'Obtener estadísticas de tiempo de respuesta' })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
+  @ApiQuery({ name: 'groupBy', required: false, enum: ['hour', 'day', 'week'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas de tiempo de respuesta',
+    type: ResponseTimeStatsDto,
+  })
+  getResponseTimeStats(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('groupBy') groupBy?: 'hour' | 'day' | 'week',
+  ): ResponseTimeStatsDto {
+    try {
+      this.logger.log(
+        `Obteniendo estadísticas de tiempo de respuesta: ${dateFrom} - ${dateTo}, groupBy: ${groupBy}`,
+      );
+
+      // TODO: Implementar query handler
+      // const query = new GetResponseTimeStatsQuery({
+      //   dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      //   dateTo: dateTo ? new Date(dateTo) : undefined,
+      //   groupBy: groupBy || 'day',
+      // });
+
+      // Respuesta temporal usando los parámetros
+      return {
+        period: groupBy || 'daily',
+        avgResponseTime: 15.5,
+        count: 10,
+      };
+    } catch (error) {
+      this.logger.error(
+        'Error al obtener estadísticas de tiempo de respuesta:',
+        error,
+      );
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Obtiene un chat específico por ID
    */
   @Get(':chatId')
@@ -368,56 +418,6 @@ export class ChatV2Controller {
     } catch (error) {
       this.logger.error(
         `Error al obtener métricas del comercial ${commercialId}:`,
-        error,
-      );
-      throw new HttpException(
-        'Error interno del servidor',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
-   * Obtiene estadísticas de tiempo de respuesta
-   */
-  @Get('response-time-stats')
-  @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin')
-  @ApiOperation({ summary: 'Obtener estadísticas de tiempo de respuesta' })
-  @ApiQuery({ name: 'dateFrom', required: false, type: String })
-  @ApiQuery({ name: 'dateTo', required: false, type: String })
-  @ApiQuery({ name: 'groupBy', required: false, enum: ['hour', 'day', 'week'] })
-  @ApiResponse({
-    status: 200,
-    description: 'Estadísticas de tiempo de respuesta',
-    type: ResponseTimeStatsDto,
-  })
-  getResponseTimeStats(
-    @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo') dateTo?: string,
-    @Query('groupBy') groupBy?: 'hour' | 'day' | 'week',
-  ): ResponseTimeStatsDto {
-    try {
-      this.logger.log(
-        `Obteniendo estadísticas de tiempo de respuesta: ${dateFrom} - ${dateTo}, groupBy: ${groupBy}`,
-      );
-
-      // TODO: Implementar query handler
-      // const query = new GetResponseTimeStatsQuery({
-      //   dateFrom: dateFrom ? new Date(dateFrom) : undefined,
-      //   dateTo: dateTo ? new Date(dateTo) : undefined,
-      //   groupBy: groupBy || 'day',
-      // });
-
-      // Respuesta temporal usando los parámetros
-      return {
-        period: groupBy || 'daily',
-        avgResponseTime: 15.5,
-        count: 10,
-      };
-    } catch (error) {
-      this.logger.error(
-        'Error al obtener estadísticas de tiempo de respuesta:',
         error,
       );
       throw new HttpException(
