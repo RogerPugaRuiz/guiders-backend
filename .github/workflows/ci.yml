@@ -278,27 +278,31 @@ jobs:
           for i in {1..60}; do
             postgres_ready=false
             redis_ready=false
+            mongodb_ready=false
             
             # Verificar PostgreSQL
             if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
               postgres_ready=true
             fi
             
-            # Verificar Redis con múltiples métodos
+            # Verificar Redis con múltiples métodos y pruebas de operaciones
             if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
-              redis_ready=true
-            elif nc -z localhost 6379 >/dev/null 2>&1; then
-              # Si el puerto está abierto pero no responde PING, intentar conectar directamente
-              echo "Port 6379 is open, testing Redis..."
-              sleep 1
-              if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+              # Probar operaciones básicas para asegurar que Redis está completamente funcional
+              if redis-cli -h localhost -p 6379 set test_key test_value >/dev/null 2>&1 && \
+                 redis-cli -h localhost -p 6379 get test_key >/dev/null 2>&1 && \
+                 redis-cli -h localhost -p 6379 del test_key >/dev/null 2>&1; then
                 redis_ready=true
               fi
             fi
             
-            echo "Intento $i/60: PostgreSQL=$postgres_ready, Redis=$redis_ready"
+            # Verificar MongoDB
+            if mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+              mongodb_ready=true
+            fi
             
-            if $postgres_ready && $redis_ready; then
+            echo "Intento $i/60: PostgreSQL=$postgres_ready, Redis=$redis_ready, MongoDB=$mongodb_ready"
+            
+            if $postgres_ready && $redis_ready && $mongodb_ready; then
               echo "🎉 Todos los servicios están listos!"
               break
             fi
@@ -308,23 +312,29 @@ jobs:
               echo "📊 Debug en intento $i:"
               echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U postgres 2>&1 || echo 'failed')"
               echo "- Redis ping: $(redis-cli -h localhost -p 6379 ping 2>&1 || echo 'failed')"
+              echo "- Redis operations: $(redis-cli -h localhost -p 6379 set test_op test >/dev/null 2>&1 && redis-cli -h localhost -p 6379 del test_op >/dev/null 2>&1 && echo 'ok' || echo 'failed')"
               echo "- Port 6379: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
+              echo "- MongoDB: $(mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" 2>&1 | grep -q 'ok.*1' && echo 'ready' || echo 'failed')"
               echo "- Docker containers:"
-              docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(redis|postgres)" || echo "No Redis/Postgres containers"
+              docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(redis|postgres|mongo)" || echo "No service containers"
             fi
             
-            sleep 2
+            sleep 3
           done
           
-          # Verificación final
+          # Verificación final exhaustiva
+          echo "🔍 Verificación final de servicios..."
+          
           if ! (pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1); then
             echo "❌ PostgreSQL no está listo"
+            echo "PostgreSQL debug:"
+            pg_isready -h localhost -p 5432 -U postgres 2>&1 || echo "PostgreSQL connection failed"
             exit 1
           fi
           
           if ! (redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG); then
             echo "❌ Redis no está listo"
-            echo "Final debug:"
+            echo "Redis debug:"
             redis-cli -h localhost -p 6379 ping 2>&1 || echo "Redis ping failed"
             nc -z localhost 6379 && echo "Port 6379 is open" || echo "Port 6379 is closed"
             docker ps | grep redis || echo "No Redis container found"
@@ -332,7 +342,33 @@ jobs:
             exit 1
           fi
           
-          echo "✅ Todos los servicios verificados y listos"
+          # Test completo de Redis con operaciones
+          echo "🧪 Testing Redis operations..."
+          if ! redis-cli -h localhost -p 6379 set ci_test_key "ci_test_value" >/dev/null 2>&1; then
+            echo "❌ Redis SET operation failed"
+            exit 1
+          fi
+          
+          if ! redis-cli -h localhost -p 6379 get ci_test_key >/dev/null 2>&1; then
+            echo "❌ Redis GET operation failed"
+            exit 1
+          fi
+          
+          if ! redis-cli -h localhost -p 6379 del ci_test_key >/dev/null 2>&1; then
+            echo "❌ Redis DEL operation failed"
+            exit 1
+          fi
+          
+          echo "✅ Redis operations test passed"
+          
+          if ! (mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1); then
+            echo "❌ MongoDB no está listo"
+            echo "MongoDB debug:"
+            mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" 2>&1 || echo "MongoDB connection failed"
+            exit 1
+          fi
+          
+          echo "✅ Todos los servicios verificados y completamente funcionales"
       
       - name: Setup test environment variables
         run: |
@@ -494,27 +530,31 @@ jobs:
           for i in {1..60}; do
             postgres_ready=false
             redis_ready=false
+            mongodb_ready=false
             
             # Verificar PostgreSQL
             if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
               postgres_ready=true
             fi
             
-            # Verificar Redis con múltiples métodos
+            # Verificar Redis con múltiples métodos y pruebas de operaciones
             if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
-              redis_ready=true
-            elif nc -z localhost 6379 >/dev/null 2>&1; then
-              # Si el puerto está abierto pero no responde PING, intentar conectar directamente
-              echo "Port 6379 is open, testing Redis..."
-              sleep 1
-              if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+              # Probar operaciones básicas para asegurar que Redis está completamente funcional
+              if redis-cli -h localhost -p 6379 set test_key test_value >/dev/null 2>&1 && \
+                 redis-cli -h localhost -p 6379 get test_key >/dev/null 2>&1 && \
+                 redis-cli -h localhost -p 6379 del test_key >/dev/null 2>&1; then
                 redis_ready=true
               fi
             fi
             
-            echo "Intento $i/60: PostgreSQL=$postgres_ready, Redis=$redis_ready"
+            # Verificar MongoDB
+            if mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+              mongodb_ready=true
+            fi
             
-            if $postgres_ready && $redis_ready; then
+            echo "Intento $i/60: PostgreSQL=$postgres_ready, Redis=$redis_ready, MongoDB=$mongodb_ready"
+            
+            if $postgres_ready && $redis_ready && $mongodb_ready; then
               echo "🎉 Todos los servicios están listos!"
               break
             fi
@@ -524,23 +564,29 @@ jobs:
               echo "📊 Debug en intento $i:"
               echo "- PostgreSQL: $(pg_isready -h localhost -p 5432 -U postgres 2>&1 || echo 'failed')"
               echo "- Redis ping: $(redis-cli -h localhost -p 6379 ping 2>&1 || echo 'failed')"
+              echo "- Redis operations: $(redis-cli -h localhost -p 6379 set test_op test >/dev/null 2>&1 && redis-cli -h localhost -p 6379 del test_op >/dev/null 2>&1 && echo 'ok' || echo 'failed')"
               echo "- Port 6379: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
+              echo "- MongoDB: $(mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" 2>&1 | grep -q 'ok.*1' && echo 'ready' || echo 'failed')"
               echo "- Docker containers:"
-              docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(redis|postgres)" || echo "No Redis/Postgres containers"
+              docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(redis|postgres|mongo)" || echo "No service containers"
             fi
             
-            sleep 2
+            sleep 3
           done
           
-          # Verificación final
+          # Verificación final exhaustiva
+          echo "🔍 Verificación final de servicios..."
+          
           if ! (pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1); then
             echo "❌ PostgreSQL no está listo"
+            echo "PostgreSQL debug:"
+            pg_isready -h localhost -p 5432 -U postgres 2>&1 || echo "PostgreSQL connection failed"
             exit 1
           fi
           
           if ! (redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG); then
             echo "❌ Redis no está listo"
-            echo "Final debug:"
+            echo "Redis debug:"
             redis-cli -h localhost -p 6379 ping 2>&1 || echo "Redis ping failed"
             nc -z localhost 6379 && echo "Port 6379 is open" || echo "Port 6379 is closed"
             docker ps | grep redis || echo "No Redis container found"
@@ -548,7 +594,33 @@ jobs:
             exit 1
           fi
           
-          echo "✅ Todos los servicios verificados y listos"
+          # Test completo de Redis con operaciones
+          echo "🧪 Testing Redis operations..."
+          if ! redis-cli -h localhost -p 6379 set ci_test_key "ci_test_value" >/dev/null 2>&1; then
+            echo "❌ Redis SET operation failed"
+            exit 1
+          fi
+          
+          if ! redis-cli -h localhost -p 6379 get ci_test_key >/dev/null 2>&1; then
+            echo "❌ Redis GET operation failed"
+            exit 1
+          fi
+          
+          if ! redis-cli -h localhost -p 6379 del ci_test_key >/dev/null 2>&1; then
+            echo "❌ Redis DEL operation failed"
+            exit 1
+          fi
+          
+          echo "✅ Redis operations test passed"
+          
+          if ! (mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1); then
+            echo "❌ MongoDB no está listo"
+            echo "MongoDB debug:"
+            mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" 2>&1 || echo "MongoDB connection failed"
+            exit 1
+          fi
+          
+          echo "✅ Todos los servicios verificados y completamente funcionales"
       
       - name: Setup test environment variables
         run: |

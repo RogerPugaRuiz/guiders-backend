@@ -48,14 +48,42 @@ export class RedisConnectionService
   }
 
   async onModuleInit(): Promise<void> {
-    try {
-      if (!this.redisClient.isOpen) {
-        await this.redisClient.connect();
+    const maxRetries = 5;
+    const retryDelay = 2000; // 2 segundos
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (!this.redisClient.isOpen) {
+          console.log(
+            `Intentando conectar a Redis (intento ${attempt}/${maxRetries})...`,
+          );
+          await this.redisClient.connect();
+
+          // Verificar que la conexión funciona correctamente
+          await this.redisClient.ping();
+          console.log('✅ Conexión a Redis establecida y verificada');
+          return;
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(
+          `⚠️ Intento ${attempt}/${maxRetries} falló:`,
+          lastError.message,
+        );
+
+        if (attempt < maxRetries) {
+          console.log(`🔄 Reintentando en ${retryDelay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        }
       }
-    } catch (error) {
-      console.error('Error al conectar con Redis:', error);
-      throw error;
     }
+
+    console.error(
+      '❌ Error al conectar con Redis después de todos los intentos:',
+      lastError,
+    );
+    throw lastError || new Error('Redis connection failed after all retries');
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -73,7 +101,34 @@ export class RedisConnectionService
    */
   private async ensureConnection(): Promise<void> {
     if (!this.redisClient.isOpen) {
-      await this.redisClient.connect();
+      const maxRetries = 3;
+      const retryDelay = 1000; // 1 segundo para operaciones internas
+      let lastError: Error | null = null;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(
+            `Reconectando a Redis (intento ${attempt}/${maxRetries})...`,
+          );
+          await this.redisClient.connect();
+          await this.redisClient.ping();
+          console.log('✅ Reconexión a Redis exitosa');
+          return;
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          console.warn(
+            `⚠️ Intento de reconexión ${attempt}/${maxRetries} falló:`,
+            lastError.message,
+          );
+
+          if (attempt < maxRetries) {
+            await new Promise((resolve) => setTimeout(resolve, retryDelay));
+          }
+        }
+      }
+
+      console.error('❌ Error al reconectar con Redis:', lastError);
+      throw lastError || new Error('Redis reconnection failed');
     }
   }
 

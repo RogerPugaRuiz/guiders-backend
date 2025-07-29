@@ -1005,7 +1005,7 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
           //   $lte: toSeqNum,
           // };
         }
-        
+
         // TODO: Implementar filtro por números de secuencia
         void fromSeqNum; // Evitar warning de variable no usada
         void toSeqNum; // Evitar warning de variable no usada
