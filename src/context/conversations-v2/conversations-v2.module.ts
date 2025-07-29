@@ -5,6 +5,7 @@ import { HttpModule } from '@nestjs/axios';
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
+import { MessageV2Controller } from './infrastructure/controllers/message-v2.controller';
 
 // Infrastructure
 import {
@@ -34,7 +35,7 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
     ]),
   ],
-  controllers: [ChatV2Controller],
+  controllers: [ChatV2Controller, MessageV2Controller],
   providers: [
     // Guards
     AuthGuard,

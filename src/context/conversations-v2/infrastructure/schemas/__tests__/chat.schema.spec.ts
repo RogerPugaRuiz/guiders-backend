@@ -16,7 +16,10 @@ describe('ChatSchema (MongoDB Integration)', () => {
 
     module = await Test.createTestingModule({
       imports: [
-        MongooseModule.forRoot(mongoUri),
+        MongooseModule.forRoot(mongoUri, {
+          connectTimeoutMS: 10000,
+          serverSelectionTimeoutMS: 10000,
+        }),
         MongooseModule.forFeature([
           { name: 'Chat', schema: ChatSchemaDefinition },
         ]),
@@ -24,11 +27,16 @@ describe('ChatSchema (MongoDB Integration)', () => {
     }).compile();
 
     chatModel = module.get<Model<ChatSchema>>(getModelToken('Chat'));
-  });
+  }, 15000); // Aumentar timeout a 15 segundos
 
   afterAll(async () => {
     await module.close();
     await mongoServer.stop();
+  }, 10000); // Timeout para cleanup
+
+  beforeEach(async () => {
+    // Limpiar la colección antes de cada test
+    await chatModel.deleteMany({});
   });
 
   afterEach(async () => {
