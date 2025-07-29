@@ -69,7 +69,7 @@ export class RedisConnectionService
         lastError = error instanceof Error ? error : new Error(String(error));
         console.warn(
           `⚠️ Intento ${attempt}/${maxRetries} falló:`,
-          lastError.message,
+          lastError?.message || 'Error desconocido',
         );
 
         if (attempt < maxRetries) {
@@ -81,7 +81,7 @@ export class RedisConnectionService
 
     console.error(
       '❌ Error al conectar con Redis después de todos los intentos:',
-      lastError,
+      lastError?.message || 'Error desconocido',
     );
     throw lastError || new Error('Redis connection failed after all retries');
   }
@@ -118,7 +118,7 @@ export class RedisConnectionService
           lastError = error instanceof Error ? error : new Error(String(error));
           console.warn(
             `⚠️ Intento de reconexión ${attempt}/${maxRetries} falló:`,
-            lastError.message,
+            lastError?.message || 'Error desconocido',
           );
 
           if (attempt < maxRetries) {
@@ -127,7 +127,10 @@ export class RedisConnectionService
         }
       }
 
-      console.error('❌ Error al reconectar con Redis:', lastError);
+      console.error(
+        '❌ Error al reconectar con Redis:',
+        lastError?.message || 'Error desconocido',
+      );
       throw lastError || new Error('Redis reconnection failed');
     }
   }
