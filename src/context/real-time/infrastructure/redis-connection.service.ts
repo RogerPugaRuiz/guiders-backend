@@ -20,6 +20,7 @@ export class RedisConnectionService
   implements ConnectionRepository, OnModuleInit, OnModuleDestroy
 {
   private redisClient: RedisClientType;
+  private isRedisAvailable: boolean = true; // Flag para tracking del estado de Redis
 
   // Patrones de claves para organizar los datos en Redis
   private readonly USER_SOCKET_KEY = 'user:socket:'; // user:socket:userId -> socketId
@@ -48,8 +49,14 @@ export class RedisConnectionService
   }
 
   async onModuleInit(): Promise<void> {
-    const maxRetries = 10; // Aumentado de 5 a 10 para CI
-    const retryDelay = 3000; // Aumentado de 2s a 3s para CI
+    // Permitir deshabilitar Redis en entornos de test cuando no esté disponible
+    if (process.env.DISABLE_REDIS === 'true') {
+      console.warn('⚠️ Redis está deshabilitado vía DISABLE_REDIS=true');
+      return;
+    }
+
+    const maxRetries = 10; // Aumentado de 5 a 10 para entornos CI
+    const retryDelay = 3000; // Aumentado a 3 segundos para dar más tiempo
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -102,7 +109,7 @@ export class RedisConnectionService
   private async ensureConnection(): Promise<void> {
     if (!this.redisClient.isOpen) {
       const maxRetries = 5; // Aumentado de 3 a 5
-      const retryDelay = 2000; // Aumentado de 1s a 2s
+      const retryDelay = 2000; // Aumentado a 2 segundos
       let lastError: Error | null = null;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {

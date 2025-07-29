@@ -693,6 +693,65 @@ jobs:
           
           echo "🎯 Redis verificado y listo para E2E tests"
       
+      - name: Final Redis readiness check for E2E
+        run: |
+          echo "🔍 Verificación final de Redis específica para E2E..."
+          
+          # Verificar que Redis está respondiendo correctamente
+          if ! redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+            echo "❌ Error: Redis no responde a ping"
+            echo "🔧 Debug Redis status:"
+            echo "- Port check: $(nc -z localhost 6379 && echo 'open' || echo 'closed')"
+            echo "- Docker container: $(docker ps --filter name=redis-e2e --format '{{.Status}}' || echo 'not found')"
+            echo "- Container logs:"
+            docker logs $(docker ps -q --filter name=redis-e2e) 2>/dev/null | tail -5 || echo "No logs available"
+            exit 1
+          fi
+          
+          # Test completo de operaciones Redis
+          echo "🧪 Testing Redis operations for E2E..."
+          test_key="e2e_final_test_$(date +%s)"
+          test_value="final_test_value"
+          
+          if ! redis-cli -h localhost -p 6379 set "$test_key" "$test_value" >/dev/null 2>&1; then
+            echo "❌ Redis SET operation failed"
+            exit 1
+          fi
+          
+          retrieved_value=$(redis-cli -h localhost -p 6379 get "$test_key" 2>/dev/null)
+          if [ "$retrieved_value" != "$test_value" ]; then
+            echo "❌ Redis GET operation failed or returned wrong value"
+            echo "Expected: $test_value, Got: $retrieved_value"
+            exit 1
+          fi
+          
+          if ! redis-cli -h localhost -p 6379 del "$test_key" >/dev/null 2>&1; then
+            echo "❌ Redis DEL operation failed"
+            exit 1
+          fi
+          
+          # Verificar que Redis puede manejar múltiples operaciones
+          echo "🔄 Testing Redis multi-key operations..."
+          for i in {1..5}; do
+            key="test_multi_$i"
+            value="value_$i"
+            if ! redis-cli -h localhost -p 6379 set "$key" "$value" >/dev/null 2>&1; then
+              echo "❌ Multi-key SET failed on iteration $i"
+              exit 1
+            fi
+          done
+          
+          # Limpiar claves de test
+          redis-cli -h localhost -p 6379 del test_multi_1 test_multi_2 test_multi_3 test_multi_4 test_multi_5 >/dev/null 2>&1
+          
+          echo "✅ Redis está completamente funcional y listo para E2E tests"
+          
+          # Mostrar info de Redis para debug
+          echo "📋 Redis info:"
+          echo "- Memory usage: $(redis-cli -h localhost -p 6379 info memory | grep used_memory_human || echo 'N/A')"
+          echo "- Connected clients: $(redis-cli -h localhost -p 6379 info clients | grep connected_clients || echo 'N/A')"
+          echo "- Redis version: $(redis-cli -h localhost -p 6379 info server | grep redis_version || echo 'N/A')"
+      
       - name: Run E2E tests (CRÍTICO)
         run: npm run test:e2e
         continue-on-error: false
