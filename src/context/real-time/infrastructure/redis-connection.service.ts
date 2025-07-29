@@ -52,6 +52,7 @@ export class RedisConnectionService
     // Permitir deshabilitar Redis en entornos de test cuando no esté disponible
     if (process.env.DISABLE_REDIS === 'true') {
       console.warn('⚠️ Redis está deshabilitado vía DISABLE_REDIS=true');
+      this.isRedisAvailable = false;
       return;
     }
 
@@ -70,6 +71,7 @@ export class RedisConnectionService
           // Verificar que la conexión funciona correctamente
           await this.redisClient.ping();
           console.log('✅ Conexión a Redis establecida y verificada');
+          this.isRedisAvailable = true;
           return;
         }
       } catch (error) {
@@ -90,7 +92,10 @@ export class RedisConnectionService
       '❌ Error al conectar con Redis después de todos los intentos:',
       lastError?.message || 'Error desconocido',
     );
-    throw lastError || new Error('Redis connection failed after all retries');
+    
+    // En lugar de lanzar error, marcar Redis como no disponible
+    this.isRedisAvailable = false;
+    console.warn('⚠️ Redis marcado como no disponible - continuando sin Redis');
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -107,6 +112,12 @@ export class RedisConnectionService
    * Asegura que el cliente Redis esté conectado antes de realizar operaciones
    */
   private async ensureConnection(): Promise<void> {
+    // Si Redis no está disponible, saltamos la operación
+    if (!this.isRedisAvailable) {
+      console.warn('⚠️ Redis no está disponible - saltando operación');
+      return;
+    }
+
     if (!this.redisClient.isOpen) {
       const maxRetries = 5; // Aumentado de 3 a 5
       const retryDelay = 2000; // Aumentado a 2 segundos
@@ -120,6 +131,7 @@ export class RedisConnectionService
           await this.redisClient.connect();
           await this.redisClient.ping();
           console.log('✅ Reconexión a Redis exitosa');
+          this.isRedisAvailable = true;
           return;
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error));
@@ -138,7 +150,12 @@ export class RedisConnectionService
         '❌ Error al reconectar con Redis:',
         lastError?.message || 'Error desconocido',
       );
-      throw lastError || new Error('Redis reconnection failed');
+      
+      // Marcar Redis como no disponible en lugar de lanzar error
+      this.isRedisAvailable = false;
+      console.warn(
+        '⚠️ Redis marcado como no disponible después de fallar reconexión',
+      );
     }
   }
 
@@ -148,6 +165,12 @@ export class RedisConnectionService
    */
   async save(user: ConnectionUser): Promise<void> {
     await this.ensureConnection();
+
+    // Si Redis no está disponible, saltar operación silenciosamente
+    if (!this.isRedisAvailable) {
+      console.warn('⚠️ Redis no disponible - saltando save de usuario');
+      return;
+    }
 
     const { userId, roles, companyId } = user.toPrimitives();
 
@@ -196,6 +219,12 @@ export class RedisConnectionService
    */
   async remove(user: ConnectionUser): Promise<void> {
     await this.ensureConnection();
+
+    // Si Redis no está disponible, saltar operación silenciosamente
+    if (!this.isRedisAvailable) {
+      console.warn('⚠️ Redis no disponible - saltando remove de usuario');
+      return;
+    }
 
     const { userId } = user.toPrimitives();
 
@@ -270,6 +299,12 @@ export class RedisConnectionService
    */
   async find(criteria: Criteria<ConnectionUser>): Promise<ConnectionUser[]> {
     await this.ensureConnection();
+
+    // Si Redis no está disponible, retornar array vacío
+    if (!this.isRedisAvailable) {
+      console.warn('⚠️ Redis no disponible - retornando array vacío');
+      return [];
+    }
 
     try {
       // Obtener todos los userIds registrados
