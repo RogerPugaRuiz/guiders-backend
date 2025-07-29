@@ -65,13 +65,11 @@ export class MongoChatRepositoryImpl implements IChatRepository {
       await this.chatModel.create(schema);
       return okVoid();
     } catch (error) {
-      return await Promise.resolve(
-        err(
-          new ChatPersistenceError(
-            `Error obteniendo estadísticas de tiempo de respuesta: ${
-              (error as Error).message
-            }`,
-          ),
+      return err(
+        new ChatPersistenceError(
+          `Error al guardar chat: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
         ),
       );
     }
