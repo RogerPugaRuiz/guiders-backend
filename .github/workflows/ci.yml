@@ -268,8 +268,16 @@ jobs:
           sudo sysctl -w net.core.somaxconn=1024
           echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
       
-      - name: Install Redis tools
-        run: sudo apt-get update && sudo apt-get install -y redis-tools
+      - name: Install Redis tools and MongoDB shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools
+          
+          # Install mongosh for MongoDB health checks
+          wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-mongosh
       
       - name: Wait for services to be ready
         run: |
@@ -520,8 +528,16 @@ jobs:
           sudo sysctl -w net.core.somaxconn=1024
           echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
       
-      - name: Install Redis tools
-        run: sudo apt-get update && sudo apt-get install -y redis-tools
+      - name: Install Redis tools and MongoDB shell
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools
+          
+          # Install mongosh for MongoDB health checks
+          wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-mongosh
       
       - name: Wait for services to be ready
         run: |
