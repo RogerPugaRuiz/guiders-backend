@@ -595,7 +595,7 @@ describe('ChatV2Controller (e2e)', () => {
     });
   });
 
-  describe('GET /v2/chats/stats/response-time', () => {
+  describe('GET /v2/chats/response-time-stats', () => {
     it('debe retornar estadísticas de tiempo de respuesta', async () => {
       const mockToken = 'mock-admin-token';
 

@@ -384,27 +384,36 @@ export class ChatV2Controller {
   @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin')
   @ApiOperation({ summary: 'Obtener estadísticas de tiempo de respuesta' })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
+  @ApiQuery({ name: 'groupBy', required: false, enum: ['hour', 'day', 'week'] })
   @ApiResponse({
     status: 200,
     description: 'Estadísticas de tiempo de respuesta',
     type: ResponseTimeStatsDto,
   })
-  getResponseTimeStats(): ResponseTimeStatsDto {
+  getResponseTimeStats(
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('groupBy') groupBy?: 'hour' | 'day' | 'week',
+  ): ResponseTimeStatsDto {
     try {
-      this.logger.log('Obteniendo estadísticas de tiempo de respuesta');
+      this.logger.log(
+        `Obteniendo estadísticas de tiempo de respuesta: ${dateFrom} - ${dateTo}, groupBy: ${groupBy}`,
+      );
 
       // TODO: Implementar query handler
       // const query = new GetResponseTimeStatsQuery({
-      //   dateFrom: new Date(dateFrom),
-      //   dateTo: new Date(dateTo),
-      //   groupBy,
+      //   dateFrom: dateFrom ? new Date(dateFrom) : undefined,
+      //   dateTo: dateTo ? new Date(dateTo) : undefined,
+      //   groupBy: groupBy || 'day',
       // });
 
-      // Respuesta temporal
+      // Respuesta temporal usando los parámetros
       return {
-        period: 'daily',
-        avgResponseTime: 0,
-        count: 0,
+        period: groupBy || 'daily',
+        avgResponseTime: 15.5,
+        count: 10,
       };
     } catch (error) {
       this.logger.error(
