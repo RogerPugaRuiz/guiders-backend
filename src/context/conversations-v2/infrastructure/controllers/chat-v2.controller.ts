@@ -133,13 +133,13 @@ export class ChatV2Controller {
   @ApiResponse({
     status: 200,
     description: 'Estadísticas de tiempo de respuesta',
-    type: ResponseTimeStatsDto,
+    type: [ResponseTimeStatsDto],
   })
   getResponseTimeStats(
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
     @Query('groupBy') groupBy?: 'hour' | 'day' | 'week',
-  ): ResponseTimeStatsDto {
+  ): ResponseTimeStatsDto[] {
     try {
       this.logger.log(
         `Obteniendo estadísticas de tiempo de respuesta: ${dateFrom} - ${dateTo}, groupBy: ${groupBy}`,
@@ -152,12 +152,19 @@ export class ChatV2Controller {
       //   groupBy: groupBy || 'day',
       // });
 
-      // Respuesta temporal usando los parámetros
-      return {
-        period: groupBy || 'daily',
-        avgResponseTime: 15.5,
-        count: 10,
-      };
+      // Respuesta temporal usando los parámetros - retornando array simulado
+      return [
+        {
+          period: '2025-07-28',
+          avgResponseTime: 15.5,
+          count: 10,
+        },
+        {
+          period: '2025-07-29',
+          avgResponseTime: 12.3,
+          count: 8,
+        },
+      ];
     } catch (error) {
       this.logger.error(
         'Error al obtener estadísticas de tiempo de respuesta:',

@@ -92,7 +92,7 @@ export class RedisConnectionService
       '❌ Error al conectar con Redis después de todos los intentos:',
       lastError?.message || 'Error desconocido',
     );
-    
+
     // En lugar de lanzar error, marcar Redis como no disponible
     this.isRedisAvailable = false;
     console.warn('⚠️ Redis marcado como no disponible - continuando sin Redis');
@@ -150,7 +150,7 @@ export class RedisConnectionService
         '❌ Error al reconectar con Redis:',
         lastError?.message || 'Error desconocido',
       );
-      
+
       // Marcar Redis como no disponible en lugar de lanzar error
       this.isRedisAvailable = false;
       console.warn(
