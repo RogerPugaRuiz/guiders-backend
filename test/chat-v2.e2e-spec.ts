@@ -600,7 +600,7 @@ describe('ChatV2Controller (e2e)', () => {
       const mockToken = 'mock-admin-token';
 
       return request(app.getHttpServer())
-        .get('/v2/chats/stats/response-time')
+        .get('/v2/chats/response-time-stats')
         .query({
           dateFrom: '2025-07-01T00:00:00Z',
           dateTo: '2025-07-31T23:59:59Z',
@@ -617,7 +617,7 @@ describe('ChatV2Controller (e2e)', () => {
       const mockToken = 'mock-admin-token';
 
       return request(app.getHttpServer())
-        .get('/v2/chats/stats/response-time')
+        .get('/v2/chats/response-time-stats')
         .set('Authorization', `Bearer ${mockToken}`)
         .expect(200); // El controller actual no valida esto, pero sigue siendo un test válido
     });
