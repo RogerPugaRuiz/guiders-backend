@@ -664,6 +664,35 @@ jobs:
           echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
       
+      - name: Wait for Redis to be ready (extra check before E2E)
+        run: |
+          echo "🔄 Verificación final de Redis antes de E2E tests..."
+          for i in {1..20}; do
+            if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+              # Test completo de operaciones Redis
+              if redis-cli -h localhost -p 6379 set e2e_test_key "e2e_test_value" >/dev/null 2>&1 && \
+                 redis-cli -h localhost -p 6379 get e2e_test_key >/dev/null 2>&1 && \
+                 redis-cli -h localhost -p 6379 del e2e_test_key >/dev/null 2>&1; then
+                echo "✅ Redis está completamente listo para E2E tests!"
+                break
+              fi
+            fi
+            echo "⏳ Esperando Redis para E2E ($i/20)..."
+            sleep 2
+          done
+          
+          # Verificación final
+          if ! redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+            echo "❌ Redis no está listo después de esperar 40 segundos."
+            echo "Debug info:"
+            redis-cli -h localhost -p 6379 ping 2>&1 || echo "Redis ping failed"
+            nc -z localhost 6379 && echo "Port 6379 is open" || echo "Port 6379 is closed"
+            docker ps | grep redis || echo "No Redis container found"
+            exit 1
+          fi
+          
+          echo "🎯 Redis verificado y listo para E2E tests"
+      
       - name: Run E2E tests (CRÍTICO)
         run: npm run test:e2e
         continue-on-error: false

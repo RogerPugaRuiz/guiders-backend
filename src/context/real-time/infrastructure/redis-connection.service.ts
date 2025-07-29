@@ -48,8 +48,8 @@ export class RedisConnectionService
   }
 
   async onModuleInit(): Promise<void> {
-    const maxRetries = 5;
-    const retryDelay = 2000; // 2 segundos
+    const maxRetries = 10; // Aumentado de 5 a 10 para CI
+    const retryDelay = 3000; // Aumentado de 2s a 3s para CI
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -101,8 +101,8 @@ export class RedisConnectionService
    */
   private async ensureConnection(): Promise<void> {
     if (!this.redisClient.isOpen) {
-      const maxRetries = 3;
-      const retryDelay = 1000; // 1 segundo para operaciones internas
+      const maxRetries = 5; // Aumentado de 3 a 5
+      const retryDelay = 2000; // Aumentado de 1s a 2s
       let lastError: Error | null = null;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
