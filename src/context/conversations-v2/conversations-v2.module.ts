@@ -1,12 +1,21 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
+import { HttpModule } from '@nestjs/axios';
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
 
 // Infrastructure
-import { ChatSchemaDefinition } from './infrastructure/schemas/chat.schema';
+import {
+  ChatSchema,
+  ChatSchemaDefinition,
+} from './infrastructure/schemas/chat.schema';
+import { ChatMapper } from './infrastructure/mappers/chat.mapper';
+import { MongoChatRepositoryImpl } from './infrastructure/persistence/impl/mongo-chat.repository.impl';
+
+// Domain
+import { CHAT_V2_REPOSITORY } from './domain/chat.repository';
 
 // Guards
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
@@ -20,7 +29,10 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
 @Module({
   imports: [
     CqrsModule, // Para Command/Query handlers
-    MongooseModule.forFeature([{ name: 'Chat', schema: ChatSchemaDefinition }]),
+    HttpModule, // Para TokenVerifyService
+    MongooseModule.forFeature([
+      { name: ChatSchema.name, schema: ChatSchemaDefinition },
+    ]),
   ],
   controllers: [ChatV2Controller],
   providers: [
@@ -28,6 +40,15 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
     AuthGuard,
     RolesGuard,
     TokenVerifyService,
+
+    // Mappers
+    ChatMapper,
+
+    // Repository Implementation
+    {
+      provide: CHAT_V2_REPOSITORY,
+      useClass: MongoChatRepositoryImpl,
+    },
 
     // TODO: Agregar cuando se implementen
     // Command Handlers
@@ -43,12 +64,6 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
     // GetPendingQueueQueryHandler,
     // GetCommercialMetricsQueryHandler,
     // GetResponseTimeStatsQueryHandler,
-
-    // Repository Implementation
-    // {
-    //   provide: CHAT_V2_REPOSITORY,
-    //   useClass: MongoChatRepositoryImpl,
-    // },
 
     // Services
     // ChatV2Service,

@@ -262,7 +262,7 @@ export class ChatResponseDto {
 }
 
 /**
- * DTO de respuesta para lista paginada de chats
+ * DTO de respuesta para lista paginada de chats con cursor
  */
 export class ChatListResponseDto {
   @ApiProperty({
@@ -284,14 +284,10 @@ export class ChatListResponseDto {
   hasMore: boolean;
 
   @ApiProperty({
-    description: 'Página actual',
-    example: 1,
+    description: 'Cursor para obtener la siguiente página',
+    example:
+      'eyJsYXN0TWVzc2FnZUF0IjoiMjAyNS0wNy0yOFQxMDozMDowMC4wMDBaIiwiaWQiOiJjaGF0LTEyMyJ9',
+    required: false,
   })
-  page: number;
-
-  @ApiProperty({
-    description: 'Número de elementos por página',
-    example: 20,
-  })
-  limit: number;
+  nextCursor?: string | null;
 }

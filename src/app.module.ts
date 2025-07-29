@@ -19,6 +19,7 @@ import { TrackingModule } from './context/tracking/tracking.module';
 import { MessageModule } from './context/conversations/message/infrastructure/message.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
 import { CompanyModule } from './context/company/company.module';
+import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { CompanyModule } from './context/company/company.module';
     MessageModule,
     TrackingModule,
     CompanyModule,
+    ConversationsV2Module,
     // OpenSearchModule,
     CqrsModule.forRoot(),
     HttpModule,

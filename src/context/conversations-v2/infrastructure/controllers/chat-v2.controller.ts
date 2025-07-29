@@ -38,6 +38,7 @@ import {
   CommercialMetricsResponseDto,
   ResponseTimeStatsDto,
 } from '../../application/dtos/chat-query.dto';
+import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
 
 /**
  * Controller para la gestión de chats v2
@@ -60,14 +61,63 @@ export class ChatV2Controller {
   @Get()
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
-    summary: 'Obtener lista de chats con filtros',
+    summary: 'Obtener lista de chats con filtros y paginación con cursor',
     description:
-      'Retorna una lista paginada de chats con filtros avanzados para comerciales',
+      'Retorna una lista paginada de chats con filtros avanzados para comerciales. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados.',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    description:
+      'Cursor para paginación (obtenido del campo nextCursor de la respuesta anterior). Permite navegar a través de páginas sin duplicados ni omisiones.',
+    required: false,
+    type: String,
+    example:
+      'eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=',
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Número máximo de chats a retornar por página (1-100)',
+    required: false,
+    type: Number,
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'filters',
+    description:
+      'Filtros de búsqueda para chats (status, priority, visitorId, etc.)',
+    required: false,
+    type: Object,
+  })
+  @ApiQuery({
+    name: 'sort',
+    description: 'Opciones de ordenamiento (field y direction)',
+    required: false,
+    type: Object,
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de chats obtenida exitosamente',
+    description:
+      'Lista de chats obtenida exitosamente con paginación basada en cursor',
     type: ChatListResponseDto,
+    schema: {
+      example: {
+        chats: [
+          {
+            id: 'chat-123',
+            visitorId: 'visitor-456',
+            commercialId: 'commercial-789',
+            status: 'active',
+            priority: 'high',
+            createdAt: '2025-07-28T10:30:00.000Z',
+            lastMessageAt: '2025-07-28T11:15:00.000Z',
+          },
+        ],
+        total: 150,
+        hasMore: true,
+        nextCursor:
+          'eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDExOjE1OjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=',
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -80,37 +130,23 @@ export class ChatV2Controller {
   getChats(
     @Query() queryParams: GetChatsQueryDto,
     @Req() req: AuthenticatedRequest,
-  ): ChatListResponseDto {
+  ): Promise<ChatListResponseDto> {
     try {
       this.logger.log(`Obteniendo chats para usuario: ${req.user.id}`);
 
-      // TODO: Implementar query handler
-      // const query = new GetChatsWithFiltersQuery({
-      //   filters: queryParams.filters,
-      //   sort: queryParams.sort,
-      //   page: queryParams.page || 1,
-      //   limit: queryParams.limit || 20,
-      //   userId: req.user.sub,
-      //   userRole: req.user.role,
-      // });
+      // Log the query parameters for debugging
+      this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
 
-      // const result: Result<ChatSearchResult, DomainError> = await this.queryBus.execute(query);
-
-      // if (result.isError()) {
-      //   throw new HttpException(
-      //     result.error.message,
-      //     HttpStatus.INTERNAL_SERVER_ERROR,
-      //   );
-      // }
-
-      // Respuesta temporal mientras se implementan los handlers
-      return {
-        chats: [],
-        total: 0,
-        hasMore: false,
-        page: queryParams.page || 1,
+      const query = GetChatsWithFiltersQuery.create({
+        userId: req.user.id,
+        userRole: req.user.roles[0] || 'visitor', // Usar el primer rol como rol principal
+        filters: queryParams.filters,
+        sort: queryParams.sort,
+        cursor: queryParams.cursor,
         limit: queryParams.limit || 20,
-      };
+      });
+
+      return this.queryBus.execute(query);
     } catch (error) {
       this.logger.error('Error al obtener chats:', error);
       throw new HttpException(
@@ -241,13 +277,39 @@ export class ChatV2Controller {
   @Get('commercial/:commercialId')
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
-    summary: 'Obtener chats de un comercial',
-    description: 'Retorna los chats asignados a un comercial específico',
+    summary: 'Obtener chats de un comercial con paginación cursor',
+    description:
+      'Retorna los chats asignados a un comercial específico usando paginación basada en cursor',
   })
   @ApiParam({
     name: 'commercialId',
     description: 'ID del comercial',
     example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    description: 'Cursor para paginación (opcional)',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Número máximo de chats a retornar (1-100)',
+    required: false,
+    type: Number,
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'filters',
+    description: 'Filtros adicionales para chats',
+    required: false,
+    type: Object,
+  })
+  @ApiQuery({
+    name: 'sort',
+    description: 'Opciones de ordenamiento',
+    required: false,
+    type: Object,
   })
   getCommercialChats(
     @Param('commercialId') commercialId: string,
@@ -256,12 +318,15 @@ export class ChatV2Controller {
     try {
       this.logger.log(`Obteniendo chats del comercial ${commercialId}`);
 
+      // Log the query parameters for debugging
+      this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
+
       // TODO: Implementar query handler
       // const query = new GetCommercialChatsQuery({
       //   commercialId,
       //   filters: queryParams.filters,
       //   sort: queryParams.sort,
-      //   page: queryParams.page || 1,
+      //   cursor: queryParams.cursor,
       //   limit: queryParams.limit || 20,
       // });
 
@@ -270,8 +335,7 @@ export class ChatV2Controller {
         chats: [],
         total: 0,
         hasMore: false,
-        page: queryParams.page || 1,
-        limit: queryParams.limit || 20,
+        nextCursor: null,
       };
     } catch (error) {
       this.logger.error(
@@ -291,13 +355,27 @@ export class ChatV2Controller {
   @Get('visitor/:visitorId')
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
   @ApiOperation({
-    summary: 'Obtener chats de un visitante',
-    description: 'Retorna el historial de chats de un visitante específico',
+    summary: 'Obtener chats de un visitante con paginación cursor',
+    description:
+      'Retorna el historial de chats de un visitante específico usando paginación basada en cursor',
   })
   @ApiParam({
     name: 'visitorId',
     description: 'ID del visitante',
     example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiQuery({
+    name: 'cursor',
+    description: 'Cursor para paginación (opcional)',
+    required: false,
+    type: String,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Número máximo de chats a retornar (1-100)',
+    required: false,
+    type: Number,
+    example: 20,
   })
   getVisitorChats(
     @Param('visitorId') visitorId: string,
@@ -306,10 +384,13 @@ export class ChatV2Controller {
     try {
       this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
 
+      // Log the query parameters for debugging
+      this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
+
       // TODO: Implementar query handler
       // const query = new GetVisitorChatsQuery({
       //   visitorId,
-      //   page: queryParams.page || 1,
+      //   cursor: queryParams.cursor,
       //   limit: queryParams.limit || 20,
       // });
 
@@ -318,8 +399,7 @@ export class ChatV2Controller {
         chats: [],
         total: 0,
         hasMore: false,
-        page: queryParams.page || 1,
-        limit: queryParams.limit || 20,
+        nextCursor: null,
       };
     } catch (error) {
       this.logger.error(
@@ -401,9 +481,12 @@ export class ChatV2Controller {
   })
   getCommercialMetrics(
     @Param('commercialId') commercialId: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ): CommercialMetricsResponseDto {
     try {
       this.logger.log(`Obteniendo métricas del comercial ${commercialId}`);
+      this.logger.log(`Período: ${dateFrom} - ${dateTo}`);
 
       // TODO: Implementar query handler
       // const query = new GetCommercialMetricsQuery({

@@ -140,19 +140,19 @@ export class ChatSortDto {
 }
 
 /**
- * DTO para parámetros de paginación
+ * DTO para parámetros de paginación con cursor
  */
 export class PaginationDto {
   @ApiProperty({
-    description: 'Número de página (empezando desde 1)',
-    minimum: 1,
-    default: 1,
-    example: 1,
+    description:
+      'Cursor para paginación (basado en el último elemento obtenido)',
+    required: false,
+    example:
+      'eyJsYXN0TWVzc2FnZUF0IjoiMjAyNS0wNy0yOFQxMDozMDowMC4wMDBaIiwiaWQiOiJjaGF0LTEyMyJ9',
   })
   @IsOptional()
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
+  @IsString()
+  cursor?: string;
 
   @ApiProperty({
     description: 'Número de elementos por página',
