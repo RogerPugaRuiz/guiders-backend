@@ -57,7 +57,7 @@ jobs:
       - name: Setup WireGuard
         uses: egor-tensin/setup-wireguard@v1
         with:
-          endpoint: ${{ secrets.WG_SERVER_ENDPOINT }}
+          endpoint: ${{ secrets.WG_SERVER_ENDPOINT }}:51820
           endpoint_public_key: ${{ secrets.WG_SERVER_PUBLIC_KEY }}
           ips: 10.0.0.2
           allowed_ips: 10.0.0.0/24
