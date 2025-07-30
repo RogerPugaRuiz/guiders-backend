@@ -66,7 +66,7 @@ jobs:
         run: sudo ip link add dev wg0 type wireguard
 
       - name: Configure WireGuard IP
-        run: sudo ip address add dev wg0 10.0.0.3/32 peer 10.0.0.1
+        run: sudo ip address add dev wg0 10.0.0.3/24 peer 10.0.0.1
 
       - name: Configure WireGuard peer
         run: |
@@ -150,7 +150,7 @@ jobs:
             echo "❌ No se puede establecer conectividad VPN"
             echo "🔍 Información de debug:"
             echo "  - Interfaz WireGuard: CONFIGURADA ✅"
-            echo "  - IP del cliente: 10.0.0.3/32 ✅"
+            echo "  - IP del cliente: 10.0.0.3/24 ✅"
             echo "  - Rutas: CONFIGURADAS ✅"
             echo "  - Problema: Servidor VPN no responde ❌"
             echo ""
