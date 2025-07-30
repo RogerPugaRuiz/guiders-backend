@@ -1,4 +1,4 @@
-name: Simple Staging Deploy
+name: Deploy to Staging (Real)
 
 on:
   push:
@@ -39,46 +39,178 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-  # Deploy simulado a staging
+  # Deploy real a staging (estructura similar a producción)
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     needs: [test-and-build]
     if: needs.test-and-build.result == 'success'
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
-      - name: Setup staging environment
+
+      - name: Install OpenVPN and sshpass
+        run: sudo apt-get update && sudo apt-get install -y openvpn sshpass
+
+      - name: Setup OpenVPN config
+        run: echo "${{ secrets.STAGING_OVPN_CONFIG }}" > vpn.conf
+
+      - name: Connect to VPN
+        run: sudo openvpn --config vpn.conf --daemon && sleep 15
+
+      - name: Add staging server to known_hosts
         run: |
-          echo "🔧 Configurando staging..."
-          echo "NODE_ENV=staging" > .env.staging
-          echo "PORT=3000" >> .env.staging
-          echo "DATABASE_HOST=localhost" >> .env.staging
-          echo "DATABASE_USERNAME=guiders_staging" >> .env.staging
-          echo "DATABASE_PASSWORD=staging_password" >> .env.staging
-          echo "DATABASE=guiders_staging" >> .env.staging
-          echo "REDIS_URL=redis://localhost:6379" >> .env.staging
-          echo "MONGODB_URL=mongodb://admin:password@localhost:27017/guiders_staging" >> .env.staging
-      
-      - name: Deploy to staging
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Build and prepare deployment
         run: |
-          echo "🚀 Desplegando a staging..."
-          echo "📦 Branch: ${{ github.ref_name }}"
-          echo "📝 Commit: ${{ github.sha }}"
-          echo "✅ Deploy completado (simulado)"
+          # Instalar solo dependencias necesarias para el build
+          npm ci --include=dev
+          npm run build
           
-          # En un entorno real:
-          # scp .env.staging user@staging-server:/var/www/guiders/
-          # ssh user@staging-server 'cd /var/www/guiders && git pull && npm install && pm2 restart guiders'
-      
-      - name: Verify deployment
+          # Crear package.json optimizado para staging (sin sqlite3)
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json'));
+            // Remover sqlite3 de las dependencias ya que solo se usa en tests
+            if (pkg.dependencies && pkg.dependencies.sqlite3) {
+              delete pkg.dependencies.sqlite3;
+            }
+            require('fs').writeFileSync('package-staging.json', JSON.stringify(pkg, null, 2));
+          "
+          
+          tar czf deploy-staging.tar.gz dist package-staging.json package-lock.json
+
+      - name: Create staging environment config
         run: |
-          echo "🔍 Verificando deployment..."
-          echo "✅ Staging funcionando correctamente"
-          echo "🌐 URL: https://staging.guiders.app"
+          echo "🔧 Creando configuración para staging..."
+          cat > .env.staging << EOF
+          PORT=${{ secrets.STAGING_PORT }}
+          DATABASE_HOST=${{ secrets.STAGING_DATABASE_HOST }}
+          DATABASE_PORT=${{ secrets.STAGING_DATABASE_PORT }}
+          DATABASE_USERNAME=${{ secrets.STAGING_DATABASE_USERNAME }}
+          DATABASE_PASSWORD=${{ secrets.STAGING_DATABASE_PASSWORD }}
+          DATABASE=${{ secrets.STAGING_DATABASE }}
+          APP_URL=${{ secrets.STAGING_APP_URL }}
+          ENCRYPTION_KEY=${{ secrets.STAGING_ENCRYPTION_KEY }}
+          GLOBAL_TOKEN_SECRET=${{ secrets.STAGING_GLOBAL_TOKEN_SECRET }}
+          ACCESS_TOKEN_EXPIRATION=${{ secrets.STAGING_ACCESS_TOKEN_EXPIRATION }}
+          REFRESH_TOKEN_EXPIRATION=${{ secrets.STAGING_REFRESH_TOKEN_EXPIRATION }}
+          REDIS_PORT=${{ secrets.STAGING_REDIS_PORT }}
+          REDIS_URL=${{ secrets.STAGING_REDIS_URL }}
+          MONGODB_HOST=localhost
+          MONGODB_DATABASE=${{ secrets.STAGING_MONGODB_DATABASE }}
+          MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT }}
+          MONGODB_ROOT_USERNAME=${{ secrets.STAGING_MONGODB_ROOT_USERNAME }}
+          MONGODB_ROOT_PASSWORD=${{ secrets.STAGING_MONGODB_ROOT_PASSWORD }}
+          NODE_ENV=staging
+          LOG_LEVEL=debug
+          ENABLE_SWAGGER=true
+          EOF
+
+      - name: Deploy to staging server
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🚀 Preparando deployment a staging..."
+          echo "📦 Archivos listos para deploy:"
+          ls -la deploy-staging.tar.gz .env.staging
+          
+          echo ""
+          echo "📋 Información del deploy:"
+          echo "- Branch: ${{ github.ref_name }}"
+          echo "- Commit: ${{ github.sha }}"
+          echo "- Target: ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
+          echo "- Path: /var/www/guiders-backend-staging/"
+          
+          # Subir archivos al servidor de staging
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+
+          # Copiar scripts necesarios
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+
+      - name: Start staging services
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            echo "📦 Descomprimiendo aplicación..."
+            tar xzf deploy-staging.tar.gz
+            
+            # Usar package.json optimizado
+            if [ -f package-staging.json ]; then
+              mv package-staging.json package.json
+              echo "✅ Usando package.json optimizado para staging"
+            fi
+            
+            # Instalar dependencias de producción
+            rm -rf node_modules
+            npm install --omit=dev
+            
+            # Iniciar servicios de base de datos
+            echo "🐳 Iniciando servicios de base de datos..."
+            docker compose --env-file .env.staging up -d --remove-orphans
+            
+            # Esperar a que estén listos
+            echo "⏳ Esperando servicios..."
+            for i in {1..12}; do
+              echo "  Intento $i/12..."
+              
+              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres 2>/dev/null | grep -c "healthy" || echo "0")
+              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb 2>/dev/null | grep -c "healthy" || echo "0")
+              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis 2>/dev/null | grep -c "healthy" || echo "0")
+              
+              if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
+                echo "  ✅ Todas las bases de datos listas!"
+                break
+              fi
+              
+              if [[ $i -eq 12 ]]; then
+                echo "  ❌ Timeout esperando servicios"
+                exit 1
+              fi
+              
+              sleep 5
+            done
+            
+            # Ejecutar migraciones
+            echo "🔄 Ejecutando migraciones..."
+            NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js
+            
+            # Reiniciar aplicación
+            echo "🚀 Iniciando aplicación de staging..."
+            pm2 delete guiders-backend-staging 2>/dev/null || true
+            NODE_ENV=staging pm2 start dist/src/main.js --name guiders-backend-staging
+            
+            echo "✅ Deployment completado!"
+            pm2 list | grep guiders-backend-staging
+            docker ps
+          '
+
+      - name: Verify deployment
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Verificando deployment de staging..."
+          
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            echo "🔍 Probando conexión a MongoDB de staging..."
+            NODE_ENV=staging node test-mongodb-connection.js
+            
+            echo "📊 Estado final de staging:"
+            pm2 list
+            docker ps
+            
+            echo "✅ ¡Deployment de staging verificado exitosamente!"
+          '
 
   # Resumen final
   summary:
@@ -96,10 +228,21 @@ jobs:
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Tests:** ${{ needs.test-and-build.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Deploy:** ${{ needs.deploy-staging.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
           if [[ "${{ needs.deploy-staging.result }}" == "success" ]]; then
             echo "## ✅ Deploy Exitoso" >> $GITHUB_STEP_SUMMARY
-            echo "Staging actualizado correctamente" >> $GITHUB_STEP_SUMMARY
+            echo "Staging desplegado exitosamente con secrets configurados" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🌐 URLs de Staging:" >> $GITHUB_STEP_SUMMARY
+            echo "- App: https://staging.guiders.app" >> $GITHUB_STEP_SUMMARY
+            echo "- API: https://staging-api.guiders.app" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### � Servicios activos:" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ PostgreSQL (Base de datos principal)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ MongoDB (Mensajes cifrados)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Redis (Cache y sesiones)" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ PM2 (guiders-backend-staging)" >> $GITHUB_STEP_SUMMARY
           else
             echo "## ❌ Deploy Fallido" >> $GITHUB_STEP_SUMMARY
             echo "Revisar logs para más detalles" >> $GITHUB_STEP_SUMMARY
