@@ -94,13 +94,60 @@ jobs:
           # Ping al servidor VPN (debería ser 10.0.0.1 típicamente)
           echo ""
           echo "🏓 Probando conectividad VPN:"
-          if ping -c 3 -W 5 10.0.0.1; then
-            echo "✅ Conexión VPN exitosa!"
+          
+          # Primero verificar si el endpoint externo es alcanzable
+          echo "🔍 Verificando alcance del endpoint externo..."
+          if ping -c 2 -W 3 ${{ secrets.WG_SERVER_ENDPOINT }}; then
+            echo "✅ Endpoint externo alcanzable"
           else
-            echo "❌ No se puede alcanzar el servidor VPN en 10.0.0.1"
-            echo "🔍 Intentando ping al endpoint externo..."
-            ping -c 2 ${{ secrets.WG_SERVER_ENDPOINT }} || true
-            echo "❌ Fallo en la conexión VPN"
+            echo "❌ Endpoint externo no alcanzable - problema de red/firewall"
+          fi
+          
+          # Verificar conectividad UDP al puerto WireGuard
+          echo ""
+          echo "🔍 Probando conectividad UDP al puerto 51820..."
+          timeout 5 bash -c "</dev/tcp/${{ secrets.WG_SERVER_ENDPOINT }}/51820" 2>/dev/null && echo "✅ Puerto TCP 51820 abierto" || echo "⚠️ Puerto TCP 51820 no responde (normal para UDP)"
+          
+          # Intentar diferentes IPs del servidor VPN
+          echo ""
+          echo "🔍 Probando diferentes IPs del servidor VPN..."
+          for server_ip in "10.0.0.1" "10.0.0.254"; do
+            echo "  Probando $server_ip..."
+            if timeout 3 ping -c 1 -W 2 "$server_ip" >/dev/null 2>&1; then
+              echo "    ✅ $server_ip responde!"
+              VPN_SERVER_IP="$server_ip"
+              break
+            else
+              echo "    ❌ $server_ip no responde"
+            fi
+          done
+          
+          # Si encontramos un servidor que responde, continuar; si no, fallar
+          if [[ -n "${VPN_SERVER_IP:-}" ]]; then
+            echo "✅ Conexión VPN exitosa con servidor $VPN_SERVER_IP!"
+          else
+            echo ""
+            echo "❌ No se puede establecer conectividad VPN"
+            echo "🔍 Información de debug:"
+            echo "  - Interfaz WireGuard: CONFIGURADA ✅"
+            echo "  - IP del cliente: 10.0.0.2 ✅"
+            echo "  - Rutas: CONFIGURADAS ✅"
+            echo "  - Problema: Servidor VPN no responde ❌"
+            echo ""
+            echo "� Posibles causas:"
+            echo "  1. Servidor WireGuard no está ejecutándose"
+            echo "  2. Firewall bloquea puerto UDP 51820"
+            echo "  3. Configuración incorrecta en el servidor"
+            echo "  4. IP del servidor VPN no es 10.0.0.1"
+            echo ""
+            echo "🛠️ Para debuggear en el servidor:"
+            echo "  - Verificar servicio: sudo systemctl status wg-quick@wg0"
+            echo "  - Verificar interfaz: sudo wg show"
+            echo "  - Verificar firewall: sudo ufw status"
+            echo "  - Verificar logs: sudo journalctl -u wg-quick@wg0"
+            
+            echo ""
+            echo "🚫 DETENIENDO DEPLOYMENT - VPN requerida para acceso seguro"
             exit 1
           fi
           
@@ -110,7 +157,14 @@ jobs:
           if ping -c 2 -W 5 ${{ secrets.STAGING_HOST }}; then
             echo "✅ Servidor de staging accesible a través de VPN!"
           else
-            echo "⚠️ No se puede alcanzar el servidor de staging, pero continuando..."
+            echo "❌ No se puede alcanzar el servidor de staging a través de VPN"
+            echo "🔍 Esto puede indicar:"
+            echo "  - El servidor staging no está en la red VPN"
+            echo "  - Firewall en el servidor staging bloquea ICMP"
+            echo "  - STAGING_HOST no es la IP correcta dentro de la VPN"
+            echo ""
+            echo "🚫 DETENIENDO DEPLOYMENT - Servidor de staging no accesible"
+            exit 1
           fi
 
       - name: Add staging server to known_hosts
