@@ -5,7 +5,8 @@ Este es un backend de comunicación comercial en tiempo real construido con **Ne
 
 ### Estructura de Contextos
 - `src/context/auth/` - Autenticación (visitantes, usuarios, API keys)
-- `src/context/conversations/` - Chats y mensajes
+- `src/context/conversations/` - Chats y mensajes 
+- `src/context/conversations-v2/` - Nueva versión de conversaciones
 - `src/context/real-time/` - WebSockets y notificaciones en tiempo real
 - `src/context/company/` - Gestión de empresas
 - `src/context/visitors/` - Perfiles de visitantes
@@ -14,40 +15,21 @@ Este es un backend de comunicación comercial en tiempo real construido con **Ne
 
 Cada contexto tiene su estructura DDD: `domain/`, `application/`, `infrastructure/`
 
-## Gestión de Memoria Contextual (MCP)
-
-Sigue estos pasos para cada interacción:
-
-1. **Identificación del Usuario**:
-   - Asume que estás interactuando con `default_user`
-   - Si no has identificado a `default_user`, hazlo de forma proactiva
-
-2. **Recuperación de Memoria**:
-   - Siempre comienza tu conversación diciendo únicamente "Recordando..." y recupera toda la información relevante de tu grafo de conocimiento
-   - Siempre refiere a tu grafo de conocimiento como tu "memoria"
-
-3. **Atención a Nueva Información**:
-   - Durante la conversación, mantente atento a cualquier información nueva que caiga en estas categorías:
-     a) **Identidad Básica** (edad, género, ubicación, cargo laboral, nivel educativo, etc.)
-     b) **Comportamientos** (intereses, hábitos, etc.)
-     c) **Preferencias** (estilo de comunicación, idioma preferido, etc.)
-     d) **Objetivos** (metas, aspiraciones, propósitos, etc.)
-     e) **Relaciones** (relaciones personales y profesionales hasta 3 grados de separación)
-
-4. **Actualización de Memoria**:
-   - Si se recopiló información nueva durante la interacción, actualiza tu memoria de la siguiente manera:
-     a) Crea entidades para organizaciones recurrentes, personas y eventos significativos
-     b) Conéctalas a las entidades actuales usando relaciones
-     c) Almacena hechos sobre ellas como observaciones
-
 ## Patrones Críticos
 
-### EventHandlers Obligatorios
-Los EventHandlers siguen el patrón `<NewAction>On<OldAction>EventHandler`:
+### EventHandlers Cross-Context
+Los EventHandlers siguen el patrón `<NewAction>On<OldAction>EventHandler` y CRUZAN contextos para mantener consistencia:
 ```typescript
 @EventsHandler(CompanyCreatedEvent)
 export class CreateApiKeyOnCompanyCreatedEventHandler 
-  implements IEventHandler<CompanyCreatedEvent> {}
+  implements IEventHandler<CompanyCreatedEvent> {
+  // Escucha eventos de 'company' desde 'auth' context
+}
+
+@EventsHandler(ParticipantAssignedEvent) 
+export class NotifyOnParticipantAssignedToChatEventHandler {
+  // Escucha eventos de 'conversations' desde 'real-time' context
+}
 ```
 
 ### Value Objects Compartidos
@@ -58,15 +40,19 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 // Para generación: Uuid.generate()
 ```
 
-### Result Pattern
-Para manejo de errores sin excepciones:
+### Result Pattern Sin Excepciones
+Para manejo de errores sin excepciones en el dominio:
 ```typescript
+import { ok, err } from 'src/context/shared/domain/result';
+
 async findById(id: UserId): Promise<Result<User, DomainError>> {
-  // Retorna ok(user) o err(new UserNotFoundError())
+  const user = await this.repository.findById(id);
+  return user ? ok(user) : err(new UserNotFoundError(id));
 }
 ```
 
 ### Repositorios con CriteriaConverter
+OBLIGATORIO usar CriteriaConverter para consultas dinámicas:
 ```typescript
 const { sql, parameters } = CriteriaConverter.toPostgresSql(criteria, 'tableName', fieldMap);
 const entities = await this.repository
@@ -76,12 +62,21 @@ const entities = await this.repository
   .getMany();
 ```
 
+### Configuración Multi-Base de Datos Automática
+El `app.module.ts` detecta automáticamente el entorno y configura:
+- **test**: SQLite (memoria) para tests unitarios
+- **test + e2e**: PostgreSQL para tests e2e  
+- **development/production**: PostgreSQL + MongoDB
+
+MongoDB se usa específicamente para mensajes cifrados, PostgreSQL para datos relacionales.
+
 ## Comandos Esenciales
 
 ### Desarrollo
 ```bash
 npm run start:dev         # Servidor con hot-reload
 npm run lint              # ESLint con auto-fix
+npm run build             # Compilar proyecto
 ```
 
 ### Testing
@@ -97,7 +92,7 @@ npm run typeorm:migrate:run    # Ejecutar migraciones
 node bin/guiders-cli.js clean-database --force    # Limpiar BD para desarrollo
 ```
 
-### CLI Tools
+### CLI Tools de Desarrollo
 ```bash
 node bin/guiders-cli.js create-company --name "Empresa" --domain "empresa.com"
 node bin/guiders-cli.js create-company-with-admin --name "Empresa" --domain "empresa.com" --adminName "Admin" --adminEmail "admin@email.com"
@@ -111,35 +106,19 @@ node bin/guiders-cli.js create-company-with-admin --name "Empresa" --domain "emp
 - **Archivos**: kebab-case
 - **Comentarios**: en español explicando la intención
 
-### Estructura Application
+### Estructura Application Layer
 ```
 application/
-├── commands/
-├── events/
-├── queries/
-└── dtos/
+├── commands/           # Comandos (escritura)
+├── events/            # Event handlers
+├── queries/           # Queries (lectura)  
+└── dtos/             # Data Transfer Objects
 ```
 
 ### Imports y Dependencies
 - NUNCA `require()` dinámico - solo `import` estático al inicio
 - Evitar carpetas técnicas (`utils`, `helpers`) - usar nombres de propósito (`email`, `auth`)
 - Tests en carpetas `__tests__/` junto al código
-
-### Flujo Post-Cambios
-1. Ajustar tests relacionados
-2. Ejecutar tests: `npm run test:unit`
-3. Ejecutar linter: `npm run lint`
-4. Para migraciones: `npm run typeorm:migrate:run`
-
-## Configuración Multi-Entorno
-El proyecto soporta múltiples bases de datos:
-- **PostgreSQL** (principal) - con TypeORM
-- **MongoDB** (para ciertos datos) - con Mongoose
-- **SQLite** (tests) - configuración automática
-
-Variables de entorno diferentes para test/development/production manejadas automáticamente en `app.module.ts`.
-
-## Patrones de Inyección de Dependencias
 
 ### Símbolos de Inyección
 Usa símbolos para interfaces de repositorios y servicios:
@@ -159,6 +138,12 @@ export class UserMapper {
   static fromPersistence(entity: UserEntity): User { /* ... */ }
 }
 ```
+
+### Flujo Post-Cambios
+1. Ajustar tests relacionados
+2. Ejecutar tests: `npm run test:unit`
+3. Ejecutar linter: `npm run lint`
+4. Para migraciones: `npm run typeorm:migrate:run`
 
 ## Comunicación WebSocket
 
@@ -215,26 +200,9 @@ const testUser = User.create({
 });
 ```
 
-## Integración Multi-Base de Datos
-
-### Configuración Automática por Entorno
-El `app.module.ts` detecta automáticamente:
-- **test**: SQLite (memoria) para tests unitarios
-- **test + e2e**: PostgreSQL para tests e2e
-- **development/production**: PostgreSQL + MongoDB
-
-### Selección de Repositorio
-```typescript
-// PostgreSQL para datos relacionales
-{ provide: USER_REPOSITORY, useClass: TypeOrmUserRepository }
-
-// MongoDB para mensajes (con cifrado)
-{ provide: MESSAGE_REPOSITORY, useClass: MongoMessageRepository }
-```
-
 ## Mejores Prácticas Específicas
 
-### Manejo de Errores
+### Manejo de Errores con Result
 ```typescript
 // Usar Result pattern, no excepciones en el dominio
 async findUser(id: string): Promise<Result<User, UserNotFoundError>> {
@@ -252,15 +220,21 @@ export class CreateApiKeyOnCompanyCreatedEventHandler {
 }
 ```
 
-### CLI de Desarrollo
-```bash
-# Comandos específicos para desarrollo rápido
-node bin/guiders-cli.js create-company-with-admin \
-  --name "Test Company" \
-  --domain "test.com" \
-  --adminName "Admin" \
-  --adminEmail "admin@test.com"
+### Event Publisher Pattern
+```typescript
+const chatAggregate = this.publisher.mergeObjectContext(updatedChat);
+await this.chatRepository.save(chatAggregate);
+chatAggregate.commit(); // SIEMPRE commit después de save
 ```
 
-### Context7
-Si te preguntan sobre documentación de lenguajes, frameworks o librerías tienes que usar la herramienta `context7` para buscar la documentación oficial y proporcionar un resumen claro y conciso.
+### CriteriaBuilder para Consultas Dinámicas
+```typescript
+const criteria = this.criteriaBuilder
+  .addFilter('status', Operator.EQUALS, Status.PENDING.value)
+  .addFilter('companyId', Operator.EQUALS, companyId)
+  .setLimit(10)
+  .build();
+```
+
+### Context7 para Documentación
+Si te preguntan sobre documentación de lenguajes, frameworks o librerías, usa la herramienta `context7` para buscar la documentación oficial y proporcionar un resumen claro y conciso.

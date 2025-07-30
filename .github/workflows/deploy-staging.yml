@@ -51,14 +51,52 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install OpenVPN and sshpass
-        run: sudo apt-get update && sudo apt-get install -y openvpn sshpass
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Setup OpenVPN config
-        run: echo "${{ secrets.STAGING_OVPN_CONFIG }}" > vpn.conf
+      - name: Setup WireGuard
+        uses: egor-tensin/setup-wireguard@v1
+        with:
+          endpoint: ${{ secrets.WG_SERVER_ENDPOINT }}
+          endpoint_public_key: ${{ secrets.WG_SERVER_PUBLIC_KEY }}
+          ips: 10.0.0.2
+          allowed_ips: 10.0.0.0/24
+          private_key: ${{ secrets.WG_PRIVATE_KEY }}
 
-      - name: Connect to VPN
-        run: sudo openvpn --config vpn.conf --daemon && sleep 15
+      - name: Verify VPN connection
+        run: |
+          echo "🔍 Verificando conexión VPN..."
+          
+          # Mostrar información de la interfaz WireGuard
+          echo "📋 Estado de WireGuard:"
+          sudo wg show
+          
+          # Verificar que la interfaz tiene la IP correcta
+          echo ""
+          echo "📋 Interfaces de red:"
+          ip addr show | grep -A2 "wg0\|wireguard"
+          
+          # Ping al servidor VPN (debería ser 10.0.0.1 típicamente)
+          echo ""
+          echo "🏓 Probando conectividad VPN:"
+          if ping -c 3 -W 5 10.0.0.1; then
+            echo "✅ Conexión VPN exitosa!"
+          else
+            echo "❌ No se puede alcanzar el servidor VPN en 10.0.0.1"
+            echo "🔍 Intentando ping al endpoint externo..."
+            ping -c 2 ${{ secrets.WG_SERVER_ENDPOINT }} || true
+            echo "❌ Fallo en la conexión VPN"
+            exit 1
+          fi
+          
+          # Verificar que podemos alcanzar el servidor de staging a través de la VPN
+          echo ""
+          echo "🎯 Probando acceso al servidor de staging:"
+          if ping -c 2 -W 5 ${{ secrets.STAGING_HOST }}; then
+            echo "✅ Servidor de staging accesible a través de VPN!"
+          else
+            echo "⚠️ No se puede alcanzar el servidor de staging, pero continuando..."
+          fi
 
       - name: Add staging server to known_hosts
         run: |
