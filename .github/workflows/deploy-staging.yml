@@ -59,7 +59,7 @@ jobs:
         with:
           endpoint: ${{ secrets.WG_SERVER_ENDPOINT }}:51820
           endpoint_public_key: ${{ secrets.WG_SERVER_PUBLIC_KEY }}
-          ips: 10.0.0.2
+          ips: 10.0.0.3/32
           allowed_ips: 10.0.0.0/24
           private_key: ${{ secrets.WG_PRIVATE_KEY }}
 
@@ -130,7 +130,7 @@ jobs:
             echo "❌ No se puede establecer conectividad VPN"
             echo "🔍 Información de debug:"
             echo "  - Interfaz WireGuard: CONFIGURADA ✅"
-            echo "  - IP del cliente: 10.0.0.2 ✅"
+            echo "  - IP del cliente: 10.0.0.3/32 ✅"
             echo "  - Rutas: CONFIGURADAS ✅"
             echo "  - Problema: Servidor VPN no responde ❌"
             echo ""
