@@ -71,10 +71,25 @@ jobs:
           echo "📋 Estado de WireGuard:"
           sudo wg show
           
-          # Verificar que la interfaz tiene la IP correcta
+          # Verificar todas las interfaces WireGuard
           echo ""
-          echo "📋 Interfaces de red:"
-          ip addr show | grep -A2 "wg0\|wireguard"
+          echo "📋 Interfaces WireGuard activas:"
+          ip link show type wireguard 2>/dev/null || echo "No se encontraron interfaces WireGuard"
+          
+          # Mostrar todas las IPs asignadas a interfaces WireGuard
+          echo ""
+          echo "📋 IPs asignadas a interfaces WireGuard:"
+          for iface in $(ip link show type wireguard 2>/dev/null | grep -o 'wg[^:]*' || echo ""); do
+            if [[ -n "$iface" ]]; then
+              echo "  $iface:"
+              ip addr show "$iface" | grep -E "inet " | sed 's/^/    /'
+            fi
+          done
+          
+          # Verificar tabla de rutas
+          echo ""
+          echo "📋 Rutas VPN:"
+          ip route | grep -E "10\.0\.0\.|wg" || echo "No se encontraron rutas VPN"
           
           # Ping al servidor VPN (debería ser 10.0.0.1 típicamente)
           echo ""
