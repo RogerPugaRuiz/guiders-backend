@@ -54,14 +54,34 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Setup WireGuard
-        uses: egor-tensin/setup-wireguard@v1
-        with:
-          endpoint: ${{ secrets.WG_SERVER_ENDPOINT }}:51820
-          endpoint_public_key: ${{ secrets.WG_SERVER_PUBLIC_KEY }}
-          ips: 10.0.0.3/32
-          allowed_ips: 10.0.0.0/24
-          private_key: ${{ secrets.WG_PRIVATE_KEY }}
+      - name: Install WireGuard
+        run: sudo apt update && sudo apt install -y wireguard
+
+      - name: Setup WireGuard private key
+        run: |
+          echo "${{ secrets.WG_PRIVATE_KEY }}" > /tmp/privatekey
+          sudo chmod 600 /tmp/privatekey
+
+      - name: Create WireGuard interface
+        run: sudo ip link add dev wg0 type wireguard
+
+      - name: Configure WireGuard IP
+        run: sudo ip address add dev wg0 10.0.0.3/32 peer 10.0.0.1
+
+      - name: Configure WireGuard peer
+        run: |
+          sudo wg set wg0 \
+            listen-port 48123 \
+            private-key /tmp/privatekey \
+            peer ${{ secrets.WG_SERVER_PUBLIC_KEY }} \
+            allowed-ips 10.0.0.0/24 \
+            endpoint ${{ secrets.WG_SERVER_ENDPOINT }}:51820
+
+      - name: Bring up WireGuard interface
+        run: sudo ip link set up dev wg0
+
+      - name: Cleanup private key
+        run: rm -f /tmp/privatekey
 
       - name: Verify VPN connection
         run: |
