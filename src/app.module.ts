@@ -43,8 +43,7 @@ import { ConversationsV2Module } from './context/conversations-v2/conversations-
     }),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath:
-        process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
+      envFilePath: AppModule.getEnvFilePath(),
     }),
     EventEmitterModule.forRoot({
       wildcard: true,
@@ -68,6 +67,22 @@ import { ConversationsV2Module } from './context/conversations-v2/conversations-
 })
 export class AppModule {
   private readonly logger = new Logger(AppModule.name);
+
+  // Método estático para determinar el archivo de configuración según el entorno
+  static getEnvFilePath(): string {
+    const nodeEnv = process.env.NODE_ENV;
+
+    switch (nodeEnv) {
+      case 'production':
+        return '.env.production';
+      case 'staging':
+        return '.env.staging';
+      case 'test':
+        return '.env.test';
+      default:
+        return '.env';
+    }
+  }
 
   // Método estático para hacer testeable la factory function de TypeORM
   static createTypeOrmOptions(
@@ -197,9 +212,7 @@ export class AppModule {
     // Configuración de variables de entorno
     this.logger.log('=== ENVIRONMENT CONFIGURATION DEBUG ===');
     this.logger.log(`NODE_ENV: ${process.env.NODE_ENV}`);
-    this.logger.log(
-      `Config file path: ${process.env.NODE_ENV === 'production' ? '.env.production' : '.env'}`,
-    );
+    this.logger.log(`Config file path: ${AppModule.getEnvFilePath()}`);
 
     const ENCRYPTION_KEY = this.configService.get<string>('ENCRYPTION_KEY');
     const GLOBAL_TOKEN_SECRET = this.configService.get<string>(

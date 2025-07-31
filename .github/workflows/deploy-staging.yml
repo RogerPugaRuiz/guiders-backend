@@ -276,7 +276,7 @@ jobs:
         run: |
           echo "📤 Subiendo scripts y utilidades..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ecosystem.staging.config.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
           echo "✅ Scripts subidos exitosamente"
 
       - name: 5. Extract and prepare application
@@ -392,10 +392,19 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
             
-            # Reiniciar aplicación
-            echo "🚀 Iniciando aplicación de staging..."
+            # Crear directorio de logs de PM2 si no existe
+            sudo mkdir -p /var/log/pm2
+            sudo chown $USER:$USER /var/log/pm2
+            
+            # Reiniciar aplicación usando el archivo ecosystem
+            echo "🚀 Iniciando aplicación de staging con ecosystem config..."
             pm2 delete guiders-backend-staging 2>/dev/null || true
-            NODE_ENV=staging pm2 start dist/src/main.js --name guiders-backend-staging
+            
+            # Usar el archivo ecosystem para gestión completa de variables de entorno
+            pm2 start ecosystem.staging.config.js
+            
+            # Guardar configuración PM2
+            pm2 save
             
             echo "✅ Aplicación iniciada exitosamente"
           '
@@ -426,7 +435,10 @@ jobs:
             cd /var/www/guiders-backend-staging/
             
             echo "🔍 Probando conexión a MongoDB de staging..."
-            NODE_ENV=staging node test-mongodb-connection.js
+            # Cargar variables del archivo .env.staging y establecer NODE_ENV
+            export $(grep -v "^#" .env.staging | xargs)
+            export NODE_ENV=staging
+            node test-mongodb-connection.js
             echo "✅ Conexión a MongoDB verificada"
           '
 
