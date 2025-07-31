@@ -1,0 +1,180 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:14.11-alpine
+    container_name: postgres-staging
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE}
+
+    # Configuración de salud
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USERNAME}"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+    # Logs más verbosos para staging (debugging)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"
+
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data:rw
+      
+    networks:
+      - guiders-staging-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-staging
+    restart: unless-stopped
+    
+    # Configuración de salud para Redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    # Logs más verbosos para staging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    volumes:
+      - redis_staging_data:/data:rw
+    
+    networks:
+      - guiders-staging-net
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb-staging
+    restart: unless-stopped
+    
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+      # Variables para el script de inicialización
+      MONGODB_USERNAME: ${MONGODB_USERNAME:-staging_user}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD:-staging_pass}
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
+    
+    # Configuración de salud para MongoDB
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 20s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    # Logs más verbosos para staging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+    ports:
+      - "${MONGODB_PORT:-27017}:27017"
+    
+    volumes:
+      - mongodb_staging_data:/data/db:rw
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    
+    networks:
+      - guiders-staging-net
+
+  # Servicio opcional para visualización de datos en staging
+  adminer:
+    image: adminer:4.8.1
+    container_name: adminer-staging
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DESIGN: pepa-linha
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - guiders-staging-net
+    profiles:
+      - tools
+
+  # Redis Commander para visualización de Redis en staging
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander-staging
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: "staging:redis-staging:6379"
+      HTTP_USER: admin
+      HTTP_PASSWORD: ${REDIS_COMMANDER_PASSWORD:-staging123}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - guiders-staging-net
+    profiles:
+      - tools
+
+  # Mongo Express para visualización de MongoDB en staging
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: mongo-express-staging
+    restart: unless-stopped
+    ports:
+      - "8082:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGODB_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGODB_ROOT_PASSWORD}
+      ME_CONFIG_MONGODB_SERVER: mongodb-staging
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-staging123}
+      ME_CONFIG_SITE_BASEURL: /mongo/
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - guiders-staging-net
+    profiles:
+      - tools
+
+volumes:
+  postgres_staging_data:
+    driver: local
+    name: guiders_postgres_staging_data
+  redis_staging_data:
+    driver: local
+    name: guiders_redis_staging_data
+  mongodb_staging_data:
+    driver: local
+    name: guiders_mongodb_staging_data
+
+networks:
+  guiders-staging-net:
+    driver: bridge
+    name: guiders-staging-network
