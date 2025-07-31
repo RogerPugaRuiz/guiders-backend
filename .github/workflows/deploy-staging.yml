@@ -241,9 +241,7 @@ jobs:
           ENABLE_SWAGGER=true
           EOF
 
-      - name: Deploy to staging server
-        env:
-          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+      - name: 1. Prepare deployment info
         run: |
           echo "🚀 Preparando deployment a staging..."
           echo "📦 Archivos listos para deploy:"
@@ -255,19 +253,37 @@ jobs:
           echo "- Commit: ${{ github.sha }}"
           echo "- Target: ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
           echo "- Path: /var/www/guiders-backend-staging/"
-          
-          # Subir archivos al servidor de staging
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose-staging.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
 
-          # Copiar scripts necesarios
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
-
-      - name: Start staging services
+      - name: 2. Create staging directory
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
         run: |
+          echo "📁 Creando directorio de staging..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/"
+          echo "✅ Directorio creado exitosamente"
+
+      - name: 3. Upload main files
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📤 Subiendo archivos principales..."
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose-staging.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          echo "✅ Archivos principales subidos"
+
+      - name: 4. Upload scripts and utilities
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📤 Subiendo scripts y utilidades..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          echo "✅ Scripts subidos exitosamente"
+
+      - name: 5. Extract and prepare application
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📦 Descomprimiendo aplicación..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
             
@@ -280,13 +296,45 @@ jobs:
               echo "✅ Usando package.json optimizado para staging"
             fi
             
+            echo "✅ Aplicación descomprimida exitosamente"
+          '
+
+      - name: 6. Install dependencies
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📦 Instalando dependencias de producción..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
             # Instalar dependencias de producción
             rm -rf node_modules
             npm install --omit=dev
             
-            # Iniciar servicios de base de datos
+            echo "✅ Dependencias instaladas exitosamente"
+          '
+
+      - name: 7. Start database services
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🐳 Iniciando servicios de base de datos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
             echo "🐳 Iniciando servicios de base de datos..."
             docker compose -f docker-compose-staging.yml --env-file .env.staging up -d --remove-orphans
+            
+            echo "✅ Servicios Docker iniciados"
+          '
+
+      - name: 8. Wait for services to be ready
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "⏳ Esperando que los servicios estén listos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
             
             # Esperar a que estén listos
             echo "⏳ Esperando servicios..."
@@ -297,6 +345,10 @@ jobs:
               mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb 2>/dev/null | grep -c "healthy" || echo "0")
               redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis 2>/dev/null | grep -c "healthy" || echo "0")
               
+              echo "    PostgreSQL: $([[ $postgres_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    MongoDB: $([[ $mongodb_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    Redis: $([[ $redis_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              
               if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
                 echo "  ✅ Todas las bases de datos listas!"
                 break
@@ -304,42 +356,102 @@ jobs:
               
               if [[ $i -eq 12 ]]; then
                 echo "  ❌ Timeout esperando servicios"
+                echo "🔍 Estado actual de los contenedores:"
+                docker ps
+                echo "🔍 Logs de servicios que fallan:"
+                [[ $postgres_ok -eq 0 ]] && echo "--- PostgreSQL logs ---" && docker logs postgres --tail 20
+                [[ $mongodb_ok -eq 0 ]] && echo "--- MongoDB logs ---" && docker logs mongodb --tail 20
+                [[ $redis_ok -eq 0 ]] && echo "--- Redis logs ---" && docker logs redis --tail 20
                 exit 1
               fi
               
               sleep 5
             done
+          '
+
+      - name: 9. Run database migrations
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔄 Ejecutando migraciones de base de datos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
             
-            # Ejecutar migraciones
             echo "🔄 Ejecutando migraciones..."
             NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js
+            
+            echo "✅ Migraciones ejecutadas exitosamente"
+          '
+
+      - name: 10. Start application with PM2
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🚀 Iniciando aplicación de staging..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
             
             # Reiniciar aplicación
             echo "🚀 Iniciando aplicación de staging..."
             pm2 delete guiders-backend-staging 2>/dev/null || true
             NODE_ENV=staging pm2 start dist/src/main.js --name guiders-backend-staging
             
-            echo "✅ Deployment completado!"
-            pm2 list | grep guiders-backend-staging
-            docker ps
+            echo "✅ Aplicación iniciada exitosamente"
           '
 
-      - name: Verify deployment
+      - name: 11. Verify deployment status
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
         run: |
-          echo "🔍 Verificando deployment de staging..."
-          
+          echo "📊 Verificando estado del deployment..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            echo "✅ Deployment completado!"
+            echo ""
+            echo "📊 Estado de PM2:"
+            pm2 list | grep guiders-backend-staging
+            echo ""
+            echo "📊 Estado de Docker:"
+            docker ps
+          '
+
+      - name: 12. Test MongoDB connection
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Probando conexión a MongoDB..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
             
             echo "🔍 Probando conexión a MongoDB de staging..."
             NODE_ENV=staging node test-mongodb-connection.js
+            echo "✅ Conexión a MongoDB verificada"
+          '
+
+      - name: 13. Final deployment verification
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Verificación final del deployment..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
             
             echo "📊 Estado final de staging:"
+            echo ""
+            echo "🟢 PM2 Processes:"
             pm2 list
+            echo ""
+            echo "🐳 Docker Containers:"
             docker ps
+            echo ""
+            echo "💾 Disk Usage:"
+            du -sh /var/www/guiders-backend-staging/
+            echo ""
+            echo "🌐 Network Ports:"
+            netstat -tulpn | grep -E ":3000|:5432|:27017|:6379" || echo "Puerto no encontrado en netstat"
             
+            echo ""
             echo "✅ ¡Deployment de staging verificado exitosamente!"
           '
 
