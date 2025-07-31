@@ -8,10 +8,10 @@ export class ComercialClaimMongooseEntity {
   @Prop({ required: true, type: String })
   _id: string;
 
-  @Prop({ required: true, type: String, index: true })
+  @Prop({ required: true, type: String })
   chat_id: string;
 
-  @Prop({ required: true, type: String, index: true })
+  @Prop({ required: true, type: String })
   comercial_id: string;
 
   @Prop({ required: true, type: Date })
@@ -20,7 +20,7 @@ export class ComercialClaimMongooseEntity {
   @Prop({ required: false, type: Date, default: null })
   released_at: Date | null;
 
-  @Prop({ required: true, type: String, index: true })
+  @Prop({ required: true, type: String })
   status: string;
 }
 

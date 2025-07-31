@@ -96,7 +96,6 @@ export class ChatMongooseEntity extends Document {
   @Prop({
     type: String,
     required: true,
-    index: true,
   })
   companyId: string;
 
@@ -112,7 +111,6 @@ export class ChatMongooseEntity extends Document {
     required: true,
     enum: ['PENDING', 'ACTIVE', 'CLOSED'],
     default: 'PENDING',
-    index: true,
   })
   status: string;
 
@@ -125,7 +123,6 @@ export class ChatMongooseEntity extends Document {
   @Prop({
     type: Date,
     required: false,
-    index: true,
   })
   lastMessageAt?: Date;
 

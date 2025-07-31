@@ -28,21 +28,18 @@ export class MessageMongooseEntity extends Document {
   @Prop({
     type: String,
     required: true,
-    index: true,
   })
   sender: string;
 
   @Prop({
     type: String,
     required: true,
-    index: true,
   })
   chatId: string;
 
   @Prop({
     type: Date,
     required: true,
-    index: true,
   })
   timestamp: Date;
 
@@ -55,7 +52,6 @@ export class MessageMongooseEntity extends Document {
   @Prop({
     type: Boolean,
     default: false,
-    index: true,
   })
   isRead: boolean;
 
