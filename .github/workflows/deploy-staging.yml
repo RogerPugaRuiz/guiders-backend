@@ -1,10 +1,8 @@
-name: Deploy to Staging (Real)
+name: Deploy to Staging
 
 on:
   push:
-    branches:
-      - develop
-      - feature/*
+    branches: [ develop, feature/*]
   workflow_dispatch:
 
 env:
@@ -54,14 +52,34 @@ jobs:
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
-      - name: Setup WireGuard
-        uses: egor-tensin/setup-wireguard@v1
-        with:
-          endpoint: ${{ secrets.WG_SERVER_ENDPOINT }}
-          endpoint_public_key: ${{ secrets.WG_SERVER_PUBLIC_KEY }}
-          ips: 10.0.0.2
-          allowed_ips: 10.0.0.0/24
-          private_key: ${{ secrets.WG_PRIVATE_KEY }}
+      - name: Install WireGuard
+        run: sudo apt update && sudo apt install -y wireguard
+
+      - name: Setup WireGuard private key
+        run: |
+          echo "${{ secrets.WG_PRIVATE_KEY }}" > /tmp/privatekey
+          sudo chmod 600 /tmp/privatekey
+
+      - name: Create WireGuard interface
+        run: sudo ip link add dev wg0 type wireguard
+
+      - name: Configure WireGuard IP
+        run: sudo ip address add dev wg0 10.0.0.3/24 peer 10.0.0.1
+
+      - name: Configure WireGuard peer
+        run: |
+          sudo wg set wg0 \
+            listen-port 48123 \
+            private-key /tmp/privatekey \
+            peer ${{ secrets.WG_SERVER_PUBLIC_KEY }} \
+            allowed-ips 10.0.0.0/24 \
+            endpoint ${{ secrets.WG_SERVER_ENDPOINT }}:51820
+
+      - name: Bring up WireGuard interface
+        run: sudo ip link set up dev wg0
+
+      - name: Cleanup private key
+        run: rm -f /tmp/privatekey
 
       - name: Verify VPN connection
         run: |
@@ -71,21 +89,83 @@ jobs:
           echo "📋 Estado de WireGuard:"
           sudo wg show
           
-          # Verificar que la interfaz tiene la IP correcta
+          # Verificar todas las interfaces WireGuard
           echo ""
-          echo "📋 Interfaces de red:"
-          ip addr show | grep -A2 "wg0\|wireguard"
+          echo "📋 Interfaces WireGuard activas:"
+          ip link show type wireguard 2>/dev/null || echo "No se encontraron interfaces WireGuard"
+          
+          # Mostrar todas las IPs asignadas a interfaces WireGuard
+          echo ""
+          echo "📋 IPs asignadas a interfaces WireGuard:"
+          for iface in $(ip link show type wireguard 2>/dev/null | grep -o 'wg[^:]*' || echo ""); do
+            if [[ -n "$iface" ]]; then
+              echo "  $iface:"
+              ip addr show "$iface" | grep -E "inet " | sed 's/^/    /'
+            fi
+          done
+          
+          # Verificar tabla de rutas
+          echo ""
+          echo "📋 Rutas VPN:"
+          ip route | grep -E "10\.0\.0\.|wg" || echo "No se encontraron rutas VPN"
           
           # Ping al servidor VPN (debería ser 10.0.0.1 típicamente)
           echo ""
           echo "🏓 Probando conectividad VPN:"
-          if ping -c 3 -W 5 10.0.0.1; then
-            echo "✅ Conexión VPN exitosa!"
+          
+          # Primero verificar si el endpoint externo es alcanzable
+          echo "🔍 Verificando alcance del endpoint externo..."
+          if ping -c 2 -W 3 ${{ secrets.WG_SERVER_ENDPOINT }}; then
+            echo "✅ Endpoint externo alcanzable"
           else
-            echo "❌ No se puede alcanzar el servidor VPN en 10.0.0.1"
-            echo "🔍 Intentando ping al endpoint externo..."
-            ping -c 2 ${{ secrets.WG_SERVER_ENDPOINT }} || true
-            echo "❌ Fallo en la conexión VPN"
+            echo "❌ Endpoint externo no alcanzable - problema de red/firewall"
+          fi
+          
+          # Verificar conectividad UDP al puerto WireGuard
+          echo ""
+          echo "🔍 Probando conectividad UDP al puerto 51820..."
+          timeout 5 bash -c "</dev/tcp/${{ secrets.WG_SERVER_ENDPOINT }}/51820" 2>/dev/null && echo "✅ Puerto TCP 51820 abierto" || echo "⚠️ Puerto TCP 51820 no responde (normal para UDP)"
+          
+          # Intentar diferentes IPs del servidor VPN
+          echo ""
+          echo "🔍 Probando diferentes IPs del servidor VPN..."
+          for server_ip in "10.0.0.1" "10.0.0.254"; do
+            echo "  Probando $server_ip..."
+            if timeout 3 ping -c 1 -W 2 "$server_ip" >/dev/null 2>&1; then
+              echo "    ✅ $server_ip responde!"
+              VPN_SERVER_IP="$server_ip"
+              break
+            else
+              echo "    ❌ $server_ip no responde"
+            fi
+          done
+          
+          # Si encontramos un servidor que responde, continuar; si no, fallar
+          if [[ -n "${VPN_SERVER_IP:-}" ]]; then
+            echo "✅ Conexión VPN exitosa con servidor $VPN_SERVER_IP!"
+          else
+            echo ""
+            echo "❌ No se puede establecer conectividad VPN"
+            echo "🔍 Información de debug:"
+            echo "  - Interfaz WireGuard: CONFIGURADA ✅"
+            echo "  - IP del cliente: 10.0.0.3/24 ✅"
+            echo "  - Rutas: CONFIGURADAS ✅"
+            echo "  - Problema: Servidor VPN no responde ❌"
+            echo ""
+            echo "� Posibles causas:"
+            echo "  1. Servidor WireGuard no está ejecutándose"
+            echo "  2. Firewall bloquea puerto UDP 51820"
+            echo "  3. Configuración incorrecta en el servidor"
+            echo "  4. IP del servidor VPN no es 10.0.0.1"
+            echo ""
+            echo "🛠️ Para debuggear en el servidor:"
+            echo "  - Verificar servicio: sudo systemctl status wg-quick@wg0"
+            echo "  - Verificar interfaz: sudo wg show"
+            echo "  - Verificar firewall: sudo ufw status"
+            echo "  - Verificar logs: sudo journalctl -u wg-quick@wg0"
+            
+            echo ""
+            echo "🚫 DETENIENDO DEPLOYMENT - VPN requerida para acceso seguro"
             exit 1
           fi
           
@@ -95,7 +175,14 @@ jobs:
           if ping -c 2 -W 5 ${{ secrets.STAGING_HOST }}; then
             echo "✅ Servidor de staging accesible a través de VPN!"
           else
-            echo "⚠️ No se puede alcanzar el servidor de staging, pero continuando..."
+            echo "❌ No se puede alcanzar el servidor de staging a través de VPN"
+            echo "🔍 Esto puede indicar:"
+            echo "  - El servidor staging no está en la red VPN"
+            echo "  - Firewall en el servidor staging bloquea ICMP"
+            echo "  - STAGING_HOST no es la IP correcta dentro de la VPN"
+            echo ""
+            echo "🚫 DETENIENDO DEPLOYMENT - Servidor de staging no accesible"
+            exit 1
           fi
 
       - name: Add staging server to known_hosts
@@ -143,14 +230,16 @@ jobs:
           MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT }}
           MONGODB_ROOT_USERNAME=${{ secrets.STAGING_MONGODB_ROOT_USERNAME }}
           MONGODB_ROOT_PASSWORD=${{ secrets.STAGING_MONGODB_ROOT_PASSWORD }}
+          MONGODB_USERNAME=${{ secrets.STAGING_MONGODB_USERNAME || 'staging_user' }}
+          MONGODB_PASSWORD=${{ secrets.STAGING_MONGODB_PASSWORD || 'staging_pass' }}
+          REDIS_COMMANDER_PASSWORD=${{ secrets.STAGING_REDIS_COMMANDER_PASSWORD || 'staging123' }}
+          MONGO_EXPRESS_PASSWORD=${{ secrets.STAGING_MONGO_EXPRESS_PASSWORD || 'staging123' }}
           NODE_ENV=staging
           LOG_LEVEL=debug
           ENABLE_SWAGGER=true
           EOF
 
-      - name: Deploy to staging server
-        env:
-          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+      - name: 1. Prepare deployment info
         run: |
           echo "🚀 Preparando deployment a staging..."
           echo "📦 Archivos listos para deploy:"
@@ -162,19 +251,37 @@ jobs:
           echo "- Commit: ${{ github.sha }}"
           echo "- Target: ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}"
           echo "- Path: /var/www/guiders-backend-staging/"
-          
-          # Subir archivos al servidor de staging
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
 
-          # Copiar scripts necesarios
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
-
-      - name: Start staging services
+      - name: 2. Create staging directory
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
         run: |
+          echo "📁 Creando directorio de staging..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/"
+          echo "✅ Directorio creado exitosamente"
+
+      - name: 3. Upload main files
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📤 Subiendo archivos principales..."
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose-staging.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          echo "✅ Archivos principales subidos"
+
+      - name: 4. Upload scripts and utilities
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📤 Subiendo scripts y utilidades..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ecosystem.staging.config.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          echo "✅ Scripts subidos exitosamente"
+
+      - name: 5. Extract and prepare application
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📦 Descomprimiendo aplicación..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
             
@@ -187,22 +294,59 @@ jobs:
               echo "✅ Usando package.json optimizado para staging"
             fi
             
+            echo "✅ Aplicación descomprimida exitosamente"
+          '
+
+      - name: 6. Install dependencies
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📦 Instalando dependencias de producción..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
             # Instalar dependencias de producción
             rm -rf node_modules
             npm install --omit=dev
             
-            # Iniciar servicios de base de datos
+            echo "✅ Dependencias instaladas exitosamente"
+          '
+
+      - name: 7. Start database services
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🐳 Iniciando servicios de base de datos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
             echo "🐳 Iniciando servicios de base de datos..."
-            docker compose --env-file .env.staging up -d --remove-orphans
+            docker compose -f docker-compose-staging.yml --env-file .env.staging up -d --remove-orphans
+            
+            echo "✅ Servicios Docker iniciados"
+          '
+
+      - name: 8. Wait for services to be ready
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "⏳ Esperando que los servicios estén listos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
             
             # Esperar a que estén listos
             echo "⏳ Esperando servicios..."
             for i in {1..12}; do
               echo "  Intento $i/12..."
               
-              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres 2>/dev/null | grep -c "healthy" || echo "0")
-              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb 2>/dev/null | grep -c "healthy" || echo "0")
-              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis 2>/dev/null | grep -c "healthy" || echo "0")
+              # Buscar contenedores con sufijo -staging
+              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres-staging 2>/dev/null | grep -c "healthy" || echo "0")
+              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb-staging 2>/dev/null | grep -c "healthy" || echo "0")
+              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis-staging 2>/dev/null | grep -c "healthy" || echo "0")
+              
+              echo "    PostgreSQL (postgres-staging): $([[ $postgres_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    MongoDB (mongodb-staging): $([[ $mongodb_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    Redis (redis-staging): $([[ $redis_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
               
               if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
                 echo "  ✅ Todas las bases de datos listas!"
@@ -211,42 +355,114 @@ jobs:
               
               if [[ $i -eq 12 ]]; then
                 echo "  ❌ Timeout esperando servicios"
+                echo "🔍 Estado actual de los contenedores:"
+                docker ps
+                echo "🔍 Logs de servicios que fallan:"
+                [[ $postgres_ok -eq 0 ]] && echo "--- PostgreSQL logs ---" && docker logs postgres-staging --tail 20
+                [[ $mongodb_ok -eq 0 ]] && echo "--- MongoDB logs ---" && docker logs mongodb-staging --tail 20
+                [[ $redis_ok -eq 0 ]] && echo "--- Redis logs ---" && docker logs redis-staging --tail 20
                 exit 1
               fi
               
               sleep 5
             done
-            
-            # Ejecutar migraciones
-            echo "🔄 Ejecutando migraciones..."
-            NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js
-            
-            # Reiniciar aplicación
-            echo "🚀 Iniciando aplicación de staging..."
-            pm2 delete guiders-backend-staging 2>/dev/null || true
-            NODE_ENV=staging pm2 start dist/src/main.js --name guiders-backend-staging
-            
-            echo "✅ Deployment completado!"
-            pm2 list | grep guiders-backend-staging
-            docker ps
           '
 
-      - name: Verify deployment
+      - name: 9. Run database migrations
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
         run: |
-          echo "🔍 Verificando deployment de staging..."
-          
+          echo "🔄 Ejecutando migraciones de base de datos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            echo "🔄 Ejecutando migraciones..."
+            NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js
+            
+            echo "✅ Migraciones ejecutadas exitosamente"
+          '
+
+      - name: 10. Start application with PM2
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🚀 Iniciando aplicación de staging..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            # Crear directorio de logs de PM2 si no existe
+            sudo mkdir -p /var/log/pm2
+            sudo chown $USER:$USER /var/log/pm2
+            
+            # Reiniciar aplicación usando el archivo ecosystem
+            echo "🚀 Iniciando aplicación de staging con ecosystem config..."
+            pm2 delete guiders-backend-staging 2>/dev/null || true
+            
+            # Usar el archivo ecosystem para gestión completa de variables de entorno
+            pm2 start ecosystem.staging.config.js
+            
+            # Guardar configuración PM2
+            pm2 save
+            
+            echo "✅ Aplicación iniciada exitosamente"
+          '
+
+      - name: 11. Verify deployment status
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📊 Verificando estado del deployment..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            echo "✅ Deployment completado!"
+            echo ""
+            echo "📊 Estado de PM2:"
+            pm2 list | grep guiders-backend-staging
+            echo ""
+            echo "📊 Estado de Docker:"
+            docker ps
+          '
+
+      - name: 12. Test MongoDB connection
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Probando conexión a MongoDB..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
             
             echo "🔍 Probando conexión a MongoDB de staging..."
-            NODE_ENV=staging node test-mongodb-connection.js
+            # Cargar variables del archivo .env.staging y establecer NODE_ENV
+            export $(grep -v "^#" .env.staging | xargs)
+            export NODE_ENV=staging
+            node test-mongodb-connection.js
+            echo "✅ Conexión a MongoDB verificada"
+          '
+
+      - name: 13. Final deployment verification
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Verificación final del deployment..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
             
             echo "📊 Estado final de staging:"
+            echo ""
+            echo "🟢 PM2 Processes:"
             pm2 list
+            echo ""
+            echo "🐳 Docker Containers:"
             docker ps
+            echo ""
+            echo "💾 Disk Usage:"
+            du -sh /var/www/guiders-backend-staging/
+            echo ""
+            echo "🌐 Network Ports:"
+            netstat -tulpn | grep -E ":3000|:5432|:27017|:6379" || echo "Puerto no encontrado en netstat"
             
+            echo ""
             echo "✅ ¡Deployment de staging verificado exitosamente!"
           '
 
