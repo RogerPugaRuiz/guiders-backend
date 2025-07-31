@@ -341,13 +341,14 @@ jobs:
             for i in {1..12}; do
               echo "  Intento $i/12..."
               
-              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres 2>/dev/null | grep -c "healthy" || echo "0")
-              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb 2>/dev/null | grep -c "healthy" || echo "0")
-              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis 2>/dev/null | grep -c "healthy" || echo "0")
+              # Buscar contenedores con sufijo -staging
+              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres-staging 2>/dev/null | grep -c "healthy" || echo "0")
+              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb-staging 2>/dev/null | grep -c "healthy" || echo "0")
+              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis-staging 2>/dev/null | grep -c "healthy" || echo "0")
               
-              echo "    PostgreSQL: $([[ $postgres_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
-              echo "    MongoDB: $([[ $mongodb_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
-              echo "    Redis: $([[ $redis_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    PostgreSQL (postgres-staging): $([[ $postgres_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    MongoDB (mongodb-staging): $([[ $mongodb_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
+              echo "    Redis (redis-staging): $([[ $redis_ok -eq 1 ]] && echo "✅ healthy" || echo "❌ not ready")"
               
               if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
                 echo "  ✅ Todas las bases de datos listas!"
@@ -359,9 +360,9 @@ jobs:
                 echo "🔍 Estado actual de los contenedores:"
                 docker ps
                 echo "🔍 Logs de servicios que fallan:"
-                [[ $postgres_ok -eq 0 ]] && echo "--- PostgreSQL logs ---" && docker logs postgres --tail 20
-                [[ $mongodb_ok -eq 0 ]] && echo "--- MongoDB logs ---" && docker logs mongodb --tail 20
-                [[ $redis_ok -eq 0 ]] && echo "--- Redis logs ---" && docker logs redis --tail 20
+                [[ $postgres_ok -eq 0 ]] && echo "--- PostgreSQL logs ---" && docker logs postgres-staging --tail 20
+                [[ $mongodb_ok -eq 0 ]] && echo "--- MongoDB logs ---" && docker logs mongodb-staging --tail 20
+                [[ $redis_ok -eq 0 ]] && echo "--- Redis logs ---" && docker logs redis-staging --tail 20
                 exit 1
               fi
               
