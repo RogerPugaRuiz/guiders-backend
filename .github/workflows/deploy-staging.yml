@@ -232,6 +232,10 @@ jobs:
           MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT }}
           MONGODB_ROOT_USERNAME=${{ secrets.STAGING_MONGODB_ROOT_USERNAME }}
           MONGODB_ROOT_PASSWORD=${{ secrets.STAGING_MONGODB_ROOT_PASSWORD }}
+          MONGODB_USERNAME=${{ secrets.STAGING_MONGODB_USERNAME || 'staging_user' }}
+          MONGODB_PASSWORD=${{ secrets.STAGING_MONGODB_PASSWORD || 'staging_pass' }}
+          REDIS_COMMANDER_PASSWORD=${{ secrets.STAGING_REDIS_COMMANDER_PASSWORD || 'staging123' }}
+          MONGO_EXPRESS_PASSWORD=${{ secrets.STAGING_MONGO_EXPRESS_PASSWORD || 'staging123' }}
           NODE_ENV=staging
           LOG_LEVEL=debug
           ENABLE_SWAGGER=true
@@ -254,7 +258,7 @@ jobs:
           
           # Subir archivos al servidor de staging
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose-staging.yml ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
 
           # Copiar scripts necesarios
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
@@ -282,7 +286,7 @@ jobs:
             
             # Iniciar servicios de base de datos
             echo "🐳 Iniciando servicios de base de datos..."
-            docker compose --env-file .env.staging up -d --remove-orphans
+            docker compose -f docker-compose-staging.yml --env-file .env.staging up -d --remove-orphans
             
             # Esperar a que estén listos
             echo "⏳ Esperando servicios..."
