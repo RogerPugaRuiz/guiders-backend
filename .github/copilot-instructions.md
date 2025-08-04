@@ -1,3 +1,4 @@
+````instructions
 # Guiders Backend - AI Coding Instructions
 
 ## Arquitectura General
@@ -5,8 +6,8 @@ Este es un backend de comunicación comercial en tiempo real construido con **Ne
 
 ### Estructura de Contextos
 - `src/context/auth/` - Autenticación (visitantes, usuarios, API keys)
-- `src/context/conversations/` - Chats y mensajes 
-- `src/context/conversations-v2/` - Nueva versión de conversaciones
+- `src/context/conversations/` - Chats y mensajes (versión legacy)
+- `src/context/conversations-v2/` - Nueva versión de conversaciones con esquemas MongoDB optimizados
 - `src/context/real-time/` - WebSockets y notificaciones en tiempo real
 - `src/context/company/` - Gestión de empresas
 - `src/context/visitors/` - Perfiles de visitantes
@@ -14,6 +15,11 @@ Este es un backend de comunicación comercial en tiempo real construido con **Ne
 - `src/context/shared/` - Value objects y utilidades compartidas
 
 Cada contexto tiene su estructura DDD: `domain/`, `application/`, `infrastructure/`
+
+### Base de Datos Dual
+- **PostgreSQL**: Datos relacionales (usuarios, empresas, configuraciones)
+- **MongoDB**: Mensajes cifrados, chats optimizados (collections: `messages`, `chats`, `chats_v2`, `comercial_claims`)
+- El `app.module.ts` detecta automáticamente el entorno y configura ambas conexiones
 
 ## Patrones Críticos
 
@@ -62,13 +68,24 @@ const entities = await this.repository
   .getMany();
 ```
 
+### Esquemas MongoDB Optimizados
+Los esquemas v2 incluyen índices compuestos y pre-hooks:
+```typescript
+@Schema({ collection: 'chats_v2', timestamps: true })
+export class ChatSchema {
+  // Índices automáticos para consultas comerciales
+  @Prop({ type: String, required: true, index: true })
+  assignedCommercialId?: string;
+}
+```
+
 ### Configuración Multi-Base de Datos Automática
-El `app.module.ts` detecta automáticamente el entorno y configura:
-- **test**: SQLite (memoria) para tests unitarios
-- **test + e2e**: PostgreSQL para tests e2e  
+El `app.module.ts` detecta automáticamente el entorno:
+- **test**: SQLite (memoria) para tests unitarios  
+- **test + e2e**: PostgreSQL + MongoDB para tests e2e
 - **development/production**: PostgreSQL + MongoDB
 
-MongoDB se usa específicamente para mensajes cifrados, PostgreSQL para datos relacionales.
+**Conexión MongoDB actual**: `mongodb://admin:password@localhost:27017/guiders?authSource=admin`
 
 ## Comandos Esenciales
 
@@ -236,5 +253,31 @@ const criteria = this.criteriaBuilder
   .build();
 ```
 
+### Configuración de Tests Específica
+- **Tests unitarios**: `npm run test:unit` (SQLite en memoria, `jest-unit.json`)
+- **Tests integración**: `npm run test:int` (PostgreSQL + MongoDB, `jest-int.json`)
+- **Tests e2e**: `npm run test:e2e` (PostgreSQL + MongoDB, `test/jest-e2e.json`)
+- Timeout por defecto: 30 segundos para operaciones async
+
+### MongoDB Collections y Casos de Uso
+- `messages` - Mensajes cifrados con metadatos de encriptación
+- `chats_v2` - Chats optimizados con índices para consultas comerciales
+- `comercial_claims` - Asignaciones temporales de comerciales a chats
+- Usar `@Schema({ collection: 'nombre' })` para mapeo explícito
+
 ### Context7 para Documentación
 Si te preguntan sobre documentación de lenguajes, frameworks o librerías, usa la herramienta `context7` para buscar la documentación oficial y proporcionar un resumen claro y conciso.
+
+### Herramientas CLI Específicas del Proyecto
+El proyecto incluye una CLI robusta en `bin/guiders-cli.js` con comandos especializados:
+```bash
+# Desarrollo y base de datos
+node bin/guiders-cli.js clean-database --force
+node bin/guiders-cli.js create-company --name "Empresa" --domain "empresa.com"  
+node bin/guiders-cli.js create-company-with-admin --name "Empresa" --domain "empresa.com" --adminName "Admin" --adminEmail "admin@email.com"
+
+# Tests con configuraciones específicas
+npm run test:unit   # SQLite en memoria
+npm run test:int    # PostgreSQL + MongoDB
+npm run test:e2e    # Full stack con WebSockets
+```
