@@ -42,7 +42,7 @@ describe('RedisConnectionService', () => {
     service = module.get<RedisConnectionService>(RedisConnectionService);
 
     try {
-  // Asegurar que el servicio esté conectado antes de los tests
+      // Asegurar que el servicio esté conectado antes de los tests
       await service.onModuleInit();
       // Detectar disponibilidad de Redis (propiedad interna privada)
       redisAvailable = (service as unknown as { isRedisAvailable: boolean })

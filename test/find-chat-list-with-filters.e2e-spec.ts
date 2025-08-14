@@ -75,10 +75,10 @@ class InMemoryChatRepository implements IChatRepository {
   }
 
   find(criteria: Criteria<Chat>): Promise<{ chats: Chat[] }> {
-  let result = [...this.chats];
-  // DEBUG: tamaños iniciales y criterio
-  // eslint-disable-next-line no-console
-  console.log('[InMemoryChatRepository] total chats:', result.length);
+    let result = [...this.chats];
+    // DEBUG: tamaños iniciales y criterio
+
+    console.log('[InMemoryChatRepository] total chats:', result.length);
 
     // Filtros (solo los necesarios para el test: participants)
     if (criteria.filters?.length) {
@@ -93,8 +93,8 @@ class InMemoryChatRepository implements IChatRepository {
         }
       });
     }
-  // eslint-disable-next-line no-console
-  console.log('[InMemoryChatRepository] after filter count:', result.length);
+
+    console.log('[InMemoryChatRepository] after filter count:', result.length);
 
     // Orden (lastMessageAt DESC, id DESC)
     if (criteria.orderBy) {
@@ -133,9 +133,9 @@ class InMemoryChatRepository implements IChatRepository {
       const cursorTs =
         cursorLastRaw instanceof Date
           ? cursorLastRaw.getTime()
-      : cursorLastRaw
-        ? new Date(cursorLastRaw as string).getTime()
-        : null;
+          : cursorLastRaw
+            ? new Date(cursorLastRaw as string).getTime()
+            : null;
 
       result = result.filter((chat) => {
         const chatTs = chat.lastMessageAt
@@ -151,18 +151,26 @@ class InMemoryChatRepository implements IChatRepository {
         return chat.id.value < cursorId;
       });
     }
-    // eslint-disable-next-line no-console
+
     if (criteria.cursor) {
-      console.log('[InMemoryChatRepository] after cursor count:', result.length);
+      console.log(
+        '[InMemoryChatRepository] after cursor count:',
+        result.length,
+      );
     }
 
     // Límite
     if (criteria.limit !== undefined) {
       result = result.slice(0, criteria.limit);
     }
-    // eslint-disable-next-line no-console
+
     if (criteria.limit !== undefined) {
-      console.log('[InMemoryChatRepository] after limit (', criteria.limit, ') count:', result.length);
+      console.log(
+        '[InMemoryChatRepository] after limit (',
+        criteria.limit,
+        ') count:',
+        result.length,
+      );
     }
 
     return Promise.resolve({ chats: result });
