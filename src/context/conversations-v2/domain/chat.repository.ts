@@ -192,6 +192,14 @@ export interface IChatRepository {
       DomainError
     >
   >;
+
+  /**
+   * Cuenta cuántos chats PENDING fueron creados antes de una fecha dada (para posición en sala de espera)
+   */
+  countPendingCreatedBefore(
+    date: Date,
+    department?: string,
+  ): Promise<Result<number, DomainError>>;
 }
 
 /**

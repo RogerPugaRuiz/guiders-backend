@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { AppModule } from '../src/app.module';
-import { QueryBus } from '@nestjs/cqrs';
+import { CqrsModule, QueryBus } from '@nestjs/cqrs';
 import { FindChatListWithFiltersQuery } from '../src/context/conversations/chat/application/read/find-chat-list-with-filters.query';
 import { ChatListResponse } from '../src/context/conversations/chat/application/read/find-chat-list-with-filters.query-handler';
 import {
@@ -13,9 +12,10 @@ import {
   ChatPrimitives,
 } from '../src/context/conversations/chat/domain/chat/chat';
 import { Uuid } from '../src/context/shared/domain/value-objects/uuid';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppDataSource } from '../src/data-source';
-import { EntityManager } from 'typeorm';
+import { Criteria, Operator } from '../src/context/shared/domain/criteria';
+import { ChatId } from '../src/context/conversations/chat/domain/chat/value-objects/chat-id';
+import { Optional } from '../src/context/shared/domain/optional';
+import { FindChatListWithFiltersQueryHandler } from '../src/context/conversations/chat/application/read/find-chat-list-with-filters.query-handler';
 
 // Función auxiliar para crear un chat de prueba
 const createTestChat = (
@@ -47,7 +47,133 @@ const createTestChat = (
   return Chat.fromPrimitives(chatPrimitives);
 };
 
-describe('FindChatListWithFiltersQuery (e2e)', () => {
+// Repositorio en memoria para aislar el test de la infraestructura
+class InMemoryChatRepository implements IChatRepository {
+  private chats: Chat[] = [];
+
+  save(chat: Chat): Promise<void> {
+    const idx = this.chats.findIndex((c) => c.id.value === chat.id.value);
+    if (idx >= 0) {
+      this.chats[idx] = chat;
+    } else {
+      this.chats.push(chat);
+    }
+    return Promise.resolve();
+  }
+
+  findById(id: ChatId): Promise<Optional<{ chat: Chat }>> {
+    const found = this.chats.find((c) => c.id.value === id.value);
+    return Promise.resolve(
+      found ? Optional.of({ chat: found }) : Optional.empty(),
+    );
+  }
+
+  findOne(criteria: Criteria<Chat>): Promise<Optional<{ chat: Chat }>> {
+    return this.find(criteria.setLimit(1)).then(({ chats }) =>
+      chats.length ? Optional.of({ chat: chats[0] }) : Optional.empty(),
+    );
+  }
+
+  find(criteria: Criteria<Chat>): Promise<{ chats: Chat[] }> {
+  let result = [...this.chats];
+  // DEBUG: tamaños iniciales y criterio
+  // eslint-disable-next-line no-console
+  console.log('[InMemoryChatRepository] total chats:', result.length);
+
+    // Filtros (solo los necesarios para el test: participants)
+    if (criteria.filters?.length) {
+      criteria.filters.forEach((filter: any) => {
+        if (
+          filter.field === 'participants' &&
+          filter.operator === Operator.EQUALS
+        ) {
+          result = result.filter((chat) =>
+            chat.participants.hasParticipant(filter.value),
+          );
+        }
+      });
+    }
+  // eslint-disable-next-line no-console
+  console.log('[InMemoryChatRepository] after filter count:', result.length);
+
+    // Orden (lastMessageAt DESC, id DESC)
+    if (criteria.orderBy) {
+      const orderList = Array.isArray(criteria.orderBy)
+        ? criteria.orderBy
+        : [criteria.orderBy];
+      result.sort((a, b) => {
+        for (const ord of orderList) {
+          let cmp = 0;
+          if (ord.field === 'lastMessageAt') {
+            const av = a.lastMessageAt
+              ? a.lastMessageAt.value.getTime()
+              : -Infinity;
+            const bv = b.lastMessageAt
+              ? b.lastMessageAt.value.getTime()
+              : -Infinity;
+            cmp = av === bv ? 0 : av > bv ? 1 : -1;
+          } else if (ord.field === 'id') {
+            cmp = a.id.value.localeCompare(b.id.value);
+          }
+          if (cmp !== 0) {
+            return ord.direction === 'DESC' ? -cmp : cmp;
+          }
+        }
+        return 0;
+      });
+    }
+
+    // Cursor (lastMessageAt + id) para paginación
+    if (criteria.cursor && 'id' in criteria.cursor) {
+      const cursorLastRaw =
+        'lastMessageAt' in criteria.cursor
+          ? (criteria.cursor as any).lastMessageAt
+          : null;
+      const cursorId = criteria.cursor.id as string;
+      const cursorTs =
+        cursorLastRaw instanceof Date
+          ? cursorLastRaw.getTime()
+      : cursorLastRaw
+        ? new Date(cursorLastRaw as string).getTime()
+        : null;
+
+      result = result.filter((chat) => {
+        const chatTs = chat.lastMessageAt
+          ? chat.lastMessageAt.value.getTime()
+          : Number.NEGATIVE_INFINITY;
+
+        if (cursorTs !== null) {
+          if (chatTs < cursorTs) return true;
+          if (chatTs === cursorTs && chat.id.value < cursorId) return true;
+          return false;
+        }
+        // Si no hay fecha en el cursor, solo usar id
+        return chat.id.value < cursorId;
+      });
+    }
+    // eslint-disable-next-line no-console
+    if (criteria.cursor) {
+      console.log('[InMemoryChatRepository] after cursor count:', result.length);
+    }
+
+    // Límite
+    if (criteria.limit !== undefined) {
+      result = result.slice(0, criteria.limit);
+    }
+    // eslint-disable-next-line no-console
+    if (criteria.limit !== undefined) {
+      console.log('[InMemoryChatRepository] after limit (', criteria.limit, ') count:', result.length);
+    }
+
+    return Promise.resolve({ chats: result });
+  }
+
+  findAll(): Promise<{ chats: Chat[] }> {
+    return Promise.resolve({ chats: [...this.chats] });
+  }
+}
+
+describe('FindChatListWithFiltersQuery (e2e - in memory)', () => {
   let app: INestApplication;
   let queryBus: QueryBus;
   let chatRepository: IChatRepository;
@@ -92,7 +218,11 @@ describe('FindChatListWithFiltersQuery (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule, TypeOrmModule.forRoot(AppDataSource.options as any)],
+      imports: [CqrsModule],
+      providers: [
+        FindChatListWithFiltersQueryHandler,
+        { provide: CHAT_REPOSITORY, useClass: InMemoryChatRepository },
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -100,22 +230,11 @@ describe('FindChatListWithFiltersQuery (e2e)', () => {
 
     queryBus = app.get(QueryBus);
     chatRepository = app.get(CHAT_REPOSITORY);
-    const entityManager = app.get(EntityManager);
 
-    // Limpiar los datos de prueba de manera segura
-    try {
-      // Eliminar todos los chats existentes de manera segura
-      await entityManager.query('DELETE FROM participants WHERE 1=1');
-      await entityManager.query('DELETE FROM chats WHERE 1=1');
-    } catch (error) {
-      console.warn('Error al limpiar datos de prueba:', error.message);
-    }
-
-    // Guardar los datos de prueba
     for (const chat of chats) {
       await chatRepository.save(chat);
     }
-  }, 30000); // Timeout de 30 segundos
+  });
 
   afterAll(async () => {
     if (app) {

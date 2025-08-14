@@ -22,6 +22,7 @@ import { CHAT_V2_REPOSITORY } from './domain/chat.repository';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -51,8 +52,8 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
       useClass: MongoChatRepositoryImpl,
     },
 
-    // TODO: Agregar cuando se implementen
     // Command Handlers
+    JoinWaitingRoomCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
