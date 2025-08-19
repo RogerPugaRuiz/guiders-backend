@@ -240,7 +240,7 @@ export class ChatV2Controller {
       // Ejecutar el comando
       const result = await this.commandBus.execute(command);
 
-      if (result.isError()) {
+      if (result.isErr()) {
         this.logger.error(`Error al crear chat ${chatId}:`, result.error);
         throw new HttpException(
           result.error.message,

@@ -422,11 +422,7 @@ describe('ChatV2Controller (e2e)', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
-      imports: [
-        CqrsModule,
-        // Import the MongooseModule to enable MongoDB schema registration
-        MongooseModule.forRoot('mongodb://localhost:27017/test'),
-      ],
+      imports: [CqrsModule],
       providers: [
         // Query handlers
         GetChatsWithFiltersQueryHandler,
@@ -440,12 +436,48 @@ describe('ChatV2Controller (e2e)', () => {
         AssignChatToCommercialCommandHandler,
         CloseChatCommandHandler,
         CreateChatCommandHandler,
-        // Mock repository for CreateChatCommandHandler
+        // Mock repository for CreateChatCommandHandler  
         {
           provide: CHAT_V2_REPOSITORY,
           useValue: {
             save: jest.fn().mockResolvedValue({ isErr: () => false }),
-            findById: jest.fn().mockResolvedValue({ isOk: () => false }),
+            findById: jest.fn().mockImplementation((chatId) => {
+              // For idempotency test, return existing chat on second call
+              if (chatId.value === '550e8400-e29b-4b5b-9cb4-123456789300') {
+                // Simulate existing chat found (for idempotency test)
+                return Promise.resolve({
+                  isOk: () => true,
+                  isErr: () => false,
+                  value: {
+                    toPrimitives: () => ({
+                      id: '550e8400-e29b-4b5b-9cb4-123456789300',
+                      status: 'PENDING',
+                      priority: 'NORMAL',
+                      visitorId: '550e8400-e29b-4b5b-9cb4-123456789301',
+                      assignedCommercialId: null,
+                      availableCommercialIds: ['550e8400-e29b-4b5b-9cb4-123456789302'],
+                      totalMessages: 0,
+                      createdAt: new Date('2024-01-01T10:00:00.000Z'),
+                      updatedAt: new Date('2024-01-01T10:00:00.000Z'),
+                      visitorInfo: {
+                        name: 'Test Idempotencia',
+                        email: 'test.idempotencia@example.com',
+                      },
+                      metadata: {
+                        department: 'general',
+                        source: 'web',
+                      },
+                    }),
+                  },
+                });
+              }
+              // For other tests, return chat not found
+              return Promise.resolve({ 
+                isOk: () => false,
+                isErr: () => true,
+                error: { message: 'Chat not found' }
+              });
+            }),
           },
         },
         // Mock EventPublisher for CreateChatCommandHandler
@@ -565,9 +597,9 @@ describe('ChatV2Controller (e2e)', () => {
     describe('creación exitosa', () => {
       it('debe crear un nuevo chat con todos los datos válidos', async () => {
         const mockToken = 'mock-visitor-token';
-        const chatId = 'cc79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const chatId = '550e8400-e29b-4b5b-9cb4-123456789100';
         const createChatDto = {
-          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-123456789abc',
+          visitorId: '550e8400-e29b-4b5b-9cb4-123456789101',
           visitorInfo: {
             name: 'Juan Pérez',
             email: 'juan.perez@example.com',
@@ -582,8 +614,8 @@ describe('ChatV2Controller (e2e)', () => {
             userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
           },
           availableCommercialIds: [
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789002',
+            '550e8400-e29b-4b5b-9cb4-123456789102',
+            '550e8400-e29b-4b5b-9cb4-123456789103',
           ],
           priority: 'NORMAL',
           metadata: {
@@ -633,15 +665,15 @@ describe('ChatV2Controller (e2e)', () => {
 
       it('debe crear un chat con datos mínimos requeridos', async () => {
         const mockToken = 'mock-visitor-token';
-        const chatId = 'dd79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const chatId = '550e8400-e29b-4b5b-9cb4-123456789200';
         const createChatDto = {
-          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-987654321abc',
+          visitorId: '550e8400-e29b-4b5b-9cb4-123456789201',
           visitorInfo: {
             name: 'Ana García',
             email: 'ana.garcia@example.com',
           },
           availableCommercialIds: [
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+            '550e8400-e29b-4b5b-9cb4-123456789202',
           ],
         };
 
@@ -666,15 +698,15 @@ describe('ChatV2Controller (e2e)', () => {
     describe('idempotencia', () => {
       it('debe retornar el mismo chat si se llama múltiples veces con el mismo ID', async () => {
         const mockToken = 'mock-visitor-token';
-        const chatId = 'ee79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const chatId = '550e8400-e29b-4b5b-9cb4-123456789300';
         const createChatDto = {
-          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-idempotency-test',
+          visitorId: '550e8400-e29b-4b5b-9cb4-123456789301',
           visitorInfo: {
             name: 'Test Idempotencia',
             email: 'test.idempotencia@example.com',
           },
           availableCommercialIds: [
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+            '550e8400-e29b-4b5b-9cb4-123456789302',
           ],
         };
 
@@ -761,14 +793,14 @@ describe('ChatV2Controller (e2e)', () => {
 
       it('debe permitir crear chat con rol visitor', async () => {
         const mockToken = 'mock-visitor-token';
-        const chatId = 'kk79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const chatId = '550e8400-e29b-4b5b-9cb4-123456789000';
         const createChatDto = {
-          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-visitor-role-test',
+          visitorId: '550e8400-e29b-4b5b-9cb4-123456789001',
           visitorInfo: {
             name: 'Test Rol Visitor',
           },
           availableCommercialIds: [
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+            '550e8400-e29b-4b5b-9cb4-123456789002',
           ],
         };
 
