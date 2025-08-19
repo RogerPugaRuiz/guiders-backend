@@ -4,6 +4,7 @@ import {
   Put,
   Param,
   Query,
+  Body,
   HttpException,
   HttpStatus,
   Logger,
@@ -38,7 +39,9 @@ import {
   CommercialMetricsResponseDto,
   ResponseTimeStatsDto,
 } from '../../application/dtos/chat-query.dto';
+import { CreateChatDto } from '../../application/dtos/create-chat.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
+import { CreateChatCommand } from '../../application/commands/create-chat.command';
 
 /**
  * Controller para la gestión de chats v2
@@ -148,7 +151,154 @@ export class ChatV2Controller {
 
       return this.queryBus.execute(query);
     } catch (error) {
-      this.logger.error('Error al obtener chats:', error);
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crea un chat con idempotencia usando PUT
+   */
+  @Put(':chatId')
+  @RequiredRoles('visitor', 'commercial', 'admin')
+  @ApiOperation({
+    summary: 'Crear chat con idempotencia',
+    description: 
+      'Crea un nuevo chat usando el ID proporcionado en la URL. ' +
+      'Si el chat ya existe, retorna el chat existente (idempotencia). ' +
+      'El método PUT garantiza que múltiples llamadas con el mismo ID son seguras.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'ID único del chat a crear (UUID)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Chat creado exitosamente o ya existía',
+    type: ChatResponseDto,
+    schema: {
+      example: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        status: 'pending',
+        priority: 'normal',
+        visitorId: '550e8400-e29b-41d4-a716-446655440001',
+        assignedCommercialId: null,
+        availableCommercialIds: ['commercial-1', 'commercial-2'],
+        totalMessages: 0,
+        createdAt: '2025-07-28T10:30:00.000Z',
+        updatedAt: '2025-07-28T10:30:00.000Z',
+        visitorInfo: {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          name: 'Juan Pérez',
+          email: 'juan@example.com',
+        },
+        metadata: {
+          department: 'ventas',
+          source: 'web',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos de entrada inválidos',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos suficientes',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async createChat(
+    @Param('chatId') chatId: string,
+    @Body() createChatDto: CreateChatDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatResponseDto> {
+    try {
+      this.logger.log(`Creando chat ${chatId} para usuario: ${req.user.id}`);
+      this.logger.debug(`Datos del chat: ${JSON.stringify(createChatDto)}`);
+
+      // Crear el comando con los datos del DTO
+      const command = CreateChatCommand.create({
+        chatId,
+        visitorId: createChatDto.visitorId,
+        visitorInfo: createChatDto.visitorInfo,
+        availableCommercialIds: createChatDto.availableCommercialIds,
+        priority: createChatDto.priority,
+        metadata: createChatDto.metadata,
+      });
+
+      // Ejecutar el comando
+      const result = await this.commandBus.execute(command);
+
+      if (result.isError()) {
+        this.logger.error(`Error al crear chat ${chatId}:`, result.error);
+        throw new HttpException(
+          result.error.message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      // Convertir la entidad a DTO de respuesta
+      const chatPrimitives = result.value.toPrimitives();
+      const response: ChatResponseDto = {
+        id: chatPrimitives.id,
+        status: chatPrimitives.status,
+        priority: chatPrimitives.priority,
+        visitorId: chatPrimitives.visitorId,
+        assignedCommercialId: chatPrimitives.assignedCommercialId,
+        availableCommercialIds: chatPrimitives.availableCommercialIds,
+        lastMessageDate: chatPrimitives.lastMessageDate,
+        totalMessages: chatPrimitives.totalMessages,
+        unreadMessagesCount: 0, // Nuevo chat, sin mensajes no leídos
+        isActive: !chatPrimitives.closedAt,
+        department: chatPrimitives.metadata?.department || 'general',
+        tags: chatPrimitives.metadata?.tags || [],
+        assignedAt: chatPrimitives.firstResponseTime,
+        closedAt: chatPrimitives.closedAt,
+        createdAt: chatPrimitives.createdAt,
+        updatedAt: chatPrimitives.updatedAt,
+        visitorInfo: {
+          id: chatPrimitives.visitorId,
+          name: chatPrimitives.visitorInfo.name || '',
+          email: chatPrimitives.visitorInfo.email || '',
+          phone: chatPrimitives.visitorInfo.phone,
+          location: chatPrimitives.visitorInfo.location?.city || chatPrimitives.visitorInfo.location?.country,
+          additionalData: {
+            company: chatPrimitives.visitorInfo.company,
+            ipAddress: chatPrimitives.visitorInfo.ipAddress,
+            userAgent: chatPrimitives.visitorInfo.userAgent,
+            referrer: chatPrimitives.visitorInfo.referrer,
+          },
+        },
+        metadata: {
+          department: chatPrimitives.metadata?.department || 'general',
+          source: chatPrimitives.metadata?.source || 'web',
+          initialUrl: undefined,
+          userAgent: chatPrimitives.visitorInfo.userAgent,
+          referrer: chatPrimitives.visitorInfo.referrer,
+          tags: chatPrimitives.metadata?.customFields || {},
+          customFields: chatPrimitives.metadata?.customFields || {},
+        },
+      };
+
+      this.logger.log(`Chat ${chatId} creado/obtenido exitosamente`);
+      return response;
+
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error al crear chat ${chatId}:`, error);
       throw new HttpException(
         'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,

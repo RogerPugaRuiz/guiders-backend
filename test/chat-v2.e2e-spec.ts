@@ -17,10 +17,14 @@ import {
   QueryHandler,
   CommandHandler,
   ICommandHandler,
+  EventPublisher,
 } from '@nestjs/cqrs';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
+import { CreateChatCommandHandler } from '../src/context/conversations-v2/application/commands/create-chat.command-handler';
+import { CHAT_V2_REPOSITORY } from '../src/context/conversations-v2/domain/chat.repository';
 
 // Tipos para evitar problemas de importación
 interface ChatListResponse {
@@ -418,7 +422,11 @@ describe('ChatV2Controller (e2e)', () => {
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
-      imports: [CqrsModule],
+      imports: [
+        CqrsModule,
+        // Import the MongooseModule to enable MongoDB schema registration
+        MongooseModule.forRoot('mongodb://localhost:27017/test'),
+      ],
       providers: [
         // Query handlers
         GetChatsWithFiltersQueryHandler,
@@ -431,6 +439,25 @@ describe('ChatV2Controller (e2e)', () => {
         // Command handlers
         AssignChatToCommercialCommandHandler,
         CloseChatCommandHandler,
+        CreateChatCommandHandler,
+        // Mock repository for CreateChatCommandHandler
+        {
+          provide: CHAT_V2_REPOSITORY,
+          useValue: {
+            save: jest.fn().mockResolvedValue({ isErr: () => false }),
+            findById: jest.fn().mockResolvedValue({ isOk: () => false }),
+          },
+        },
+        // Mock EventPublisher for CreateChatCommandHandler
+        {
+          provide: EventPublisher,
+          useValue: {
+            mergeObjectContext: jest.fn().mockImplementation((obj) => ({
+              ...obj,
+              commit: jest.fn(),
+            })),
+          },
+        },
       ],
     })
       .overrideGuard(AuthGuard)
@@ -531,6 +558,226 @@ describe('ChatV2Controller (e2e)', () => {
           expect(res.body).toHaveProperty('hasMore');
           expect(res.body).toHaveProperty('nextCursor');
         });
+    });
+  });
+
+  describe('PUT /v2/chats/:chatId', () => {
+    describe('creación exitosa', () => {
+      it('debe crear un nuevo chat con todos los datos válidos', async () => {
+        const mockToken = 'mock-visitor-token';
+        const chatId = 'cc79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const createChatDto = {
+          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-123456789abc',
+          visitorInfo: {
+            name: 'Juan Pérez',
+            email: 'juan.perez@example.com',
+            phone: '+34123456789',
+            company: 'Acme Corp',
+            ipAddress: '192.168.1.100',
+            location: {
+              country: 'España',
+              city: 'Madrid',
+            },
+            referrer: 'https://google.com',
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          },
+          availableCommercialIds: [
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789002',
+          ],
+          priority: 'NORMAL',
+          metadata: {
+            department: 'ventas',
+            product: 'Plan Premium',
+            source: 'web',
+            tags: ['nuevo-cliente', 'interesado'],
+            campaign: 'Black Friday 2024',
+            utmSource: 'google',
+            utmMedium: 'cpc',
+            utmCampaign: 'summer_sale',
+            customFields: {
+              leadScore: 85,
+              segment: 'enterprise',
+            },
+          },
+        };
+
+        return request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(createChatDto)
+          .expect(200)
+          .expect((res) => {
+            expect(res.body).toHaveProperty('id', chatId);
+            expect(res.body).toHaveProperty('status', 'PENDING');
+            expect(res.body).toHaveProperty('priority', 'NORMAL');
+            expect(res.body).toHaveProperty('visitorId', createChatDto.visitorId);
+            expect(res.body).toHaveProperty('totalMessages', 0);
+            expect(res.body).toHaveProperty('isActive', true);
+            expect(res.body).toHaveProperty('createdAt');
+            expect(res.body).toHaveProperty('updatedAt');
+            
+            // Verificar información del visitante
+            expect(res.body.visitorInfo).toHaveProperty('id', createChatDto.visitorId);
+            expect(res.body.visitorInfo).toHaveProperty('name', createChatDto.visitorInfo.name);
+            expect(res.body.visitorInfo).toHaveProperty('email', createChatDto.visitorInfo.email);
+            
+            // Verificar metadatos
+            expect(res.body.metadata).toHaveProperty('department', createChatDto.metadata.department);
+            expect(res.body.metadata).toHaveProperty('source', createChatDto.metadata.source);
+            
+            // Verificar comerciales disponibles
+            expect(res.body.availableCommercialIds).toEqual(createChatDto.availableCommercialIds);
+          });
+      });
+
+      it('debe crear un chat con datos mínimos requeridos', async () => {
+        const mockToken = 'mock-visitor-token';
+        const chatId = 'dd79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const createChatDto = {
+          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-987654321abc',
+          visitorInfo: {
+            name: 'Ana García',
+            email: 'ana.garcia@example.com',
+          },
+          availableCommercialIds: [
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+          ],
+        };
+
+        return request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(createChatDto)
+          .expect(200)
+          .expect((res) => {
+            expect(res.body).toHaveProperty('id', chatId);
+            expect(res.body).toHaveProperty('status', 'PENDING');
+            expect(res.body).toHaveProperty('priority', 'NORMAL'); // Valor por defecto
+            expect(res.body).toHaveProperty('visitorId', createChatDto.visitorId);
+            expect(res.body.visitorInfo).toHaveProperty('name', createChatDto.visitorInfo.name);
+            expect(res.body.visitorInfo).toHaveProperty('email', createChatDto.visitorInfo.email);
+            expect(res.body.metadata).toHaveProperty('department', 'general'); // Valor por defecto
+            expect(res.body.metadata).toHaveProperty('source', 'web'); // Valor por defecto
+          });
+      });
+    });
+
+    describe('idempotencia', () => {
+      it('debe retornar el mismo chat si se llama múltiples veces con el mismo ID', async () => {
+        const mockToken = 'mock-visitor-token';
+        const chatId = 'ee79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const createChatDto = {
+          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-idempotency-test',
+          visitorInfo: {
+            name: 'Test Idempotencia',
+            email: 'test.idempotencia@example.com',
+          },
+          availableCommercialIds: [
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+          ],
+        };
+
+        // Primera llamada - debe crear el chat
+        const firstResponse = await request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(createChatDto)
+          .expect(200);
+
+        // Segunda llamada - debe retornar el mismo chat (idempotencia)
+        const secondResponse = await request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(createChatDto)
+          .expect(200);
+
+        // Ambas respuestas deben ser idénticas
+        expect(firstResponse.body.id).toBe(secondResponse.body.id);
+        expect(firstResponse.body.createdAt).toBe(secondResponse.body.createdAt);
+        expect(firstResponse.body.status).toBe(secondResponse.body.status);
+        expect(firstResponse.body.visitorId).toBe(secondResponse.body.visitorId);
+      });
+    });
+
+    describe('validación de datos', () => {
+      it('debe retornar 400 si faltan datos requeridos', async () => {
+        const mockToken = 'mock-visitor-token';
+        const chatId = 'gg79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const invalidDto = {
+          // Falta visitorId
+          visitorInfo: {
+            name: 'Test Sin VisitorId',
+          },
+          availableCommercialIds: [],
+        };
+
+        return request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(invalidDto)
+          .expect(400);
+      });
+
+      it('debe retornar 400 si el visitorId no es un UUID válido', async () => {
+        const mockToken = 'mock-visitor-token';
+        const chatId = 'hh79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const invalidDto = {
+          visitorId: 'invalid-uuid',
+          visitorInfo: {
+            name: 'Test UUID Inválido',
+          },
+          availableCommercialIds: [
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+          ],
+        };
+
+        return request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(invalidDto)
+          .expect(400);
+      });
+    });
+
+    describe('autenticación y autorización', () => {
+      it('debe retornar 401 si no se proporciona token', async () => {
+        const chatId = 'jj79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const createChatDto = {
+          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-no-auth-test',
+          visitorInfo: {
+            name: 'Test Sin Auth',
+          },
+          availableCommercialIds: [
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+          ],
+        };
+
+        return request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .send(createChatDto)
+          .expect(401);
+      });
+
+      it('debe permitir crear chat con rol visitor', async () => {
+        const mockToken = 'mock-visitor-token';
+        const chatId = 'kk79e5dc-3b6b-4b5b-9cb4-123456789abc';
+        const createChatDto = {
+          visitorId: 'vv79e5dc-3b6b-4b5b-9cb4-visitor-role-test',
+          visitorInfo: {
+            name: 'Test Rol Visitor',
+          },
+          availableCommercialIds: [
+            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
+          ],
+        };
+
+        return request(app.getHttpServer())
+          .put(`/v2/chats/${chatId}`)
+          .set('Authorization', `Bearer ${mockToken}`)
+          .send(createChatDto)
+          .expect(200);
+      });
     });
   });
 

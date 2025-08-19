@@ -23,6 +23,7 @@ import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
+import { CreateChatCommandHandler } from './application/commands/create-chat.command-handler';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -54,6 +55,7 @@ import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiti
 
     // Command Handlers
     JoinWaitingRoomCommandHandler,
+    CreateChatCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
