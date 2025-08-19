@@ -15,15 +15,15 @@ async function bootstrap() {
     app.use((req: Request, res: Response, next: NextFunction) => {
       const originalUrl = req.url;
 
-      // Caso 1: /api[ruta] sin slash -> /api/[ruta]
-      if (req.url.match(/^\/api[a-zA-Z]/)) {
-        req.url = req.url.replace(/^\/api/, '/api/');
-      }
+      // // Caso 1: /api[ruta] sin slash -> /api/[ruta]
+      // if (req.url.match(/^\/api[a-zA-Z]/)) {
+      //   req.url = req.url.replace(/^\/api/, '/api/');
+      // }
 
-      // Caso 2: /apiuser/ -> /api/user/
-      if (req.url.startsWith('/apiuser')) {
-        req.url = req.url.replace('/apiuser', '/api/user');
-      }
+      // // Caso 2: /apiuser/ -> /api/user/
+      // if (req.url.startsWith('/apiuser')) {
+      //   req.url = req.url.replace('/apiuser', '/api/user');
+      // }
 
       // Registrar la redirección si se realizó algún cambio
       if (originalUrl !== req.url) {
