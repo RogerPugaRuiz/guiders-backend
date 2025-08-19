@@ -4,7 +4,7 @@ module.exports = {
       name: 'guiders-backend-staging',
       script: 'dist/src/main.js',
       env: {
-        NODE_ENV: 'staging',
+        NODE_ENV: 'production',
       },
       env_file: '.env.staging',
       instances: 1,
