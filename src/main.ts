@@ -9,7 +9,7 @@ async function bootstrap() {
 
   // Configurar el prefijo global para todas las rutas en producción
   if (process.env.NODE_ENV === 'production') {
-    app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+    // app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
 
     // Registrar un middleware para manejar las peticiones que incorrectamente usan /api[ruta] sin slash
     app.use((req: Request, res: Response, next: NextFunction) => {
