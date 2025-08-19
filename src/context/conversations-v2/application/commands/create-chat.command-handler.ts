@@ -2,10 +2,11 @@ import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { CreateChatCommand } from './create-chat.command';
 import { Chat } from '../../domain/entities/chat';
-import { IChatRepository, CHAT_V2_REPOSITORY } from '../../domain/chat.repository';
+import {
+  IChatRepository,
+  CHAT_V2_REPOSITORY,
+} from '../../domain/chat.repository';
 import { ChatId } from '../../domain/value-objects/chat-id';
-import { VisitorId } from '../../domain/value-objects/visitor-id';
-import { CommercialId } from '../../domain/value-objects/commercial-id';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 
@@ -34,7 +35,9 @@ export class CreateChatInternalError extends DomainError {
  * Maneja la lógica de negocio y la idempotencia
  */
 @CommandHandler(CreateChatCommand)
-export class CreateChatCommandHandler implements ICommandHandler<CreateChatCommand> {
+export class CreateChatCommandHandler
+  implements ICommandHandler<CreateChatCommand>
+{
   private readonly logger = new Logger(CreateChatCommandHandler.name);
 
   constructor(
@@ -43,16 +46,20 @@ export class CreateChatCommandHandler implements ICommandHandler<CreateChatComma
     private readonly publisher: EventPublisher,
   ) {}
 
-  async execute(command: CreateChatCommand): Promise<Result<Chat, DomainError>> {
+  async execute(
+    command: CreateChatCommand,
+  ): Promise<Result<Chat, DomainError>> {
     try {
       this.logger.log(`Ejecutando creación de chat: ${command.chatId}`);
 
       const chatId = ChatId.create(command.chatId);
-      
+
       // Verificar si el chat ya existe (idempotencia)
       const existingChatResult = await this.chatRepository.findById(chatId);
       if (existingChatResult.isOk()) {
-        this.logger.log(`Chat ${command.chatId} ya existe, retornando existente`);
+        this.logger.log(
+          `Chat ${command.chatId} ya existe, retornando existente`,
+        );
         return ok(existingChatResult.value);
       }
 
@@ -72,7 +79,8 @@ export class CreateChatCommandHandler implements ICommandHandler<CreateChatComma
       });
 
       // Aplicar contexto para eventos
-      const chatAggregate = this.publisher.mergeObjectContext(chatWithSpecificId);
+      const chatAggregate =
+        this.publisher.mergeObjectContext(chatWithSpecificId);
 
       // Guardar en el repositorio
       const saveResult = await this.chatRepository.save(chatAggregate);
@@ -85,7 +93,6 @@ export class CreateChatCommandHandler implements ICommandHandler<CreateChatComma
 
       this.logger.log(`Chat ${command.chatId} creado exitosamente`);
       return ok(chatWithSpecificId);
-
     } catch (error) {
       this.logger.error(`Error al crear chat ${command.chatId}:`, error);
       return err(

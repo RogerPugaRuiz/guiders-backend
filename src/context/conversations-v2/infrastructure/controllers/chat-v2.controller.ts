@@ -42,6 +42,9 @@ import {
 import { CreateChatDto } from '../../application/dtos/create-chat.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
 import { CreateChatCommand } from '../../application/commands/create-chat.command';
+import { Chat, ChatPrimitives } from '../../domain/entities/chat';
+import { Result } from 'src/context/shared/domain/result';
+import { DomainError } from 'src/context/shared/domain/domain.error';
 
 /**
  * Controller para la gestión de chats v2
@@ -150,7 +153,7 @@ export class ChatV2Controller {
       });
 
       return this.queryBus.execute(query);
-    } catch (error) {
+    } catch {
       throw new HttpException(
         'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -165,7 +168,7 @@ export class ChatV2Controller {
   @RequiredRoles('visitor', 'commercial', 'admin')
   @ApiOperation({
     summary: 'Crear chat con idempotencia',
-    description: 
+    description:
       'Crea un nuevo chat usando el ID proporcionado en la URL. ' +
       'Si el chat ya existe, retorna el chat existente (idempotencia). ' +
       'El método PUT garantiza que múltiples llamadas con el mismo ID son seguras.',
@@ -238,7 +241,8 @@ export class ChatV2Controller {
       });
 
       // Ejecutar el comando
-      const result = await this.commandBus.execute(command);
+      const result: Result<Chat, DomainError> =
+        await this.commandBus.execute(command);
 
       if (result.isErr()) {
         this.logger.error(`Error al crear chat ${chatId}:`, result.error);
@@ -249,7 +253,7 @@ export class ChatV2Controller {
       }
 
       // Convertir la entidad a DTO de respuesta
-      const chatPrimitives = result.value.toPrimitives();
+      const chatPrimitives: ChatPrimitives = result.value.toPrimitives();
       const response: ChatResponseDto = {
         id: chatPrimitives.id,
         status: chatPrimitives.status,
@@ -272,7 +276,9 @@ export class ChatV2Controller {
           name: chatPrimitives.visitorInfo.name || '',
           email: chatPrimitives.visitorInfo.email || '',
           phone: chatPrimitives.visitorInfo.phone,
-          location: chatPrimitives.visitorInfo.location?.city || chatPrimitives.visitorInfo.location?.country,
+          location:
+            chatPrimitives.visitorInfo.location?.city ||
+            chatPrimitives.visitorInfo.location?.country,
           additionalData: {
             company: chatPrimitives.visitorInfo.company,
             ipAddress: chatPrimitives.visitorInfo.ipAddress,
@@ -293,7 +299,6 @@ export class ChatV2Controller {
 
       this.logger.log(`Chat ${chatId} creado/obtenido exitosamente`);
       return response;
-
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

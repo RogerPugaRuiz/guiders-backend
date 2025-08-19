@@ -19,7 +19,6 @@ import {
   ICommandHandler,
   EventPublisher,
 } from '@nestjs/cqrs';
-import { MongooseModule } from '@nestjs/mongoose';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
@@ -436,7 +435,7 @@ describe('ChatV2Controller (e2e)', () => {
         AssignChatToCommercialCommandHandler,
         CloseChatCommandHandler,
         CreateChatCommandHandler,
-        // Mock repository for CreateChatCommandHandler  
+        // Mock repository for CreateChatCommandHandler
         {
           provide: CHAT_V2_REPOSITORY,
           useValue: {
@@ -455,7 +454,9 @@ describe('ChatV2Controller (e2e)', () => {
                       priority: 'NORMAL',
                       visitorId: '550e8400-e29b-4b5b-9cb4-123456789301',
                       assignedCommercialId: null,
-                      availableCommercialIds: ['550e8400-e29b-4b5b-9cb4-123456789302'],
+                      availableCommercialIds: [
+                        '550e8400-e29b-4b5b-9cb4-123456789302',
+                      ],
                       totalMessages: 0,
                       createdAt: new Date('2024-01-01T10:00:00.000Z'),
                       updatedAt: new Date('2024-01-01T10:00:00.000Z'),
@@ -472,10 +473,10 @@ describe('ChatV2Controller (e2e)', () => {
                 });
               }
               // For other tests, return chat not found
-              return Promise.resolve({ 
+              return Promise.resolve({
                 isOk: () => false,
                 isErr: () => true,
-                error: { message: 'Chat not found' }
+                error: { message: 'Chat not found' },
               });
             }),
           },
@@ -484,10 +485,12 @@ describe('ChatV2Controller (e2e)', () => {
         {
           provide: EventPublisher,
           useValue: {
-            mergeObjectContext: jest.fn().mockImplementation((obj) => ({
-              ...obj,
-              commit: jest.fn(),
-            })),
+            mergeObjectContext: jest
+              .fn()
+              .mockImplementation((obj: any): any => ({
+                ...obj,
+                commit: jest.fn(),
+              })),
           },
         },
       ],
@@ -643,23 +646,43 @@ describe('ChatV2Controller (e2e)', () => {
             expect(res.body).toHaveProperty('id', chatId);
             expect(res.body).toHaveProperty('status', 'PENDING');
             expect(res.body).toHaveProperty('priority', 'NORMAL');
-            expect(res.body).toHaveProperty('visitorId', createChatDto.visitorId);
+            expect(res.body).toHaveProperty(
+              'visitorId',
+              createChatDto.visitorId,
+            );
             expect(res.body).toHaveProperty('totalMessages', 0);
             expect(res.body).toHaveProperty('isActive', true);
             expect(res.body).toHaveProperty('createdAt');
             expect(res.body).toHaveProperty('updatedAt');
-            
+
             // Verificar información del visitante
-            expect(res.body.visitorInfo).toHaveProperty('id', createChatDto.visitorId);
-            expect(res.body.visitorInfo).toHaveProperty('name', createChatDto.visitorInfo.name);
-            expect(res.body.visitorInfo).toHaveProperty('email', createChatDto.visitorInfo.email);
-            
+            expect(res.body.visitorInfo).toHaveProperty(
+              'id',
+              createChatDto.visitorId,
+            );
+            expect(res.body.visitorInfo).toHaveProperty(
+              'name',
+              createChatDto.visitorInfo.name,
+            );
+            expect(res.body.visitorInfo).toHaveProperty(
+              'email',
+              createChatDto.visitorInfo.email,
+            );
+
             // Verificar metadatos
-            expect(res.body.metadata).toHaveProperty('department', createChatDto.metadata.department);
-            expect(res.body.metadata).toHaveProperty('source', createChatDto.metadata.source);
-            
+            expect(res.body.metadata).toHaveProperty(
+              'department',
+              createChatDto.metadata.department,
+            );
+            expect(res.body.metadata).toHaveProperty(
+              'source',
+              createChatDto.metadata.source,
+            );
+
             // Verificar comerciales disponibles
-            expect(res.body.availableCommercialIds).toEqual(createChatDto.availableCommercialIds);
+            expect(res.body.availableCommercialIds).toEqual(
+              createChatDto.availableCommercialIds,
+            );
           });
       });
 
@@ -672,9 +695,7 @@ describe('ChatV2Controller (e2e)', () => {
             name: 'Ana García',
             email: 'ana.garcia@example.com',
           },
-          availableCommercialIds: [
-            '550e8400-e29b-4b5b-9cb4-123456789202',
-          ],
+          availableCommercialIds: ['550e8400-e29b-4b5b-9cb4-123456789202'],
         };
 
         return request(app.getHttpServer())
@@ -686,9 +707,18 @@ describe('ChatV2Controller (e2e)', () => {
             expect(res.body).toHaveProperty('id', chatId);
             expect(res.body).toHaveProperty('status', 'PENDING');
             expect(res.body).toHaveProperty('priority', 'NORMAL'); // Valor por defecto
-            expect(res.body).toHaveProperty('visitorId', createChatDto.visitorId);
-            expect(res.body.visitorInfo).toHaveProperty('name', createChatDto.visitorInfo.name);
-            expect(res.body.visitorInfo).toHaveProperty('email', createChatDto.visitorInfo.email);
+            expect(res.body).toHaveProperty(
+              'visitorId',
+              createChatDto.visitorId,
+            );
+            expect(res.body.visitorInfo).toHaveProperty(
+              'name',
+              createChatDto.visitorInfo.name,
+            );
+            expect(res.body.visitorInfo).toHaveProperty(
+              'email',
+              createChatDto.visitorInfo.email,
+            );
             expect(res.body.metadata).toHaveProperty('department', 'general'); // Valor por defecto
             expect(res.body.metadata).toHaveProperty('source', 'web'); // Valor por defecto
           });
@@ -705,9 +735,7 @@ describe('ChatV2Controller (e2e)', () => {
             name: 'Test Idempotencia',
             email: 'test.idempotencia@example.com',
           },
-          availableCommercialIds: [
-            '550e8400-e29b-4b5b-9cb4-123456789302',
-          ],
+          availableCommercialIds: ['550e8400-e29b-4b5b-9cb4-123456789302'],
         };
 
         // Primera llamada - debe crear el chat
@@ -726,9 +754,13 @@ describe('ChatV2Controller (e2e)', () => {
 
         // Ambas respuestas deben ser idénticas
         expect(firstResponse.body.id).toBe(secondResponse.body.id);
-        expect(firstResponse.body.createdAt).toBe(secondResponse.body.createdAt);
+        expect(firstResponse.body.createdAt).toBe(
+          secondResponse.body.createdAt,
+        );
         expect(firstResponse.body.status).toBe(secondResponse.body.status);
-        expect(firstResponse.body.visitorId).toBe(secondResponse.body.visitorId);
+        expect(firstResponse.body.visitorId).toBe(
+          secondResponse.body.visitorId,
+        );
       });
     });
 
@@ -759,9 +791,7 @@ describe('ChatV2Controller (e2e)', () => {
           visitorInfo: {
             name: 'Test UUID Inválido',
           },
-          availableCommercialIds: [
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
-          ],
+          availableCommercialIds: ['cc79e5dc-3b6b-4b5b-9cb4-123456789001'],
         };
 
         return request(app.getHttpServer())
@@ -780,9 +810,7 @@ describe('ChatV2Controller (e2e)', () => {
           visitorInfo: {
             name: 'Test Sin Auth',
           },
-          availableCommercialIds: [
-            'cc79e5dc-3b6b-4b5b-9cb4-123456789001',
-          ],
+          availableCommercialIds: ['cc79e5dc-3b6b-4b5b-9cb4-123456789001'],
         };
 
         return request(app.getHttpServer())
@@ -799,9 +827,7 @@ describe('ChatV2Controller (e2e)', () => {
           visitorInfo: {
             name: 'Test Rol Visitor',
           },
-          availableCommercialIds: [
-            '550e8400-e29b-4b5b-9cb4-123456789002',
-          ],
+          availableCommercialIds: ['550e8400-e29b-4b5b-9cb4-123456789002'],
         };
 
         return request(app.getHttpServer())

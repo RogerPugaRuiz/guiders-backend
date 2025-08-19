@@ -1,11 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { 
-  IsString, 
-  IsOptional, 
-  IsArray, 
-  IsObject, 
+import {
+  IsString,
+  IsOptional,
+  IsArray,
+  IsObject,
   IsUUID,
-  ValidateNested 
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -198,7 +198,10 @@ export class CreateChatDto {
 
   @ApiProperty({
     description: 'IDs de los comerciales disponibles para este chat',
-    example: ['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002'],
+    example: [
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440002',
+    ],
   })
   @IsArray()
   @IsString({ each: true })
