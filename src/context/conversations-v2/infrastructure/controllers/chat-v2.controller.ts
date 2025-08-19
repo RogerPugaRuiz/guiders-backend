@@ -10,6 +10,9 @@ import {
   Logger,
   UseGuards,
   Req,
+  UsePipes,
+  ValidationPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
 import {
@@ -221,8 +224,16 @@ export class ChatV2Controller {
     status: 500,
     description: 'Error interno del servidor',
   })
+  @UsePipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: false,
+      transform: true,
+      forbidUnknownValues: false,
+    }),
+  )
   async createChat(
-    @Param('chatId') chatId: string,
+    @Param('chatId', new ParseUUIDPipe({ version: '4' })) chatId: string,
     @Body() createChatDto: CreateChatDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<ChatResponseDto> {
@@ -246,9 +257,14 @@ export class ChatV2Controller {
 
       if (result.isErr()) {
         this.logger.error(`Error al crear chat ${chatId}:`, result.error);
+        // Mapear errores de validación o formato a 400 si el comando los retorna como DomainError
+        const message = result.error.message || 'Error al crear chat';
+        const isValidation = /invalid|uuid|format|validation/i.test(message);
         throw new HttpException(
-          result.error.message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          message,
+          isValidation
+            ? HttpStatus.BAD_REQUEST
+            : HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
