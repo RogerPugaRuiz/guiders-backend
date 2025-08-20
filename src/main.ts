@@ -8,22 +8,25 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Configurar el prefijo global para todas las rutas en producción
-  if (process.env.NODE_ENV === 'production') {
-    // app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.NODE_ENV === 'staging'
+  ) {
+    app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
 
     // Registrar un middleware para manejar las peticiones que incorrectamente usan /api[ruta] sin slash
     app.use((req: Request, res: Response, next: NextFunction) => {
       const originalUrl = req.url;
 
       // Caso 1: /api[ruta] sin slash -> /api/[ruta]
-      // if (req.url.match(/^\/api[a-zA-Z]/)) {
-      //   req.url = req.url.replace(/^\/api/, '/api/');
-      // }
+      if (req.url.match(/^\/api[a-zA-Z]/)) {
+        req.url = req.url.replace(/^\/api/, '/api/');
+      }
 
       // Caso 2: /apiuser/ -> /api/user/
-      // if (req.url.startsWith('/apiuser')) {
-      //   req.url = req.url.replace('/apiuser', '/api/user');
-      // }
+      if (req.url.startsWith('/apiuser')) {
+        req.url = req.url.replace('/apiuser', '/api/user');
+      }
 
       // Registrar la redirección si se realizó algún cambio
       if (originalUrl !== req.url) {
