@@ -1,19 +1,37 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
-import { join } from 'path';
+import { join, resolve } from 'path';
+import * as fs from 'fs';
 
 // Usar CommonJS para compatibilidad con TypeORM CLI y Node.js
 // __dirname está disponible y no requiere hacks de ES modules
 
-// Selección de archivo .env según entorno (incluye staging)
-const envFile =
+// Selección de archivo .env según entorno (incluye staging) usando ruta absoluta al root del proyecto
+const selectedEnvName =
   process.env.NODE_ENV === 'production'
     ? '.env.production'
     : process.env.NODE_ENV === 'staging'
       ? '.env.staging'
       : '.env';
 
-dotenv.config({ path: envFile });
+// __dirname (compilado) -> dist/src => root = dist/.. => join(__dirname, '../..')
+const projectRoot = resolve(__dirname, '../..');
+let envPath = join(projectRoot, selectedEnvName);
+
+if (!fs.existsSync(envPath)) {
+  // Fallback: intentar en cwd (por si la estructura difiere)
+  const alt = join(process.cwd(), selectedEnvName);
+  if (fs.existsSync(alt)) {
+    envPath = alt;
+  } else {
+    console.warn(
+      `[DataSource] No se encontró archivo env (${selectedEnvName}) en ${envPath} ni ${alt}. Variables de entorno podrían faltar.`,
+    );
+  }
+}
+
+dotenv.config({ path: envPath });
+console.log(`[DataSource] Archivo de entorno cargado: ${envPath}`);
 
 // Control mediante variable de entorno TYPEORM_SYNC (true/false)
 // Usar SOLO de forma puntual; en entornos estables preferir migraciones.
