@@ -375,11 +375,32 @@ jobs:
           echo "🔄 Ejecutando migraciones de base de datos..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
-            
-            echo "🔄 Ejecutando migraciones..."
-            NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js
-            
-            echo "✅ Migraciones ejecutadas exitosamente"
+            echo "🔄 Cargando variables de entorno (.env.staging)"
+            if [ -f .env.staging ]; then
+              export $(grep -v "^#" .env.staging | xargs)
+            else
+              echo "❌ No se encontró .env.staging" && exit 1
+            fi
+
+            export NODE_ENV=staging
+            echo "� Variables clave: HOST=$DATABASE_HOST DB=$DATABASE USER=$DATABASE_USERNAME"
+
+            echo "📁 Migraciones compiladas disponibles:" && ls -1 dist/src/migrations || (echo "❌ No se encontró carpeta de migraciones compiladas" && exit 1)
+
+            echo "�🔄 Ejecutando migraciones..."
+            npx typeorm migration:run -d dist/src/data-source.js || (echo "❌ Falló la ejecución de migraciones" && exit 1)
+
+            echo "🧪 Verificando tabla api_key_entity..."
+            if docker compose -f docker-compose-staging.yml exec -T postgres-staging psql -U "$DATABASE_USERNAME" -d "$DATABASE" -c "\\dt public.api_key_entity" | grep -q api_key_entity; then
+              echo "✅ Tabla api_key_entity presente"
+            else
+              echo "⚠️ Tabla api_key_entity no encontrada (falta migración o falló)." && exit 1
+            fi
+
+            echo "🧾 Últimas migraciones registradas:"
+            docker compose -f docker-compose-staging.yml exec -T postgres-staging psql -U "$DATABASE_USERNAME" -d "$DATABASE" -c "SELECT id, name, run_on FROM migrations ORDER BY run_on DESC LIMIT 10;" || true
+
+            echo "✅ Migraciones ejecutadas y verificadas"
           '
 
       - name: 10. Start application with PM2

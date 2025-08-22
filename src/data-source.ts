@@ -5,9 +5,15 @@ import { join } from 'path';
 // Usar CommonJS para compatibilidad con TypeORM CLI y Node.js
 // __dirname está disponible y no requiere hacks de ES modules
 
-dotenv.config({
-  path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
-});
+// Selección de archivo .env según entorno (incluye staging)
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? '.env.production'
+    : process.env.NODE_ENV === 'staging'
+      ? '.env.staging'
+      : '.env';
+
+dotenv.config({ path: envFile });
 
 // Configuración de DataSource para TypeORM CLI y generación de migraciones
 export const AppDataSource = new DataSource({
