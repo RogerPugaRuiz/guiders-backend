@@ -267,6 +267,8 @@ const criteria = this.criteriaBuilder
 ### Context7 para Documentación
 Si te preguntan sobre documentación de lenguajes, frameworks o librerías, usa la herramienta `context7` para buscar la documentación oficial y proporcionar un resumen claro y conciso.
 
+Siempre que te pidas que busques mas información o que me proporciones documentación, utiliza `context7` para obtener la información más precisa y actualizada.
+
 ### Herramientas CLI Específicas del Proyecto
 El proyecto incluye una CLI robusta en `bin/guiders-cli.js` con comandos especializados:
 ```bash
