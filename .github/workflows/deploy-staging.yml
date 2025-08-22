@@ -395,8 +395,8 @@ jobs:
 
             echo "📁 Migraciones compiladas disponibles:" && ls -1 dist/src/migrations || (echo "❌ No se encontró carpeta de migraciones compiladas" && exit 1)
 
-            echo "�🔄 Ejecutando migraciones (npm run typeorm:migrate:run)..."
-            npm run typeorm:migrate:run || (echo "❌ Falló la ejecución de migraciones" && exit 1)
+            echo "�🔄 Ejecutando migraciones (comando directo npx)..."
+            NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js || (echo "❌ Falló la ejecución de migraciones" && exit 1)
 
             echo "🧪 Verificando tabla api_key_entity..."
             if docker compose -f docker-compose-staging.yml exec -T postgres-staging psql -U "$DATABASE_USERNAME" -d "$DATABASE" -c "\\dt public.api_key_entity" | grep -q api_key_entity; then
