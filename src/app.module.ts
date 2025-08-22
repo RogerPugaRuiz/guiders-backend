@@ -101,8 +101,16 @@ export class AppModule {
         new Error().stack?.includes('/test/'));
 
     // Se retorna un objeto estrictamente tipado para TypeOrmModuleOptions
+    // Control puntual mediante TYPEORM_SYNC (no recomendado permanente)
+    const allowSync = configService.get<string>('TYPEORM_SYNC') === 'true';
+    if (allowSync && !isE2ETest) {
+      console.warn(
+        `[TypeORM Config] synchronize=TRUE activado por TYPEORM_SYNC (nodeEnv=${nodeEnv}). Usar migraciones para cambios definitivos.`,
+      );
+    }
+
     return {
-      type: 'postgres', // Tipo de base de datos explícito
+      type: 'postgres',
       host: isTest
         ? configService.get<string>('TEST_DATABASE_HOST', 'localhost')
         : configService.get<string>('DATABASE_HOST', 'localhost'),
@@ -119,8 +127,8 @@ export class AppModule {
         ? configService.get<string>('TEST_DATABASE', 'mydb')
         : configService.get<string>('DATABASE', 'mydb'),
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: isE2ETest, // Solo sincronizar en tests e2e
-      autoLoadEntities: isE2ETest, // Solo cargar entidades automáticamente en tests e2e
+  synchronize: allowSync || isE2ETest,
+  autoLoadEntities: allowSync || isE2ETest,
     };
   }
 
