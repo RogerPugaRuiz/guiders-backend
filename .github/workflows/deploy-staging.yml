@@ -387,6 +387,12 @@ jobs:
             export NODE_ENV=staging
             echo "� Variables clave: HOST=$DATABASE_HOST DB=$DATABASE USER=$DATABASE_USERNAME"
 
+            # Si estamos en modo synchronize (bootstrap puntual) NO ejecutamos migraciones
+            if [ "${TYPEORM_SYNC}" = "true" ]; then
+              echo "🟡 TYPEORM_SYNC=true ⇒ se omiten migraciones (schema sync se encargará).";
+              exit 0
+            fi
+
             echo "📁 Migraciones compiladas disponibles:" && ls -1 dist/src/migrations || (echo "❌ No se encontró carpeta de migraciones compiladas" && exit 1)
 
             echo "�🔄 Ejecutando migraciones..."
