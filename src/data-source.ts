@@ -15,6 +15,10 @@ const envFile =
 
 dotenv.config({ path: envFile });
 
+// Permitir sincronización temporal controlada por variable de entorno.
+// Usar SOLO para provisionar rápidamente en entornos no críticos y luego desactivar.
+const allowSync = process.env.TYPEORM_SYNC === 'true';
+
 // Configuración de DataSource para TypeORM CLI y generación de migraciones
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -26,5 +30,12 @@ export const AppDataSource = new DataSource({
   // Ajuste: solo buscar entidades compiladas (.js) para generación de migraciones
   entities: [join(__dirname, '/../**/*.entity.js')],
   migrations: [join(__dirname, '/migrations/*{.ts,.js}')],
-  synchronize: false, // Solo para desarrollo, no usar en producción
+  synchronize: allowSync, // Activado únicamente si TYPEORM_SYNC=true
 });
+
+if (allowSync) {
+  // Log informativo (no lanzar excepción) para recordar desactivar
+  console.warn(
+    '[DataSource] synchronize=TRUE habilitado por TYPEORM_SYNC (recuerda desactivarlo después de uso puntual).',
+  );
+}
