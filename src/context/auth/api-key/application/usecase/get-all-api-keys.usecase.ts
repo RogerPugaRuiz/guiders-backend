@@ -3,6 +3,10 @@ import {
   API_KEY_REPOSITORY,
   ApiKeyRepository,
 } from '../../domain/repository/api-key.repository';
+import {
+  ApiKeyResponseDto,
+  ApiKeyResponseDtoMapper,
+} from '../dtos/api-key-response.dto';
 
 @Injectable()
 export class GetAllApiKeysUseCase {
@@ -11,15 +15,10 @@ export class GetAllApiKeysUseCase {
     private readonly apiKeyRepository: ApiKeyRepository,
   ) {}
 
-  async execute(): Promise<
-    Array<{ domain: string; apiKey: string; kid: string; publicKey: string }>
-  > {
+  async execute(): Promise<ApiKeyResponseDto[]> {
     const apiKeys = await this.apiKeyRepository.getAllApiKeys();
-    return apiKeys.map((apiKey) => ({
-      domain: apiKey.domain.getValue(),
-      apiKey: apiKey.apiKey.getValue(),
-      kid: apiKey.kid.getValue(),
-      publicKey: apiKey.publicKey.getValue(),
-    }));
+    return ApiKeyResponseDtoMapper.fromDomainList(apiKeys, {
+      includeCreatedAt: true,
+    });
   }
 }

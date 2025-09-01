@@ -4,6 +4,10 @@ import {
   ApiKeyRepository,
 } from '../../domain/repository/api-key.repository';
 import { ApiKeyCompanyId } from '../../domain/model/api-key-company-id';
+import {
+  ApiKeyResponseDto,
+  ApiKeyResponseDtoMapper,
+} from '../dtos/api-key-response.dto';
 
 @Injectable()
 export class GetApiKeysByCompanyIdUseCase {
@@ -12,24 +16,12 @@ export class GetApiKeysByCompanyIdUseCase {
     private readonly apiKeyRepository: ApiKeyRepository,
   ) {}
 
-  async execute(companyId: string): Promise<
-    Array<{
-      domain: string;
-      apiKey: string;
-      kid: string;
-      publicKey: string;
-      createdAt: Date;
-    }>
-  > {
+  async execute(companyId: string): Promise<ApiKeyResponseDto[]> {
     const companyIdVO = ApiKeyCompanyId.create(companyId);
     const apiKeys =
       await this.apiKeyRepository.getApiKeysByCompanyId(companyIdVO);
-    return apiKeys.map((apiKey) => ({
-      domain: apiKey.domain.getValue(),
-      apiKey: apiKey.apiKey.getValue(),
-      kid: apiKey.kid.getValue(),
-      publicKey: apiKey.publicKey.getValue(),
-      createdAt: apiKey.createdAt.getValue(),
-    }));
+    return ApiKeyResponseDtoMapper.fromDomainList(apiKeys, {
+      includeCreatedAt: true,
+    });
   }
 }
