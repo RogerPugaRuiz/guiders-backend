@@ -50,6 +50,22 @@ Mongo para chats (latencia + agregaciones); separación CQRS para optimizar read
 ¿Algo poco claro o falta un patrón? Pide aclaración antes de introducir uno nuevo.
 
 ---
+### 14. Política de Idioma
+Comentarios de código, descripciones Swagger y mensajes de error/validación deben utilizar español técnico neutro (mismo criterio que commits y revisiones). Excepciones:
+- Integraciones externas o SDK públicos que ya exponen contratos/documentación en inglés.
+- Mensajes que formen parte de un protocolo estandarizado (p.ej. errores OAuth) donde el inglés sea requerido.
+En ausencia de estas excepciones, prioriza español claro, conciso y consistente. Evita traducciones literales innecesarias y mantén nombres de tipos/clases/identificadores en inglés (convención habitual) mientras la explicación contextual (comentarios, docs, mensajes) va en español.
+
+Resumen rápido:
+- Código (identificadores): inglés.
+- Comentarios // y /* */: español técnico neutro.
+- Swagger `summary` / `description`: español técnico neutro.
+- Mensajes de Error (exceptions, validation pipes): español técnico neutro salvo se requiera inglés por contrato externo.
+- Commits y Revisiones: ya definido (español técnico neutro).
+
+Esta política evita mezcla arbitraria y facilita lectura al equipo actual; si cambia la composición lingüística del equipo, se podrá revisar.
+
+---
 ### Context7 (cuándo leer docs externas)
 Usar solo si falta en repo y afecta decisión (APIs Angular 20, signals avanzados, DI tree-shakable, Jest timers). Proceso: buscar local → si falta `resolve-library-id` → `get-library-docs(topic)` tokens ≤6000 → resumir y aplicar citando ("Context7: signals"). No para sintaxis básica.
 
