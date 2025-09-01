@@ -215,6 +215,12 @@ jobs:
           DATABASE_PASSWORD=${{ secrets.STAGING_DATABASE_PASSWORD }}
           DATABASE=${{ secrets.STAGING_DATABASE }}
           APP_URL=${{ secrets.STAGING_APP_URL }}
+          # JWKS_BASE_URL opcional: si no está definido en secrets se usará STAGING_APP_URL
+          JWKS_BASE_URL_PLACEHOLDER="${{ secrets.STAGING_APP_URL }}"
+          # GitHub Actions no permite fallback inline con secretos potencialmente no existentes sin marcar warning.
+          # Por simplicidad, siempre usamos STAGING_APP_URL; si se define un secreto separado se podrá ajustar este bloque.
+          JWKS_BASE_URL=$JWKS_BASE_URL_PLACEHOLDER
+          echo "Usando JWKS_BASE_URL=$JWKS_BASE_URL"
           ENCRYPTION_KEY=${{ secrets.STAGING_ENCRYPTION_KEY }}
           GLOBAL_TOKEN_SECRET=${{ secrets.STAGING_GLOBAL_TOKEN_SECRET }}
           ACCESS_TOKEN_EXPIRATION=${{ secrets.STAGING_ACCESS_TOKEN_EXPIRATION }}

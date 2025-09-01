@@ -8,8 +8,8 @@ async function bootstrap() {
 
   // Configurar el prefijo global para todas las rutas (Nginx maneja el proxy)
   // Excluir docs del prefijo API para que sean accesibles directamente
-  // Health ya no se excluye: endpoint estará en /api/health
-  app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+  // Excluimos docs y jwks; health queda bajo /api/health
+  app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json', '/jwks'] });
 
   // Configuración de CORS más específica para producción
   const corsOptions = {
@@ -63,7 +63,7 @@ async function bootstrap() {
   logger.log(
     `Application is running in ${process.env.NODE_ENV || 'development'} mode`,
   );
-  logger.log(`Global prefix: api (excluded: /docs, /docs-json)`);
+  logger.log(`Global prefix: api (excluded: /docs, /docs-json, /jwks)`);
   logger.log(`CORS origin: ${JSON.stringify(corsOptions.origin)}`);
   logger.log(`Application is running on port ${process.env.PORT ?? 3000}`);
 

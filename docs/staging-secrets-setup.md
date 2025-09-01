@@ -45,6 +45,7 @@ STAGING_REDIS_URL=redis://localhost:6379
 ```
 STAGING_PORT=3000
 STAGING_APP_URL=https://staging-api.tu-dominio.com
+STAGING_JWKS_BASE_URL=https://staging-api.tu-dominio.com # (Opcional) Si se quiere desacoplar del APP_URL
 STAGING_ENCRYPTION_KEY=clave_encriptacion_muy_segura_32_caracteres
 STAGING_GLOBAL_TOKEN_SECRET=jwt_secret_muy_seguro_64_caracteres
 STAGING_ACCESS_TOKEN_EXPIRATION=15m
@@ -67,7 +68,7 @@ echo "scp deploy-staging.tar.gz ..."
 sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-staging.tar.gz .env.staging docker-compose.yml $STAGING_USER@$STAGING_HOST:/var/www/guiders-backend-staging/
 ```
 
-3. **Actualizar configuración de environment**:
+3. **Actualizar configuración de environment**
 
 ```yaml
 # Reemplazar valores hardcoded por secrets:
@@ -151,7 +152,7 @@ Una vez configurado todo:
 
 ## 📞 **Troubleshooting**
 
-### Error de conexión SSH:
+\n### Error de conexión SSH\n
 ```bash
 # Verificar conectividad
 ssh usuario@staging.tu-dominio.com
@@ -160,7 +161,7 @@ ssh usuario@staging.tu-dominio.com
 ssh-keyscan staging.tu-dominio.com
 ```
 
-### Error de Docker:
+\n### Error de Docker\n
 ```bash
 # Verificar servicios
 docker ps
@@ -170,7 +171,7 @@ docker-compose logs
 docker-compose down && docker-compose up -d
 ```
 
-### Error de PM2:
+\n### Error de PM2\n
 ```bash
 # Ver procesos
 pm2 list

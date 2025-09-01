@@ -48,6 +48,19 @@ export class TokenVerifyService {
           throw new UnauthorizedException('No kid en token');
         }
 
+        const jwksBase =
+          this.configService.get<string>('JWKS_BASE_URL') ||
+          this.configService.get<string>('APP_URL');
+        if (!jwksBase) {
+          this.logger.error(
+            'No se ha configurado JWKS_BASE_URL ni APP_URL para obtener JWKS',
+          );
+          throw new UnauthorizedException('Configuración JWKS no disponible');
+        }
+        const jwksUrl = new URL(
+          'jwks',
+          jwksBase.endsWith('/') ? jwksBase : jwksBase + '/',
+        ).toString();
         const { data } = await firstValueFrom(
           this.http.get<{
             keys: {
@@ -58,7 +71,7 @@ export class TokenVerifyService {
               n: string;
               e: string;
             }[];
-          }>(`${this.configService.get('APP_URL')}/jwks`),
+          }>(jwksUrl),
         );
 
         const foundKey = data.keys.find((k) => k.kid === kid);
