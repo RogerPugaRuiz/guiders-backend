@@ -19,6 +19,8 @@ export class ChatMessageEncryptorService implements ChatMessageEncryptor {
   private readonly CURRENT_KEY_VERSION = 1;
   private readonly ALGORITHM = 'aes-256-cbc';
   private readonly IV_LENGTH = 16;
+  // Marcador interno para validar integridad básica del contenido desencriptado (no autenticación fuerte)
+  private readonly CONTENT_MARKER = 'CHMSG::';
 
   constructor(private readonly configService: ConfigService) {
     this.validateConfiguration();
@@ -36,8 +38,10 @@ export class ChatMessageEncryptorService implements ChatMessageEncryptor {
         const encryptionKey = this.getEncryptionKey();
         const iv = randomBytes(this.IV_LENGTH);
 
-        const cipher = createCipheriv(this.ALGORITHM, encryptionKey, iv);
-        let encrypted = cipher.update(message, 'utf8', 'hex');
+  const cipher = createCipheriv(this.ALGORITHM, encryptionKey, iv);
+  // Prefijamos marcador para validar tras desencriptar y detectar clave errónea
+  const payload = `${this.CONTENT_MARKER}${message}`;
+  let encrypted = cipher.update(payload, 'utf8', 'hex');
         encrypted += cipher.final('hex');
 
         // Formato: version:iv:encrypted_data
@@ -88,6 +92,14 @@ export class ChatMessageEncryptorService implements ChatMessageEncryptor {
         const decipher = createDecipheriv(this.ALGORITHM, encryptionKey, iv);
         let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
+
+        // Validamos marcador de integridad (solo para mensajes creados tras introducir el marcador)
+        if (!decrypted.startsWith(this.CONTENT_MARKER)) {
+          throw new Error('Integrity marker missing');
+        }
+
+        // Removemos marcador antes de devolver
+        decrypted = decrypted.substring(this.CONTENT_MARKER.length);
 
         // Auditoría
         this.logOperation('decrypt', {
