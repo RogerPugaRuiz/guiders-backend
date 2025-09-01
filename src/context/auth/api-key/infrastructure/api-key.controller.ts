@@ -75,7 +75,7 @@ export class ApiKeyController {
   async listCompanyApiKeys(@Req() req: AuthenticatedRequest) {
     const companyId = req.user?.companyId;
     if (!companyId) {
-      throw new UnauthorizedException('No companyId in token');
+      throw new UnauthorizedException('Token sin companyId asociado');
     }
     return await this.apiKeyService.listCompanyApiKeys(companyId);
   }
