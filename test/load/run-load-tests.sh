@@ -19,7 +19,7 @@ fi
 
 # Verificar que el servidor esté corriendo
 echo -e "${YELLOW}Verificando que el servidor esté corriendo en localhost:8080...${NC}"
-if ! curl -s http://localhost:8080/health > /dev/null; then
+if ! curl -s http://localhost:8080/api/health > /dev/null; then
     echo -e "${RED}Error: El servidor no está corriendo en localhost:8080${NC}"
     echo -e "${YELLOW}Ejecuta: npm run start:dev${NC}"
     exit 1

@@ -27,9 +27,9 @@ scenarios:
             visitorId: "{{ visitorId }}"
             sessionId: "{{ sessionId }}"
       
-      # Verificación rápida de health
+      # Verificación rápida de health (prefijo /api)
       - get:
-          url: "/health"
+          url: "/api/health"
           expect:
             - statusCode: 200
       
