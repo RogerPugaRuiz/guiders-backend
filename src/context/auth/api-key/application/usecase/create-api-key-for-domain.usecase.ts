@@ -32,18 +32,18 @@ export class CreateApiKeyForDomainUseCase {
     private readonly hashService: ApiKeyHasher,
   ) {}
   async execute(
-    domain: string,
-    companyId: string,
+    domain: ApiKeyDomain,
+    companyId: ApiKeyCompanyId,
   ): Promise<{ apiKey: string }> {
-    // Normalizar el dominio eliminando el prefijo www. para consistencia
-    const normalizedDomain = this.normalizeDomain(domain);
-    const domainValue = ApiKeyDomain.create(normalizedDomain);
+    // Normalizar el dominio eliminando el prefijo www. para consistencia (operamos sobre el valor del VO)
+    const normalizedDomain = this.normalizeDomain(domain.getValue());
+    const normalizedDomainVO = ApiKeyDomain.create(normalizedDomain);
     const apiKeyValue = ApiKeyValue.create(
       await this.hashService.hash(normalizedDomain),
     );
 
     const foundApiKey =
-      await this.apiKeyRepository.getApiKeyByDomain(domainValue);
+      await this.apiKeyRepository.getApiKeyByDomain(normalizedDomainVO);
     if (foundApiKey) {
       return { apiKey: foundApiKey.apiKey.getValue() };
     }
@@ -55,14 +55,13 @@ export class CreateApiKeyForDomainUseCase {
       this.encryptService.encrypt(value),
     );
     const kidValue = ApiKeyValue.create(await this.hashService.hash(publicKey));
-    const companyIdValue = ApiKeyCompanyId.create(companyId);
     const newApiKey = ApiKey.create({
-      domain: domainValue,
+      domain: normalizedDomainVO,
       publicKey: publicKeyValue,
       privateKey: encryptedPrivateKey,
       apiKey: apiKeyValue,
       kid: kidValue,
-      companyId: companyIdValue,
+      companyId: companyId,
     });
 
     await this.apiKeyRepository.save(newApiKey);

@@ -2,6 +2,8 @@ import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { CompanyCreatedEvent } from 'src/context/company/domain/events/company-created.event';
 import { CreateApiKeyForDomainUseCase } from '../usecase/create-api-key-for-domain.usecase';
 import { Injectable, Logger } from '@nestjs/common';
+import { ApiKeyDomain } from '../../domain/model/api-key-domain';
+import { ApiKeyCompanyId } from '../../domain/model/api-key-company-id';
 
 // Handler que reacciona al evento CompanyCreatedEvent y crea una API Key para el dominio principal de la empresa
 @Injectable()
@@ -30,7 +32,10 @@ export class CreateApiKeyOnCompanyCreatedEventHandler
     }
     for (const domain of domains) {
       try {
-        await this.createApiKeyForDomainUseCase.execute(domain, companyId);
+        await this.createApiKeyForDomainUseCase.execute(
+          ApiKeyDomain.create(domain),
+          ApiKeyCompanyId.create(companyId),
+        );
         this.logger.log(
           `API Key creada para la empresa ${companyId} y dominio ${domain}`,
         );

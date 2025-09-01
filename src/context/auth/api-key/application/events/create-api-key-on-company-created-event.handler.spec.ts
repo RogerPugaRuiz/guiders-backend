@@ -5,6 +5,8 @@ import {
   CompanyCreatedEvent,
   Payload,
 } from 'src/context/company/domain/events/company-created.event';
+import { ApiKeyDomain } from '../../domain/model/api-key-domain';
+import { ApiKeyCompanyId } from '../../domain/model/api-key-company-id';
 
 describe('CreateApiKeyOnCompanyCreatedEventHandler', () => {
   let handler: CreateApiKeyOnCompanyCreatedEventHandler;
@@ -41,8 +43,20 @@ describe('CreateApiKeyOnCompanyCreatedEventHandler', () => {
     await handler.handle(event);
 
     expect(spy).toHaveBeenCalledTimes(2);
-    expect(spy).toHaveBeenCalledWith('dominio1.com', 'company-uuid');
-    expect(spy).toHaveBeenCalledWith('dominio2.com', 'company-uuid');
+
+    // Primera llamada
+    const firstCall = spy.mock.calls[0];
+    expect(firstCall[0]).toBeInstanceOf(ApiKeyDomain);
+    expect(firstCall[0].getValue()).toBe('dominio1.com');
+    expect(firstCall[1]).toBeInstanceOf(ApiKeyCompanyId);
+    expect(firstCall[1].getValue()).toBe('company-uuid');
+
+    // Segunda llamada
+    const secondCall = spy.mock.calls[1];
+    expect(secondCall[0]).toBeInstanceOf(ApiKeyDomain);
+    expect(secondCall[0].getValue()).toBe('dominio2.com');
+    expect(secondCall[1]).toBeInstanceOf(ApiKeyCompanyId);
+    expect(secondCall[1].getValue()).toBe('company-uuid');
   });
 
   it('no debe crear API Key si no hay dominios', async () => {

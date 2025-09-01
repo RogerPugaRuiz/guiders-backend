@@ -101,7 +101,10 @@ describe('CreateApiKeyForDomainUseCase', () => {
       apiKeyRepository.save.mockResolvedValue();
 
       // Act
-      const result = await useCase.execute(inputDomain, companyId);
+      const result = await useCase.execute(
+        ApiKeyDomain.create(inputDomain),
+        ApiKeyCompanyId.create(companyId),
+      );
 
       // Assert
       expect(hashService.hash).toHaveBeenCalledWith(normalizedDomain);
@@ -124,7 +127,10 @@ describe('CreateApiKeyForDomainUseCase', () => {
       apiKeyRepository.getApiKeyByDomain.mockResolvedValue(existingApiKey);
 
       // Act
-      const result = await useCase.execute(inputDomain, companyId);
+      const result = await useCase.execute(
+        ApiKeyDomain.create(inputDomain),
+        ApiKeyCompanyId.create(companyId),
+      );
 
       // Assert
       expect(apiKeyRepository.getApiKeyByDomain).toHaveBeenCalledWith(
@@ -152,7 +158,10 @@ describe('CreateApiKeyForDomainUseCase', () => {
       apiKeyRepository.save.mockResolvedValue();
 
       // Act
-      const result = await useCase.execute(inputDomain, companyId);
+      const result = await useCase.execute(
+        ApiKeyDomain.create(inputDomain),
+        ApiKeyCompanyId.create(companyId),
+      );
 
       // Assert
       expect(apiKeyRepository.save).toHaveBeenCalled();
@@ -168,7 +177,10 @@ describe('CreateApiKeyForDomainUseCase', () => {
       apiKeyRepository.getApiKeyByDomain.mockResolvedValue(existingApiKey);
 
       // Act
-      const result = await useCase.execute(inputDomain, companyId);
+      const result = await useCase.execute(
+        ApiKeyDomain.create(inputDomain),
+        ApiKeyCompanyId.create(companyId),
+      );
 
       // Assert
       expect(apiKeyRepository.save).not.toHaveBeenCalled();
