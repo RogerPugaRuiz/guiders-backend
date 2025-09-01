@@ -32,17 +32,15 @@ const mockChatMessageEncryptor = {
 describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () => {
   let handler: SaveMessageOnChatUpdatedWithNewMessageEventHandler;
   let messageRepository: TypeOrmMessageService;
+  let testingModule: TestingModule;
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
       imports: [
+        // Usar SQLite en memoria para evitar dependencia de Postgres en CI/local
         TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.TEST_DATABASE_HOST,
-          port: Number(process.env.TEST_DATABASE_PORT),
-          username: process.env.TEST_DATABASE_USERNAME,
-          password: process.env.TEST_DATABASE_PASSWORD,
-          database: process.env.TEST_DATABASE,
+          type: 'sqlite',
+          database: ':memory:',
           dropSchema: true,
           entities: [MessageEntity],
           synchronize: true,
@@ -62,21 +60,19 @@ describe('SaveMessageOnChatUpdatedWithNewMessageEventHandler (integration)', () 
       ],
     }).compile();
 
+    testingModule = module;
     handler = module.get(SaveMessageOnChatUpdatedWithNewMessageEventHandler);
     messageRepository = module.get<TypeOrmMessageService>(MESSAGE_REPOSITORY);
   });
 
   beforeEach(async () => {
     // Limpiamos la tabla de mensajes antes de cada prueba
-    await messageRepository['messageRepository'].query(
-      'TRUNCATE TABLE "messages" RESTART IDENTITY CASCADE;',
-    );
+    await messageRepository['messageRepository'].clear();
   });
 
   afterAll(async () => {
-    // Cerramos la conexión de TypeORM solo si messageRepository está disponible
-    if (messageRepository && messageRepository['messageRepository']) {
-      await messageRepository['messageRepository'].manager.connection.destroy();
+    if (testingModule) {
+      await testingModule.close();
     }
   });
 

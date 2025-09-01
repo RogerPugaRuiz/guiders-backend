@@ -17,9 +17,9 @@ scenarios:
     weight: 100
     beforeRequest: "generateRandomVisitor"
     flow:
-      # Verificación rápida de health
+      # Verificación rápida de health (prefijo /api)
       - get:
-          url: "/health"
+          url: "/api/health"
           expect:
             - statusCode: 200
       

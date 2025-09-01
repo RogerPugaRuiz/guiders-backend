@@ -19,7 +19,7 @@ scenarios:
     flow:
       # Verificar health check
       - get:
-          url: "/health"
+          url: "/api/health"
           headers:
             User-Agent: "{{ userAgent }}"
             Accept: "application/json"

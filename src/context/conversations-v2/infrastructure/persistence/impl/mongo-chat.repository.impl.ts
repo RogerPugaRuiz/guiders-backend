@@ -319,7 +319,8 @@ export class MongoChatRepositoryImpl implements IChatRepository {
     limit?: number,
   ): Promise<Result<Chat[], DomainError>> {
     try {
-      const filter: ChatMongoFilter = { status: 'pending', isActive: true };
+      // Estado debe coincidir exactamente con los valores enumerados (PENDING)
+      const filter: ChatMongoFilter = { status: 'PENDING', isActive: true };
 
       if (department) {
         filter.department = department;
@@ -637,6 +638,31 @@ export class MongoChatRepositoryImpl implements IChatRepository {
       return err(
         new ChatPersistenceError(
           `Error al obtener estadísticas de tiempo de respuesta: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
+
+  /**
+   * Cuenta chats en estado PENDING creados antes de una fecha (posición en sala de espera)
+   */
+  async countPendingCreatedBefore(
+    date: Date,
+    department?: string,
+  ): Promise<Result<number, DomainError>> {
+    try {
+      // Usamos any para createdAt ya que la interfaz tipada no contempla $lt directamente
+      const filter: ChatMongoFilter = {
+        status: 'PENDING',
+      };
+      (filter as Record<string, any>).createdAt = { $lt: date };
+      if (department) filter.department = department;
+      const count = await this.chatModel.countDocuments(filter);
+      return ok(count);
+    } catch (error) {
+      return err(
+        new ChatPersistenceError(
+          `Error al contar chats pendientes previos: ${error instanceof Error ? error.message : String(error)}`,
         ),
       );
     }

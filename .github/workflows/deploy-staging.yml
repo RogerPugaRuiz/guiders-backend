@@ -53,33 +53,29 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Install WireGuard
-        run: sudo apt update && sudo apt install -y wireguard
+        run: sudo apt-get update && sudo apt-get install -y wireguard
 
-      - name: Setup WireGuard private key
+      - name: Configure WireGuard (github.conf)
         run: |
-          echo "${{ secrets.WG_PRIVATE_KEY }}" > /tmp/privatekey
-          sudo chmod 600 /tmp/privatekey
+          set -euo pipefail
+          sudo mkdir -p /etc/wireguard && sudo chmod 700 /etc/wireguard
+          cat > github.conf <<'CFG'
+          [Interface]
+          PrivateKey = REPLACE_PRIVATE_KEY
+          Address = 10.0.0.4/24
 
-      - name: Create WireGuard interface
-        run: sudo ip link add dev wg0 type wireguard
-
-      - name: Configure WireGuard IP
-        run: sudo ip address add dev wg0 10.0.0.3/24 peer 10.0.0.1
-
-      - name: Configure WireGuard peer
-        run: |
-          sudo wg set wg0 \
-            listen-port 48123 \
-            private-key /tmp/privatekey \
-            peer ${{ secrets.WG_SERVER_PUBLIC_KEY }} \
-            allowed-ips 10.0.0.0/24 \
-            endpoint ${{ secrets.WG_SERVER_ENDPOINT }}:51820
-
-      - name: Bring up WireGuard interface
-        run: sudo ip link set up dev wg0
-
-      - name: Cleanup private key
-        run: rm -f /tmp/privatekey
+          [Peer]
+          PublicKey = rcfGmqdqyiQs+J81rx5mabiyAjQkvoDfiCTD2eLqaHQ=
+          Endpoint = 217.154.105.26:51820
+          AllowedIPs = 10.0.0.0/24
+          PersistentKeepalive = 25
+          CFG
+          sed -i "s#REPLACE_PRIVATE_KEY#${{ secrets.WG_PRIVATE_KEY }}#" github.conf
+          sudo mv github.conf /etc/wireguard/github.conf
+          sudo chmod 600 /etc/wireguard/github.conf
+          # Reiniciar interfaz si existiese
+          if sudo wg show github >/dev/null 2>&1; then sudo wg-quick down github || true; fi
+          sudo wg-quick up github || { echo "❌ Error al levantar WireGuard"; sudo wg-quick down github || true; exit 1; }
 
       - name: Verify VPN connection
         run: |
@@ -237,6 +233,8 @@ jobs:
           NODE_ENV=staging
           LOG_LEVEL=debug
           ENABLE_SWAGGER=true
+          # Control temporal de sincronización de TypeORM (usar solo puntualmente y volver a false)
+          TYPEORM_SYNC=${{ vars.TYPEORM_SYNC || 'false' }}
           EOF
 
       - name: 1. Prepare deployment info
@@ -305,9 +303,9 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
             cd /var/www/guiders-backend-staging/
             
-            # Instalar dependencias de producción
+            # Instalar dependencias completas (incluye dev) para permitir build del script de migraciones
             rm -rf node_modules
-            npm install --omit=dev
+            npm ci
             
             echo "✅ Dependencias instaladas exitosamente"
           '
@@ -372,14 +370,12 @@ jobs:
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
         run: |
-          echo "🔄 Ejecutando migraciones de base de datos..."
+          echo "🔄 Ejecutando migraciones (modo simplificado)..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
-            cd /var/www/guiders-backend-staging/
-            
-            echo "🔄 Ejecutando migraciones..."
+            set -e
+            cd /var/www/guiders-backend-staging
+            export $(grep -v "^#" .env.staging | xargs)
             NODE_ENV=staging npx typeorm migration:run -d dist/src/data-source.js
-            
-            echo "✅ Migraciones ejecutadas exitosamente"
           '
 
       - name: 10. Start application with PM2

@@ -147,7 +147,7 @@ Una vez configurado todo:
 1. **Push a develop** - El workflow debería ejecutarse automáticamente
 2. **Verificar logs** - Revisar que no hay errores en Actions
 3. **Probar URL** - Acceder a `https://staging.tu-dominio.com`
-4. **Health check** - Verificar `/health` endpoint
+4. **Health check** - Verificar `/api/health` endpoint
 
 ## 📞 **Troubleshooting**
 

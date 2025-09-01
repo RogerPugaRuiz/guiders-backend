@@ -16,6 +16,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { TokenVerifyService } from '../../shared/infrastructure/token-verify.service';
+import { JoinWaitingRoomCommand } from '../../conversations-v2/application/commands/join-waiting-room.command';
 import { WsAuthGuard } from './guards/ws-auth.guard';
 import { AuthenticatedSocket } from './authenticated-socket';
 import { WsRolesGuard } from './guards/ws-role.guard';
@@ -345,6 +346,52 @@ export class RealTimeWebSocketGateway
           .addMessage('Error al enviar el mensaje')
           .build(),
       );
+    }
+  }
+
+  @Roles(['visitor'])
+  @UseGuards(WsAuthGuard, WsRolesGuard)
+  @SubscribeMessage('visitor:join-waiting-room')
+  async handleVisitorJoinWaitingRoom(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() event: Event,
+  ) {
+    try {
+      if (!event || !event.data) {
+        return ResponseBuilder.create()
+          .addType('visitor:join-waiting-room:error')
+          .addMessage('Payload inválido')
+          .build();
+      }
+      type WaitingRoomData = {
+        visitorInfo?: Record<string, unknown>;
+        metadata?: Record<string, unknown>;
+      };
+      const payload = event.data as WaitingRoomData;
+      const visitorInfo = payload.visitorInfo || {};
+      const metadata = payload.metadata || {};
+      const visitorId = client.user.sub; // del token autenticado
+
+      const waitingResult = await this.commandBus.execute<
+        JoinWaitingRoomCommand,
+        { chatId: string; position: number }
+      >(new JoinWaitingRoomCommand(visitorId, visitorInfo, metadata));
+      const { chatId, position } = waitingResult;
+
+      return ResponseBuilder.create()
+        .addType('visitor:join-waiting-room:ok')
+        .addMessage('Unido a sala de espera')
+        .addData({ chatId, position })
+        .build();
+    } catch (error) {
+      return ResponseBuilder.create()
+        .addType('visitor:join-waiting-room:error')
+        .addMessage(
+          error instanceof Error
+            ? error.message
+            : 'Error uniendo a sala de espera',
+        )
+        .build();
     }
   }
 

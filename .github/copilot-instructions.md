@@ -1,240 +1,73 @@
-# Guiders Backend - AI Coding Instructions
+## Guiders Backend · Instrucciones Clave para Agentes
 
-## Arquitectura General
-Este es un backend de comunicación comercial en tiempo real construido con **NestJS v11**, **DDD** y **CQRS**. El proyecto sigue una arquitectura de contextos separados por dominio de negocio.
+Objetivo: cambios seguros y rápidos en backend NestJS 11 con DDD + CQRS, multi‑persistencia (PostgreSQL + Mongo) y WebSockets.
 
-### Estructura de Contextos
-- `src/context/auth/` - Autenticación (visitantes, usuarios, API keys)
-- `src/context/conversations/` - Chats y mensajes 
-- `src/context/conversations-v2/` - Nueva versión de conversaciones
-- `src/context/real-time/` - WebSockets y notificaciones en tiempo real
-- `src/context/company/` - Gestión de empresas
-- `src/context/visitors/` - Perfiles de visitantes
-- `src/context/tracking/` - Eventos de seguimiento
-- `src/context/shared/` - Value objects y utilidades compartidas
+### 1. Estructura & Fronteras
+`src/context/<ctx>/{domain,application,infrastructure}`. Contextos: auth, company, conversations (V1 SQL legacy), conversations-v2 (Mongo), real-time, visitors, tracking, shared. Reglas de dependencia: domain ⇒ (nada interno), application ⇒ domain, infrastructure ⇒ application/domain. Nunca importar infraestructura dentro de dominio. `shared` contiene value objects, `Result`, criteria/utilidades.
 
-Cada contexto tiene su estructura DDD: `domain/`, `application/`, `infrastructure/`
+### 2. Modelado de Dominio
+Aggregates = clases que extienden `AggregateRoot`, campos `private readonly`. Fábricas: `create()` (emite evento) vs `fromPrimitives()` (rehidrata sin eventos). Reutiliza VO existentes en `shared/domain/value-objects` antes de crear nuevos. Validaciones esperadas devuelven `Result.failure`, evita lanzar excepciones salvo casos realmente excepcionales.
 
-## Patrones Críticos
+### 3. Eventos de Dominio
+Handler side‑effect: `<AccionNueva>On<OriginalEvent>EventHandler` (ej: `CreateApiKeyOnCompanyCreatedEventHandler`). Publicación correcta en command handler: `const aggCtx = publisher.mergeObjectContext(agg); await repo.save(aggCtx); aggCtx.commit();` (sin `commit()` no se despacha el evento). Nuevos eventos en `domain/events`, no en infraestructura.
 
-### EventHandlers Cross-Context
-Los EventHandlers siguen el patrón `<NewAction>On<OldAction>EventHandler` y CRUZAN contextos para mantener consistencia:
-```typescript
-@EventsHandler(CompanyCreatedEvent)
-export class CreateApiKeyOnCompanyCreatedEventHandler 
-  implements IEventHandler<CompanyCreatedEvent> {
-  // Escucha eventos de 'company' desde 'auth' context
-}
+### 4. Persistencia & Repositorios
+En dominio: interface + símbolo `export const X_REPOSITORY = Symbol('XRepository');`. Métodos base: `save, findById, findAll, delete, update, findOne, match` + semánticos. Infraestructura implementa en `infrastructure/persistence/impl`. Usar mappers dominio↔persistencia (nunca retornar entidades TypeORM/Mongoose fuera). Filtros complejos encapsulados (no reconstruir en controllers/gateways). En Mongo usar proyecciones para minimizar carga.
 
-@EventsHandler(ParticipantAssignedEvent) 
-export class NotifyOnParticipantAssignedToChatEventHandler {
-  // Escucha eventos de 'conversations' desde 'real-time' context
-}
-```
+### 5. Multi‑Persistencia & Versiones de Chat
+PostgreSQL (TypeORM) para auth/company/visitors/tracking/conversations (V1). Mongo (Mongoose) para conversations-v2 (alto volumen + métricas). Al añadir campo: (1) VO/aggregate (2) migración SQL o schema + índice Mongo (3) mapper (4) repo (5) tests (unit + int si afecta queries) (6) actualizar README + Swagger si cambia contrato. Preferir V2 para nuevas features de chat; V1 sólo mantenimiento.
 
-### Value Objects Compartidos
-SIEMPRE usa los value objects del contexto shared:
-```typescript
-import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
-// Para tests: Uuid.random().value
-// Para generación: Uuid.generate()
-```
+### 6. Real-Time (WebSockets)
+Gateway en `real-time/infrastructure/...`. Siempre guards: `WsAuthGuard`, `WsRolesGuard` + `@Roles`. Gateway = orquestador: delega a CommandBus/QueryBus/servicios. Respuestas uniformes `{ success, type, data?, message? }`. No lógica de dominio ni queries manuales dentro del gateway.
 
-### Result Pattern Sin Excepciones
-Para manejo de errores sin excepciones en el dominio:
-```typescript
-import { ok, err } from 'src/context/shared/domain/result';
+### 7. Conversations V2 (Mongo) Notas
+Colecciones: `chats_v2`, `messages`, `comercial_claims`. Índices compuestos en campos filtrados (`assignedCommercialId+status`, fechas). Operaciones pesadas (agregaciones) solo en endpoints `/api/v2/chats/metrics/*`. Controladores aceptan filtros; no replicar lógica de parseo en otras capas.
 
-async findById(id: UserId): Promise<Result<User, DomainError>> {
-  const user = await this.repository.findById(id);
-  return user ? ok(user) : err(new UserNotFoundError(id));
-}
-```
+### 8. Testing & Calidad
+Unit (`npm run test:unit`) usa SQLite en memoria. Integración (`npm run test:int`) y E2E (`npm run test:e2e`) levantan Postgres + Mongo. Cobertura verificada por `scripts/check-coverage-threshold.js`. Patrón tests nuevo aggregate: caso éxito + VO inválido + evento emitido. Usar generadores (`Uuid.random().value` o equivalentes) para IDs. Ejecutar `npm run lint` y `npm run format` antes de PR.
 
-### Repositorios con CriteriaConverter
-OBLIGATORIO usar CriteriaConverter para consultas dinámicas:
-```typescript
-const { sql, parameters } = CriteriaConverter.toPostgresSql(criteria, 'tableName', fieldMap);
-const entities = await this.repository
-  .createQueryBuilder('alias')
-  .where(sql.replace(/^WHERE /, ''))
-  .setParameters(parameters)
-  .getMany();
-```
+### 9. CLI Interna
+`bin/guiders-cli.js`: `clean-database --force`, `create-company`, `create-company-with-admin`. Útil para preparar datos en E2E o reproducir escenarios.
 
-### Configuración Multi-Base de Datos Automática
-El `app.module.ts` detecta automáticamente el entorno y configura:
-- **test**: SQLite (memoria) para tests unitarios
-- **test + e2e**: PostgreSQL para tests e2e  
-- **development/production**: PostgreSQL + MongoDB
+### 10. Anti‑Patrones (bloquear)
+Lógica de negocio en controllers/gateways; excepciones para flujo validable; concatenar SQL manual; exponer entidades ORM/Mongoose; duplicar filtros fuera del repo; lógica en schemas Mongo; olvidar `commit()`; mezclar concerns dominio<->infraestructura.
 
-MongoDB se usa específicamente para mensajes cifrados, PostgreSQL para datos relacionales.
+### 11. Checklist PR Express
+[] VO/Result aplicados correctamente
+[] Eventos publicados con `mergeObjectContext` + `commit()`
+[] Repos esconden detalles de filtrado / devuelven dominio puro
+[] Migración o índice creado si campo nuevo filtrable
+[] Tests (unit + int/E2E si procede) verdes y cobertura ok
+[] Lint/format ok
+[] Swagger + README(s) actualizados si cambia contrato
 
-## Comandos Esenciales
+### 12. Decisiones Clave (Why)
+Mongo para chats (latencia + agregaciones); separación CQRS para optimizar reads/writes; eventos desacoplan side‑effects (ej: API Key tras CompanyCreated); VO + Result centralizan invariantes reduciendo ruido.
 
-### Desarrollo
-```bash
-npm run start:dev         # Servidor con hot-reload
-npm run lint              # ESLint con auto-fix
-npm run build             # Compilar proyecto
-```
+### 13. Flujo Rápido de Nueva Feature
+1. Definir Command/Query + DTO. 2. Implementar handler orquestando repos + dominio. 3. Ajustar aggregate/VO y emitir evento si aplica. 4. Persistir + `commit()`. 5. Exponer vía controller o WS. 6. Añadir tests mínimos. 7. Actualizar docs si cambia contrato.
 
-### Testing
-```bash
-npm run test:unit         # Tests unitarios con coverage
-npm run test:int          # Tests de integración
-npm run test:e2e          # Tests end-to-end
-```
+¿Algo poco claro o falta un patrón? Pide aclaración antes de introducir uno nuevo.
 
-### Base de Datos
-```bash
-npm run typeorm:migrate:run    # Ejecutar migraciones
-node bin/guiders-cli.js clean-database --force    # Limpiar BD para desarrollo
-```
+---
+### 14. Política de Idioma
+Comentarios de código, descripciones Swagger y mensajes de error/validación deben utilizar español técnico neutro (mismo criterio que commits y revisiones). Excepciones:
+- Integraciones externas o SDK públicos que ya exponen contratos/documentación en inglés.
+- Mensajes que formen parte de un protocolo estandarizado (p.ej. errores OAuth) donde el inglés sea requerido.
+En ausencia de estas excepciones, prioriza español claro, conciso y consistente. Evita traducciones literales innecesarias y mantén nombres de tipos/clases/identificadores en inglés (convención habitual) mientras la explicación contextual (comentarios, docs, mensajes) va en español.
 
-### CLI Tools de Desarrollo
-```bash
-node bin/guiders-cli.js create-company --name "Empresa" --domain "empresa.com"
-node bin/guiders-cli.js create-company-with-admin --name "Empresa" --domain "empresa.com" --adminName "Admin" --adminEmail "admin@email.com"
-```
+Resumen rápido:
+- Código (identificadores): inglés.
+- Comentarios // y /* */: español técnico neutro.
+- Swagger `summary` / `description`: español técnico neutro.
+- Mensajes de Error (exceptions, validation pipes): español técnico neutro salvo se requiera inglés por contrato externo.
+- Commits y Revisiones: ya definido (español técnico neutro).
 
-## Reglas de Codificación Estrictas
+Esta política evita mezcla arbitraria y facilita lectura al equipo actual; si cambia la composición lingüística del equipo, se podrá revisar.
 
-### Nomenclatura
-- **Variables/funciones**: camelCase
-- **Clases**: PascalCase  
-- **Archivos**: kebab-case
-- **Comentarios**: en español explicando la intención
+---
+### Context7 (cuándo leer docs externas)
+Usar solo si falta en repo y afecta decisión (APIs Angular 20, signals avanzados, DI tree-shakable, Jest timers). Proceso: buscar local → si falta `resolve-library-id` → `get-library-docs(topic)` tokens ≤6000 → resumir y aplicar citando ("Context7: signals"). No para sintaxis básica.
 
-### Estructura Application Layer
-```
-application/
-├── commands/           # Comandos (escritura)
-├── events/            # Event handlers
-├── queries/           # Queries (lectura)  
-└── dtos/             # Data Transfer Objects
-```
-
-### Imports y Dependencies
-- NUNCA `require()` dinámico - solo `import` estático al inicio
-- Evitar carpetas técnicas (`utils`, `helpers`) - usar nombres de propósito (`email`, `auth`)
-- Tests en carpetas `__tests__/` junto al código
-
-### Símbolos de Inyección
-Usa símbolos para interfaces de repositorios y servicios:
-```typescript
-export const USER_REPOSITORY = Symbol('UserRepository');
-export const NOTIFICATION = Symbol('INotification');
-
-// En el módulo
-{ provide: USER_REPOSITORY, useClass: UserRepositoryImpl }
-```
-
-### Mappers Obligatorios
-Separa la lógica de mapeo en clases dedicadas:
-```typescript
-export class UserMapper {
-  static toPersistence(user: User): UserEntity { /* ... */ }
-  static fromPersistence(entity: UserEntity): User { /* ... */ }
-}
-```
-
-### Flujo Post-Cambios
-1. Ajustar tests relacionados
-2. Ejecutar tests: `npm run test:unit`
-3. Ejecutar linter: `npm run lint`
-4. Para migraciones: `npm run typeorm:migrate:run`
-
-## Comunicación WebSocket
-
-### Estructura de Respuestas
-```typescript
-ResponseBuilder.create()
-  .addSuccess(true)
-  .addMessage('Operación exitosa')
-  .addData({ chatId, timestamp })
-  .addType('chat_message')
-  .build()
-```
-
-### Eventos WebSocket Principales
-- `visitor:send-message` - Visitante envía mensaje
-- `commercial:send-message` - Comercial responde
-- `visitor:start-chat` - Iniciar conversación
-- `commercial:viewing-chat` - Comercial viendo chat
-- `health-check` - Verificar conexión
-
-### Autenticación WebSocket
-```typescript
-@Roles(['visitor'])
-@UseGuards(WsAuthGuard, WsRolesGuard)
-@SubscribeMessage('visitor:send-message')
-async handleVisitorMessage(client: AuthenticatedSocket, event: Event) {
-  // Token en client.handshake.auth.token
-  // Usuario en client.user.sub
-}
-```
-
-## Estructura de Tests
-
-### Ubicación y Nomenclatura
-- Tests unitarios: `__tests__/` junto al código
-- Tests de integración: `jest-int.json` 
-- Tests e2e: `test/` en la raíz
-- Cobertura: `npm run test:unit` (con coverage automático)
-
-### Mocks Tipados
-```typescript
-const mockRepository: jest.Mocked<UserRepository> = {
-  save: jest.fn(),
-  findById: jest.fn(),
-};
-```
-
-### Datos de Test
-```typescript
-// Siempre usar Uuid.random().value para UUIDs en tests
-const testUser = User.create({
-  id: UserId.create(Uuid.random().value),
-  email: UserEmail.create('test@example.com'),
-});
-```
-
-## Mejores Prácticas Específicas
-
-### Manejo de Errores con Result
-```typescript
-// Usar Result pattern, no excepciones en el dominio
-async findUser(id: string): Promise<Result<User, UserNotFoundError>> {
-  const user = await this.repository.findById(id);
-  return user ? ok(user) : err(new UserNotFoundError(id));
-}
-```
-
-### Eventos Cross-Context
-```typescript
-// EventHandlers cruzan contextos para mantener consistencia
-@EventsHandler(CompanyCreatedEvent)
-export class CreateApiKeyOnCompanyCreatedEventHandler {
-  // Escucha eventos de 'company' desde 'auth' context
-}
-```
-
-### Event Publisher Pattern
-```typescript
-const chatAggregate = this.publisher.mergeObjectContext(updatedChat);
-await this.chatRepository.save(chatAggregate);
-chatAggregate.commit(); // SIEMPRE commit después de save
-```
-
-### CriteriaBuilder para Consultas Dinámicas
-```typescript
-const criteria = this.criteriaBuilder
-  .addFilter('status', Operator.EQUALS, Status.PENDING.value)
-  .addFilter('companyId', Operator.EQUALS, companyId)
-  .setLimit(10)
-  .build();
-```
-
-### Context7 para Documentación
-Si te preguntan sobre documentación de lenguajes, frameworks o librerías, usa la herramienta `context7` para buscar la documentación oficial y proporcionar un resumen claro y conciso.
+### Playwright MCP
+Mantener prompts concisos (≤8 líneas). Incluir: Objetivo, URL inicial, pasos clave, selectores críticos, datos a capturar, criterio de éxito, límites.
