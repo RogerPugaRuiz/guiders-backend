@@ -53,7 +53,7 @@ fi
 
 # Verificar que la aplicación esté corriendo
 echo -e "${YELLOW}🔍 Verificando que la aplicación esté corriendo...${NC}"
-if ! curl -s http://localhost:3000/health > /dev/null; then
+if ! curl -s http://localhost:3000/api/health > /dev/null; then
     echo -e "${RED}Error: La aplicación no responde en localhost:3000${NC}"
     echo -e "${YELLOW}Verifica que PM2 esté ejecutando la aplicación:${NC}"
     echo -e "${BLUE}  pm2 list${NC}"

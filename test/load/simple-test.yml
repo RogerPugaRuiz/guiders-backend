@@ -23,7 +23,7 @@ scenarios:
       
       # Verificar salud del sistema
       - get:
-          url: "/health"
+          url: "/api/health"
           expect:
             - statusCode: 200
       
