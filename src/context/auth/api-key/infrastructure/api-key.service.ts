@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateApiKeyForDomainUseCase } from '../application/usecase/create-api-key-for-domain.usecase';
 import { GetApiKeysByCompanyIdUseCase } from '../application/usecase/get-api-keys-by-company-id.usecase';
+import { ApiKeyCompanyId } from '../domain/model/api-key-company-id';
 
 @Injectable()
 export class ApiKeyService {
@@ -16,6 +17,7 @@ export class ApiKeyService {
   }
 
   async listCompanyApiKeys(companyId: string) {
-    return await this.getApiKeysByCompanyIdUseCase.execute(companyId);
+    const companyIdVO = ApiKeyCompanyId.create(companyId);
+    return await this.getApiKeysByCompanyIdUseCase.execute(companyIdVO);
   }
 }

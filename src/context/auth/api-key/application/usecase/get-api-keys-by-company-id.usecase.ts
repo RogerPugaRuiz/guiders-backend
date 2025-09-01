@@ -16,10 +16,10 @@ export class GetApiKeysByCompanyIdUseCase {
     private readonly apiKeyRepository: ApiKeyRepository,
   ) {}
 
-  async execute(companyId: string): Promise<ApiKeyResponseDto[]> {
-    const companyIdVO = ApiKeyCompanyId.create(companyId);
+  // Ahora recibe directamente el Value Object para mantener consistencia en capa aplicación
+  async execute(companyId: ApiKeyCompanyId): Promise<ApiKeyResponseDto[]> {
     const apiKeys =
-      await this.apiKeyRepository.getApiKeysByCompanyId(companyIdVO);
+      await this.apiKeyRepository.getApiKeysByCompanyId(companyId);
     return ApiKeyResponseDtoMapper.fromDomainList(apiKeys, {
       includeCreatedAt: true,
     });

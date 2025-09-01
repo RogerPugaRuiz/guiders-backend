@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ApiKeyService } from '../api-key.service';
 import { CreateApiKeyForDomainUseCase } from '../../application/usecase/create-api-key-for-domain.usecase';
 import { GetApiKeysByCompanyIdUseCase } from '../../application/usecase/get-api-keys-by-company-id.usecase';
+import { ApiKeyCompanyId } from '../../domain/model/api-key-company-id';
 
 describe('ApiKeyService', () => {
   let service: ApiKeyService;
@@ -71,7 +72,11 @@ describe('ApiKeyService', () => {
       .mockResolvedValue(expectedList as any);
 
     const result = await service.listCompanyApiKeys(companyId);
-    expect(executeSpy).toHaveBeenCalledWith(companyId);
+    expect(executeSpy).toHaveBeenCalled();
+    // Verificamos que se haya pasado un VO correcto
+    const passedArg = executeSpy.mock.calls[0][0];
+    expect(passedArg).toBeInstanceOf(ApiKeyCompanyId);
+    expect(passedArg.getValue()).toBe(companyId);
     expect(result).toEqual(expectedList);
   });
 });
