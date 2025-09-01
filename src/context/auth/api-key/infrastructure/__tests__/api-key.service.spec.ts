@@ -3,8 +3,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ApiKeyService } from '../api-key.service';
 import { CreateApiKeyForDomainUseCase } from '../../application/usecase/create-api-key-for-domain.usecase';
-import { GetApiKeysByCompanyIdUseCase } from '../../application/usecase/get-api-keys-by-company-id.usecase';
+import { ApiKeyDomain } from '../../domain/model/api-key-domain';
 import { ApiKeyCompanyId } from '../../domain/model/api-key-company-id';
+import { GetApiKeysByCompanyIdUseCase } from '../../application/usecase/get-api-keys-by-company-id.usecase';
 
 describe('ApiKeyService', () => {
   let service: ApiKeyService;
@@ -54,7 +55,12 @@ describe('ApiKeyService', () => {
 
     const result = await service.createApiKeyForDomain(domain, companyId);
 
-    expect(executeSpy).toHaveBeenCalledWith(domain, companyId);
+    expect(executeSpy).toHaveBeenCalled();
+    const args = executeSpy.mock.calls[0];
+    expect(args[0]).toBeInstanceOf(ApiKeyDomain);
+    expect(args[0].getValue()).toBe(domain);
+    expect(args[1]).toBeInstanceOf(ApiKeyCompanyId);
+    expect(args[1].getValue()).toBe(companyId);
     expect(result).toEqual(expectedResult);
   });
 
