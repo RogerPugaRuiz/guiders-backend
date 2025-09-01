@@ -29,7 +29,7 @@ scenarios:
       
       # Verificación rápida de health
       - get:
-          url: "/health"
+          url: "/api/health"
           expect:
             - statusCode: 200
       
