@@ -92,11 +92,11 @@ export class ChatMessageEncryptorService implements ChatMessageEncryptor {
         const decipher = createDecipheriv(this.ALGORITHM, encryptionKey, iv);
         let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
-
-          throw new Error('Marcador de integridad faltante');
+        // Validamos que el contenido incluya marcador para detectar clave incorrecta o corrupción
+        if (!decrypted.startsWith(this.CONTENT_MARKER)) {
+          throw new Error('Marcador de integridad inválido');
         }
-
-        // Removemos marcador antes de devolver
+        // Removemos marcador antes de devolver el mensaje original
         decrypted = decrypted.substring(this.CONTENT_MARKER.length);
 
         // Auditoría
