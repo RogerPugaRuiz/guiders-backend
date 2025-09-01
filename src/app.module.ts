@@ -127,8 +127,8 @@ export class AppModule {
         ? configService.get<string>('TEST_DATABASE', 'mydb')
         : configService.get<string>('DATABASE', 'mydb'),
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-  synchronize: allowSync || isE2ETest,
-  autoLoadEntities: allowSync || isE2ETest,
+      synchronize: allowSync || isE2ETest,
+      autoLoadEntities: allowSync || isE2ETest,
     };
   }
 

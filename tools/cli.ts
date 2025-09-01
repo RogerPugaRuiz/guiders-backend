@@ -3,8 +3,17 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// Siempre carga el .env.production basado en la ubicación física del script
-config({ path: resolve(__dirname, '..', '..', '.env.production') });
+// Selección dinámica del archivo .env según NODE_ENV
+// production -> .env.production
+// staging -> .env.staging
+// cualquier otro -> .env (por defecto desarrollo/local)
+const envFile =
+  process.env.NODE_ENV === 'production'
+    ? '.env.production'
+    : process.env.NODE_ENV === 'staging'
+      ? '.env.staging'
+      : '.env';
+config({ path: resolve(__dirname, '..', '..', envFile) });
 
 import { Command } from 'commander';
 import { NestFactory } from '@nestjs/core';
@@ -99,10 +108,10 @@ program
 
       // Obtener todas las entidades registradas
       const entities = dataSource.entityMetadatas;
-      
+
       // Desactivar restricciones de clave foránea temporalmente
       await dataSource.query('SET CONSTRAINTS ALL DEFERRED');
-      
+
       // Truncar todas las tablas en orden inverso (para evitar problemas de dependencia)
       for (const entity of entities.reverse()) {
         try {
@@ -115,14 +124,16 @@ program
           );
         }
       }
-      
+
       // Reactivar restricciones de clave foránea
       await dataSource.query('SET CONSTRAINTS ALL IMMEDIATE');
-      
+
       logger.log('🧹 Base de datos limpiada correctamente');
       await app.close();
     } catch (error: any) {
-      logger.error(`Error al limpiar la base de datos: ${error?.message || 'Error desconocido'}`);
+      logger.error(
+        `Error al limpiar la base de datos: ${error?.message || 'Error desconocido'}`,
+      );
       process.exit(1);
     }
   });
@@ -145,10 +156,10 @@ program
 
     try {
       const app = await NestFactory.createApplicationContext(AppModule);
-      
+
       // Obtener la conexión de MongoDB
-      const mongoConnection = app.get(getConnectionToken()) as Connection;
-      
+      const mongoConnection = app.get(getConnectionToken());
+
       if (!mongoConnection) {
         throw new Error('No se pudo obtener la conexión de MongoDB');
       }
@@ -162,7 +173,7 @@ program
 
       // Obtener todas las colecciones
       const collections = await mongoConnection.db.collections();
-      
+
       logger.log(`Encontradas ${collections.length} colecciones en MongoDB`);
 
       // Limpiar cada colección
@@ -170,7 +181,7 @@ program
         try {
           const collectionName = collection.collectionName;
           logger.log(`Limpiando colección: ${collectionName}`);
-          
+
           const result = await collection.deleteMany({});
           logger.log(
             `Colección ${collectionName} limpiada: ${result.deletedCount} documentos eliminados`,
@@ -183,7 +194,7 @@ program
           );
         }
       }
-      
+
       logger.log('🧹 MongoDB limpiado correctamente');
       await app.close();
     } catch (error) {
