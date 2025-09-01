@@ -102,8 +102,8 @@ describe('CreateApiKeyForDomainUseCase', () => {
 
       // Act
       const result = await useCase.execute(
-        new ApiKeyDomain(inputDomain),
-        new ApiKeyCompanyId(companyId),
+        ApiKeyDomain.create(inputDomain),
+        ApiKeyCompanyId.create(companyId),
       );
 
       // Assert
