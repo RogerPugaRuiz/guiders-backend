@@ -93,9 +93,7 @@ export class ChatMessageEncryptorService implements ChatMessageEncryptor {
         let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
 
-        // Validamos marcador de integridad (solo para mensajes creados tras introducir el marcador)
-        if (!decrypted.startsWith(this.CONTENT_MARKER)) {
-          throw new Error('Integrity marker missing');
+          throw new Error('Marcador de integridad faltante');
         }
 
         // Removemos marcador antes de devolver
