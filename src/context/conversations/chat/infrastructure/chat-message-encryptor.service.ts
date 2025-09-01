@@ -38,10 +38,10 @@ export class ChatMessageEncryptorService implements ChatMessageEncryptor {
         const encryptionKey = this.getEncryptionKey();
         const iv = randomBytes(this.IV_LENGTH);
 
-  const cipher = createCipheriv(this.ALGORITHM, encryptionKey, iv);
-  // Prefijamos marcador para validar tras desencriptar y detectar clave errónea
-  const payload = `${this.CONTENT_MARKER}${message}`;
-  let encrypted = cipher.update(payload, 'utf8', 'hex');
+        const cipher = createCipheriv(this.ALGORITHM, encryptionKey, iv);
+        // Prefijamos marcador para validar tras desencriptar y detectar clave errónea
+        const payload = `${this.CONTENT_MARKER}${message}`;
+        let encrypted = cipher.update(payload, 'utf8', 'hex');
         encrypted += cipher.final('hex');
 
         // Formato: version:iv:encrypted_data

@@ -14,9 +14,9 @@ describe('AppController (e2e)', () => {
       providers: [AppService],
     }).compile();
 
-  app = moduleFixture.createNestApplication();
-  app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
-  await app.init();
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+    await app.init();
   });
 
   afterAll(async () => {
