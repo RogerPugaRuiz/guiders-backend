@@ -7,6 +7,7 @@ import { ApiKeyMapper } from './api-key.mapper';
 import { Repository } from 'typeorm';
 import { ApiKeyDomain } from '../domain/model/api-key-domain';
 import { ApiKeyValue } from '../domain/model/api-key-value';
+import { ApiKeyCompanyId } from '../domain/model/api-key-company-id';
 
 @Injectable()
 export class ApiKeyOrmAdapter implements ApiKeyRepository {
@@ -43,6 +44,15 @@ export class ApiKeyOrmAdapter implements ApiKeyRepository {
 
   async getAllApiKeys(): Promise<ApiKey[]> {
     const apiKeyEntities = await this.apiKeyRepository.find();
+    return apiKeyEntities.map((apiKeyEntity) =>
+      this.apiKeyMapper.toDomain(apiKeyEntity),
+    );
+  }
+
+  async getApiKeysByCompanyId(companyId: ApiKeyCompanyId): Promise<ApiKey[]> {
+    const apiKeyEntities = await this.apiKeyRepository.find({
+      where: { companyId: companyId.getValue() },
+    });
     return apiKeyEntities.map((apiKeyEntity) =>
       this.apiKeyMapper.toDomain(apiKeyEntity),
     );

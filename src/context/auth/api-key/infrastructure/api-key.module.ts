@@ -12,6 +12,7 @@ import { ApiKeyMapper } from './api-key.mapper';
 import { JwksController } from './jwks.controller';
 import { JwksService } from './jwks.service';
 import { GetAllApiKeysUseCase } from '../application/usecase/get-all-api-keys.usecase';
+import { GetApiKeysByCompanyIdUseCase } from '../application/usecase/get-api-keys-by-company-id.usecase';
 import { Sha256HashStrategy } from '../../../shared/infrastructure/sha-256-hash-strategy';
 import { API_KEY_ENCRYPT_PRIVATE_KEY } from '../application/services/api-key-encrypt-private-key';
 import { API_KEY_HASHER } from '../application/services/api-key-hasher';
@@ -32,6 +33,7 @@ import { CreateApiKeyOnCompanyCreatedEventHandler } from '../application/events/
     ApiKeyMapper,
     CreateApiKeyForDomainUseCase,
     GetAllApiKeysUseCase,
+    GetApiKeysByCompanyIdUseCase,
     JwksService,
 
     // handlers
