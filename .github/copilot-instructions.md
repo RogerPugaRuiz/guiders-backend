@@ -18,21 +18,24 @@ En dominio: interface + símbolo `export const X_REPOSITORY = Symbol('XRepositor
 PostgreSQL (TypeORM) para auth/company/visitors/tracking/conversations (V1). Mongo (Mongoose) para conversations-v2 (alto volumen + métricas). Al añadir campo: (1) VO/aggregate (2) migración SQL o schema + índice Mongo (3) mapper (4) repo (5) tests (unit + int si afecta queries) (6) actualizar README + Swagger si cambia contrato. Preferir V2 para nuevas features de chat; V1 sólo mantenimiento.
 
 ### 6. Real-Time (WebSockets)
-Gateway en `real-time/infrastructure/...`. Siempre guards: `WsAuthGuard`, `WsRolesGuard` + `@Roles`. Gateway = orquestador: delega a CommandBus/QueryBus/servicios. Respuestas uniformes `{ success, type, data?, message? }`. No lógica de dominio ni queries manuales dentro del gateway.
+Gateway en `real-time/infrastructure/websocket.gateway.ts`. Siempre guards: `WsAuthGuard`, `WsRolesGuard` + `@Roles(['visitor']|['commercial','admin'])`. Gateway = orquestador: delega a CommandBus/QueryBus/servicios. Respuestas uniformes con `ResponseBuilder.create().addSuccess(true).addMessage('..').addData({}).build()`. No lógica de dominio ni queries manuales dentro del gateway. Reconexión con timeout de 3s para evitar desconexiones temporales.
 
-### 7. Conversations V2 (Mongo) Notas
-Colecciones: `chats_v2`, `messages`, `comercial_claims`. Índices compuestos en campos filtrados (`assignedCommercialId+status`, fechas). Operaciones pesadas (agregaciones) solo en endpoints `/api/v2/chats/metrics/*`. Controladores aceptan filtros; no replicar lógica de parseo en otras capas.
+### 7. CQRS & Handlers
+Commands: `@CommandHandler(XCommand)` en `application/commands/`. Queries: `@QueryHandler(XQuery)` en `application/queries/`. Inyección repos via `@Inject(X_REPOSITORY)`. Command handlers usan `EventPublisher.mergeObjectContext(agg)` + `commit()`. Query handlers optimizan lectura con criterios/filtros encapsulados. EventHandlers en `application/events/` con patrón `<NewAction>On<OldEvent>EventHandler`.
 
-### 8. Testing & Calidad
-Unit (`npm run test:unit`) usa SQLite en memoria. Integración (`npm run test:int`) y E2E (`npm run test:e2e`) levantan Postgres + Mongo. Cobertura verificada por `scripts/check-coverage-threshold.js`. Patrón tests nuevo aggregate: caso éxito + VO inválido + evento emitido. Usar generadores (`Uuid.random().value` o equivalentes) para IDs. Ejecutar `npm run lint` y `npm run format` antes de PR.
+### 8. Patrón Result & Error Handling
+Usar `Result<T, E extends DomainError>` de `shared/domain/result.ts` para validaciones esperadas. `ok(value)`, `err(error)`, `okVoid()`. Métodos: `isOk()`, `isErr()`, `map()`, `fold()`, `unwrap()`. No lanzar excepciones en flujo normal, solo para casos realmente excepcionales. Controllers convierten Result en HTTP responses apropiados.
 
-### 9. CLI Interna
+### 9. Testing & Calidad
+Unit (`npm run test:unit`) usa SQLite en memoria. Integración (`npm run test:int`) y E2E (`npm run test:e2e`) levantan Postgres + Mongo. Cobertura verificada por `scripts/check-coverage-threshold.js`. Patrón tests: mock CommandBus/QueryBus, override guards con MockAuthGuard/MockRolesGuard, usar `Test.createTestingModule()`. Para aggregates: caso éxito + VO inválido + evento emitido. Usar generadores (`Uuid.random().value`).
+
+### 10. CLI Interna
 `bin/guiders-cli.js`: `clean-database --force`, `create-company`, `create-company-with-admin`. Útil para preparar datos en E2E o reproducir escenarios.
 
-### 10. Anti‑Patrones (bloquear)
-Lógica de negocio en controllers/gateways; excepciones para flujo validable; concatenar SQL manual; exponer entidades ORM/Mongoose; duplicar filtros fuera del repo; lógica en schemas Mongo; olvidar `commit()`; mezclar concerns dominio<->infraestructura.
+### 11. Anti‑Patrones (bloquear)
+Lógica de negocio en controllers/gateways; excepciones para flujo validable; concatenar SQL manual; exponer entidades ORM/Mongoose; duplicar filtros fuera del repo; lógica en schemas Mongo; olvidar `commit()`; mezclar concerns dominio<->infraestructura; handlers que no siguen convención de nombres.
 
-### 11. Checklist PR Express
+### 12. Checklist PR Express
 [] VO/Result aplicados correctamente
 [] Eventos publicados con `mergeObjectContext` + `commit()`
 [] Repos esconden detalles de filtrado / devuelven dominio puro
@@ -41,10 +44,10 @@ Lógica de negocio en controllers/gateways; excepciones para flujo validable; co
 [] Lint/format ok
 [] Swagger + README(s) actualizados si cambia contrato
 
-### 12. Decisiones Clave (Why)
-Mongo para chats (latencia + agregaciones); separación CQRS para optimizar reads/writes; eventos desacoplan side‑effects (ej: API Key tras CompanyCreated); VO + Result centralizan invariantes reduciendo ruido.
+### 13. Decisiones Clave (Why)
+Mongo para chats (latencia + agregaciones); separación CQRS para optimizar reads/writes; eventos desacoplan side‑effects (ej: API Key tras CompanyCreated); VO + Result centralizan invariantes reduciendo ruido; WebSocket guards garantizan autorización por rol.
 
-### 13. Flujo Rápido de Nueva Feature
+### 14. Flujo Rápido de Nueva Feature
 1. Definir Command/Query + DTO. 2. Implementar handler orquestando repos + dominio. 3. Ajustar aggregate/VO y emitir evento si aplica. 4. Persistir + `commit()`. 5. Exponer vía controller o WS. 6. Añadir tests mínimos. 7. Actualizar docs si cambia contrato.
 
 ¿Algo poco claro o falta un patrón? Pide aclaración antes de introducir uno nuevo.
