@@ -132,7 +132,7 @@ describe('TokenVerifyService', () => {
 
       // Assert
       expect(result).toEqual(visitorPayload);
-  expect(httpService.get).toHaveBeenCalledWith('https://test-app.com/jwks');
+      expect(httpService.get).toHaveBeenCalledWith('https://test-app.com/jwks');
       expect(jwtService.verify).toHaveBeenCalledWith(mockToken, {
         algorithms: ['RS256'],
         secret: expect.any(String),

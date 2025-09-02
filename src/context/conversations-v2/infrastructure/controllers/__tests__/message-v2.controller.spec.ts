@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
-import { MessageV2Controller } from '../controllers/message-v2.controller';
+import { MessageV2Controller } from '../message-v2.controller';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 
@@ -18,24 +18,40 @@ describe('MessageV2Controller', () => {
     user: mockUser,
   } as any;
 
+  const mockQueryBus = {
+    execute: jest.fn(),
+  };
+
+  const mockCommandBus = {
+    execute: jest.fn(),
+  };
+
+  const mockAuthGuard = {
+    canActivate: jest.fn().mockReturnValue(true),
+  };
+
+  const mockRolesGuard = {
+    canActivate: jest.fn().mockReturnValue(true),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MessageV2Controller],
       providers: [
         {
           provide: QueryBus,
-          useValue: { execute: jest.fn() },
+          useValue: mockQueryBus,
         },
         {
           provide: CommandBus,
-          useValue: { execute: jest.fn() },
+          useValue: mockCommandBus,
         },
       ],
     })
       .overrideGuard(AuthGuard)
-      .useValue({ canActivate: () => true })
+      .useValue(mockAuthGuard)
       .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
+      .useValue(mockRolesGuard)
       .compile();
 
     controller = module.get<MessageV2Controller>(MessageV2Controller);

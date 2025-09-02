@@ -1,9 +1,11 @@
 import {
   Controller,
   Get,
+  Post,
   Put,
   Param,
   Query,
+  Body,
   HttpException,
   HttpStatus,
   Logger,
@@ -17,6 +19,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBody,
 } from '@nestjs/swagger';
 import {
   AuthenticatedRequest,
@@ -38,7 +41,9 @@ import {
   CommercialMetricsResponseDto,
   ResponseTimeStatsDto,
 } from '../../application/dtos/chat-query.dto';
+import { CreateChatRequestDto } from '../../application/dtos/create-chat-request.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
+import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
 
 /**
  * Controller para la gestión de chats v2
@@ -54,6 +59,96 @@ export class ChatV2Controller {
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
   ) {}
+
+  /**
+   * Crea un nuevo chat para el visitante autenticado
+   */
+  @Post()
+  @RequiredRoles('visitor', 'commercial', 'admin')
+  @ApiOperation({
+    summary: 'Crear nuevo chat',
+    description:
+      'Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera',
+  })
+  @ApiBody({
+    description: 'Datos opcionales para crear el chat',
+    type: CreateChatRequestDto,
+    required: false,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Chat creado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        chatId: {
+          type: 'string',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+          description: 'ID único del chat creado',
+        },
+        position: {
+          type: 'number',
+          example: 3,
+          description: 'Posición en la cola de espera',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos de entrada inválidos',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos suficientes',
+  })
+  async createChat(
+    @Body() createChatDto: CreateChatRequestDto = {},
+    @Req() req: AuthenticatedRequest,
+  ): Promise<{ chatId: string; position: number }> {
+    try {
+      this.logger.log(`Creando chat para visitante: ${req.user.id}`);
+
+      // El visitorId se obtiene del token autenticado
+      const visitorId = req.user.id;
+
+      // Usar los datos del DTO o valores por defecto
+      const visitorInfo = createChatDto.visitorInfo || {};
+      const metadata = createChatDto.metadata || {};
+
+      const command = new JoinWaitingRoomCommand(
+        visitorId,
+        visitorInfo,
+        metadata,
+      );
+
+      const result = await this.commandBus.execute<
+        JoinWaitingRoomCommand,
+        { chatId: string; position: number }
+      >(command);
+
+      this.logger.log(
+        `Chat creado exitosamente: ${result.chatId}, posición: ${result.position}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error('Error al crear chat:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 
   /**
    * Obtiene la lista de chats con filtros avanzados
