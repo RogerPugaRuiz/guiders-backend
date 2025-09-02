@@ -27,6 +27,7 @@ import {
 } from 'src/context/shared/infrastructure/guards/role.guard';
 import { GetVisitorByIdQuery } from '../../application/queries/get-visitor-by-id.query';
 import { VisitorResponseDto } from '../../application/dtos/visitor-response.dto';
+import { VisitorProfileDto } from '../../application/dtos/visitor-profile.dto';
 import { UpdateVisitorCurrentPageDto } from '../../application/dtos/update-visitor-current-page.dto';
 import { UpdateVisitorConnectionTimeDto } from '../../application/dtos/update-visitor-connection-time.dto';
 import { VisitorConnectionTimeResponseDto } from '../../application/dtos/visitor-connection-time-response.dto';
@@ -67,7 +68,7 @@ export class VisitorController {
   @ApiResponse({
     status: 200,
     description: 'Información del visitante obtenida exitosamente',
-    type: VisitorResponseDto,
+    type: VisitorProfileDto,
   })
   @ApiResponse({
     status: 401,
@@ -87,7 +88,7 @@ export class VisitorController {
   })
   async getMyProfile(
     @Req() req: AuthenticatedRequest,
-  ): Promise<VisitorResponseDto> {
+  ): Promise<VisitorProfileDto> {
     try {
       // Obtener el ID del visitante desde el token JWT
       const visitorId = req.user.id;
@@ -109,7 +110,13 @@ export class VisitorController {
         );
       }
 
-      return visitor as VisitorResponseDto;
+      // Devolver solo los campos esenciales solicitados
+      return {
+        id: visitor.id,
+        name: visitor.name,
+        email: visitor.email,
+        tel: visitor.tel,
+      };
     } catch (error) {
       this.handleError(error);
     }

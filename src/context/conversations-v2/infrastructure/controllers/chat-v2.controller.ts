@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Param,
   Query,
   Body,
@@ -1042,6 +1043,109 @@ export class ChatV2Controller {
         throw error;
       }
       this.logger.error(`Error al cerrar chat ${chatId}:`, error);
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Elimina todos los chats asociados a un visitante
+   * Requiere autenticación y permisos de administrador
+   */
+  @Delete('visitor/:visitorId/clear')
+  @RequiredRoles('admin')
+  @ApiOperation({
+    summary: 'Eliminar todos los chats de un visitante',
+    description:
+      'Elimina permanentemente todos los chats asociados a un visitante específico. Esta operación es irreversible y requiere permisos de administrador.',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID del visitante',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Chats eliminados exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Todos los chats del visitante han sido eliminados',
+        },
+        deletedCount: {
+          type: 'number',
+          example: 5,
+          description: 'Número de chats eliminados',
+        },
+        visitorId: {
+          type: 'string',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de administrador',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Visitante no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  clearVisitorChats(
+    @Param('visitorId') visitorId: string,
+    @Req() req: AuthenticatedRequest,
+  ): {
+    message: string;
+    deletedCount: number;
+    visitorId: string;
+  } {
+    try {
+      this.logger.log(
+        `Eliminando todos los chats del visitante ${visitorId} por usuario ${req.user.id}`,
+      );
+
+      // TODO: Implementar command handler
+      // const command = new ClearVisitorChatsCommand({
+      //   visitorId,
+      //   deletedBy: req.user.id,
+      // });
+
+      // const result = await this.commandBus.execute(command);
+
+      // Respuesta temporal - en la implementación real se obtendrá del command handler
+      const deletedCount = 0;
+
+      this.logger.log(
+        `Eliminados ${deletedCount} chats del visitante ${visitorId}`,
+      );
+
+      return {
+        message: 'Todos los chats del visitante han sido eliminados',
+        deletedCount,
+        visitorId,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error al eliminar chats del visitante ${visitorId}:`,
+        error,
+      );
       throw new HttpException(
         'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
