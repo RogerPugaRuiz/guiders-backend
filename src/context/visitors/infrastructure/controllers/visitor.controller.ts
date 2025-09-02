@@ -7,6 +7,7 @@ import {
   Logger,
   Param,
   Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -16,7 +17,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import {
+  AuthGuard,
+  AuthenticatedRequest,
+} from 'src/context/shared/infrastructure/guards/auth.guard';
 import {
   RolesGuard,
   RequiredRoles,
@@ -47,6 +51,69 @@ export class VisitorController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
   ) {}
+
+  /**
+   * Obtiene la información del visitante autenticado (perfil propio)
+   */
+  @Get('me')
+  @RequiredRoles('visitor')
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener información del visitante autenticado',
+    description:
+      'Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio perfil sin necesidad de conocer su ID.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Información del visitante obtenida exitosamente',
+    type: VisitorResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos suficientes - Requiere rol visitor',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Visitante no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async getMyProfile(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<VisitorResponseDto> {
+    try {
+      // Obtener el ID del visitante desde el token JWT
+      const visitorId = req.user.id;
+
+      this.logger.log(
+        `Obteniendo perfil del visitante autenticado: ${visitorId}`,
+      );
+
+      // Ejecutar la query para obtener los datos del visitante
+      const visitor = await this.queryBus.execute<
+        GetVisitorByIdQuery,
+        VisitorPrimitives | null
+      >(new GetVisitorByIdQuery(visitorId));
+
+      if (!visitor) {
+        throw new HttpException(
+          'Visitante no encontrado',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      return visitor as VisitorResponseDto;
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
 
   @Get(':visitorId')
   @RequiredRoles('commercial')
