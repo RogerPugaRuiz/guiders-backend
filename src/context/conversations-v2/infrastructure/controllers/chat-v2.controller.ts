@@ -20,6 +20,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import {
   AuthenticatedRequest,
@@ -48,8 +49,10 @@ import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-
 /**
  * Controller para la gestión de chats v2
  * Proporciona endpoints optimizados para comerciales y visitantes
+ * IMPORTANTE: Todos los endpoints requieren autenticación válida
  */
 @ApiTags('Chats V2')
+@ApiBearerAuth()
 @Controller('v2/chats')
 @UseGuards(AuthGuard, RolesGuard)
 export class ChatV2Controller {
@@ -415,18 +418,54 @@ export class ChatV2Controller {
 
   /**
    * Obtiene estadísticas de tiempo de respuesta
+   * Requiere autenticación y permisos de comercial o administrador
    */
   @Get('response-time-stats')
   @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin')
-  @ApiOperation({ summary: 'Obtener estadísticas de tiempo de respuesta' })
-  @ApiQuery({ name: 'dateFrom', required: false, type: String })
-  @ApiQuery({ name: 'dateTo', required: false, type: String })
-  @ApiQuery({ name: 'groupBy', required: false, enum: ['hour', 'day', 'week'] })
+  @ApiOperation({
+    summary: 'Obtener estadísticas de tiempo de respuesta',
+    description:
+      'Retorna estadísticas agregadas de tiempo de respuesta para comerciales y administradores autenticados',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    type: String,
+    description: 'Fecha de inicio del período (ISO 8601)',
+    example: '2025-07-01T00:00:00Z',
+  })
+  @ApiQuery({
+    name: 'dateTo',
+    required: false,
+    type: String,
+    description: 'Fecha de fin del período (ISO 8601)',
+    example: '2025-07-31T23:59:59Z',
+  })
+  @ApiQuery({
+    name: 'groupBy',
+    required: false,
+    enum: ['hour', 'day', 'week'],
+    description: 'Agrupación temporal de las estadísticas',
+    example: 'day',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Estadísticas de tiempo de respuesta',
+    description: 'Estadísticas de tiempo de respuesta obtenidas exitosamente',
     type: [ResponseTimeStatsDto],
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial o administrador',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   getResponseTimeStats(
     @Query('dateFrom') dateFrom?: string,
@@ -472,12 +511,14 @@ export class ChatV2Controller {
 
   /**
    * Obtiene un chat específico por ID
+   * Requiere autenticación y permisos apropiados
    */
   @Get(':chatId')
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
   @ApiOperation({
     summary: 'Obtener chat por ID',
-    description: 'Retorna los detalles completos de un chat específico',
+    description:
+      'Retorna los detalles completos de un chat específico para usuarios autenticados',
   })
   @ApiParam({
     name: 'chatId',
@@ -490,8 +531,20 @@ export class ChatV2Controller {
     type: ChatResponseDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos suficientes',
+  })
+  @ApiResponse({
     status: 404,
     description: 'Chat no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   getChatById(
     @Param('chatId') chatId: string,
@@ -530,13 +583,14 @@ export class ChatV2Controller {
 
   /**
    * Obtiene chats asignados a un comercial específico
+   * Requiere autenticación y permisos apropiados
    */
   @Get('commercial/:commercialId')
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener chats de un comercial con paginación cursor',
     description:
-      'Retorna los chats asignados a un comercial específico usando paginación basada en cursor',
+      'Retorna los chats asignados a un comercial específico usando paginación basada en cursor. Requiere autenticación.',
   })
   @ApiParam({
     name: 'commercialId',
@@ -567,6 +621,24 @@ export class ChatV2Controller {
     description: 'Opciones de ordenamiento',
     required: false,
     type: Object,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de chats del comercial obtenida exitosamente',
+    type: ChatListResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   getCommercialChats(
     @Param('commercialId') commercialId: string,
@@ -608,13 +680,14 @@ export class ChatV2Controller {
 
   /**
    * Obtiene chats de un visitante específico
+   * Requiere autenticación y permisos apropiados
    */
   @Get('visitor/:visitorId')
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
   @ApiOperation({
     summary: 'Obtener chats de un visitante con paginación cursor',
     description:
-      'Retorna el historial de chats de un visitante específico usando paginación basada en cursor',
+      'Retorna el historial de chats de un visitante específico usando paginación basada en cursor. Requiere autenticación.',
   })
   @ApiParam({
     name: 'visitorId',
@@ -633,6 +706,24 @@ export class ChatV2Controller {
     required: false,
     type: Number,
     example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de chats del visitante obtenida exitosamente',
+    type: ChatListResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador, supervisor o visitante',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   getVisitorChats(
     @Param('visitorId') visitorId: string,
@@ -672,13 +763,14 @@ export class ChatV2Controller {
 
   /**
    * Obtiene la cola de chats pendientes
+   * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Get('queue/pending')
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener cola de chats pendientes',
     description:
-      'Retorna los chats pendientes ordenados por prioridad y tiempo',
+      'Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.',
   })
   @ApiQuery({
     name: 'department',
@@ -691,6 +783,24 @@ export class ChatV2Controller {
     description: 'Número máximo de chats a retornar',
     required: false,
     example: 50,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cola de chats pendientes obtenida exitosamente',
+    type: [ChatResponseDto],
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   getPendingQueue(): ChatResponseDto[] {
     try {
@@ -712,12 +822,14 @@ export class ChatV2Controller {
 
   /**
    * Obtiene métricas de un comercial
+   * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Get('metrics/commercial/:commercialId')
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener métricas de comercial',
-    description: 'Retorna métricas agregadas de rendimiento de un comercial',
+    description:
+      'Retorna métricas agregadas de rendimiento de un comercial. Requiere autenticación.',
   })
   @ApiParam({
     name: 'commercialId',
@@ -735,6 +847,28 @@ export class ChatV2Controller {
     description: 'Fecha de fin del período (ISO 8601)',
     required: false,
     example: '2025-07-31T23:59:59Z',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Métricas del comercial obtenidas exitosamente',
+    type: CommercialMetricsResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Comercial no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   getCommercialMetrics(
     @Param('commercialId') commercialId: string,
@@ -776,12 +910,14 @@ export class ChatV2Controller {
 
   /**
    * Asigna un chat a un comercial
+   * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Put(':chatId/assign/:commercialId')
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Asignar chat a comercial',
-    description: 'Asigna un chat específico a un comercial',
+    description:
+      'Asigna un chat específico a un comercial. Requiere autenticación y permisos apropiados.',
   })
   @ApiParam({
     name: 'chatId',
@@ -799,8 +935,21 @@ export class ChatV2Controller {
     type: ChatResponseDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
+  })
+  @ApiResponse({
     status: 404,
-    description: 'Chat no encontrado',
+    description: 'Chat o comercial no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   assignChat(
     @Param('chatId') chatId: string,
@@ -837,12 +986,14 @@ export class ChatV2Controller {
 
   /**
    * Cierra un chat
+   * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Put(':chatId/close')
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Cerrar chat',
-    description: 'Marca un chat como cerrado',
+    description:
+      'Marca un chat como cerrado. Requiere autenticación y permisos apropiados.',
   })
   @ApiParam({
     name: 'chatId',
@@ -853,6 +1004,23 @@ export class ChatV2Controller {
     status: 200,
     description: 'Chat cerrado exitosamente',
     type: ChatResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Chat no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   closeChat(@Param('chatId') chatId: string): ChatResponseDto {
     try {
