@@ -31,8 +31,8 @@ export class ChatMapper {
     const visitorInfoData = chatPrimitives.visitorInfo;
     schema.visitorInfo = {
       id: chatPrimitives.visitorId,
-      name: visitorInfoData.name || '',
-      email: visitorInfoData.email || '',
+      name: visitorInfoData.name,
+      email: visitorInfoData.email,
       phone: visitorInfoData.phone,
       location:
         visitorInfoData.location?.city || visitorInfoData.location?.country,

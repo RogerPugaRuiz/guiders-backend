@@ -152,18 +152,20 @@ export class ChatV2Controller {
 
   /**
    * Obtiene la lista de chats con filtros avanzados
+   * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Get()
+  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener lista de chats con filtros y paginación con cursor',
     description:
-      'Retorna una lista paginada de chats con filtros avanzados para comerciales. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados.',
+      'Retorna una lista paginada de chats con filtros avanzados para usuarios autenticados con permisos de comercial, administrador o supervisor. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados. Los filtros y ordenamiento se aplican según los permisos del usuario autenticado.',
   })
   @ApiQuery({
     name: 'cursor',
     description:
-      'Cursor para paginación (obtenido del campo nextCursor de la respuesta anterior). Permite navegar a través de páginas sin duplicados ni omisiones.',
+      'Cursor para paginación (obtenido del campo nextCursor de la respuesta anterior). Permite navegar a través de páginas sin duplicados ni omisiones. Este valor es un base64 que contiene información de posición.',
     required: false,
     type: String,
     example:
@@ -171,23 +173,103 @@ export class ChatV2Controller {
   })
   @ApiQuery({
     name: 'limit',
-    description: 'Número máximo de chats a retornar por página (1-100)',
+    description:
+      'Número máximo de chats a retornar por página. Rango válido: 1-100. Por defecto: 20',
     required: false,
     type: Number,
+    minimum: 1,
+    maximum: 100,
     example: 20,
   })
   @ApiQuery({
     name: 'filters',
     description:
-      'Filtros de búsqueda para chats (status, priority, visitorId, etc.)',
+      'Filtros de búsqueda para chats. Formato JSON con campos como status (PENDING, ASSIGNED, ACTIVE, CLOSED), priority (LOW, MEDIUM, HIGH, URGENT), visitorId, assignedCommercialId, department, dateFrom, dateTo, etc.',
     required: false,
-    type: Object,
+    type: 'object',
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: [
+              'PENDING',
+              'ASSIGNED',
+              'ACTIVE',
+              'CLOSED',
+              'TRANSFERRED',
+              'ABANDONED',
+            ],
+          },
+          description: 'Estados de chat a filtrar',
+        },
+        priority: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['LOW', 'MEDIUM', 'NORMAL', 'HIGH', 'URGENT'],
+          },
+          description: 'Prioridades de chat a filtrar',
+        },
+        visitorId: {
+          type: 'string',
+          description: 'ID del visitante',
+        },
+        assignedCommercialId: {
+          type: 'string',
+          description: 'ID del comercial asignado',
+        },
+        department: {
+          type: 'string',
+          description: 'Departamento del chat',
+        },
+        dateFrom: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Fecha de inicio del rango de búsqueda',
+        },
+        dateTo: {
+          type: 'string',
+          format: 'date-time',
+          description: 'Fecha de fin del rango de búsqueda',
+        },
+      },
+    },
+    example: {
+      status: ['ACTIVE', 'PENDING'],
+      priority: ['HIGH', 'URGENT'],
+      department: 'ventas',
+      dateFrom: '2025-07-01T00:00:00Z',
+      dateTo: '2025-07-31T23:59:59Z',
+    },
   })
   @ApiQuery({
     name: 'sort',
-    description: 'Opciones de ordenamiento (field y direction)',
+    description:
+      'Opciones de ordenamiento. Especifica el campo y la dirección de ordenamiento.',
     required: false,
-    type: Object,
+    type: 'object',
+    schema: {
+      type: 'object',
+      properties: {
+        field: {
+          type: 'string',
+          enum: ['createdAt', 'lastMessageDate', 'priority', 'status'],
+          description: 'Campo por el cual ordenar',
+        },
+        direction: {
+          type: 'string',
+          enum: ['asc', 'desc'],
+          description: 'Dirección del ordenamiento',
+        },
+      },
+    },
+    example: {
+      field: 'createdAt',
+      direction: 'desc',
+    },
   })
   @ApiResponse({
     status: 200,
@@ -195,32 +277,112 @@ export class ChatV2Controller {
       'Lista de chats obtenida exitosamente con paginación basada en cursor',
     type: ChatListResponseDto,
     schema: {
-      example: {
-        chats: [
-          {
-            id: 'chat-123',
-            visitorId: 'visitor-456',
-            commercialId: 'commercial-789',
-            status: 'active',
-            priority: 'high',
-            createdAt: '2025-07-28T10:30:00.000Z',
-            lastMessageAt: '2025-07-28T11:15:00.000Z',
+      type: 'object',
+      properties: {
+        chats: {
+          type: 'array',
+          description: 'Lista de chats encontrados',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'chat-123' },
+              visitorId: { type: 'string', example: 'visitor-456' },
+              commercialId: {
+                type: 'string',
+                example: 'commercial-789',
+                nullable: true,
+              },
+              status: { type: 'string', example: 'ACTIVE' },
+              priority: { type: 'string', example: 'HIGH' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                example: '2025-07-28T10:30:00.000Z',
+              },
+              lastMessageAt: {
+                type: 'string',
+                format: 'date-time',
+                example: '2025-07-28T11:15:00.000Z',
+                nullable: true,
+              },
+            },
           },
-        ],
-        total: 150,
-        hasMore: true,
-        nextCursor:
-          'eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDExOjE1OjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=',
+        },
+        total: {
+          type: 'number',
+          description: 'Número total de chats que coinciden con los filtros',
+          example: 150,
+        },
+        hasMore: {
+          type: 'boolean',
+          description: 'Indica si hay más páginas disponibles',
+          example: true,
+        },
+        nextCursor: {
+          type: 'string',
+          description:
+            'Cursor para obtener la siguiente página (null si no hay más páginas)',
+          example:
+            'eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDExOjE1OjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=',
+          nullable: true,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Parámetros de consulta inválidos',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Parámetros de filtro inválidos' },
+        error: { type: 'string', example: 'Bad Request' },
+        statusCode: { type: 'number', example: 400 },
       },
     },
   })
   @ApiResponse({
     status: 401,
-    description: 'Usuario no autenticado',
+    description: 'Usuario no autenticado - Token de autenticación requerido',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Token de autenticación requerido',
+        },
+        error: { type: 'string', example: 'Unauthorized' },
+        statusCode: { type: 'number', example: 401 },
+      },
+    },
   })
   @ApiResponse({
     status: 403,
-    description: 'Usuario sin permisos suficientes',
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Acceso denegado. Permisos insuficientes.',
+        },
+        error: { type: 'string', example: 'Forbidden' },
+        statusCode: { type: 'number', example: 403 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Error interno del servidor' },
+        error: { type: 'string', example: 'Internal Server Error' },
+        statusCode: { type: 'number', example: 500 },
+      },
+    },
   })
   getChats(
     @Query() queryParams: GetChatsQueryDto,

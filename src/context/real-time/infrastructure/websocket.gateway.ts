@@ -29,6 +29,7 @@ import { FindOneUserBySocketIdQueryResult } from '../application/query/find-one/
 import { DisconnectUserCommand } from '../application/command/disconnect/disconnect-user.command';
 import { RealTimeMessageSenderCommand } from 'src/context/real-time/application/command/message/real-time-message-sender.command';
 import { Result } from 'src/context/shared/domain/result';
+import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { FindChatListByParticipantQuery } from 'src/context/conversations/chat/application/read/find-chat-list-by-participant.query';
 import { StartChatCommand } from 'src/context/conversations/chat/application/create/pending/start-chat.command';
@@ -644,10 +645,11 @@ export class RealTimeWebSocketGateway
     @ConnectedSocket() client: AuthenticatedSocket,
     @MessageBody() event: Event,
   ): Promise<Response<{ trackingEventId: string }>> {
-    const { trackingEventId, eventType } = event.data as {
-      trackingEventId: string;
+    const { eventType } = event.data as {
       eventType?: string;
     };
+    // Generar un nuevo UUID válido para el tracking event
+    const trackingEventId = Uuid.generate();
     const metadata = event.metadata || {};
     const command = new CreateTrackingEventCommand({
       id: trackingEventId,
@@ -660,6 +662,7 @@ export class RealTimeWebSocketGateway
     return new ResponseBuilder<any>()
       .addSuccess(true)
       .addMessage('Tracking event created')
+      .addData({ trackingEventId })
       .build();
   }
 

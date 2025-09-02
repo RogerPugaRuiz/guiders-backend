@@ -9,11 +9,11 @@ export class VisitorInfoSchema {
   @Prop({ required: true, type: String })
   id: string;
 
-  @Prop({ required: true, type: String })
-  name: string;
+  @Prop({ required: false, type: String })
+  name?: string;
 
-  @Prop({ required: true, type: String })
-  email: string;
+  @Prop({ required: false, type: String })
+  email?: string;
 
   @Prop({ required: false, type: String })
   phone?: string;
