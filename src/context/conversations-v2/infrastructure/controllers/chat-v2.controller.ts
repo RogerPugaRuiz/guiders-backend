@@ -726,30 +726,52 @@ export class ChatV2Controller {
     status: 500,
     description: 'Error interno del servidor',
   })
-  getVisitorChats(
+  async getVisitorChats(
     @Param('visitorId') visitorId: string,
     @Query() queryParams: PaginationDto,
-  ): ChatListResponseDto {
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatListResponseDto> {
     try {
       this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
+      this.logger.log(
+        `Usuario autenticado: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
+      );
+      this.logger.log(`Query params recibidos: ${JSON.stringify(queryParams)}`);
 
-      // Log the query parameters for debugging
-      this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
-
-      // TODO: Implementar query handler
-      // const query = new GetVisitorChatsQuery({
-      //   visitorId,
-      //   cursor: queryParams.cursor,
-      //   limit: queryParams.limit || 20,
-      // });
-
-      // Respuesta temporal
-      return {
-        chats: [],
-        total: 0,
-        hasMore: false,
-        nextCursor: null,
+      // Crear filtros específicos para el visitante
+      const filters = {
+        visitorId: visitorId,
       };
+
+      this.logger.log(`Filtros aplicados: ${JSON.stringify(filters)}`);
+
+      // Usar el query handler existente con filtros específicos para el visitante
+      const query = GetChatsWithFiltersQuery.create({
+        userId: req.user.id,
+        userRole: req.user.roles[0] || 'visitor',
+        filters: filters,
+        sort: { field: 'createdAt', direction: 'DESC' },
+        cursor: queryParams.cursor,
+        limit: queryParams.limit || 20,
+      });
+
+      this.logger.log(
+        `Query creado: ${JSON.stringify({
+          userId: req.user.id,
+          userRole: req.user.roles[0] || 'visitor',
+          filters: filters,
+          cursor: queryParams.cursor,
+          limit: queryParams.limit || 20,
+        })}`,
+      );
+
+      const result: ChatListResponseDto = await this.queryBus.execute(query);
+
+      this.logger.log(
+        `Resultado obtenido: ${result.total} chats encontrados, ${result.chats.length} en esta página`,
+      );
+
+      return result;
     } catch (error) {
       this.logger.error(
         `Error al obtener chats del visitante ${visitorId}:`,

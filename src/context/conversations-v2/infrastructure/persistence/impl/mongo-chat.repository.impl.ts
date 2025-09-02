@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -15,7 +15,7 @@ import { CommercialId } from '../../../domain/value-objects/commercial-id';
 import { ChatStatus } from '../../../domain/value-objects/chat-status';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-// import { Criteria } from 'src/context/shared/domain/criteria';
+import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
 import { ChatSchema } from '../../schemas/chat.schema';
 import { ChatMapper } from '../../mappers/chat.mapper';
 
@@ -51,6 +51,8 @@ export class ChatPersistenceError extends DomainError {
  */
 @Injectable()
 export class MongoChatRepositoryImpl implements IChatRepository {
+  private readonly logger = new Logger(MongoChatRepositoryImpl.name);
+
   constructor(
     @InjectModel(ChatSchema.name) private readonly chatModel: Model<ChatSchema>,
     private readonly chatMapper: ChatMapper,
@@ -163,13 +165,13 @@ export class MongoChatRepositoryImpl implements IChatRepository {
    * Busca un chat que cumple con criterios específicos
    * Implementación básica - se puede extender para criterios más complejos
    */
-  async findOne(/* criteria: Criteria<Chat> */): Promise<
+  async findOne(criteria: Criteria<Chat>): Promise<
     Result<Chat, DomainError>
   > {
     try {
       // Para esta implementación, buscamos por algunos filtros básicos
       // En una implementación completa, se podría usar un convertidor similar a CriteriaConverter
-      const filter = this.buildMongoFilter();
+      const filter = this.buildMongoFilter(criteria);
       const schema = await this.chatModel.findOne(filter);
 
       if (!schema) {
@@ -194,15 +196,77 @@ export class MongoChatRepositoryImpl implements IChatRepository {
   /**
    * Busca múltiples chats que cumplen con criterios específicos
    */
-  async match(/* criteria: Criteria<Chat> */): Promise<
-    Result<Chat[], DomainError>
-  > {
+  async match(criteria: Criteria<Chat>): Promise<Result<Chat[], DomainError>> {
     try {
-      const filter = this.buildMongoFilter();
-      const schemas = await this.chatModel.find(filter);
+      this.logger.debug(`Executing find with query:`);
+      
+      const filter = this.buildMongoFilter(criteria);
+      this.logger.debug(JSON.stringify(filter));
+
+      // Construir opciones de consulta
+      const queryOptions: any = {};
+
+      // Aplicar ordenamiento
+      if (criteria.orderBy) {
+        const sortObject: any = {};
+        
+        const orderByArray = Array.isArray(criteria.orderBy) ? criteria.orderBy : [criteria.orderBy];
+        
+        orderByArray.forEach((order) => {
+          // Mapear campos del dominio a campos de MongoDB
+          let mongoField = String(order.field);
+          if (order.field === 'visitorId') {
+            mongoField = 'visitorId'; // En MongoDB se almacena directamente como visitorId
+          }
+          
+          sortObject[mongoField] = order.direction === 'ASC' ? 1 : -1;
+        });
+        
+        queryOptions.sort = sortObject;
+        this.logger.debug(`Sort options: ${JSON.stringify(sortObject)}`);
+      }
+
+      // Aplicar límite
+      if (criteria.limit !== undefined) {
+        queryOptions.limit = criteria.limit;
+        this.logger.debug(`Limit: ${criteria.limit}`);
+      }
+
+      // Aplicar cursor (para paginación)
+      if (criteria.cursor) {
+        const cursor = criteria.cursor;
+        if (cursor && cursor.createdAt) {
+          // Agregar condición de cursor al filtro
+          if (!filter.$and) {
+            filter.$and = [];
+          }
+          filter.$and.push({
+            $or: [
+              { createdAt: { $lt: new Date(cursor.createdAt as string) } },
+              {
+                createdAt: new Date(cursor.createdAt as string),
+                _id: { $lt: cursor.id }
+              }
+            ]
+          });
+          this.logger.debug(`Cursor applied: ${JSON.stringify(cursor)}`);
+        }
+      }
+
+      this.logger.log(`Final MongoDB query: ${JSON.stringify(filter)}`);
+      this.logger.log(`Query options: ${JSON.stringify(queryOptions)}`);
+
+      // Ejecutar consulta
+      const schemas = await this.chatModel.find(filter, null, queryOptions);
+      this.logger.log(`Found ${schemas.length} chat documents in MongoDB`);
+
+      // Mapear a entidades de dominio
       const chats = this.chatMapper.toDomainList(schemas);
+      this.logger.log(`Mapped to ${chats.length} domain entities`);
+
       return ok(chats);
     } catch (error) {
+      this.logger.error(`Error al buscar chats con criterios: ${error instanceof Error ? error.message : String(error)}`);
       return err(
         new ChatPersistenceError(
           `Error al buscar chats con criterios: ${error instanceof Error ? error.message : String(error)}`,
@@ -672,15 +736,89 @@ export class MongoChatRepositoryImpl implements IChatRepository {
    * Construye un filtro MongoDB básico a partir de criterios
    * Implementación simplificada - se puede extender para casos más complejos
    */
-  private buildMongoFilter(/* criteria: Criteria<Chat> */): Record<
-    string,
-    any
-  > {
+  private buildMongoFilter(criteria: Criteria<Chat>): Record<string, any> {
     const filter: Record<string, any> = {};
 
-    // Esta implementación es básica y se puede extender
-    // para mapear completamente los criterios de búsqueda a filtros MongoDB
+    if (!criteria.filters || criteria.filters.length === 0) {
+      this.logger.debug('No filters in criteria, returning empty filter');
+      return filter;
+    }
 
+    const filters = criteria.filters;
+    this.logger.debug(`Processing ${filters.length} filters`);
+
+    filters.forEach((criteriaFilter, index) => {
+      if (criteriaFilter instanceof Filter) {
+        this.logger.debug(
+          `Processing filter ${index + 1}: ${String(criteriaFilter.field)} ${criteriaFilter.operator} ${JSON.stringify(criteriaFilter.value)}`,
+        );
+
+        const field = criteriaFilter.field as string;
+        const operator = criteriaFilter.operator;
+        const value = criteriaFilter.value;
+
+      // Mapear campos del dominio a campos de MongoDB
+      let mongoField = field;
+      if (field === 'visitorId') {
+        mongoField = 'visitorId'; // En MongoDB se almacena directamente como visitorId
+      } else if (field === 'assignedCommercialId') {
+        mongoField = 'assignedCommercialId';
+      } else if (field === 'status') {
+        mongoField = 'status';
+      } else if (field === 'priority') {
+        mongoField = 'priority';
+      } else if (field === 'createdAt') {
+        mongoField = 'createdAt';
+      } else if (field === 'totalMessages') {
+        mongoField = 'totalMessages';
+      }        // Aplicar operadores
+        switch (operator) {
+          case Operator.EQUALS:
+            filter[mongoField] = value;
+            break;
+          case Operator.NOT_EQUALS:
+            filter[mongoField] = { $ne: value };
+            break;
+          case Operator.IN:
+            filter[mongoField] = { $in: Array.isArray(value) ? value : [value] };
+            break;
+          case Operator.NOT_IN:
+            filter[mongoField] = { $nin: Array.isArray(value) ? value : [value] };
+            break;
+          case Operator.GREATER_THAN:
+            filter[mongoField] = { $gt: value };
+            break;
+          case Operator.GREATER_OR_EQUALS:
+            filter[mongoField] = { $gte: value };
+            break;
+          case Operator.LESS_THAN:
+            filter[mongoField] = { $lt: value };
+            break;
+          case Operator.LESS_OR_EQUALS:
+            filter[mongoField] = { $lte: value };
+            break;
+          case Operator.LIKE:
+            filter[mongoField] = { $regex: value, $options: 'i' };
+            break;
+          case Operator.IS_NULL:
+            filter[mongoField] = null;
+            break;
+          case Operator.IS_NOT_NULL:
+            filter[mongoField] = { $ne: null };
+            break;
+          default:
+            this.logger.warn(`Operador no soportado: ${operator}`);
+        }
+
+        this.logger.debug(`Applied filter: ${mongoField} = ${JSON.stringify(filter[mongoField])}`);
+      } else {
+        // Manejar FilterGroup (AND/OR)
+        this.logger.debug(`Processing filter group ${index + 1}: ${criteriaFilter.operator}`);
+        // TODO: Implementar FilterGroup si es necesario
+      }
+    });
+
+    this.logger.debug(`Final MongoDB filter: ${JSON.stringify(filter)}`);
     return filter;
   }
 }
