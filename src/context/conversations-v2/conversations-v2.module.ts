@@ -67,8 +67,8 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
     // CreateChatCommandHandler,
 
     // Query Handlers
-  GetChatsWithFiltersQueryHandler,
-  GetChatByIdQueryHandler,
+    GetChatsWithFiltersQueryHandler,
+    GetChatByIdQueryHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

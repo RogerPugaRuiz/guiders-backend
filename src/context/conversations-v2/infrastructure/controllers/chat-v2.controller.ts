@@ -558,7 +558,8 @@ export class ChatV2Controller {
     try {
       this.logger.log(`Obteniendo chat ${chatId} para usuario: ${req.user.id}`);
       const query = new GetChatByIdQuery(chatId);
-  const result: Result<Chat, DomainError> = await this.queryBus.execute(query);
+      const result: Result<Chat, DomainError> =
+        await this.queryBus.execute(query);
       if (result.isErr()) {
         throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
       }
