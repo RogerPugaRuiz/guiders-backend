@@ -200,6 +200,12 @@ export interface IChatRepository {
     date: Date,
     department?: string,
   ): Promise<Result<number, DomainError>>;
+
+  /**
+   * Elimina todos los chats asociados a un visitante específico
+   * Devuelve la cantidad de chats eliminados
+   */
+  deleteByVisitorId(visitorId: VisitorId): Promise<Result<number, DomainError>>;
 }
 
 /**

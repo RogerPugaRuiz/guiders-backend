@@ -34,7 +34,9 @@ export class GetChatsWithFiltersQueryHandler
       `Ejecutando query para usuario ${userId} con rol ${userRole}`,
     );
     this.logger.log(`Filtros recibidos: ${JSON.stringify(filters)}`);
-    this.logger.log(`Sort: ${JSON.stringify(sort)}, Cursor: ${cursor}, Limit: ${limit}`);
+    this.logger.log(
+      `Sort: ${JSON.stringify(sort)}, Cursor: ${cursor}, Limit: ${limit}`,
+    );
 
     try {
       // Construir filtros base
@@ -48,25 +50,31 @@ export class GetChatsWithFiltersQueryHandler
         criteriaFilters.push(
           new Filter<Chat>('assignedCommercialId', Operator.EQUALS, userId),
         );
-        this.logger.log(`Filtro agregado para comercial: assignedCommercialId = ${userId}`);
+        this.logger.log(
+          `Filtro agregado para comercial: assignedCommercialId = ${userId}`,
+        );
         // TODO: Agregar OR para chats disponibles
       }
 
       // Aplicar filtros adicionales si existen
       if (filters) {
         this.logger.log(`Aplicando filtros adicionales...`);
-        
+
         if (filters.status) {
           criteriaFilters.push(
             new Filter<Chat>('status', Operator.IN, filters.status),
           );
-          this.logger.log(`Filtro status agregado: ${JSON.stringify(filters.status)}`);
+          this.logger.log(
+            `Filtro status agregado: ${JSON.stringify(filters.status)}`,
+          );
         }
         if (filters.priority) {
           criteriaFilters.push(
             new Filter<Chat>('priority', Operator.IN, filters.priority),
           );
-          this.logger.log(`Filtro priority agregado: ${JSON.stringify(filters.priority)}`);
+          this.logger.log(
+            `Filtro priority agregado: ${JSON.stringify(filters.priority)}`,
+          );
         }
         if (filters.visitorId) {
           criteriaFilters.push(
@@ -82,7 +90,9 @@ export class GetChatsWithFiltersQueryHandler
               filters.assignedCommercialId,
             ),
           );
-          this.logger.log(`Filtro assignedCommercialId agregado: ${filters.assignedCommercialId}`);
+          this.logger.log(
+            `Filtro assignedCommercialId agregado: ${filters.assignedCommercialId}`,
+          );
         }
         // Nota: department y hasUnreadMessages no son campos directos de la entidad Chat
         // Se podrían implementar como filtros especiales en el repositorio
@@ -110,7 +120,9 @@ export class GetChatsWithFiltersQueryHandler
         // Se podría implementar como filtro especial en el repositorio
       }
 
-      this.logger.log(`Total de filtros construidos: ${criteriaFilters.length}`);
+      this.logger.log(
+        `Total de filtros construidos: ${criteriaFilters.length}`,
+      );
 
       // Decodificar cursor si existe
       const criteriaCursor = cursor ? base64ToCursor(cursor) : undefined;
@@ -141,13 +153,17 @@ export class GetChatsWithFiltersQueryHandler
         }
 
         criteria = criteria.orderByField(sortField, sort.direction);
-        this.logger.log(`Ordenamiento aplicado: ${sortField} ${sort.direction}`);
+        this.logger.log(
+          `Ordenamiento aplicado: ${sortField} ${sort.direction}`,
+        );
       } else {
         // Ordenamiento por defecto: por fecha de creación descendente, luego por ID
         criteria = criteria
           .orderByField('createdAt', 'DESC')
           .orderByField('id', 'DESC');
-        this.logger.log(`Ordenamiento por defecto aplicado: createdAt DESC, id DESC`);
+        this.logger.log(
+          `Ordenamiento por defecto aplicado: createdAt DESC, id DESC`,
+        );
       }
 
       criteria = criteria.setLimit(limit || 20);
@@ -156,7 +172,9 @@ export class GetChatsWithFiltersQueryHandler
         criteria = criteria.setCursor(criteriaCursor);
       }
 
-      this.logger.log(`Criteria final construido con ${criteriaFilters.length} filtros y límite ${limit || 20}`);
+      this.logger.log(
+        `Criteria final construido con ${criteriaFilters.length} filtros y límite ${limit || 20}`,
+      );
 
       // Ejecutar búsqueda
       this.logger.log(`Ejecutando búsqueda en repositorio...`);
@@ -268,7 +286,9 @@ export class GetChatsWithFiltersQueryHandler
         nextCursor: hasMore ? nextCursor : null,
       };
 
-      this.logger.log(`Resultado final: ${finalResult.chats.length} chats, total: ${finalResult.total}, hasMore: ${finalResult.hasMore}`);
+      this.logger.log(
+        `Resultado final: ${finalResult.chats.length} chats, total: ${finalResult.total}, hasMore: ${finalResult.hasMore}`,
+      );
 
       return finalResult;
     } catch (error) {

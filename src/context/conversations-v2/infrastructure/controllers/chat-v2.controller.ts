@@ -1130,48 +1130,48 @@ export class ChatV2Controller {
   clearVisitorChats(
     @Param('visitorId') visitorId: string,
     @Req() req: AuthenticatedRequest,
-  ): {
+  ): Promise<{
     message: string;
     deletedCount: number;
     visitorId: string;
-  } {
-    try {
-      this.logger.log(
-        `Eliminando todos los chats del visitante ${visitorId} por usuario ${req.user.id}`,
-      );
+  }> {
+    return (async () => {
+      try {
+        this.logger.log(
+          `Eliminando todos los chats del visitante ${visitorId} por usuario ${req.user.id}`,
+        );
 
-      // TODO: Implementar command handler
-      // const command = new ClearVisitorChatsCommand({
-      //   visitorId,
-      //   deletedBy: req.user.id,
-      // });
+        const { ClearVisitorChatsCommand } = await import(
+          '../../application/commands/clear-visitor-chats.command'
+        );
+        const command = new ClearVisitorChatsCommand(visitorId, req.user.id);
+        const result = await this.commandBus.execute<
+          any,
+          { deletedCount: number; visitorId: string }
+        >(command);
 
-      // const result = await this.commandBus.execute(command);
+        this.logger.log(
+          `Eliminados ${result.deletedCount} chats del visitante ${visitorId}`,
+        );
 
-      // Respuesta temporal - en la implementación real se obtendrá del command handler
-      const deletedCount = 0;
-
-      this.logger.log(
-        `Eliminados ${deletedCount} chats del visitante ${visitorId}`,
-      );
-
-      return {
-        message: 'Todos los chats del visitante han sido eliminados',
-        deletedCount,
-        visitorId,
-      };
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+        return {
+          message: 'Todos los chats del visitante han sido eliminados',
+          deletedCount: result.deletedCount,
+          visitorId: result.visitorId,
+        };
+      } catch (error) {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        this.logger.error(
+          `Error al eliminar chats del visitante ${visitorId}:`,
+          error,
+        );
+        throw new HttpException(
+          'Error interno del servidor',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
-      this.logger.error(
-        `Error al eliminar chats del visitante ${visitorId}:`,
-        error,
-      );
-      throw new HttpException(
-        'Error interno del servidor',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    })();
   }
 }

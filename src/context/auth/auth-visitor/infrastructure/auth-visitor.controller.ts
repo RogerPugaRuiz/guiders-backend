@@ -7,6 +7,15 @@ import {
   Logger,
   Post,
 } from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { AuthVisitorService } from './services/auth-visitor.service';
 import { ApiKeyNotFoundError, InvalidTokenError } from './services/errors';
 import {
@@ -15,7 +24,15 @@ import {
   VisitorAccountAlreadyExistError,
   VisitorAccountNotFoundError,
 } from '../application/error/auth-visitor.errors';
+import {
+  AccessTokenResponseDto,
+  RefreshTokenRequestDto,
+  RegisterVisitorRequestDto,
+  TokenRequestDto,
+  TokensResponseDto,
+} from '../application/dtos/auth-visitor.dto';
 
+@ApiTags('Pixel Visitor Auth')
 @Controller('pixel')
 export class AuthVisitorController {
   private readonly logger = new Logger(AuthVisitorController.name);
@@ -23,14 +40,27 @@ export class AuthVisitorController {
   constructor(private readonly authVisitor: AuthVisitorService) {}
 
   @Post('token')
+  @ApiOperation({
+    summary: 'Obtener par de tokens para visitante existente',
+    description:
+      'Devuelve access_token y refresh_token para un visitor previamente registrado. Requiere cabeceras Origin y Referer con mismo hostname.',
+  })
+  @ApiBody({ type: TokenRequestDto })
+  @ApiCreatedResponse({
+    description: 'Tokens emitidos correctamente',
+    type: TokensResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Origin/Referer inválidos o no coinciden',
+  })
+  @ApiNotFoundResponse({
+    description: 'Visitor o client no encontrado / dominio inválido',
+  })
   async getToken(
-    @Body('client') client: string,
+    @Body() body: TokenRequestDto,
     @Headers('origin') origin: string | undefined,
     @Headers('referer') referer: string | undefined,
-  ): Promise<{
-    access_token: string;
-    refresh_token: string;
-  }> {
+  ): Promise<TokensResponseDto> {
     try {
       if (!origin || !referer) {
         throw new HttpException('No origin or referer', 400);
@@ -46,7 +76,7 @@ export class AuthVisitorController {
         : domain;
 
       return await this.authVisitor.tokens({
-        client: parseInt(client),
+        client: body.client,
         domain: normalizedDomain,
       });
     } catch (error) {
@@ -68,16 +98,25 @@ export class AuthVisitorController {
   }
 
   @Post('register')
+  @ApiOperation({
+    summary: 'Registrar visitante + emitir tokens',
+    description:
+      'Registra un visitante si no existe (por apiKey + client + dominio) y devuelve tokens. Si ya existe, re-emite tokens.',
+  })
+  @ApiBody({ type: RegisterVisitorRequestDto })
+  @ApiCreatedResponse({
+    description: 'Visitante registrado o existente: tokens emitidos',
+    type: TokensResponseDto,
+  })
+  @ApiBadRequestResponse({
+    description: 'Dominio inválido / Origin-Referer no coinciden',
+  })
+  @ApiNotFoundResponse({ description: 'API Key o Visitor no encontrado' })
   async register(
-    @Body('apiKey') apiKey: string,
-    @Body('client') client: string,
-    @Body('userAgent') userAgent: string,
+    @Body() body: RegisterVisitorRequestDto,
     @Headers('origin') origin: string | undefined,
     @Headers('referer') referer: string | undefined,
-  ): Promise<{
-    access_token: string;
-    refresh_token: string;
-  }> {
+  ): Promise<TokensResponseDto> {
     if (!origin || !referer) {
       throw new HttpException('No origin or referer', 400);
     }
@@ -93,14 +132,14 @@ export class AuthVisitorController {
     this.logger.log(`Registering visitor for domain ${normalizedDomain}`);
     try {
       await this.authVisitor.register(
-        apiKey,
-        parseInt(client),
-        userAgent,
+        body.apiKey,
+        body.client,
+        body.userAgent,
         normalizedDomain,
       );
 
       return await this.authVisitor.tokens({
-        client: parseInt(client),
+        client: body.client,
         domain: normalizedDomain,
       });
     } catch (error) {
@@ -113,7 +152,7 @@ export class AuthVisitorController {
       if (error instanceof VisitorAccountAlreadyExistError) {
         try {
           return await this.authVisitor.tokens({
-            client: parseInt(client),
+            client: body.client,
             domain: originUrl.hostname,
           });
         } catch (error) {
@@ -136,11 +175,22 @@ export class AuthVisitorController {
   }
 
   @Post('token/refresh')
-  async refresh(@Body('refresh_token') refreshToken: string): Promise<{
-    access_token: string;
-  }> {
+  @ApiOperation({
+    summary: 'Refrescar access token',
+    description:
+      'Devuelve un nuevo access_token válido a partir de refresh_token.',
+  })
+  @ApiBody({ type: RefreshTokenRequestDto })
+  @ApiCreatedResponse({
+    description: 'Access token renovado',
+    type: AccessTokenResponseDto,
+  })
+  @ApiUnauthorizedResponse({ description: 'Refresh token inválido' })
+  async refresh(
+    @Body() body: RefreshTokenRequestDto,
+  ): Promise<AccessTokenResponseDto> {
     try {
-      return await this.authVisitor.refresh(refreshToken);
+      return await this.authVisitor.refresh(body.refresh_token);
     } catch (error) {
       if (
         error instanceof InvalidTokenError ||

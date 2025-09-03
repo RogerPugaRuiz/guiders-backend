@@ -25,6 +25,7 @@ import { TokenVerifyService } from 'src/context/shared/infrastructure/token-veri
 
 // Command Handlers
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
+import { ClearVisitorChatsCommandHandler } from './application/commands/clear-visitor-chats.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
@@ -59,6 +60,7 @@ import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats
 
     // Command Handlers
     JoinWaitingRoomCommandHandler,
+    ClearVisitorChatsCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
