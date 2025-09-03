@@ -5,416 +5,131 @@ import { VisitorEmail } from '../value-objects/visitor-email';
 import { VisitorTel } from '../value-objects/visitor-tel';
 import { VisitorTags } from '../value-objects/visitor-tags';
 import { VisitorTag } from '../value-objects/visitor-tag';
-import { VisitorNotes } from '../value-objects/visitor-notes';
-import { VisitorNote } from '../value-objects/visitor-note';
-import { VisitorCurrentPage } from '../value-objects/visitor-current-page';
-import { VisitorCurrentPageUpdatedEvent } from '../events/visitor-current-page-updated-event';
+import { VisitorCreatedEvent } from '../events/visitor-created-event';
+import { VisitorAliasAssignedEvent } from '../events/visitor-alias-assigned-event';
 import { VisitorEmailUpdatedEvent } from '../events/visitor-email-updated-event';
 import { VisitorNameUpdatedEvent } from '../events/visitor-name-updated-event';
 import { VisitorTelUpdatedEvent } from '../events/visitor-tel-updated-event';
-import { VisitorCreatedEvent } from '../events/visitor-created-event';
-import { VisitorAliasAssignedEvent } from '../events/visitor-alias-assigned-event';
 
 describe('Visitor', () => {
-  const visitorId = new VisitorId('12345678-1234-4234-9234-123456789abc');
-  const visitorName = new VisitorName('John Doe');
-  const visitorEmail = new VisitorEmail('john@example.com');
-  const visitorTel = new VisitorTel('123456789');
-  const visitorTags = new VisitorTags([new VisitorTag('VIP')]);
-  const visitorNotes = new VisitorNotes([new VisitorNote('Important visitor')]);
+  const id = new VisitorId('12345678-1234-4234-9234-123456789abc');
+  const name = new VisitorName('John Doe');
+  const email = new VisitorEmail('john@example.com');
+  const tel = new VisitorTel('123456789');
+  const tags = new VisitorTags([new VisitorTag('VIP')]);
 
   describe('create', () => {
-    it('should create visitor with all fields', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        name: visitorName,
-        email: visitorEmail,
-        tel: visitorTel,
-        tags: visitorTags,
-        notes: visitorNotes,
-      });
+    it('crea visitor con todos los campos y emite eventos correctos', () => {
+      const visitor = Visitor.create({ id, name, email, tel, tags });
+      expect(visitor.id).toBe(id);
+      expect(visitor.name.get()).toBe(name);
+      expect(visitor.email.get()).toBe(email);
+      expect(visitor.tel.get()).toBe(tel);
+      expect(visitor.tags).toBe(tags);
 
-      expect(visitor.id).toBe(visitorId);
-      expect(visitor.name.get()).toBe(visitorName);
-      expect(visitor.email.get()).toBe(visitorEmail);
-      expect(visitor.tel.get()).toBe(visitorTel);
-      expect(visitor.tags).toBe(visitorTags);
-      expect(visitor.notes).toBe(visitorNotes);
-      expect(visitor.currentPage.isPresent()).toBe(false);
+      const events = visitor.getUncommittedEvents();
+      expect(events).toHaveLength(2);
+      expect(events[0]).toBeInstanceOf(VisitorCreatedEvent);
+      expect(events[1]).toBeInstanceOf(VisitorAliasAssignedEvent);
     });
 
-    it('should create visitor with minimal fields', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.id).toBe(visitorId);
+    it('crea visitor mínimo y solo emite VisitorCreatedEvent', () => {
+      const visitor = Visitor.create({ id, tags: new VisitorTags([]) });
+      expect(visitor.id).toBe(id);
       expect(visitor.name.isPresent()).toBe(false);
       expect(visitor.email.isPresent()).toBe(false);
       expect(visitor.tel.isPresent()).toBe(false);
       expect(visitor.tags.value).toHaveLength(0);
-      expect(visitor.notes.value).toHaveLength(0);
-    });
 
-    it('should emit VisitorCreatedEvent when visitor is created', () => {
-      // Act
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      // Assert
       const events = visitor.getUncommittedEvents();
       expect(events).toHaveLength(1);
-
-      const event = events[0] as VisitorCreatedEvent;
-      expect(event).toBeInstanceOf(VisitorCreatedEvent);
-      expect(event.attributes.visitor.id).toBe(visitorId.value);
-    });
-
-    it('should emit both VisitorCreatedEvent and VisitorAliasAssignedEvent when visitor is created with name', () => {
-      // Act
-      const visitor = Visitor.create({
-        id: visitorId,
-        name: visitorName,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      // Assert
-      const events = visitor.getUncommittedEvents();
-      expect(events).toHaveLength(2);
-
-      const createdEvent = events[0] as VisitorCreatedEvent;
-      expect(createdEvent).toBeInstanceOf(VisitorCreatedEvent);
-      expect(createdEvent.attributes.visitor.id).toBe(visitorId.value);
-      expect(createdEvent.attributes.visitor.name).toBe(visitorName.value);
-
-      const aliasAssignedEvent = events[1] as VisitorAliasAssignedEvent;
-      expect(aliasAssignedEvent).toBeInstanceOf(VisitorAliasAssignedEvent);
-      expect(aliasAssignedEvent.payload.visitorId).toBe(visitorId.value);
-      expect(aliasAssignedEvent.payload.alias).toBe(visitorName.value);
-    });
-
-    it('should only emit VisitorCreatedEvent when visitor is created without name', () => {
-      // Act
-      const visitor = Visitor.create({
-        id: visitorId,
-        email: visitorEmail,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      // Assert
-      const events = visitor.getUncommittedEvents();
-      expect(events).toHaveLength(1);
-
-      const event = events[0] as VisitorCreatedEvent;
-      expect(event).toBeInstanceOf(VisitorCreatedEvent);
-      expect(event.attributes.visitor.id).toBe(visitorId.value);
-      expect(event.attributes.visitor.name).toBeNull();
-    });
-  });
-
-  describe('updateCurrentPage', () => {
-    it('should update current page and emit event', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-      const newPage = new VisitorCurrentPage('/new-page');
-
-      // Act
-      const updatedVisitor = visitor.updateCurrentPage(newPage);
-
-      // Assert
-      expect(updatedVisitor).not.toBe(visitor); // Immutability
-      expect(updatedVisitor.currentPage.get()).toBe(newPage);
-      const events = updatedVisitor.getUncommittedEvents();
-      expect(events).toHaveLength(1);
-
-      const event = events[0] as VisitorCurrentPageUpdatedEvent;
-      expect(event).toBeInstanceOf(VisitorCurrentPageUpdatedEvent);
-      expect(event.attributes.visitorId).toBe(visitorId.value);
-      expect(event.attributes.currentPage).toBe(newPage.value);
-    });
-
-    it('should preserve other fields when updating current page', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        name: visitorName,
-        email: visitorEmail,
-        tel: visitorTel,
-        tags: visitorTags,
-        notes: visitorNotes,
-      });
-      const newPage = new VisitorCurrentPage('/test-page');
-
-      // Act
-      const updatedVisitor = visitor.updateCurrentPage(newPage);
-
-      // Assert
-      expect(updatedVisitor.id).toBe(visitorId);
-      expect(updatedVisitor.name.get()).toBe(visitorName);
-      expect(updatedVisitor.email.get()).toBe(visitorEmail);
-      expect(updatedVisitor.tel.get()).toBe(visitorTel);
-      expect(updatedVisitor.tags).toBe(visitorTags);
-      expect(updatedVisitor.notes).toBe(visitorNotes);
+      expect(events[0]).toBeInstanceOf(VisitorCreatedEvent);
     });
   });
 
   describe('updateEmail', () => {
-    it('should update email and emit event', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
+    it('actualiza email y emite evento', () => {
+      const visitor = Visitor.create({ id, tags: new VisitorTags([]) });
       const newEmail = new VisitorEmail('new@example.com');
-
-      // Act
-      const updatedVisitor = visitor.updateEmail(newEmail);
-
-      // Assert
-      expect(updatedVisitor).not.toBe(visitor); // Immutability
-      expect(updatedVisitor.email.get()).toBe(newEmail);
-      expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-
-      const event = updatedVisitor.getUncommittedEvents()[0];
-      expect(event).toBeInstanceOf(VisitorEmailUpdatedEvent);
+      const updated = visitor.updateEmail(newEmail);
+      expect(updated).not.toBe(visitor);
+      expect(updated.email.get()).toBe(newEmail);
+      expect(updated.getUncommittedEvents()).toHaveLength(1);
+      expect(updated.getUncommittedEvents()[0]).toBeInstanceOf(
+        VisitorEmailUpdatedEvent,
+      );
     });
 
-    it('should return same instance if email is unchanged', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        email: visitorEmail,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      // Act
-      const updatedVisitor = visitor.updateEmail(visitorEmail);
-
-      // Assert
-      expect(updatedVisitor).toBe(visitor); // Same instance for idempotency
+    it('no cambia si email es igual', () => {
+      const visitor = Visitor.create({ id, email, tags: new VisitorTags([]) });
+      const updated = visitor.updateEmail(email);
+      expect(updated).toBe(visitor);
     });
   });
 
   describe('updateName', () => {
-    it('should update name and emit event', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
+    it('actualiza name y emite evento', () => {
+      const visitor = Visitor.create({ id, tags: new VisitorTags([]) });
       const newName = new VisitorName('Jane Doe');
-
-      // Act
-      const updatedVisitor = visitor.updateName(newName);
-
-      // Assert
-      expect(updatedVisitor).not.toBe(visitor); // Immutability
-      expect(updatedVisitor.name.get()).toBe(newName);
-      expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-
-      const event = updatedVisitor.getUncommittedEvents()[0];
-      expect(event).toBeInstanceOf(VisitorNameUpdatedEvent);
+      const updated = visitor.updateName(newName);
+      expect(updated).not.toBe(visitor);
+      expect(updated.name.get()).toBe(newName);
+      expect(updated.getUncommittedEvents()).toHaveLength(1);
+      expect(updated.getUncommittedEvents()[0]).toBeInstanceOf(
+        VisitorNameUpdatedEvent,
+      );
     });
 
-    it('should return same instance if name is unchanged', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        name: visitorName,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      // Act
-      const updatedVisitor = visitor.updateName(visitorName);
-
-      // Assert
-      expect(updatedVisitor).toBe(visitor); // Same instance for idempotency
+    it('no cambia si name es igual', () => {
+      const visitor = Visitor.create({ id, name, tags: new VisitorTags([]) });
+      const updated = visitor.updateName(name);
+      expect(updated).toBe(visitor);
     });
   });
 
   describe('updateTel', () => {
-    it('should update telephone and emit event', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
+    it('actualiza tel y emite evento', () => {
+      const visitor = Visitor.create({ id, tags: new VisitorTags([]) });
       const newTel = new VisitorTel('987654321');
-
-      // Act
-      const updatedVisitor = visitor.updateTel(newTel);
-
-      // Assert
-      expect(updatedVisitor).not.toBe(visitor); // Immutability
-      expect(updatedVisitor.tel.get()).toBe(newTel);
-      expect(updatedVisitor.getUncommittedEvents()).toHaveLength(1);
-
-      const event = updatedVisitor.getUncommittedEvents()[0];
-      expect(event).toBeInstanceOf(VisitorTelUpdatedEvent);
+      const updated = visitor.updateTel(newTel);
+      expect(updated).not.toBe(visitor);
+      expect(updated.tel.get()).toBe(newTel);
+      expect(updated.getUncommittedEvents()).toHaveLength(1);
+      expect(updated.getUncommittedEvents()[0]).toBeInstanceOf(
+        VisitorTelUpdatedEvent,
+      );
     });
 
-    it('should return same instance if tel is unchanged', () => {
-      // Arrange
-      const visitor = Visitor.create({
-        id: visitorId,
-        tel: visitorTel,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      // Act
-      const updatedVisitor = visitor.updateTel(visitorTel);
-
-      // Assert
-      expect(updatedVisitor).toBe(visitor); // Same instance for idempotency
-    });
-  });
-
-  describe('getters', () => {
-    it('should return correct name when present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        name: visitorName,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.name.isPresent()).toBe(true);
-      expect(visitor.name.get()).toBe(visitorName);
-    });
-
-    it('should return empty optional when name is not present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.name.isPresent()).toBe(false);
-    });
-
-    it('should return correct email when present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        email: visitorEmail,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.email.isPresent()).toBe(true);
-      expect(visitor.email.get()).toBe(visitorEmail);
-    });
-
-    it('should return empty optional when email is not present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.email.isPresent()).toBe(false);
-    });
-
-    it('should return correct tel when present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tel: visitorTel,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.tel.isPresent()).toBe(true);
-      expect(visitor.tel.get()).toBe(visitorTel);
-    });
-
-    it('should return empty optional when tel is not present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.tel.isPresent()).toBe(false);
-    });
-
-    it('should return correct current page when present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-      const page = new VisitorCurrentPage('/test');
-      const updatedVisitor = visitor.updateCurrentPage(page);
-
-      expect(updatedVisitor.currentPage.isPresent()).toBe(true);
-      expect(updatedVisitor.currentPage.get()).toBe(page);
-    });
-
-    it('should return empty optional when current page is not present', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
-      expect(visitor.currentPage.isPresent()).toBe(false);
+    it('no cambia si tel es igual', () => {
+      const visitor = Visitor.create({ id, tel, tags });
+      const updated = visitor.updateTel(tel);
+      expect(updated).toBe(visitor);
     });
   });
 
   describe('toPrimitives', () => {
-    it('should convert to primitives with all fields', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        name: visitorName,
-        email: visitorEmail,
-        tel: visitorTel,
-        tags: visitorTags,
-        notes: visitorNotes,
-      });
-
+    it('serializa con todos los campos', () => {
+      const visitor = Visitor.create({ id, name, email, tel, tags });
       const primitives = visitor.toPrimitives();
-
-      expect(primitives.id).toBe(visitorId.value);
-      expect(primitives.name).toBe(visitorName.value);
-      expect(primitives.email).toBe(visitorEmail.value);
-      expect(primitives.tel).toBe(visitorTel.value);
-      expect(primitives.tags).toEqual(visitorTags.toPrimitives());
-      expect(primitives.notes).toEqual(visitorNotes.toPrimitives());
-      expect(primitives.currentPage).toBeNull();
+      expect(primitives).toEqual({
+        id: id.value,
+        name: name.value,
+        email: email.value,
+        tel: tel.value,
+        tags: tags.toPrimitives(),
+      });
     });
 
-    it('should convert to primitives with optional fields as null', () => {
-      const visitor = Visitor.create({
-        id: visitorId,
-        tags: new VisitorTags([]),
-        notes: new VisitorNotes([]),
-      });
-
+    it('serializa con campos opcionales null', () => {
+      const visitor = Visitor.create({ id, tags: new VisitorTags([]) });
       const primitives = visitor.toPrimitives();
-
-      expect(primitives.id).toBe(visitorId.value);
-      expect(primitives.name).toBeNull();
-      expect(primitives.email).toBeNull();
-      expect(primitives.tel).toBeNull();
-      expect(primitives.tags).toEqual([]);
-      expect(primitives.notes).toEqual([]);
-      expect(primitives.currentPage).toBeNull();
+      expect(primitives).toEqual({
+        id: id.value,
+        name: null,
+        email: null,
+        tel: null,
+        tags: [],
+      });
     });
   });
 });

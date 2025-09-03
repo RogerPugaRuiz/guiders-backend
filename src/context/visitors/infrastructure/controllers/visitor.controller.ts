@@ -28,14 +28,9 @@ import {
 import { GetVisitorByIdQuery } from '../../application/queries/get-visitor-by-id.query';
 import { VisitorResponseDto } from '../../application/dtos/visitor-response.dto';
 import { VisitorProfileDto } from '../../application/dtos/visitor-profile.dto';
-import { UpdateVisitorCurrentPageDto } from '../../application/dtos/update-visitor-current-page.dto';
-import { UpdateVisitorConnectionTimeDto } from '../../application/dtos/update-visitor-connection-time.dto';
-import { VisitorConnectionTimeResponseDto } from '../../application/dtos/visitor-connection-time-response.dto';
 import { UpdateVisitorEmailDto } from '../../application/dtos/update-visitor-email.dto';
 import { UpdateVisitorNameDto } from '../../application/dtos/update-visitor-name.dto';
 import { UpdateVisitorTelDto } from '../../application/dtos/update-visitor-tel.dto';
-import { UpdateVisitorCurrentPageCommand } from '../../application/commands/update-visitor-current-page.command';
-import { UpdateVisitorConnectionTimeCommand } from '../../application/commands/update-visitor-connection-time.command';
 import { UpdateVisitorEmailCommand } from '../../application/commands/update-visitor-email.command';
 import { UpdateVisitorNameCommand } from '../../application/commands/update-visitor-name.command';
 import { UpdateVisitorTelCommand } from '../../application/commands/update-visitor-tel.command';
@@ -172,139 +167,6 @@ export class VisitorController {
       }
 
       return visitor as VisitorResponseDto;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  @Get(':visitorId/connection-time')
-  @RequiredRoles('commercial')
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Obtener tiempo de conexión del visitante',
-    description:
-      'Obtiene el tiempo de conexión de la sesión del visitante. Solo accesible para comerciales.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Tiempo de conexión obtenido correctamente',
-    type: VisitorConnectionTimeResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol commercial',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  async getVisitorConnectionTime(
-    @Param('visitorId') visitorId: string,
-  ): Promise<VisitorConnectionTimeResponseDto> {
-    try {
-      if (!visitorId) {
-        throw new HttpException(
-          'ID de visitante no proporcionado',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Ejecutar la query para obtener los datos del visitante
-      const visitor = await this.queryBus.execute<
-        GetVisitorByIdQuery,
-        VisitorPrimitives | null
-      >(new GetVisitorByIdQuery(visitorId));
-
-      if (!visitor) {
-        throw new HttpException(
-          'Visitante no encontrado',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Formatear el tiempo de conexión si existe
-      let connectionTimeFormatted: string | null = null;
-      if (
-        visitor.connectionTime !== null &&
-        visitor.connectionTime !== undefined
-      ) {
-        const timeInSeconds = visitor.connectionTime / 1000;
-        if (timeInSeconds < 60) {
-          connectionTimeFormatted = `${timeInSeconds.toFixed(1)} segundos`;
-        } else if (timeInSeconds < 3600) {
-          const minutes = Math.floor(timeInSeconds / 60);
-          const seconds = Math.floor(timeInSeconds % 60);
-          connectionTimeFormatted = `${minutes} minutos y ${seconds} segundos`;
-        } else {
-          const hours = Math.floor(timeInSeconds / 3600);
-          const minutes = Math.floor((timeInSeconds % 3600) / 60);
-          connectionTimeFormatted = `${hours} horas y ${minutes} minutos`;
-        }
-      }
-
-      return {
-        connectionTime: visitor.connectionTime,
-        connectionTimeFormatted,
-      };
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  @Put(':visitorId/current-page')
-  @RequiredRoles('visitor')
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Actualizar página actual del visitante',
-    description: 'Actualiza la página actual que está visitando el usuario',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Página actual actualizada correctamente',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol visitor',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  async updateCurrentPage(
-    @Param('visitorId') visitorId: string,
-    @Body() dto: UpdateVisitorCurrentPageDto,
-  ): Promise<void> {
-    try {
-      if (!visitorId) {
-        throw new HttpException(
-          'ID de visitante no proporcionado',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Ejecutar el comando para actualizar la página actual
-      const result = await this.commandBus.execute<
-        UpdateVisitorCurrentPageCommand,
-        Result<void, DomainError>
-      >(new UpdateVisitorCurrentPageCommand(visitorId, dto.currentPage));
-
-      if (result.isErr()) {
-        this.handleDomainError(result.error);
-      }
     } catch (error) {
       this.handleError(error);
     }
@@ -463,61 +325,6 @@ export class VisitorController {
         UpdateVisitorTelCommand,
         Result<void, DomainError>
       >(new UpdateVisitorTelCommand(visitorId, dto.tel));
-
-      if (result.isErr()) {
-        this.handleDomainError(result.error);
-      }
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  @Put(':visitorId/connection-time')
-  @RequiredRoles('visitor')
-  @UseGuards(AuthGuard, RolesGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Actualizar tiempo de conexión del visitante',
-    description:
-      'Actualiza el tiempo de conexión de la sesión del visitante en milisegundos',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Tiempo de conexión actualizado correctamente',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol visitor',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  async updateConnectionTime(
-    @Param('visitorId') visitorId: string,
-    @Body() dto: UpdateVisitorConnectionTimeDto,
-  ): Promise<void> {
-    try {
-      if (!visitorId) {
-        throw new HttpException(
-          'ID de visitante no proporcionado',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Ejecutar el comando para actualizar el tiempo de conexión
-      const result = await this.commandBus.execute<
-        UpdateVisitorConnectionTimeCommand,
-        Result<void, DomainError>
-      >(new UpdateVisitorConnectionTimeCommand(visitorId, dto.connectionTime));
 
       if (result.isErr()) {
         this.handleDomainError(result.error);

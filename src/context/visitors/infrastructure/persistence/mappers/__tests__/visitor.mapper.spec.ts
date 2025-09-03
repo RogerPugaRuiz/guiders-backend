@@ -15,9 +15,8 @@ describe('VisitorMapper', () => {
       entity.email = 'juan@test.com';
       entity.tel = '+34123456789';
       entity.tags = ['premium', 'vip'];
-      entity.notes = ['Primera nota', 'Segunda nota'];
-      entity.currentPage = '/home';
-      entity.connectionTime = 5000;
+      // notes eliminado
+      // Campos currentPage / connectionTime eliminados del modelo
 
       // Act
       const visitor = VisitorMapper.fromPersistence(entity);
@@ -30,9 +29,8 @@ describe('VisitorMapper', () => {
       expect(primitives.email).toBe('juan@test.com');
       expect(primitives.tel).toBe('+34123456789');
       expect(primitives.tags).toEqual(['premium', 'vip']);
-      expect(primitives.notes).toEqual(['Primera nota', 'Segunda nota']);
-      expect(primitives.currentPage).toBe('/home');
-      expect(primitives.connectionTime).toBe(5000);
+      // notes eliminado
+      // currentPage / connectionTime ya no existen
     });
 
     it('debe manejar entidad con valores nulos/opcionales', () => {
@@ -43,9 +41,8 @@ describe('VisitorMapper', () => {
       entity.email = null;
       entity.tel = null;
       entity.tags = [];
-      entity.notes = [];
-      entity.currentPage = null;
-      entity.connectionTime = null;
+      // notes eliminado
+      // currentPage / connectionTime eliminados
 
       // Act
       const visitor = VisitorMapper.fromPersistence(entity);
@@ -58,9 +55,8 @@ describe('VisitorMapper', () => {
       expect(primitives.email).toBeNull();
       expect(primitives.tel).toBeNull();
       expect(primitives.tags).toEqual([]);
-      expect(primitives.notes).toEqual([]);
-      expect(primitives.currentPage).toBeNull();
-      expect(primitives.connectionTime).toBeNull();
+      // notes eliminado
+      // currentPage / connectionTime eliminados
     });
   });
 
@@ -74,9 +70,8 @@ describe('VisitorMapper', () => {
         email: 'maria@test.com',
         tel: '+34987654321',
         tags: ['standard'],
-        notes: ['Nota de prueba'],
-        currentPage: '/contact',
-        connectionTime: 3000,
+        // notes eliminado
+        // currentPage / connectionTime eliminados
       });
 
       // Act
@@ -89,9 +84,8 @@ describe('VisitorMapper', () => {
       expect(entity.email).toBe('maria@test.com');
       expect(entity.tel).toBe('+34987654321');
       expect(entity.tags).toEqual(['standard']);
-      expect(entity.notes).toEqual(['Nota de prueba']);
-      expect(entity.currentPage).toBe('/contact');
-      expect(entity.connectionTime).toBe(3000);
+      // notes eliminado
+      // currentPage / connectionTime eliminados
     });
 
     it('debe manejar visitor con valores opcionales nulos', () => {
@@ -103,9 +97,8 @@ describe('VisitorMapper', () => {
         email: null,
         tel: null,
         tags: [],
-        notes: [],
-        currentPage: null,
-        connectionTime: null,
+        // notes eliminado
+        // currentPage / connectionTime eliminados
       });
 
       // Act
@@ -118,9 +111,8 @@ describe('VisitorMapper', () => {
       expect(entity.email).toBeNull();
       expect(entity.tel).toBeNull();
       expect(entity.tags).toEqual([]);
-      expect(entity.notes).toEqual([]);
-      expect(entity.currentPage).toBeNull();
-      expect(entity.connectionTime).toBeNull();
+      // notes eliminado
+      // currentPage / connectionTime eliminados
     });
   });
 
@@ -134,9 +126,8 @@ describe('VisitorMapper', () => {
         email: 'test@example.com',
         tel: '+34111222333',
         tags: ['test', 'bidirectional'],
-        notes: ['Nota 1', 'Nota 2'],
-        currentPage: '/test-page',
-        connectionTime: 2500,
+        // notes eliminado
+        // currentPage / connectionTime eliminados
       };
 
       // Act

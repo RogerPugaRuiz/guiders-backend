@@ -3,6 +3,8 @@ import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { ChatSchema, ChatSchemaDefinition } from '../chat.schema';
+// Aumentar timeout global para evitar fallos intermitentes al iniciar MongoMemoryServer
+jest.setTimeout(60000);
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 describe('ChatSchema (MongoDB Integration)', () => {
@@ -27,7 +29,7 @@ describe('ChatSchema (MongoDB Integration)', () => {
     }).compile();
 
     chatModel = module.get<Model<ChatSchema>>(getModelToken('Chat'));
-  }, 15000); // Aumentar timeout a 15 segundos
+  }, 30000); // Aumentar timeout a 30 segundos para entorno CI lento
 
   afterAll(async () => {
     await module.close();

@@ -7,8 +7,6 @@ import { VisitorTypeOrmEntity } from './persistence/visitor-typeorm.entity';
 import { CreateDefaultVisitorCommandHandler } from '../application/commands/create-default-visitor.command-handler';
 import { VisitorController } from './controllers/visitor.controller';
 import { GetVisitorByIdQueryHandler } from '../application/queries/get-visitor-by-id.query-handler';
-import { UpdateVisitorCurrentPageCommandHandler } from '../application/commands/update-visitor-current-page-command.handler';
-import { UpdateVisitorConnectionTimeCommandHandler } from '../application/commands/update-visitor-connection-time-command.handler';
 import { UpdateVisitorEmailCommandHandler } from '../application/commands/update-visitor-email-command.handler';
 import { UpdateVisitorNameCommandHandler } from '../application/commands/update-visitor-name-command.handler';
 import { UpdateVisitorTelCommandHandler } from '../application/commands/update-visitor-tel-command.handler';
@@ -20,8 +18,6 @@ import { FakerAliasGeneratorAdapter } from './services/faker-alias-generator.ada
 // Definimos los manejadores de comandos y eventos
 const CommandHandlers = [
   CreateDefaultVisitorCommandHandler,
-  UpdateVisitorCurrentPageCommandHandler,
-  UpdateVisitorConnectionTimeCommandHandler,
   UpdateVisitorEmailCommandHandler,
   UpdateVisitorNameCommandHandler,
   UpdateVisitorTelCommandHandler,

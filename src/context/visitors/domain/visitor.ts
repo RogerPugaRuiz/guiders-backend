@@ -4,14 +4,9 @@ import { VisitorName } from './value-objects/visitor-name';
 import { VisitorEmail } from './value-objects/visitor-email';
 import { VisitorTel } from './value-objects/visitor-tel';
 import { VisitorTags } from './value-objects/visitor-tags';
-import { VisitorNotes } from './value-objects/visitor-notes';
 import { VisitorCreatedEvent } from './events/visitor-created-event';
 import { VisitorAliasAssignedEvent } from './events/visitor-alias-assigned-event';
 import { Optional } from 'src/context/shared/domain/optional';
-import { VisitorCurrentPage } from './value-objects/visitor-current-page';
-import { VisitorConnectionTime } from './value-objects/visitor-connection-time';
-import { VisitorCurrentPageUpdatedEvent } from './events/visitor-current-page-updated-event';
-import { VisitorConnectionTimeUpdatedEvent } from './events/visitor-connection-time-updated-event';
 import { VisitorEmailUpdatedEvent } from './events/visitor-email-updated-event';
 import { VisitorNameUpdatedEvent } from './events/visitor-name-updated-event';
 import { VisitorTelUpdatedEvent } from './events/visitor-tel-updated-event';
@@ -23,9 +18,6 @@ export interface VisitorPrimitives {
   email: string | null;
   tel: string | null;
   tags: string[];
-  notes: string[]; // Ahora es un array de strings
-  currentPage: string | null; // Nueva propiedad para la página actual
-  connectionTime: number | null; // Tiempo de conexión en milisegundos
 }
 
 // Entidad Visitor como AggregateRoot siguiendo DDD
@@ -38,13 +30,8 @@ export class Visitor extends AggregateRoot {
     private readonly _email: VisitorEmail | null,
     private readonly _tel: VisitorTel | null,
     private readonly _tags: VisitorTags,
-    private readonly _notes: VisitorNotes, // Ahora VisitorNotes es un array de VisitorNote
-    private readonly _currentPage: VisitorCurrentPage | null = null, // Nueva propiedad para la página actual
-    private readonly _connectionTime: VisitorConnectionTime | null = null, // Tiempo de conexión
   ) {
     super();
-    this._currentPage = _currentPage;
-    this._connectionTime = _connectionTime;
   }
 
   // Método de fábrica para crear un visitante desde value objects
@@ -54,9 +41,7 @@ export class Visitor extends AggregateRoot {
     email?: VisitorEmail;
     tel?: VisitorTel;
     tags?: VisitorTags;
-    notes?: VisitorNotes;
-    currentPage?: VisitorCurrentPage | null;
-    connectionTime?: VisitorConnectionTime | null;
+    // currentPage y connectionTime eliminados
   }): Visitor {
     const visitor = new Visitor(
       params.id,
@@ -64,9 +49,6 @@ export class Visitor extends AggregateRoot {
       params.email ?? null,
       params.tel ?? null,
       params.tags ?? VisitorTags.fromPrimitives([]),
-      params.notes ?? VisitorNotes.fromPrimitives([]),
-      params.currentPage ?? null,
-      params.connectionTime ?? null,
     );
 
     // Aplica el evento de dominio al crear el visitante
@@ -96,9 +78,7 @@ export class Visitor extends AggregateRoot {
     email?: string | null;
     tel?: string | null;
     tags?: string[];
-    notes?: string[]; // Ahora es un array de strings
-    currentPage?: string | null;
-    connectionTime?: number | null;
+    // currentPage y connectionTime eliminados
   }): Visitor {
     return new Visitor(
       VisitorId.create(params.id),
@@ -108,13 +88,6 @@ export class Visitor extends AggregateRoot {
       params.tags
         ? VisitorTags.fromPrimitives(params.tags)
         : VisitorTags.fromPrimitives([]),
-      params.notes
-        ? VisitorNotes.fromPrimitives(params.notes)
-        : VisitorNotes.fromPrimitives([]), // Reconstruye desde string[]
-      params.currentPage ? new VisitorCurrentPage(params.currentPage) : null,
-      params.connectionTime
-        ? new VisitorConnectionTime(params.connectionTime)
-        : null,
     );
   }
 
@@ -126,9 +99,6 @@ export class Visitor extends AggregateRoot {
       email: this._email ? this._email.value : null,
       tel: this._tel ? this._tel.value : null,
       tags: this._tags.toPrimitives(), // Serializa como string[]
-      notes: this._notes.toPrimitives(), // Serializa como string[]
-      currentPage: this._currentPage ? this._currentPage.value : null,
-      connectionTime: this._connectionTime ? this._connectionTime.value : null,
     };
   }
 
@@ -148,49 +118,6 @@ export class Visitor extends AggregateRoot {
   get tags(): VisitorTags {
     return this._tags;
   }
-  get notes(): VisitorNotes {
-    return this._notes;
-  }
-  get currentPage(): Optional<VisitorCurrentPage> {
-    // Devuelve un Optional con la página actual si existe
-    if (this._currentPage) {
-      return Optional.of(this._currentPage);
-    }
-    return Optional.empty();
-  }
-  get connectionTime(): Optional<VisitorConnectionTime> {
-    // Devuelve un Optional con el tiempo de conexión si existe
-    if (this._connectionTime) {
-      return Optional.of(this._connectionTime);
-    }
-    return Optional.empty();
-  }
-
-  // Método para actualizar la página actual de forma inmutable
-  // Devuelve una nueva instancia de Visitor con el estado actualizado y aplica un evento de dominio
-  public updateCurrentPage(newPage: VisitorCurrentPage): Visitor {
-    // Si la página es la misma, retorna la misma instancia (idempotencia)
-    if (this._currentPage && this._currentPage.value === newPage.value) {
-      return this;
-    }
-    const updated = new Visitor(
-      this._id,
-      this._name,
-      this._email,
-      this._tel,
-      this._tags,
-      this._notes,
-      newPage,
-      this._connectionTime,
-    );
-    updated.apply(
-      new VisitorCurrentPageUpdatedEvent({
-        visitorId: this._id.value,
-        currentPage: newPage.value,
-      }),
-    );
-    return updated;
-  }
 
   // Método para actualizar el email de forma inmutable
   public updateEmail(newEmail: VisitorEmail): Visitor {
@@ -204,9 +131,6 @@ export class Visitor extends AggregateRoot {
       newEmail,
       this._tel,
       this._tags,
-      this._notes,
-      this._currentPage,
-      this._connectionTime,
     );
     updated.apply(
       new VisitorEmailUpdatedEvent({
@@ -229,9 +153,6 @@ export class Visitor extends AggregateRoot {
       this._email,
       this._tel,
       this._tags,
-      this._notes,
-      this._currentPage,
-      this._connectionTime,
     );
     updated.apply(
       new VisitorNameUpdatedEvent({
@@ -254,9 +175,6 @@ export class Visitor extends AggregateRoot {
       this._email,
       newTel,
       this._tags,
-      this._notes,
-      this._currentPage,
-      this._connectionTime,
     );
     updated.apply(
       new VisitorTelUpdatedEvent({
@@ -267,40 +185,5 @@ export class Visitor extends AggregateRoot {
     return updated;
   }
 
-  // Método para actualizar el tiempo de conexión de forma inmutable
-  public updateConnectionTime(
-    newConnectionTime: VisitorConnectionTime,
-  ): Visitor {
-    // Si el tiempo de conexión es el mismo, retorna la misma instancia (idempotencia)
-    if (
-      this._connectionTime &&
-      this._connectionTime.value === newConnectionTime.value
-    ) {
-      return this;
-    }
-    const updated = new Visitor(
-      this._id,
-      this._name,
-      this._email,
-      this._tel,
-      this._tags,
-      this._notes,
-      this._currentPage,
-      newConnectionTime,
-    );
-
-    // Preservar eventos uncommitted de la instancia original
-    const uncommittedEvents = this.getUncommittedEvents();
-    if (uncommittedEvents.length > 0) {
-      updated.loadFromHistory(uncommittedEvents);
-    }
-
-    updated.apply(
-      new VisitorConnectionTimeUpdatedEvent({
-        visitorId: this._id.value,
-        connectionTime: newConnectionTime.value,
-      }),
-    );
-    return updated;
-  }
+  // Métodos y getters para currentPage y connectionTime eliminados
 }

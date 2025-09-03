@@ -12,12 +12,6 @@ export class VisitorMapper {
       email: entity.email,
       tel: entity.tel,
       tags: entity.tags,
-      notes: entity.notes,
-      currentPage: entity.currentPage, // Mapeo del nuevo campo
-      connectionTime:
-        typeof entity.connectionTime === 'string'
-          ? parseInt(entity.connectionTime, 10)
-          : entity.connectionTime, // Conversión manual de string a number
     });
   }
 
@@ -30,9 +24,7 @@ export class VisitorMapper {
     entity.email = primitives.email;
     entity.tel = primitives.tel;
     entity.tags = primitives.tags;
-    entity.notes = primitives.notes;
-    entity.currentPage = primitives.currentPage; // Mapeo del nuevo campo
-    entity.connectionTime = primitives.connectionTime; // Mapeo del tiempo de conexión
+    // currentPage y connectionTime eliminados
     return entity;
   }
 }

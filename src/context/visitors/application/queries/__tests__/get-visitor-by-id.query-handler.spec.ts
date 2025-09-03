@@ -23,8 +23,6 @@ describe('GetVisitorByIdQueryHandler', () => {
     email: 'test@example.com',
     tel: '123456789',
     tags: ['tag1', 'tag2'],
-    notes: ['Note 1', 'Note 2'],
-    currentPage: '/home',
   });
 
   // Mock del error del repositorio

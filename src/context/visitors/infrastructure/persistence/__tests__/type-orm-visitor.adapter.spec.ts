@@ -62,8 +62,8 @@ describe('TypeOrmVisitorAdapter', () => {
       mockEntity.email = 'test@example.com';
       mockEntity.tel = '+34123456789';
       mockEntity.tags = ['test'];
-      mockEntity.notes = ['nota'];
-      mockEntity.currentPage = '/home';
+      // notes eliminado
+      // currentPage eliminado
 
       jest.spyOn(repository, 'findOne').mockResolvedValue(mockEntity);
 
@@ -125,9 +125,8 @@ describe('TypeOrmVisitorAdapter', () => {
         email: 'test@example.com',
         tel: '+34123456789',
         tags: ['test'],
-        notes: ['nota'],
-        currentPage: '/home',
-        connectionTime: 1500,
+        // notes eliminado
+        // campos currentPage/connectionTime eliminados
       });
 
       jest
@@ -150,9 +149,8 @@ describe('TypeOrmVisitorAdapter', () => {
         email: 'test@example.com',
         tel: '+34123456789',
         tags: ['test'],
-        notes: ['nota'],
-        currentPage: '/home',
-        connectionTime: 1500,
+        // notes eliminado
+        // campos currentPage/connectionTime eliminados
       });
 
       const saveError = new Error('Database save failed');
@@ -188,9 +186,7 @@ describe('TypeOrmVisitorAdapter', () => {
           email: 'test1@example.com',
           tel: '+34123456789',
           tags: ['test'],
-          notes: ['nota'],
-          currentPage: '/home',
-          connectionTime: 2000,
+          // campos currentPage/connectionTime eliminados
         },
       ];
       queryBuilder.getMany.mockResolvedValue(mockEntities);
@@ -213,8 +209,6 @@ describe('TypeOrmVisitorAdapter', () => {
           email: 'email',
           tel: 'tel',
           tags: 'tags',
-          notes: 'notes',
-          currentPage: 'currentPage',
         }),
       );
       expect(queryBuilder.where).toHaveBeenCalledWith(mockSql);
