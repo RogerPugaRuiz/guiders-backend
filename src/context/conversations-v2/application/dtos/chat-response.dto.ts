@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { ChatPrimitives } from '../../domain/entities/chat';
 
 /**
  * DTO de respuesta para información del visitante
@@ -259,6 +260,57 @@ export class ChatResponseDto {
     required: false,
   })
   satisfactionRating?: number;
+
+  // Construye DTO desde entidad dominio (tipos flexibles durante integración)
+  static fromDomain(chat: {
+    toPrimitives: () => ChatPrimitives;
+  }): ChatResponseDto {
+    const p = chat.toPrimitives();
+    const dto = new ChatResponseDto();
+    dto.id = p.id;
+    dto.status = p.status;
+    dto.priority = p.priority;
+    dto.visitorId = p.visitorId;
+    dto.assignedCommercialId = p.assignedCommercialId;
+    dto.availableCommercialIds = [...p.availableCommercialIds];
+    dto.createdAt = p.createdAt;
+    dto.assignedAt = p.firstResponseTime;
+    dto.closedAt = p.closedAt;
+    dto.lastMessageDate = p.lastMessageDate;
+    dto.totalMessages = p.totalMessages;
+    dto.unreadMessagesCount = 0; // TODO: calcular según mensajes no leídos
+    dto.isActive = !p.closedAt;
+    dto.department = p.metadata?.department || 'general';
+    dto.tags = p.metadata?.tags || [];
+    dto.updatedAt = p.updatedAt;
+    dto.averageResponseTimeMinutes = undefined;
+    dto.chatDurationMinutes = undefined;
+    // resolutionStatus y satisfactionRating no existen aún en ChatMetadataData, se dejan undefined
+    dto.resolutionStatus = undefined;
+    dto.satisfactionRating = undefined;
+    dto.visitorInfo = {
+      id: p.visitorId,
+      name: p.visitorInfo.name,
+      email: p.visitorInfo.email,
+      phone: p.visitorInfo.phone,
+      location: p.visitorInfo.location?.city,
+      additionalData: {
+        company: p.visitorInfo.company,
+        ipAddress: p.visitorInfo.ipAddress,
+        referrer: p.visitorInfo.referrer,
+      },
+    } as VisitorInfoResponseDto;
+    dto.metadata = {
+      department: dto.department,
+      source: p.metadata?.source || 'website',
+      initialUrl: undefined, // no definido en ChatMetadataData
+      userAgent: p.visitorInfo.userAgent,
+      referrer: p.visitorInfo.referrer,
+      tags: undefined, // usamos dto.tags arriba para consistencia
+      customFields: p.metadata?.customFields,
+    } as ChatMetadataResponseDto;
+    return dto;
+  }
 }
 
 /**

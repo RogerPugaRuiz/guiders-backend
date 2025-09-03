@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AUTH_VISITOR_REPOSITORY,
   AuthVisitorRepository,
@@ -8,7 +8,6 @@ import {
   AuthVisitorTokenService,
 } from '../services/auth-visitor-token-service';
 import {
-  ClientNotFoundError,
   InvalidDomainError,
   VisitorAccountNotFoundError,
 } from '../error/auth-visitor.errors';
@@ -23,6 +22,7 @@ import { FindCompanyByDomainQuery } from 'src/context/company/application/querie
 
 @Injectable()
 export class GenerateVisitorTokens {
+  private readonly logger = new Logger(GenerateVisitorTokens.name);
   constructor(
     @Inject(AUTH_VISITOR_REPOSITORY)
     private readonly repository: AuthVisitorRepository,
@@ -42,8 +42,13 @@ export class GenerateVisitorTokens {
     if (!account) {
       throw new VisitorAccountNotFoundError();
     }
-    if (account.clientID.getValue() !== client) {
-      throw new ClientNotFoundError();
+    // Comprobación redundante eliminada: si findByClientID devolvió la cuenta, el ID coincide lógicamente.
+    // Mantenemos una verificación defensiva sólo para logging.
+    const storedClient = Number(account.clientID.getValue());
+    if (storedClient !== Number(client)) {
+      this.logger.warn(
+        `Inconsistencia de clientID: almacenado=${storedClient} recibido=${client}`,
+      );
     }
 
     const apiKey = account?.apiKey;

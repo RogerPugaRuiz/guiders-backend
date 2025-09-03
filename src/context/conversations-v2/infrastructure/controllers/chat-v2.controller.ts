@@ -37,6 +37,10 @@ import {
   ChatResponseDto,
   ChatListResponseDto,
 } from '../../application/dtos/chat-response.dto';
+import { GetChatByIdQuery } from '../../application/queries/get-chat-by-id.query';
+import { Result } from 'src/context/shared/domain/result';
+import { Chat } from '../../domain/entities/chat';
+import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   GetChatsQueryDto,
   PaginationDto,
@@ -547,33 +551,20 @@ export class ChatV2Controller {
     status: 500,
     description: 'Error interno del servidor',
   })
-  getChatById(
+  async getChatById(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
-  ): ChatResponseDto {
+  ): Promise<ChatResponseDto> {
     try {
       this.logger.log(`Obteniendo chat ${chatId} para usuario: ${req.user.id}`);
-
-      // TODO: Implementar query handler
-      // const query = new GetChatByIdQuery(chatId, req.user.sub, req.user.role);
-      // const result: Result<Chat, DomainError> = await this.queryBus.execute(query);
-
-      // if (result.isError()) {
-      //   if (result.error instanceof ChatNotFoundError) {
-      //     throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
-      //   }
-      //   throw new HttpException(
-      //     result.error.message,
-      //     HttpStatus.INTERNAL_SERVER_ERROR,
-      //   );
-      // }
-
-      // Respuesta temporal
-      throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+      const query = new GetChatByIdQuery(chatId);
+  const result: Result<Chat, DomainError> = await this.queryBus.execute(query);
+      if (result.isErr()) {
+        throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
       }
+      return ChatResponseDto.fromDomain(result.unwrap());
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(`Error al obtener chat ${chatId}:`, error);
       throw new HttpException(
         'Error interno del servidor',

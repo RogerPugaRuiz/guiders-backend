@@ -29,6 +29,7 @@ import { ClearVisitorChatsCommandHandler } from './application/commands/clear-vi
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
+import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.query-handler';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -66,7 +67,8 @@ import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats
     // CreateChatCommandHandler,
 
     // Query Handlers
-    GetChatsWithFiltersQueryHandler,
+  GetChatsWithFiltersQueryHandler,
+  GetChatByIdQueryHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,
