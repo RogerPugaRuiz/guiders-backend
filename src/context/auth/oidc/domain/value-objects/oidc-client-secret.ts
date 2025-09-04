@@ -6,6 +6,10 @@ const validateOidcClientSecret = (value: string) =>
 
 export class OidcClientSecret extends PrimitiveValueObject<string> {
   constructor(value: string) {
-    super(value, validateOidcClientSecret, 'El Client Secret de OIDC no puede estar vacío');
+    super(
+      value,
+      validateOidcClientSecret,
+      'El Client Secret de OIDC no puede estar vacío',
+    );
   }
 }

@@ -26,7 +26,7 @@ describe('SimpleOidcController', () => {
   });
 
   describe('callback', () => {
-    it('debería manejar el callback OIDC exitosamente', async () => {
+    it('debería manejar el callback OIDC exitosamente', () => {
       const mockUser = {
         id: 'test-user-id',
         email: 'test@example.com',
@@ -40,7 +40,7 @@ describe('SimpleOidcController', () => {
         json: jest.fn(),
       } as any;
 
-      await controller.callback(mockReq, mockRes);
+      controller.callback(mockReq, mockRes);
 
       expect(mockRes.json).toHaveBeenCalledWith({
         message: 'Autenticación OIDC exitosa',
@@ -56,7 +56,7 @@ describe('SimpleOidcController', () => {
   });
 
   describe('getProfile', () => {
-    it('debería devolver el perfil del usuario', async () => {
+    it('debería devolver el perfil del usuario', () => {
       const mockUser = {
         id: 'test-user-id',
         email: 'test@example.com',
@@ -67,7 +67,7 @@ describe('SimpleOidcController', () => {
 
       const mockReq = { user: mockUser } as any;
 
-      const result = await controller.getProfile(mockReq);
+      const result = controller.getProfile(mockReq);
 
       expect(result).toEqual({
         user: mockUser,

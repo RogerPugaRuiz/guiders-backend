@@ -12,18 +12,24 @@ describe('OIDC Value Objects', () => {
     });
 
     it('debería lanzar error con ID vacío', () => {
-      expect(() => OidcProviderId.create('')).toThrow('El ID del proveedor OIDC no puede estar vacío');
+      expect(() => OidcProviderId.create('')).toThrow(
+        'El ID del proveedor OIDC no puede estar vacío',
+      );
     });
   });
 
   describe('OidcClientId', () => {
     it('debería crear un OidcClientId válido', () => {
-      const clientId = OidcClientId.create('client123.apps.googleusercontent.com');
+      const clientId = OidcClientId.create(
+        'client123.apps.googleusercontent.com',
+      );
       expect(clientId.value).toBe('client123.apps.googleusercontent.com');
     });
 
     it('debería lanzar error con Client ID vacío', () => {
-      expect(() => OidcClientId.create('')).toThrow('El Client ID de OIDC no puede estar vacío');
+      expect(() => OidcClientId.create('')).toThrow(
+        'El Client ID de OIDC no puede estar vacío',
+      );
     });
   });
 
@@ -34,7 +40,9 @@ describe('OIDC Value Objects', () => {
     });
 
     it('debería lanzar error con Client Secret vacío', () => {
-      expect(() => OidcClientSecret.create('')).toThrow('El Client Secret de OIDC no puede estar vacío');
+      expect(() => OidcClientSecret.create('')).toThrow(
+        'El Client Secret de OIDC no puede estar vacío',
+      );
     });
   });
 
@@ -50,11 +58,15 @@ describe('OIDC Value Objects', () => {
     });
 
     it('debería lanzar error con URL inválida', () => {
-      expect(() => OidcIssuerUrl.create('not-a-url')).toThrow('La URL del issuer OIDC debe ser una URL válida');
+      expect(() => OidcIssuerUrl.create('not-a-url')).toThrow(
+        'La URL del issuer OIDC debe ser una URL válida',
+      );
     });
 
     it('debería lanzar error con protocolo inválido', () => {
-      expect(() => OidcIssuerUrl.create('ftp://example.com')).toThrow('La URL del issuer OIDC debe ser una URL válida');
+      expect(() => OidcIssuerUrl.create('ftp://example.com')).toThrow(
+        'La URL del issuer OIDC debe ser una URL válida',
+      );
     });
   });
 
@@ -71,15 +83,21 @@ describe('OIDC Value Objects', () => {
     });
 
     it('debería lanzar error con array vacío', () => {
-      expect(() => OidcScopes.fromPrimitives([])).toThrow('Los scopes de OIDC deben ser un array no vacío de strings válidos');
+      expect(() => OidcScopes.fromPrimitives([])).toThrow(
+        'Los scopes de OIDC deben ser un array no vacío de strings válidos',
+      );
     });
 
     it('debería lanzar error con scope vacío', () => {
-      expect(() => OidcScopes.fromPrimitives(['openid', ''])).toThrow('Los scopes de OIDC deben ser un array no vacío de strings válidos');
+      expect(() => OidcScopes.fromPrimitives(['openid', ''])).toThrow(
+        'Los scopes de OIDC deben ser un array no vacío de strings válidos',
+      );
     });
 
     it('debería lanzar error con scope no string', () => {
-      expect(() => OidcScopes.fromPrimitives(['openid', 123 as any])).toThrow('Los scopes de OIDC deben ser un array no vacío de strings válidos');
+      expect(() => OidcScopes.fromPrimitives(['openid', 123 as any])).toThrow(
+        'Los scopes de OIDC deben ser un array no vacío de strings válidos',
+      );
     });
   });
 });

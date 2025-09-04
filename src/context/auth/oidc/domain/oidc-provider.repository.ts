@@ -14,6 +14,10 @@ export interface OidcProviderRepository {
   findEnabled(): Promise<Result<OidcProvider[], DomainError>>;
   delete(id: OidcProviderId): Promise<Result<void, DomainError>>;
   update(provider: OidcProvider): Promise<Result<void, DomainError>>;
-  findOne(criteria: Criteria<OidcProvider>): Promise<Result<OidcProvider, DomainError>>;
-  match(criteria: Criteria<OidcProvider>): Promise<Result<OidcProvider[], DomainError>>;
+  findOne(
+    criteria: Criteria<OidcProvider>,
+  ): Promise<Result<OidcProvider, DomainError>>;
+  match(
+    criteria: Criteria<OidcProvider>,
+  ): Promise<Result<OidcProvider[], DomainError>>;
 }

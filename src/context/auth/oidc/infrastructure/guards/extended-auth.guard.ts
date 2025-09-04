@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 
@@ -24,8 +30,10 @@ export class ExtendedAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     try {
-      const request = context.switchToHttp().getRequest<OidcAuthenticatedRequest>();
-      
+      const request = context
+        .switchToHttp()
+        .getRequest<OidcAuthenticatedRequest>();
+
       // Check if the user is already authenticated via OIDC (from passport)
       if (request.user && request.user.provider === 'oidc') {
         this.logger.log('Usuario autenticado via OIDC');
@@ -48,7 +56,7 @@ export class ExtendedAuthGuard implements CanActivate {
       try {
         const { sub, typ, role, username, email, companyId } =
           await this.tokenService.verifyToken(token);
-        
+
         if (typ !== 'access') {
           throw new UnauthorizedException('Token inválido');
         }
@@ -68,7 +76,9 @@ export class ExtendedAuthGuard implements CanActivate {
         throw new UnauthorizedException('Acceso no autorizado');
       }
     } catch (error) {
-      this.logger.error(`Error en el guard de autenticación extendido: ${error}`);
+      this.logger.error(
+        `Error en el guard de autenticación extendido: ${error}`,
+      );
       throw error;
     }
 

@@ -12,6 +12,10 @@ const validateOidcIssuerUrl = (value: string) => {
 
 export class OidcIssuerUrl extends PrimitiveValueObject<string> {
   constructor(value: string) {
-    super(value, validateOidcIssuerUrl, 'La URL del issuer OIDC debe ser una URL válida');
+    super(
+      value,
+      validateOidcIssuerUrl,
+      'La URL del issuer OIDC debe ser una URL válida',
+    );
   }
 }

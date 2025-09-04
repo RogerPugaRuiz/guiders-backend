@@ -8,6 +8,17 @@ import { OidcAuthenticationStartedEvent } from './events/oidc-authentication-sta
 import { OidcAuthenticationCompletedEvent } from './events/oidc-authentication-completed-event';
 import { OidcAuthenticationFailedEvent } from './events/oidc-authentication-failed-event';
 
+// Información básica de usuario OIDC utilizada en eventos
+interface OidcUserInfo {
+  sub: string;
+  email?: string;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+  [key: string]: unknown; // campos adicionales no tipados específicamente
+}
+
 // Interfaz para serializar la entidad a primitivos
 export interface OidcProviderPrimitives {
   id: string;
@@ -119,7 +130,11 @@ export class OidcProvider extends AggregateRoot {
   }
 
   // Emite evento cuando se completa la autenticación
-  public completeAuthentication(userInfo: any, tokens: { accessToken: string; refreshToken?: string; idToken: string }, userId: string): void {
+  public completeAuthentication(
+    userInfo: OidcUserInfo,
+    tokens: { accessToken: string; refreshToken?: string; idToken: string },
+    userId: string,
+  ): void {
     this.apply(
       new OidcAuthenticationCompletedEvent({
         providerId: this._id.value,
@@ -135,7 +150,11 @@ export class OidcProvider extends AggregateRoot {
   }
 
   // Emite evento cuando falla la autenticación
-  public failAuthentication(error: string, errorDescription?: string, userId?: string): void {
+  public failAuthentication(
+    error: string,
+    errorDescription?: string,
+    userId?: string,
+  ): void {
     this.apply(
       new OidcAuthenticationFailedEvent({
         providerId: this._id.value,

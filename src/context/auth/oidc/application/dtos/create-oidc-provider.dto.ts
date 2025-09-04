@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUrl, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsUrl, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateOidcProviderDto {
