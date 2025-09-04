@@ -71,10 +71,10 @@ GET /auth/oidc/profile
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { SimpleOidcModule } from './context/auth/oidc/simple-oidc.module';
+import { OidcModule } from './context/auth/oidc/oidc.module';
 
 @Module({
-  imports: [SimpleOidcModule],
+  imports: [OidcModule],
 })
 export class AppModule {}
 ```
