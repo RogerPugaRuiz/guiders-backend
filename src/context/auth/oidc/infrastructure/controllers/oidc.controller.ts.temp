@@ -1,0 +1,95 @@
+import { Controller, Get, Post, Body, UseGuards, Req, Res, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { Request, Response } from 'express';
+import { OidcAuthGuard } from '../guards/oidc-auth.guard';
+import { CreateOidcProviderDto } from '../../application/dtos/create-oidc-provider.dto';
+import { OidcProviderResponseDto } from '../../application/dtos/oidc-provider-response.dto';
+import { OidcAuthenticationResponseDto } from '../../application/dtos/oidc-authentication-response.dto';
+
+@ApiTags('OIDC Authentication')
+@Controller('auth/oidc')
+export class OidcController {
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
+
+  @Get('providers')
+  @ApiOperation({ summary: 'Obtener proveedores OIDC disponibles' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de proveedores OIDC',
+    type: [OidcProviderResponseDto],
+  })
+  async getProviders(): Promise<OidcProviderResponseDto[]> {
+    // TODO: Implementar query para obtener proveedores
+    return [];
+  }
+
+  @Post('providers')
+  @ApiOperation({ summary: 'Crear un nuevo proveedor OIDC' })
+  @ApiBody({ type: CreateOidcProviderDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Proveedor OIDC creado exitosamente',
+    type: OidcProviderResponseDto,
+  })
+  async createProvider(@Body() createProviderDto: CreateOidcProviderDto): Promise<{ id: string }> {
+    // TODO: Implementar comando para crear proveedor
+    return { id: 'temp-id' };
+  }
+
+  @Get('login/:provider')
+  @ApiOperation({ summary: 'Iniciar autenticación OIDC con un proveedor' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirección al proveedor OIDC',
+  })
+  @UseGuards(OidcAuthGuard)
+  async login(@Req() req: Request) {
+    // Passport se encarga de la redirección
+  }
+
+  @Get('callback')
+  @ApiOperation({ summary: 'Callback de autenticación OIDC' })
+  @ApiResponse({
+    status: 200,
+    description: 'Autenticación completada exitosamente',
+    type: OidcAuthenticationResponseDto,
+  })
+  @UseGuards(OidcAuthGuard)
+  async callback(@Req() req: Request, @Res() res: Response): Promise<void> {
+    // El usuario autenticado está disponible en req.user
+    const user = req.user as any;
+    
+    // TODO: Generar tokens JWT propios del sistema
+    // TODO: Crear o actualizar usuario en la base de datos
+    
+    // Por ahora, redirigir con los datos del usuario
+    const authResponse: OidcAuthenticationResponseDto = {
+      accessToken: 'temp-jwt-token', // TODO: Generar token real
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roles: ['commercial'], // TODO: Determinar roles apropiados
+      },
+      provider: user.provider,
+    };
+
+    // Redirigir al frontend con los tokens o manejar según la lógica de negocio
+    res.json(authResponse);
+  }
+
+  @Get('logout')
+  @ApiOperation({ summary: 'Cerrar sesión OIDC' })
+  @ApiResponse({
+    status: 200,
+    description: 'Sesión cerrada exitosamente',
+  })
+  async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
+    // TODO: Implementar logout
+    res.json({ message: 'Logout exitoso' });
+  }
+}

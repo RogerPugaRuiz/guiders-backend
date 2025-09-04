@@ -1,0 +1,53 @@
+import { Module } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
+import { CqrsModule } from '@nestjs/cqrs';
+import { OidcStrategy } from './infrastructure/strategies/oidc.strategy';
+import { OidcController } from './infrastructure/controllers/oidc.controller';
+import { OidcAuthGuard } from './infrastructure/guards/oidc-auth.guard';
+import { OidcClientService, OIDC_CLIENT_SERVICE } from './application/services/oidc-client.service';
+
+// Command Handlers
+import { CreateOidcProviderCommandHandler } from './application/commands/create-oidc-provider.command.handler';
+import { InitiateOidcAuthenticationCommandHandler } from './application/commands/initiate-oidc-authentication.command.handler';
+import { CompleteOidcAuthenticationCommandHandler } from './application/commands/complete-oidc-authentication.command.handler';
+
+// Query Handlers
+import { GetOidcProvidersQueryHandler } from './application/queries/get-oidc-providers.query.handler';
+
+const CommandHandlers = [
+  CreateOidcProviderCommandHandler,
+  InitiateOidcAuthenticationCommandHandler,
+  CompleteOidcAuthenticationCommandHandler,
+];
+
+const QueryHandlers = [
+  GetOidcProvidersQueryHandler,
+];
+
+const Services = [
+  {
+    provide: OIDC_CLIENT_SERVICE,
+    useClass: OidcClientService,
+  },
+];
+
+@Module({
+  imports: [
+    PassportModule.register({ defaultStrategy: 'oidc' }),
+    CqrsModule,
+  ],
+  controllers: [OidcController],
+  providers: [
+    OidcStrategy,
+    OidcAuthGuard,
+    ...CommandHandlers,
+    ...QueryHandlers,
+    ...Services,
+  ],
+  exports: [
+    OidcStrategy,
+    OidcAuthGuard,
+    OIDC_CLIENT_SERVICE,
+  ],
+})
+export class OidcModule {}
