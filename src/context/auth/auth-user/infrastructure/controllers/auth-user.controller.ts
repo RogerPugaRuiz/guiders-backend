@@ -18,11 +18,17 @@ import { UserAlreadyExistsError } from '../../application/errors/user-already-ex
 import { UnauthorizedError } from '../../application/errors/unauthorized.error';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { AcceptInviteCommand } from '../../application/commands/accept-invite.command';
-import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import {
+  AuthGuard,
+  AuthenticatedRequest,
+} from 'src/context/shared/infrastructure/guards/auth.guard';
 import { FindUsersByCompanyIdQuery } from '../../application/queries/find-users-by-company-id.query';
 import { UserListResponseDto } from '../../application/dtos/user-list-response.dto';
 import { UserAccountPrimitives } from '../../domain/user-account';
 import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
+import { FindOneUserByIdQuery } from '../../application/read/find-one-user-by-id.query';
+import { CurrentUserResponseDto } from '../../application/dtos/current-user-response.dto';
+import { Optional } from 'src/context/shared/domain/optional';
 import {
   ApiTags,
   ApiOperation,
@@ -402,5 +408,60 @@ export class AuthUserController {
         isActive: u.isActive, // Exponer el estado activo/inactivo
       })),
     };
+  }
+
+  @Get('me')
+  @ApiOperation({
+    summary: 'Obtener usuario autenticado',
+    description:
+      'Devuelve la información del usuario asociado al token de acceso. Requiere rol admin o commercial.',
+  })
+  @ApiBearerAuth()
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado',
+    type: CurrentUserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @RequiredRoles('admin', 'commercial')
+  @UseGuards(AuthGuard, RolesGuard)
+  async me(@Req() req: AuthenticatedRequest): Promise<CurrentUserResponseDto> {
+    const userId: string | undefined = req.user?.id;
+    if (!userId) {
+      throw new HttpException(
+        'No se encontró el usuario en el contexto',
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+    try {
+      const optional: Optional<{ user: UserAccountPrimitives }> =
+        await this.queryBus.execute(new FindOneUserByIdQuery(userId));
+      if (optional.isEmpty()) {
+        throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+      }
+      const { user } = optional.get();
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roles: user.roles,
+        companyId: user.companyId,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        lastLoginAt: user.lastLoginAt ?? null,
+      };
+    } catch (error) {
+      this.logger.error('Error fetching current user (/me)', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
