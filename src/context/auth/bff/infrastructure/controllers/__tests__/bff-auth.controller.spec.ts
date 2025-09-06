@@ -29,7 +29,7 @@ describe('BFFAuthController', () => {
     }).compile();
 
     controller = module.get<BFFAuthController>(BFFAuthController);
-    bffAuthService = module.get(BFFAuthService) as jest.Mocked<BFFAuthService>;
+    bffAuthService = module.get(BFFAuthService);
 
     mockRequest = {
       cookies: {},
@@ -48,9 +48,16 @@ describe('BFFAuthController', () => {
 
   describe('login', () => {
     it('should login successfully with valid credentials', async () => {
-      const loginDto = { username: 'test@example.com', password: 'password123' };
-      const mockUser = { sub: '123', email: 'test@example.com', roles: ['user'] };
-      
+      const loginDto = {
+        username: 'test@example.com',
+        password: 'password123',
+      };
+      const mockUser = {
+        sub: '123',
+        email: 'test@example.com',
+        roles: ['user'],
+      };
+
       bffAuthService.loginWithKeycloak.mockResolvedValue({
         success: true,
         user: mockUser,
@@ -71,14 +78,18 @@ describe('BFFAuthController', () => {
     });
 
     it('should throw UnauthorizedException with invalid credentials', async () => {
-      const loginDto = { username: 'test@example.com', password: 'wrongpassword' };
-      
+      const loginDto = {
+        username: 'test@example.com',
+        password: 'wrongpassword',
+      };
+
       bffAuthService.loginWithKeycloak.mockRejectedValue(
         new UnauthorizedException('Credenciales inválidas'),
       );
 
-      await expect(controller.login(loginDto, mockResponse as Response))
-        .rejects.toThrow(UnauthorizedException);
+      await expect(
+        controller.login(loginDto, mockResponse as Response),
+      ).rejects.toThrow(UnauthorizedException);
     });
   });
 
@@ -106,14 +117,20 @@ describe('BFFAuthController', () => {
       mockRequest.cookies = {};
 
       await expect(
-        controller.refreshToken(mockRequest as Request, mockResponse as Response),
+        controller.refreshToken(
+          mockRequest as Request,
+          mockResponse as Response,
+        ),
       ).rejects.toThrow(UnauthorizedException);
     });
   });
 
   describe('logout', () => {
     it('should logout successfully', () => {
-      const result = controller.logout(mockResponse as Response, mockRequest as any);
+      const result = controller.logout(
+        mockResponse as Response,
+        mockRequest as any,
+      );
 
       expect(result).toEqual({
         success: true,
