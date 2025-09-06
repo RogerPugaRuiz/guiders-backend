@@ -11,6 +11,7 @@ import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/au
 import { ApiKeyModule } from './context/auth/api-key/infrastructure/api-key.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-user.module';
+import { BFFModule } from './context/auth/bff/infrastructure/bff.module';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 import { TrackingModule } from './context/tracking/tracking.module';
@@ -23,6 +24,7 @@ import { ConversationsV2Module } from './context/conversations-v2/conversations-
     // Importar los módulos de los contextos
     AuthVisitorModule,
     AuthUserModule,
+    BFFModule,
     ApiKeyModule,
     VisitorsModule,
     TrackingModule,
