@@ -239,6 +239,10 @@ jobs:
           NODE_ENV=staging
           LOG_LEVEL=debug
           ENABLE_SWAGGER=true
+          # Configuración de Keycloak para staging
+          KEYCLOAK_ISSUER=${{ secrets.STAGING_KEYCLOAK_ISSUER }}
+          KEYCLOAK_JWKS_URI=${{ secrets.STAGING_KEYCLOAK_JWKS_URI }}
+          KEYCLOAK_AUDIENCE=${{ secrets.STAGING_KEYCLOAK_AUDIENCE || 'console' }}
           # Control temporal de sincronización de TypeORM (usar solo puntualmente y volver a false)
           TYPEORM_SYNC=${{ vars.TYPEORM_SYNC || 'false' }}
           EOF
