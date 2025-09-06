@@ -19,10 +19,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   constructor() {
     const issuer =
-      process.env.KEYCLOAK_ISSUER ?? 'https://sso.guiders.es/realms/guiders';
+      process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8080/realms/guiders';
     const jwksUri =
       process.env.KEYCLOAK_JWKS_URI ??
-      `${issuer}/protocol/openid-connect/certs`;
+      `http://localhost:8080/realms/guiders/protocol/openid-connect/certs`;
     const audience = process.env.KEYCLOAK_AUDIENCE ?? 'guiders-api'; // << cliente API
 
     super({
