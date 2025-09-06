@@ -27,15 +27,19 @@ import { AcceptInviteCommandHandler } from '../application/commands/accept-invit
 import { AuthUserController } from './controllers/auth-user.controller';
 import { FindUsersByCompanyIdQueryHandler } from '../application/queries/find-users-by-company-id.query-handler';
 import { CreateInviteOnUserAccountCreatedEventHandler } from '../application/events/create-invite-on-user-account-created-event.handler';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserAccountEntity, InviteTypeOrmEntity]),
     HttpModule,
     CqrsModule,
+    PassportModule.register({ defaultStrategy: 'jwt' }),
   ],
   controllers: [AuthUserController],
   providers: [
+    JwtStrategy,
     { provide: USER_ACCOUNT_REPOSITORY, useClass: UserAccountService },
     { provide: USER_PASSWORD_HASHER, useClass: BcryptHashService },
     { provide: USER_TOKEN_SERVICE, useClass: TokenService },
@@ -55,6 +59,6 @@ import { CreateInviteOnUserAccountCreatedEventHandler } from '../application/eve
     AcceptInviteCommandHandler,
     FindUsersByCompanyIdQueryHandler,
   ],
-  exports: [USER_ACCOUNT_REPOSITORY],
+  exports: [USER_ACCOUNT_REPOSITORY, PassportModule],
 })
 export class AuthUserModule {}
