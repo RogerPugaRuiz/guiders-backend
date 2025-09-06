@@ -2,9 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Middleware para manejar cookies
+  app.use(cookieParser());
 
   // Configurar el prefijo global para todas las rutas (Nginx maneja el proxy)
   // Excluir docs del prefijo API para que sean accesibles directamente
@@ -49,6 +53,11 @@ async function bootstrap() {
     .setDescription('Documentación de la API del backend de Guiders')
     .setVersion('1.0')
     .addBearerAuth()
+    .addCookieAuth('access_token', {
+      type: 'http',
+      in: 'cookie',
+      scheme: 'bearer',
+    })
     .build();
   const document = SwaggerModule.createDocument(app, config);
 
