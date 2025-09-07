@@ -41,7 +41,7 @@ export class RegisterVisitorRequestDto {
 }
 
 // DTO para refresh de token
-export class RefreshTokenRequestDto {
+export class VisitorRefreshTokenRequestDto {
   @ApiProperty({
     name: 'refresh_token',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',

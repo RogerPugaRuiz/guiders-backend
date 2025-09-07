@@ -26,7 +26,7 @@ import {
 } from '../application/error/auth-visitor.errors';
 import {
   AccessTokenResponseDto,
-  RefreshTokenRequestDto,
+  VisitorRefreshTokenRequestDto,
   RegisterVisitorRequestDto,
   TokenRequestDto,
   TokensResponseDto,
@@ -180,14 +180,14 @@ export class AuthVisitorController {
     description:
       'Devuelve un nuevo access_token válido a partir de refresh_token.',
   })
-  @ApiBody({ type: RefreshTokenRequestDto })
+  @ApiBody({ type: VisitorRefreshTokenRequestDto })
   @ApiCreatedResponse({
     description: 'Access token renovado',
     type: AccessTokenResponseDto,
   })
   @ApiUnauthorizedResponse({ description: 'Refresh token inválido' })
   async refresh(
-    @Body() body: RefreshTokenRequestDto,
+    @Body() body: VisitorRefreshTokenRequestDto,
   ): Promise<AccessTokenResponseDto> {
     try {
       return await this.authVisitor.refresh(body.refresh_token);
