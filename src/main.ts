@@ -27,8 +27,10 @@ async function bootstrap() {
             process.env.DOMAIN
               ? `http://${process.env.DOMAIN}`
               : 'http://localhost',
+            'https://console.guiders.es',
+            'https://admin.guiders.es',
           ]
-        : '*',
+        : ['http://localhost:4200', 'http://localhost:4201', '*'],
     allowedHeaders: [
       'Content-Type',
       'Authorization',
