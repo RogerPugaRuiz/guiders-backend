@@ -26,7 +26,12 @@ import {
   BFFRefreshResponseDto,
   BFFLogoutResponseDto,
   BFFMeResponseDto,
+  UserInfo,
 } from '../dtos/bff-auth.dto';
+
+interface AuthenticatedRequest extends Request {
+  user: UserInfo;
+}
 
 @ApiTags('BFF Authentication')
 @Controller('bff/auth')
@@ -191,10 +196,18 @@ export class BFFAuthController {
     status: 401,
     description: 'No autorizado - token requerido',
   })
-  getMe(@Req() request: any): BFFMeResponseDto {
+  getMe(@Req() request: AuthenticatedRequest): BFFMeResponseDto {
+    if (!request.user) {
+      this.logger.error('Usuario no encontrado en la sesión');
+      throw new UnauthorizedException('Usuario no encontrado en la sesión');
+    }
+
+    this.logger.log(
+      `Información solicitada para usuario: ${request.user.email || request.user.sub}`,
+    );
+
     return {
       success: true,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       user: request.user,
     };
   }

@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty } from 'class-validator';
 
+export interface UserInfo {
+  sub: string;
+  email?: string;
+  roles: string[];
+}
+
 export class BFFLoginRequestDto {
   @ApiProperty({
     description: 'Nombre de usuario o email',
@@ -40,7 +46,7 @@ export class BFFLoginResponseDto {
       roles: ['admin', 'user'],
     },
   })
-  user?: any;
+  user?: UserInfo;
 }
 
 export class BFFRefreshResponseDto {
@@ -86,5 +92,5 @@ export class BFFMeResponseDto {
       roles: ['admin', 'user'],
     },
   })
-  user: any;
+  user: UserInfo;
 }

@@ -149,5 +149,14 @@ describe('BFFAuthController', () => {
         user: mockRequest.user,
       });
     });
+
+    it('should throw UnauthorizedException when user is not in request', () => {
+      const requestWithoutUser = { ...mockRequest };
+      delete requestWithoutUser.user;
+
+      expect(() => controller.getMe(requestWithoutUser as any)).toThrow(
+        UnauthorizedException,
+      );
+    });
   });
 });
