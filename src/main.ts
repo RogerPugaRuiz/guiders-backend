@@ -6,9 +6,36 @@ import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import RedisStore from 'connect-redis';
 import { createClient, type RedisClientType } from 'redis';
+import * as fs from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // HTTPS opcional en desarrollo/entornos locales
+  const useHttps = process.env.HTTPS_ENABLE === 'true';
+  const app = await (async () => {
+    if (useHttps) {
+      try {
+        const keyPath = process.env.HTTPS_KEY_PATH || '';
+        const certPath = process.env.HTTPS_CERT_PATH || '';
+        if (
+          keyPath &&
+          certPath &&
+          fs.existsSync(keyPath) &&
+          fs.existsSync(certPath)
+        ) {
+          return await NestFactory.create(AppModule, {
+            httpsOptions: {
+              key: fs.readFileSync(keyPath),
+              cert: fs.readFileSync(certPath),
+            },
+          });
+        }
+        // Si faltan archivos, cae a HTTP
+      } catch (e) {
+        console.warn('Fallo iniciando HTTPS. Se usará HTTP. Motivo:', e);
+      }
+    }
+    return await NestFactory.create(AppModule);
+  })();
 
   // Cookies firmadas (p.ej. para CSRF o flags)
   app.use(cookieParser(process.env.COOKIE_SECRET || 'dev-secret'));
@@ -49,6 +76,14 @@ async function bootstrap() {
     }
   }
 
+  // No permitir SameSite=None sin Secure en cookies de sesión (Chrome las rechaza)
+  const sessionSecure = process.env.NODE_ENV === 'production';
+  let sessionSameSite: SameSiteOption = resolveSameSite(process.env.SAMESITE);
+  if (!sessionSecure && sessionSameSite === 'none') {
+    // En desarrollo, forzamos Lax para que el navegador no la rechace
+    sessionSameSite = 'lax';
+  }
+
   app.use(
     session({
       name: 'bff_sess',
@@ -58,8 +93,8 @@ async function bootstrap() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: resolveSameSite(process.env.SAMESITE), // 'none' si es cross-site
+        secure: sessionSecure,
+        sameSite: sessionSameSite,
         maxAge: 15 * 60 * 1000,
       },
     }),
@@ -131,7 +166,11 @@ async function bootstrap() {
   );
   logger.log(`Global prefix: api (excluded: /docs, /docs-json, /jwks)`);
   logger.log(`CORS origin: ${JSON.stringify(corsOptions.origin)}`);
-  logger.log(`Application is running on port ${process.env.PORT ?? 3000}`);
+  logger.log(
+    `Application is running on ${useHttps ? 'https' : 'http'}://0.0.0.0:${
+      process.env.PORT ?? 3000
+    }`,
+  );
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
