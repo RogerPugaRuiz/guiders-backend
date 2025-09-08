@@ -5,10 +5,25 @@ import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 
 // Helpers de configuración en runtime para evitar valores congelados al cargar el módulo
-function parseSameSite(input?: string): 'lax' | 'strict' | 'none' {
-  const v = (input || 'lax').toLowerCase();
-  if (v === 'lax' || v === 'strict' || v === 'none') return v;
-  return 'lax';
+function parseSameSite(value?: string): 'strict' | 'lax' | 'none' {
+  const normalized = value?.toLowerCase();
+  console.log('[BFF parseSameSite Debug]', {
+    originalValue: value,
+    normalized: normalized,
+    willReturn:
+      normalized === 'strict' || normalized === 'lax' || normalized === 'none'
+        ? normalized
+        : 'lax',
+  });
+
+  if (
+    normalized === 'strict' ||
+    normalized === 'lax' ||
+    normalized === 'none'
+  ) {
+    return normalized;
+  }
+  return 'lax'; // Default seguro para desarrollo
 }
 
 function readCookieEnv() {
@@ -17,7 +32,8 @@ function readCookieEnv() {
     process.env.COOKIE_SECURE !== undefined
       ? process.env.COOKIE_SECURE === 'true'
       : process.env.NODE_ENV === 'production';
-  return {
+
+  const cookieConfig = {
     sessionName: process.env.SESSION_COOKIE || 'console_session',
     refreshName: process.env.REFRESH_COOKIE || 'console_refresh',
     sameSite: parseSameSite(process.env.SAMESITE),
@@ -26,6 +42,19 @@ function readCookieEnv() {
     domain: process.env.COOKIE_DOMAIN || undefined,
     secure,
   } as const;
+
+  // Log detallado de la configuración de cookies
+  console.log('[BFF Cookie Config Debug]', {
+    rawSameSite: process.env.SAMESITE,
+    parsedSameSite: cookieConfig.sameSite,
+    rawSecure: process.env.COOKIE_SECURE,
+    parsedSecure: cookieConfig.secure,
+    nodeEnv: process.env.NODE_ENV,
+    sessionName: cookieConfig.sessionName,
+    refreshName: cookieConfig.refreshName,
+  });
+
+  return cookieConfig;
 }
 
 function readAuthEnv() {
@@ -182,29 +211,56 @@ export class BffController {
     this.logger.debug(
       `[BFF /callback] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
     );
+
+    // Log detallado de la configuración de cookies antes de establecerlas
     this.logger.debug(
-      `[BFF /callback] set-cookie session name=${cenv.sessionName} path=${cenv.path} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
+      `[BFF /callback] Cookie Config Debug: ${JSON.stringify({
+        sessionName: cenv.sessionName,
+        refreshName: cenv.refreshName,
+        sameSite: cenv.sameSite,
+        secure: cenv.secure,
+        path: cenv.path,
+        refreshPath: cenv.refreshPath,
+        domain: cenv.domain,
+      })}`,
     );
-    res.cookie(cenv.sessionName, tokens.access_token, {
+
+    const sessionCookieOptions = {
       httpOnly: true,
       secure: cenv.secure,
       sameSite: cenv.sameSite,
       domain: cenv.domain,
       path: cenv.path,
       maxAge: (tokens.expires_in ? tokens.expires_in : 600) * 1000,
-    });
+    };
+
+    this.logger.debug(
+      `[BFF /callback] Setting session cookie with options: ${JSON.stringify(sessionCookieOptions)}`,
+    );
+    this.logger.debug(
+      `[BFF /callback] set-cookie session name=${cenv.sessionName} path=${cenv.path} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
+    );
+
+    res.cookie(cenv.sessionName, tokens.access_token, sessionCookieOptions);
+
     if (tokens.refresh_token) {
-      this.logger.debug(
-        `[BFF /callback] set-cookie refresh name=${cenv.refreshName} path=${cenv.refreshPath} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
-      );
-      res.cookie(cenv.refreshName, tokens.refresh_token, {
+      const refreshCookieOptions = {
         httpOnly: true,
         secure: cenv.secure,
         sameSite: cenv.sameSite,
         domain: cenv.domain,
         path: cenv.refreshPath,
         maxAge: 30 * 24 * 3600 * 1000,
-      });
+      };
+
+      this.logger.debug(
+        `[BFF /callback] Setting refresh cookie with options: ${JSON.stringify(refreshCookieOptions)}`,
+      );
+      this.logger.debug(
+        `[BFF /callback] set-cookie refresh name=${cenv.refreshName} path=${cenv.refreshPath} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
+      );
+
+      res.cookie(cenv.refreshName, tokens.refresh_token, refreshCookieOptions);
     }
     const ret = req.session.returnTo || '/';
     req.session.returnTo = undefined;
@@ -220,16 +276,33 @@ export class BffController {
   ) {
     const cenv = readCookieEnv();
     const cookieKeys = Object.keys(req.cookies || {});
+
+    // Log muy detallado de todas las cookies recibidas
+    this.logger.debug(
+      `[BFF /me] Raw cookies object: ${JSON.stringify(req.cookies || {}, null, 2)}`,
+    );
     this.logger.debug(
       `[BFF /me] Cookies recibidas: [${cookieKeys.join(', ')}], sessionName=${cenv.sessionName}`,
     );
+    this.logger.debug(`[BFF /me] Buscando cookie: ${cenv.sessionName}`);
+    this.logger.debug(
+      `[BFF /me] Headers recibidos: ${JSON.stringify(req.headers.cookie || 'none')}`,
+    );
+
     const tok = req.cookies?.[cenv.sessionName] as string | undefined;
     if (!tok) {
       this.logger.debug('[BFF /me] Cookie de sesión no presente');
+      this.logger.debug(
+        `[BFF /me] Expected cookie name: ${cenv.sessionName}, Available cookies: ${Object.keys(req.cookies || {}).join(', ')}`,
+      );
       return res
         .status(401)
         .send({ error: 'unauthenticated', reason: 'no_cookie' });
     }
+
+    this.logger.debug(
+      `[BFF /me] Cookie encontrada, longitud: ${tok.length} caracteres`,
+    );
 
     // valida issuer/audience/firma
     const { issuer, audience } = readAuthEnv();
