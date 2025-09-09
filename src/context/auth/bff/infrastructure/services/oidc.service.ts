@@ -20,11 +20,35 @@ export class OidcService implements OnModuleInit {
   // Configuración descubierta del Authorization Server + metadata de cliente
   private config?: openid.Configuration;
 
+  // Configuraciones por aplicación
+  private readonly appConfigs = {
+    console: {
+      clientId: process.env.OIDC_CONSOLE_CLIENT_ID || 'console',
+      redirectUri:
+        process.env.OIDC_CONSOLE_REDIRECT_URI ||
+        'http://localhost:3000/api/bff/auth/callback/console',
+    },
+    admin: {
+      clientId: process.env.OIDC_ADMIN_CLIENT_ID || 'admin',
+      redirectUri:
+        process.env.OIDC_ADMIN_REDIRECT_URI ||
+        'http://localhost:3000/api/bff/auth/callback/admin',
+    },
+  };
+
   // Variables de entorno requeridas para configurar el cliente OIDC
   private issuerUrl = process.env.OIDC_ISSUER!; // p.ej. https://sso.guiders.es/realms/guiders
-  private clientId = process.env.OIDC_CLIENT_ID!; // p.ej. console
-  private redirect = process.env.OIDC_REDIRECT_URI!; // p.ej. https://guiders.es/api/bff/auth/callback/console
   private scope = process.env.OIDC_SCOPE || 'openid profile email';
+
+  // Obtiene la configuración para una app específica
+  private getAppConfig(app?: string) {
+    const appKey = app as keyof typeof this.appConfigs;
+    if (app && this.appConfigs[appKey]) {
+      return this.appConfigs[appKey];
+    }
+    // Fallback a console por defecto
+    return this.appConfigs.console;
+  }
 
   async onModuleInit() {
     // Carga ESM en entorno CommonJS
@@ -34,7 +58,7 @@ export class OidcService implements OnModuleInit {
     await this.ensureConfig(true);
     if (this.config) {
       this.logger.log(
-        `OIDC listo: ${this.issuerUrl} client_id=${this.clientId}`,
+        `OIDC listo: ${this.issuerUrl} apps=[${Object.keys(this.appConfigs).join(', ')}]`,
       );
     }
   }
@@ -57,13 +81,18 @@ export class OidcService implements OnModuleInit {
       ? { execute: [client.allowInsecureRequests], algorithm: algorithmEnv }
       : { algorithm: algorithmEnv };
 
+    // Usar configuración de console por defecto para discovery
+    const defaultConfig = this.getAppConfig('console');
+
     const tryDiscovery = async (url: URL, algorithm: 'oidc' | 'oauth2') =>
       client.discovery(
         url,
-        this.clientId,
+        defaultConfig.clientId,
         {
           token_endpoint_auth_method: 'none',
-          redirect_uris: [this.redirect],
+          redirect_uris: Object.values(this.appConfigs).map(
+            (config) => config.redirectUri,
+          ),
           response_types: ['code'],
         },
         undefined,
@@ -128,19 +157,20 @@ export class OidcService implements OnModuleInit {
 
   // Construye redirect_uri para una app concreta si se solicita
   private deriveRedirect(app?: string): string {
-    if (!this.redirect) {
+    const appConfig = this.getAppConfig(app);
+    if (!appConfig.redirectUri) {
       throw new Error(
         'OIDC_REDIRECT_URI no está configurado. Define la variable de entorno con la URL absoluta del callback (ej: http://localhost:3000/api/bff/auth/callback/console).',
       );
     }
-    if (!app) return this.redirect;
+    if (!app) return appConfig.redirectUri;
     try {
-      const u = new URL(this.redirect);
+      const u = new URL(appConfig.redirectUri);
       // Reemplaza el último segmento tras /callback/
       u.pathname = u.pathname.replace(/(\/callback\/)[^/]+$/, `$1${app}`);
       return u.toString();
     } catch {
-      return this.redirect;
+      return appConfig.redirectUri;
     }
   }
 

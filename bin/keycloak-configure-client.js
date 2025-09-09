@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /*
-  Configura automáticamente el cliente OIDC en Keycloak para entorno local:
+  Configura automáticamente clientes OIDC en Keycloak para entorno local:
   - Establece redirectUris y webOrigins
   - Asegura cliente público y flujo estándar habilitado
+  - Soporta múltiples clientes (console, admin)
 
   Uso:
-    node bin/keycloak-configure-client.js
+    node bin/keycloak-configure-client.js [clientId]
+    node bin/keycloak-configure-client.js            # Configura todos los clientes
+    node bin/keycloak-configure-client.js console    # Configura solo console
+    node bin/keycloak-configure-client.js admin      # Configura solo admin
 */
 const fs = require('fs');
 const path = require('path');
@@ -38,27 +42,43 @@ function loadEnvFromDotEnv() {
 
 loadEnvFromDotEnv();
 
-async function main() {
+loadEnvFromDotEnv();
+
+// Configuraciones de clientes
+const CLIENT_CONFIGS = {
+  console: {
+    clientId: process.env.OIDC_CONSOLE_CLIENT_ID || 'console',
+    redirectUri: process.env.OIDC_CONSOLE_REDIRECT_URI || `${process.env.APP_URL || 'http://localhost:3000'}/api/bff/auth/callback/console`,
+    appOrigins: ['http://localhost:4200'],
+  },
+  admin: {
+    clientId: process.env.OIDC_ADMIN_CLIENT_ID || 'admin',
+    redirectUri: process.env.OIDC_ADMIN_REDIRECT_URI || `${process.env.APP_URL || 'http://localhost:3000'}/api/bff/auth/callback/admin`,
+    appOrigins: ['http://localhost:4201'],
+  },
+};
+
+async function configureClient(clientKey, config) {
   const base = process.env.KEYCLOAK_URL || `http://localhost:${process.env.KEYCLOAK_PORT || '8080'}`;
   const realm = process.env.KEYCLOAK_REALM || 'guiders';
   const adminUser = process.env.KEYCLOAK_ADMIN_USERNAME || 'admin';
   const adminPass = process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin123';
-  const clientId = process.env.KEYCLOAK_CLIENT_ID || process.env.OIDC_CLIENT_ID || 'console';
 
   const appUrl = process.env.APP_URL || 'http://localhost:3000';
-  const redirectUri = process.env.OIDC_REDIRECT_URI || `${appUrl.replace(/\/$/, '')}/api/bff/auth/callback/${clientId}`;
-
+  
   // En local añadimos orígenes típicos
-  const webOrigins = [appUrl, 'http://localhost:4200'];
+  const webOrigins = [appUrl, ...config.appOrigins];
   // Permitimos comodín solo en desarrollo (no recomendado en prod)
   if ((process.env.NODE_ENV || 'development') !== 'production') {
     webOrigins.push('*');
   }
 
-  const redirectUris = [redirectUri];
+  const redirectUris = [config.redirectUri];
   if ((process.env.NODE_ENV || 'development') !== 'production') {
     redirectUris.push('http://localhost:3000/*');
   }
+
+  console.log(`\n🔧 Configurando cliente ${clientKey} (${config.clientId})...`);
 
   // Obtener token admin (realm master)
   const tokenRes = await axios.post(
@@ -79,13 +99,13 @@ async function main() {
   });
 
   // Buscar cliente
-  const search = await kc.get(`/clients`, { params: { clientId } });
+  const search = await kc.get(`/clients`, { params: { clientId: config.clientId } });
   let client = search.data && search.data[0];
 
   if (!client) {
     // Crear cliente público con flujo estándar
     const createRes = await kc.post('/clients', {
-      clientId,
+      clientId: config.clientId,
       protocol: 'openid-connect',
       publicClient: true,
       standardFlowEnabled: true,
@@ -96,10 +116,10 @@ async function main() {
       attributes: { 'pkce.code.challenge.method': 'S256' },
     });
     // Obtenerlo de nuevo para conseguir id
-    const after = await kc.get(`/clients`, { params: { clientId } });
+    const after = await kc.get(`/clients`, { params: { clientId: config.clientId } });
     client = after.data && after.data[0];
-    if (!client) throw new Error('No se pudo crear el cliente en Keycloak');
-    console.log(`Cliente creado: ${client.clientId}`);
+    if (!client) throw new Error(`No se pudo crear el cliente ${config.clientId} en Keycloak`);
+    console.log(`✅ Cliente creado: ${client.clientId}`);
   } else {
     // Actualizar cliente existente
     const id = client.id;
@@ -115,15 +135,42 @@ async function main() {
       attributes: { ...(client.attributes || {}), 'pkce.code.challenge.method': 'S256' },
     };
     await kc.put(`/clients/${encodeURIComponent(id)}`, updated);
-    console.log(`Cliente actualizado: ${client.clientId}`);
+    console.log(`✅ Cliente actualizado: ${client.clientId}`);
   }
 
-  console.log('Resumen configuración aplicada:');
-  console.log(`- Realm: ${realm}`);
-  console.log(`- Client ID: ${clientId}`);
-  console.log(`- redirectUris: ${JSON.stringify(redirectUris)}`);
-  console.log(`- webOrigins: ${JSON.stringify(webOrigins)}`);
-  console.log('Listo. Reintenta el login desde /api/bff/auth/login');
+  console.log(`   - redirectUris: ${JSON.stringify(redirectUris)}`);
+  console.log(`   - webOrigins: ${JSON.stringify(webOrigins)}`);
+}
+
+async function main() {
+  const targetClient = process.argv[2]; // clientId específico desde argumentos
+  
+  if (targetClient && !CLIENT_CONFIGS[targetClient]) {
+    console.error(`❌ Cliente desconocido: ${targetClient}`);
+    console.log(`   Clientes disponibles: ${Object.keys(CLIENT_CONFIGS).join(', ')}`);
+    process.exit(1);
+  }
+
+  const base = process.env.KEYCLOAK_URL || `http://localhost:${process.env.KEYCLOAK_PORT || '8080'}`;
+  const realm = process.env.KEYCLOAK_REALM || 'guiders';
+
+  console.log(`🚀 Configurando clientes OIDC en Keycloak`);
+  console.log(`   Realm: ${realm}`);
+  console.log(`   Keycloak: ${base}`);
+
+  if (targetClient) {
+    await configureClient(targetClient, CLIENT_CONFIGS[targetClient]);
+  } else {
+    // Configurar todos los clientes
+    for (const [clientKey, config] of Object.entries(CLIENT_CONFIGS)) {
+      await configureClient(clientKey, config);
+    }
+  }
+
+  console.log('\n🎉 Configuración completada!');
+  console.log('   Rutas disponibles:');
+  console.log('   - Console: /api/bff/auth/login/console');
+  console.log('   - Admin:   /api/bff/auth/login/admin');
 }
 
 main().catch((e) => {

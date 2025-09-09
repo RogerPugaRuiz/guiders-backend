@@ -26,16 +26,35 @@ function parseSameSite(value?: string): 'strict' | 'lax' | 'none' {
   return 'lax'; // Default seguro para desarrollo
 }
 
-function readCookieEnv() {
+function readCookieEnv(app?: string) {
   // Nota: en local (HTTP) cookies secure=true no se guardan
   const secure =
     process.env.COOKIE_SECURE !== undefined
       ? process.env.COOKIE_SECURE === 'true'
       : process.env.NODE_ENV === 'production';
 
+  // Configuración por aplicación
+  let sessionName: string;
+  let refreshName: string;
+
+  if (app === 'admin') {
+    sessionName = process.env.SESSION_COOKIE_ADMIN || 'admin_session';
+    refreshName = process.env.REFRESH_COOKIE_ADMIN || 'admin_refresh';
+  } else {
+    // Por defecto console
+    sessionName =
+      process.env.SESSION_COOKIE_CONSOLE ||
+      process.env.SESSION_COOKIE ||
+      'console_session';
+    refreshName =
+      process.env.REFRESH_COOKIE_CONSOLE ||
+      process.env.REFRESH_COOKIE ||
+      'console_refresh';
+  }
+
   const cookieConfig = {
-    sessionName: process.env.SESSION_COOKIE || 'console_session',
-    refreshName: process.env.REFRESH_COOKIE || 'console_refresh',
+    sessionName,
+    refreshName,
     sameSite: parseSameSite(process.env.SAMESITE),
     path: process.env.COOKIE_PATH || '/',
     refreshPath: process.env.REFRESH_PATH || '/api/bff/auth/refresh',
@@ -44,7 +63,8 @@ function readCookieEnv() {
   } as const;
 
   // Log detallado de la configuración de cookies
-  console.log('[BFF Cookie Config Debug]', {
+  console.log(`[BFF Cookie Config Debug - ${app || 'default'}]`, {
+    app: app || 'console',
     rawSameSite: process.env.SAMESITE,
     parsedSameSite: cookieConfig.sameSite,
     rawSecure: process.env.COOKIE_SECURE,
@@ -60,7 +80,7 @@ function readCookieEnv() {
 function readAuthEnv() {
   return {
     issuer: process.env.OIDC_ISSUER,
-    audience: process.env.API_AUDIENCE || 'guiders-api',
+    audience: process.env.KEYCLOAK_AUDIENCE || 'account',
   } as const;
 }
 // Nota: JWKS se inicializa de forma perezosa para evitar fallos si OIDC_ISSUER no está definido al cargar el módulo.
@@ -172,6 +192,7 @@ export class BffController {
 
   @Get('callback/:app')
   async callback(
+    @Param('app') app: string,
     @Req()
     req: Request & {
       session: Record<string, unknown> & { returnTo?: string };
@@ -191,9 +212,8 @@ export class BffController {
         (req.query || {}) as Record<string, unknown>,
       );
       this.logger.debug(
-        `[BFF /callback] sessionKeys=[${sessKeys.join(', ')}] queryKeys=[${queryKeys.join(', ')}]`,
+        `[BFF /callback/${app}] sessionKeys=[${sessKeys.join(', ')}] queryKeys=[${queryKeys.join(', ')}]`,
       );
-      const app = (req.params as Record<string, string | undefined>)?.['app'];
       tokens = await this.oidc.handleCallback(req.query, req.session, {
         app,
       });
@@ -203,18 +223,18 @@ export class BffController {
         e instanceof Error && /session|state|nonce/i.test(e.message)
           ? 'session_mismatch'
           : 'callback_error';
-      return res.redirect(`/api/bff/auth/login?reason=${reason}`);
+      return res.redirect(`/api/bff/auth/login/${app}?reason=${reason}`);
     }
 
-    // Cookies HttpOnly
-    const cenv = readCookieEnv();
+    // Cookies HttpOnly - usando configuración específica por app
+    const cenv = readCookieEnv(app);
     this.logger.debug(
-      `[BFF /callback] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
+      `[BFF /callback/${app}] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
     );
 
     // Log detallado de la configuración de cookies antes de establecerlas
     this.logger.debug(
-      `[BFF /callback] Cookie Config Debug: ${JSON.stringify({
+      `[BFF /callback/${app}] Cookie Config Debug: ${JSON.stringify({
         sessionName: cenv.sessionName,
         refreshName: cenv.refreshName,
         sameSite: cenv.sameSite,
@@ -235,10 +255,10 @@ export class BffController {
     };
 
     this.logger.debug(
-      `[BFF /callback] Setting session cookie with options: ${JSON.stringify(sessionCookieOptions)}`,
+      `[BFF /callback/${app}] Setting session cookie with options: ${JSON.stringify(sessionCookieOptions)}`,
     );
     this.logger.debug(
-      `[BFF /callback] set-cookie session name=${cenv.sessionName} path=${cenv.path} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
+      `[BFF /callback/${app}] set-cookie session name=${cenv.sessionName} path=${cenv.path} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
     );
 
     res.cookie(cenv.sessionName, tokens.access_token, sessionCookieOptions);
@@ -254,17 +274,17 @@ export class BffController {
       };
 
       this.logger.debug(
-        `[BFF /callback] Setting refresh cookie with options: ${JSON.stringify(refreshCookieOptions)}`,
+        `[BFF /callback/${app}] Setting refresh cookie with options: ${JSON.stringify(refreshCookieOptions)}`,
       );
       this.logger.debug(
-        `[BFF /callback] set-cookie refresh name=${cenv.refreshName} path=${cenv.refreshPath} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
+        `[BFF /callback/${app}] set-cookie refresh name=${cenv.refreshName} path=${cenv.refreshPath} domain=${cenv.domain ?? 'host-only'} secure=${cenv.secure} sameSite=${cenv.sameSite}`,
       );
 
       res.cookie(cenv.refreshName, tokens.refresh_token, refreshCookieOptions);
     }
     const ret = req.session.returnTo || '/';
     req.session.returnTo = undefined;
-    this.logger.debug(`[BFF /callback] redirect to returnTo=${ret}`);
+    this.logger.debug(`[BFF /callback/${app}] redirect to returnTo=${ret}`);
     return res.redirect(ret);
   }
 
@@ -274,26 +294,43 @@ export class BffController {
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
   ) {
-    const cenv = readCookieEnv();
+    return this.getMeForApp(req, res, 'console'); // Por defecto console
+  }
+
+  @Get('me/:app')
+  async meForApp(
+    @Param('app') app: string,
+    @Req() req: Request & { cookies: Record<string, string | undefined> },
+    @Res() res: Response,
+  ) {
+    return this.getMeForApp(req, res, app);
+  }
+
+  private async getMeForApp(
+    req: Request & { cookies: Record<string, string | undefined> },
+    res: Response,
+    app: string,
+  ) {
+    const cenv = readCookieEnv(app);
     const cookieKeys = Object.keys(req.cookies || {});
 
     // Log muy detallado de todas las cookies recibidas
     this.logger.debug(
-      `[BFF /me] Raw cookies object: ${JSON.stringify(req.cookies || {}, null, 2)}`,
+      `[BFF /me/${app}] Raw cookies object: ${JSON.stringify(req.cookies || {}, null, 2)}`,
     );
     this.logger.debug(
-      `[BFF /me] Cookies recibidas: [${cookieKeys.join(', ')}], sessionName=${cenv.sessionName}`,
+      `[BFF /me/${app}] Cookies recibidas: [${cookieKeys.join(', ')}], sessionName=${cenv.sessionName}`,
     );
-    this.logger.debug(`[BFF /me] Buscando cookie: ${cenv.sessionName}`);
+    this.logger.debug(`[BFF /me/${app}] Buscando cookie: ${cenv.sessionName}`);
     this.logger.debug(
-      `[BFF /me] Headers recibidos: ${JSON.stringify(req.headers.cookie || 'none')}`,
+      `[BFF /me/${app}] Headers recibidos: ${JSON.stringify(req.headers.cookie || 'none')}`,
     );
 
     const tok = req.cookies?.[cenv.sessionName] as string | undefined;
     if (!tok) {
-      this.logger.debug('[BFF /me] Cookie de sesión no presente');
+      this.logger.debug(`[BFF /me/${app}] Cookie de sesión no presente`);
       this.logger.debug(
-        `[BFF /me] Expected cookie name: ${cenv.sessionName}, Available cookies: ${Object.keys(req.cookies || {}).join(', ')}`,
+        `[BFF /me/${app}] Expected cookie name: ${cenv.sessionName}, Available cookies: ${Object.keys(req.cookies || {}).join(', ')}`,
       );
       return res
         .status(401)
@@ -301,7 +338,7 @@ export class BffController {
     }
 
     this.logger.debug(
-      `[BFF /me] Cookie encontrada, longitud: ${tok.length} caracteres`,
+      `[BFF /me/${app}] Cookie encontrada, longitud: ${tok.length} caracteres`,
     );
 
     // valida issuer/audience/firma
@@ -311,7 +348,7 @@ export class BffController {
     };
     if (issuer) verifyOptions.issuer = issuer;
     this.logger.debug(
-      `[BFF /me] Verificando JWT: audience=${audience}, issuer=${issuer ?? 'none'}`,
+      `[BFF /me/${app}] Verificando JWT: audience=${audience}, issuer=${issuer ?? 'none'}`,
     );
     let payload: JWTPayload;
     try {
@@ -319,7 +356,7 @@ export class BffController {
       payload = verified.payload;
     } catch (e) {
       this.logger.debug(
-        `[BFF /me] Fallo en verificación JWT: ${e instanceof Error ? e.message : String(e)}`,
+        `[BFF /me/${app}] Fallo en verificación JWT: ${e instanceof Error ? e.message : String(e)}`,
       );
       return res
         .status(401)
@@ -330,12 +367,13 @@ export class BffController {
       realm_access?: { roles?: string[] };
     };
     this.logger.debug(
-      `[BFF /me] JWT OK: sub=${payload.sub ?? 'n/a'}, exp=${payload.exp ?? 'n/a'}`,
+      `[BFF /me/${app}] JWT OK: sub=${payload.sub ?? 'n/a'}, exp=${payload.exp ?? 'n/a'}`,
     );
     return res.send({
       sub: payload.sub,
       email: pl.email,
       roles: pl.realm_access?.roles ?? [],
+      app: app, // Incluir información de la app
       // Opcional: informa al cliente del TTL que queda
       session: { exp: payload.exp, iat: payload.iat },
     });
@@ -346,7 +384,24 @@ export class BffController {
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
   ) {
-    const cenv = readCookieEnv();
+    return this.doRefresh(req, res, 'console'); // Por defecto console
+  }
+
+  @Post('refresh/:app')
+  async refreshForApp(
+    @Param('app') app: string,
+    @Req() req: Request & { cookies: Record<string, string | undefined> },
+    @Res() res: Response,
+  ) {
+    return this.doRefresh(req, res, app);
+  }
+
+  private async doRefresh(
+    req: Request & { cookies: Record<string, string | undefined> },
+    res: Response,
+    app: string,
+  ) {
+    const cenv = readCookieEnv(app);
     const rt = req.cookies?.[cenv.refreshName] as string | undefined;
     if (!rt) return res.status(401).send({ error: 'no_refresh' });
     // (recomendado) valida CSRF header aquí
@@ -378,7 +433,24 @@ export class BffController {
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
   ) {
-    const cenv = readCookieEnv();
+    return this.doLogout(req, res, 'console'); // Por defecto console
+  }
+
+  @Post('logout/:app')
+  async logoutForApp(
+    @Param('app') app: string,
+    @Req() req: Request & { cookies: Record<string, string | undefined> },
+    @Res() res: Response,
+  ) {
+    return this.doLogout(req, res, app);
+  }
+
+  private async doLogout(
+    req: Request & { cookies: Record<string, string | undefined> },
+    res: Response,
+    app: string,
+  ) {
+    const cenv = readCookieEnv(app);
     const rt = req.cookies?.[cenv.refreshName] as string | undefined;
     if (rt) {
       await this.oidc.revoke(rt);
@@ -392,6 +464,6 @@ export class BffController {
       path: cenv.refreshPath,
       domain: cenv.domain,
     });
-    return res.redirect('/api/bff/auth/login');
+    return res.redirect(`/api/bff/auth/login/${app}`);
   }
 }

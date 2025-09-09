@@ -32,8 +32,17 @@ describe('MongoDB Integration - Conversations V2 Infrastructure', () => {
   let messageModel: Model<MessageDocument>;
 
   beforeAll(async () => {
-    // Configurar MongoDB en memoria
-    mongoServer = await MongoMemoryServer.create();
+    // Configurar MongoDB en memoria con timeout extendido
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        dbName: 'test',
+        port: 27017 + Math.floor(Math.random() * 1000),
+      },
+      binary: {
+        version: '5.0.18',
+        downloadDir: './mongodb-binaries',
+      },
+    });
     const mongoUri = mongoServer.getUri();
 
     // Crear módulo de testing
@@ -64,11 +73,15 @@ describe('MongoDB Integration - Conversations V2 Infrastructure', () => {
     messageModel = module.get<Model<MessageDocument>>(
       getModelToken(MessageSchema.name),
     );
-  });
+  }, 60000); // Timeout extendido para beforeAll
 
   afterAll(async () => {
-    await module.close();
-    await mongoServer.stop();
+    if (module) {
+      await module.close();
+    }
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
   });
 
   beforeEach(async () => {

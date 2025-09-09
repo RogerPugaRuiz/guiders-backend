@@ -26,7 +26,7 @@ export class JwtCookieStrategy extends PassportStrategy(
     const jwksUri =
       process.env.KEYCLOAK_JWKS_URI ??
       'http://localhost:8080/realms/guiders/protocol/openid-connect/certs';
-    const audience = process.env.KEYCLOAK_AUDIENCE ?? 'guiders-api';
+    const audience = process.env.KEYCLOAK_AUDIENCE ?? 'account';
 
     super({
       // Extraer JWT de cookies en lugar del header

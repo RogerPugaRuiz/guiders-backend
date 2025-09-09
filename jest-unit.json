@@ -17,7 +17,17 @@
   "coverageDirectory": "../coverage",
   "testEnvironment": "node",
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/$1"
+    "^src/(.*)$": "<rootDir>/$1",
+    "^jose$": "<rootDir>/../__mocks__/jose.js"
   },
-  "testTimeout": 30000
+  "testTimeout": 30000,
+  "transformIgnorePatterns": [
+    "node_modules/(?!(jose|@nestjs/websockets|socket.io)/)"
+  ],
+  "extensionsToTreatAsEsm": [".ts"],
+  "globals": {
+    "ts-jest": {
+      "useESM": false
+    }
+  }
 }

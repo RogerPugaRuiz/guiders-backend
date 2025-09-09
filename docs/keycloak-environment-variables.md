@@ -1,42 +1,60 @@
-# Variables de Entorno de Keycloak
+# Variables de Entorno - Configuración Unificada
 
 ## Resumen de Cambios
 
-Se han extraído las URLs hardcodeadas de Keycloak del código fuente y se han convertido en variables de entorno configurables. Esto permite tener diferentes configuraciones para desarrollo, staging y producción.
+Se han simplificado y unificado las variables de entorno para soportar dos clientes BFF (Console y Admin) con una configuración consistente. **API_AUDIENCE** se ha eliminado, ya que siempre es `account`.
 
-## Variables Extraídas
+## Variables de Keycloak (Autenticación JWT)
 
-Las siguientes variables se han extraído del archivo `jwt.strategy.ts`:
+Para validación de tokens JWT en las estrategias de autenticación:
 
 - `KEYCLOAK_ISSUER`: URL del issuer de Keycloak
-- `KEYCLOAK_JWKS_URI`: URL del endpoint JWKS de Keycloak
-- `KEYCLOAK_AUDIENCE`: Audiencia del token JWT
+- `KEYCLOAK_JWKS_URI`: URL del endpoint JWKS de Keycloak  
+- `KEYCLOAK_AUDIENCE`: Audiencia del token JWT (siempre `account`)
+
+## Variables BFF (Clientes OIDC)
+
+### Cliente Console
+
+- `OIDC_CONSOLE_CLIENT_ID`: ID del cliente console en Keycloak
+- `OIDC_CONSOLE_REDIRECT_URI`: URI de callback para console
+
+### Cliente Admin
+
+- `OIDC_ADMIN_CLIENT_ID`: ID del cliente admin en Keycloak
+- `OIDC_ADMIN_REDIRECT_URI`: URI de callback para admin
 
 ## Configuración por Entorno
 
 ### Desarrollo (`.env`)
 
 ```bash
+# Keycloak JWT
 KEYCLOAK_ISSUER=http://localhost:8080/realms/guiders
 KEYCLOAK_JWKS_URI=http://localhost:8080/realms/guiders/protocol/openid-connect/certs
-KEYCLOAK_AUDIENCE=console
+KEYCLOAK_AUDIENCE=account
+
+# BFF - Clientes OIDC
+OIDC_ISSUER=http://localhost:8080/realms/guiders
+OIDC_CONSOLE_CLIENT_ID=console
+OIDC_CONSOLE_REDIRECT_URI=http://localhost:3000/api/bff/auth/callback/console
+OIDC_ADMIN_CLIENT_ID=admin
+OIDC_ADMIN_REDIRECT_URI=http://localhost:3000/api/bff/auth/callback/admin
 ```
 
 ### Staging
 
-Las siguientes variables deben configurarse como **GitHub Secrets** en el repositorio:
+Las siguientes variables deben configurarse como **GitHub Secrets**:
 
-- `STAGING_KEYCLOAK_ISSUER`: URL del issuer para staging (ej: `https://auth-staging.guiders.es/realms/guiders`)
-- `STAGING_KEYCLOAK_JWKS_URI`: URL del JWKS para staging (ej: `https://auth-staging.guiders.es/realms/guiders/protocol/openid-connect/certs`)
-- `STAGING_KEYCLOAK_AUDIENCE`: Audiencia para staging (opcional, por defecto: `console`)
+- `STAGING_KEYCLOAK_ISSUER`: URL del issuer para staging
+- `STAGING_KEYCLOAK_JWKS_URI`: URL del JWKS para staging (opcional, se deriva del issuer)
 
 ### Producción
 
-Las siguientes variables deben configurarse como **GitHub Secrets** en el repositorio:
+Las siguientes variables deben configurarse como **GitHub Secrets**:
 
-- `KEYCLOAK_ISSUER`: URL del issuer para producción (ej: `https://auth.guiders.es/realms/guiders`)
-- `KEYCLOAK_JWKS_URI`: URL del JWKS para producción (ej: `https://auth.guiders.es/realms/guiders/protocol/openid-connect/certs`)
-- `KEYCLOAK_AUDIENCE`: Audiencia para producción (opcional, por defecto: `console`)
+- `KEYCLOAK_ISSUER`: URL del issuer para producción
+- `KEYCLOAK_JWKS_URI`: URL del JWKS para producción (opcional, se deriva del issuer)
 
 ## Configuración en GitHub
 
@@ -53,25 +71,30 @@ Para configurar estas variables en GitHub:
 # Staging
 STAGING_KEYCLOAK_ISSUER=https://auth-staging.guiders.es/realms/guiders
 STAGING_KEYCLOAK_JWKS_URI=https://auth-staging.guiders.es/realms/guiders/protocol/openid-connect/certs
-STAGING_KEYCLOAK_AUDIENCE=console
 
 # Producción
 KEYCLOAK_ISSUER=https://auth.guiders.es/realms/guiders
 KEYCLOAK_JWKS_URI=https://auth.guiders.es/realms/guiders/protocol/openid-connect/certs
-KEYCLOAK_AUDIENCE=console
 ```
 
 ## Fallback Values
 
 El código incluye valores de fallback que apuntan a la configuración de producción actual:
 
-```typescript
-issuer: process.env.KEYCLOAK_ISSUER || 'https://auth.guiders.es/realms/guiders'
-jwksUri: process.env.KEYCLOAK_JWKS_URI || 'https://auth.guiders.es/realms/guiders/protocol/openid-connect/certs'
-audience: process.env.KEYCLOAK_AUDIENCE || 'console'
-```
+## Fallback Values
 
-Esto garantiza que la aplicación siga funcionando incluso si las variables de entorno no están configuradas.
+El código incluye valores de fallback seguros:
+
+```typescript
+// Estrategias JWT
+issuer: process.env.KEYCLOAK_ISSUER || 'http://localhost:8080/realms/guiders'
+jwksUri: process.env.KEYCLOAK_JWKS_URI || 'http://localhost:8080/realms/guiders/protocol/openid-connect/certs'
+audience: process.env.KEYCLOAK_AUDIENCE || 'account'
+
+// Clientes BFF
+clientId: process.env.OIDC_CONSOLE_CLIENT_ID || 'console'
+clientId: process.env.OIDC_ADMIN_CLIENT_ID || 'admin'
+```
 
 ## Verificación
 
@@ -83,14 +106,12 @@ Para verificar que las variables están correctamente configuradas:
 
 ## Troubleshooting
 
-### Error: "Invalid issuer"
+### Error: Token inválido
 
-Verifica que la variable `KEYCLOAK_ISSUER` esté correctamente configurada y que apunte al realm correcto de Keycloak.
+Verificar que `KEYCLOAK_AUDIENCE` coincida con la audiencia configurada en el cliente de Keycloak (siempre debe ser `account`).
 
-### Error: "Unable to verify signature"
+### Error: JWKS no encontrado
 
-Verifica que la variable `KEYCLOAK_JWKS_URI` esté correctamente configurada y sea accesible desde el servidor de la aplicación.
+Verificar que `KEYCLOAK_JWKS_URI` sea accesible desde el servidor de la aplicación.
 
-### Error: "Invalid audience"
 
-Verifica que la variable `KEYCLOAK_AUDIENCE` coincida con la audiencia configurada en el cliente de Keycloak.

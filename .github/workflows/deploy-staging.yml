@@ -242,7 +242,25 @@ jobs:
           # Configuración de Keycloak para staging
           KEYCLOAK_ISSUER=${{ secrets.STAGING_KEYCLOAK_ISSUER }}
           KEYCLOAK_JWKS_URI=${{ secrets.STAGING_KEYCLOAK_JWKS_URI }}
-          KEYCLOAK_AUDIENCE=${{ secrets.STAGING_KEYCLOAK_AUDIENCE || 'console' }}
+          KEYCLOAK_AUDIENCE=account
+          # Configuración BFF
+          OIDC_ISSUER=${{ secrets.STAGING_KEYCLOAK_ISSUER }}
+          OIDC_CONSOLE_CLIENT_ID=console
+          OIDC_CONSOLE_REDIRECT_URI=${{ secrets.STAGING_APP_URL }}/api/bff/auth/callback/console
+          OIDC_ADMIN_CLIENT_ID=admin
+          OIDC_ADMIN_REDIRECT_URI=${{ secrets.STAGING_APP_URL }}/api/bff/auth/callback/admin
+          # Configuración de cookies BFF para staging (HTTPS en producción)
+          SAMESITE=lax
+          COOKIE_SECURE=true
+          COOKIE_PATH=/
+          REFRESH_PATH=/api/bff/auth/refresh
+          # Configuración de cookies por aplicación
+          SESSION_COOKIE_CONSOLE=console_session
+          REFRESH_COOKIE_CONSOLE=console_refresh
+          SESSION_COOKIE_ADMIN=admin_session
+          REFRESH_COOKIE_ADMIN=admin_refresh
+          # Permitir múltiples orígenes para apps (console + admin)
+          ALLOW_RETURN_TO=${{ secrets.STAGING_CONSOLE_URL }},${{ secrets.STAGING_ADMIN_URL }}
           # Control temporal de sincronización de TypeORM (usar solo puntualmente y volver a false)
           TYPEORM_SYNC=${{ vars.TYPEORM_SYNC || 'false' }}
           EOF
