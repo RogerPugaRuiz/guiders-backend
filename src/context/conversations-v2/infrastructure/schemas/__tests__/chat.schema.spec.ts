@@ -3,18 +3,59 @@ import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { ChatSchema, ChatSchemaDefinition } from '../chat.schema';
+import { DockerMongoHelper } from '../../persistence/__tests__/docker-mongo-helper';
 // Aumentar timeout global para evitar fallos intermitentes al iniciar MongoMemoryServer
-jest.setTimeout(60000);
+jest.setTimeout(180000);
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 describe('ChatSchema (MongoDB Integration)', () => {
-  let mongoServer: MongoMemoryServer;
+  let mongoServer: MongoMemoryServer | null = null;
+  let dockerMongo: DockerMongoHelper | null = null;
   let chatModel: Model<ChatSchema>;
   let module: TestingModule;
+  let mongoUri: string;
 
   beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
+    // Intentar primero con MongoDB Memory Server, luego Docker como fallback
+    let mongoMemoryServerWorked = false;
+    
+    // Configuración simple para este test de schema
+    const mongoConfig = {
+      binary: {
+        version: '4.4.25',
+        skipMD5: true,
+      },
+      instance: {
+        dbName: 'chat-schema-test',
+      },
+      autoStart: true,
+    };
+
+    // Intentar con MongoDB Memory Server
+    try {
+      console.log('🔧 Intentando iniciar con MongoDB Memory Server...');
+      mongoServer = await MongoMemoryServer.create(mongoConfig);
+      mongoUri = mongoServer.getUri();
+      console.log('✅ MongoDB Memory Server iniciado exitosamente');
+      mongoMemoryServerWorked = true;
+    } catch (error) {
+      console.warn('⚠️ MongoDB Memory Server falló:', error instanceof Error ? error.message.slice(0, 100) : 'Error desconocido');
+    }
+
+    // Si MongoDB Memory Server no funcionó, intentar con Docker
+    if (!mongoMemoryServerWorked) {
+      console.log('🐳 MongoDB Memory Server falló, intentando con Docker...');
+      try {
+        dockerMongo = new DockerMongoHelper(27018); // Usar puerto diferente para evitar conflictos
+        mongoUri = await dockerMongo.start();
+        console.log('✅ MongoDB Docker iniciado exitosamente como fallback');
+      } catch (dockerError) {
+        throw new Error(
+          `❌ No se pudo iniciar MongoDB con ningún método para test de schema. ` +
+          `Docker error: ${dockerError instanceof Error ? dockerError.message.slice(0, 100) : 'Error desconocido'}`
+        );
+      }
+    }
 
     module = await Test.createTestingModule({
       imports: [
@@ -29,20 +70,31 @@ describe('ChatSchema (MongoDB Integration)', () => {
     }).compile();
 
     chatModel = module.get<Model<ChatSchema>>(getModelToken('Chat'));
-  }, 30000); // Aumentar timeout a 30 segundos para entorno CI lento
+  }, 120000); // Aumentar timeout
 
   afterAll(async () => {
-    await module.close();
-    await mongoServer.stop();
+    if (module) {
+      await module.close();
+    }
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+    if (dockerMongo) {
+      await dockerMongo.stop();
+    }
   }, 10000); // Timeout para cleanup
 
   beforeEach(async () => {
     // Limpiar la colección antes de cada test
-    await chatModel.deleteMany({});
+    if (chatModel) {
+      await chatModel.deleteMany({});
+    }
   });
 
   afterEach(async () => {
-    await chatModel.deleteMany({});
+    if (chatModel) {
+      await chatModel.deleteMany({});
+    }
   });
 
   const createValidChatDocument = (): Partial<ChatSchema> => ({
