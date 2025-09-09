@@ -271,7 +271,7 @@ jobs:
       - name: Install Redis tools, MongoDB shell and OpenSSL libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y redis-tools libssl-dev libssl1.1
+          sudo apt-get install -y redis-tools libssl-dev libssl3
           
           # Install mongosh for MongoDB health checks
           wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
@@ -283,8 +283,13 @@ jobs:
           sudo apt-get install -y mongodb-org=7.0.14 mongodb-org-database=7.0.14 mongodb-org-server=7.0.14 mongodb-org-mongos=7.0.14 mongodb-org-tools=7.0.14 || echo "MongoDB Community Edition not available, continuing..."
           
           # Create symbolic link for libcrypto compatibility
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
-      
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 2>/dev/null || true      
+
+          # Debug: Show available OpenSSL libraries
+          echo "Available OpenSSL libraries:"
+          find /usr/lib/x86_64-linux-gnu/ -name "libcrypto.so*" -exec ls -la {} \; || true
+          find /usr/lib/x86_64-linux-gnu/ -name "libssl.so*" -exec ls -la {} \; || true
       - name: Wait for services to be ready
         run: |
           echo "🔄 Esperando a que los servicios estén listos..."
@@ -547,7 +552,7 @@ jobs:
       - name: Install Redis tools, MongoDB shell and OpenSSL libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y redis-tools libssl-dev libssl1.1
+          sudo apt-get install -y redis-tools libssl-dev libssl3
           
           # Install mongosh for MongoDB health checks
           wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
@@ -559,8 +564,13 @@ jobs:
           sudo apt-get install -y mongodb-org=7.0.14 mongodb-org-database=7.0.14 mongodb-org-server=7.0.14 mongodb-org-mongos=7.0.14 mongodb-org-tools=7.0.14 || echo "MongoDB Community Edition not available, continuing..."
           
           # Create symbolic link for libcrypto compatibility
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
-      
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 2>/dev/null || true      
+
+          # Debug: Show available OpenSSL libraries
+          echo "Available OpenSSL libraries:"
+          find /usr/lib/x86_64-linux-gnu/ -name "libcrypto.so*" -exec ls -la {} \; || true
+          find /usr/lib/x86_64-linux-gnu/ -name "libssl.so*" -exec ls -la {} \; || true
       - name: Wait for services to be ready
         run: |
           echo "🔄 Esperando a que los servicios estén listos..."
