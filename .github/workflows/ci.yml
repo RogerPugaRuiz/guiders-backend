@@ -271,7 +271,7 @@ jobs:
       - name: Install Redis tools, MongoDB shell and OpenSSL libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y redis-tools libssl-dev libssl3
+          sudo apt-get install -y redis-tools libssl-dev libssl3 curl wget
           
           # Install mongosh for MongoDB health checks
           wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
@@ -282,10 +282,13 @@ jobs:
           # Install MongoDB Community Edition as fallback
           sudo apt-get install -y mongodb-org=7.0.14 mongodb-org-database=7.0.14 mongodb-org-server=7.0.14 mongodb-org-mongos=7.0.14 mongodb-org-tools=7.0.14 || echo "MongoDB Community Edition not available, continuing..."
           
-          # Create symbolic link for libcrypto compatibility
+          # Create symbolic links for libcrypto compatibility
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 2>/dev/null || true      
 
+          # Install additional compatibility libraries for MongoDB Memory Server
+          sudo apt-get install -y libc6-dev build-essential || true
+          
           # Debug: Show available OpenSSL libraries
           echo "Available OpenSSL libraries:"
           find /usr/lib/x86_64-linux-gnu/ -name "libcrypto.so*" -exec ls -la {} \; || true
@@ -415,14 +418,19 @@ jobs:
           echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
           
+          # Configurar directorio de binarios MongoDB Memory Server
+          sudo mkdir -p /tmp/mongodb-binaries
+          sudo chmod 755 /tmp/mongodb-binaries
+          
           # Variables específicas para MongoDB Memory Server
-          echo "MONGOMS_DOWNLOAD_DIR=./mongodb-binaries" >> $GITHUB_ENV
+          echo "MONGOMS_DOWNLOAD_DIR=/tmp/mongodb-binaries" >> $GITHUB_ENV
           echo "MONGOMS_VERSION=6.0.1" >> $GITHUB_ENV
           echo "MONGOMS_DISABLE_POSTINSTALL=1" >> $GITHUB_ENV
           echo "MONGOMS_SYSTEM_BINARY=" >> $GITHUB_ENV
           echo "MONGOMS_SKIP_MD5=true" >> $GITHUB_ENV
           echo "MONGOMS_ARCH=x64" >> $GITHUB_ENV
           echo "MONGOMS_PLATFORM=linux" >> $GITHUB_ENV
+          echo "MONGOMS_DOWNLOAD_URL=https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-6.0.1.tgz" >> $GITHUB_ENV
           echo "CI=true" >> $GITHUB_ENV
       
       - name: Run integration tests with coverage (CRÍTICO)
@@ -549,10 +557,10 @@ jobs:
           sudo sysctl -w net.core.somaxconn=1024
           echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
       
-      - name: Install Redis tools, MongoDB shell and OpenSSL libraries
+      - name: Install Redis tools, MongoDB shell and OpenSSL libraries (E2E)
         run: |
           sudo apt-get update
-          sudo apt-get install -y redis-tools libssl-dev libssl3
+          sudo apt-get install -y redis-tools libssl-dev libssl3 curl wget
           
           # Install mongosh for MongoDB health checks
           wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo tee /etc/apt/trusted.gpg.d/mongodb.asc
@@ -563,10 +571,13 @@ jobs:
           # Install MongoDB Community Edition as fallback
           sudo apt-get install -y mongodb-org=7.0.14 mongodb-org-database=7.0.14 mongodb-org-server=7.0.14 mongodb-org-mongos=7.0.14 mongodb-org-tools=7.0.14 || echo "MongoDB Community Edition not available, continuing..."
           
-          # Create symbolic link for libcrypto compatibility
+          # Create symbolic links for libcrypto compatibility
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1 2>/dev/null || true      
 
+          # Install additional compatibility libraries for MongoDB Memory Server
+          sudo apt-get install -y libc6-dev build-essential || true
+          
           # Debug: Show available OpenSSL libraries
           echo "Available OpenSSL libraries:"
           find /usr/lib/x86_64-linux-gnu/ -name "libcrypto.so*" -exec ls -la {} \; || true
@@ -743,14 +754,19 @@ jobs:
           echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
           
+          # Configurar directorio de binarios MongoDB Memory Server
+          sudo mkdir -p /tmp/mongodb-binaries
+          sudo chmod 755 /tmp/mongodb-binaries
+          
           # Variables específicas para MongoDB Memory Server (por si los tests E2E las necesitan)
-          echo "MONGOMS_DOWNLOAD_DIR=./mongodb-binaries" >> $GITHUB_ENV
+          echo "MONGOMS_DOWNLOAD_DIR=/tmp/mongodb-binaries" >> $GITHUB_ENV
           echo "MONGOMS_VERSION=6.0.1" >> $GITHUB_ENV
           echo "MONGOMS_DISABLE_POSTINSTALL=1" >> $GITHUB_ENV
           echo "MONGOMS_SYSTEM_BINARY=" >> $GITHUB_ENV
           echo "MONGOMS_SKIP_MD5=true" >> $GITHUB_ENV
           echo "MONGOMS_ARCH=x64" >> $GITHUB_ENV
           echo "MONGOMS_PLATFORM=linux" >> $GITHUB_ENV
+          echo "MONGOMS_DOWNLOAD_URL=https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-6.0.1.tgz" >> $GITHUB_ENV
           echo "CI=true" >> $GITHUB_ENV
       
       - name: Final Redis readiness check for E2E
