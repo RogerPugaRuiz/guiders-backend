@@ -15,6 +15,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     
+    services:
+      # PostgreSQL para tests de integración
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,6 +39,44 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+      
+      - name: Install system dependencies for MongoDB Memory Server
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libssl-dev \
+            libssl1.1 \
+            openssl \
+            ca-certificates \
+            curl \
+            gnupg \
+            lsb-release
+          
+          # Verificar que las bibliotecas estén disponibles
+          echo "🔍 Verificando bibliotecas OpenSSL disponibles:"
+          find /usr/lib /lib -name "libcrypto.so*" -o -name "libssl.so*" 2>/dev/null | head -10 || true
+          
+          # Crear enlaces simbólicos si es necesario
+          if [ ! -f /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 ] && [ -f /usr/lib/x86_64-linux-gnu/libcrypto.so.3 ]; then
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
+            echo "✅ Creado enlace simbólico para libcrypto.so.1.1"
+          fi
+          
+          if [ ! -f /usr/lib/x86_64-linux-gnu/libssl.so.1.1 ] && [ -f /usr/lib/x86_64-linux-gnu/libssl.so.3 ]; then
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1
+            echo "✅ Creado enlace simbólico para libssl.so.1.1"
+          fi
+          
+          # Instalar MongoDB Community Edition como respaldo
+          echo "📦 Instalando MongoDB Community Edition como respaldo..."
+          curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-org-server mongodb-org-tools
+          
+          # Verificar instalación
+          echo "✅ MongoDB instalado:"
+          mongod --version | head -2 || echo "❌ MongoDB no disponible"
       
       - name: Install dependencies
         run: npm ci
@@ -36,6 +89,29 @@ jobs:
       
       - name: Run unit tests
         run: npm run test:unit
+        
+      - name: Verify MongoDB Memory Server
+        run: node scripts/check-mongodb-memory-server.js
+        env:
+          NODE_ENV: test
+          CI: true
+        
+      - name: Run integration tests
+        run: npm run test:int
+        env:
+          # Variables para tests de integración
+          NODE_ENV: test
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE: test
+          # MongoDB Memory Server configuración
+          MONGOMS_VERSION: '6.0.1'
+          MONGOMS_DISABLE_POSTINSTALL: '1'
+          MONGOMS_SYSTEM_BINARY: 'mongod'
+          # Configuración de timeout extendido para CI
+          JEST_TIMEOUT: 120000
 
   # Deploy real a staging (estructura similar a producción)
   deploy-staging:

@@ -33,29 +33,62 @@ describe('MongoDB Integration - Conversations V2 Infrastructure', () => {
 
   beforeAll(async () => {
     // Configurar MongoDB en memoria con timeout extendido
+    const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'test';
+    const mongoOptions = {
+      binary: {
+        version: '6.0.1',
+        checkMD5: false,
+        downloadDir: './mongodb-binaries',
+        skipMD5: true,
+      },
+      instance: {
+        dbName: 'conversations-test',
+        port: 27017,
+        storageEngine: 'wiredTiger' as const,
+      },
+      autoStart: true,
+    };
+
     try {
-      mongoServer = await MongoMemoryServer.create({
-        binary: {
-          version: '6.0.1',
-        },
-        instance: {
-          dbName: 'test',
-          port: 27017 + Math.floor(Math.random() * 1000),
-        },
-      });
+      console.log(`🔧 Iniciando MongoDB Memory Server (CI: ${isCI})...`);
+      mongoServer = await MongoMemoryServer.create(mongoOptions);
+      console.log(`✅ MongoDB Memory Server iniciado exitosamente`);
+    } catch (error) {
+      console.error('❌ Error al iniciar MongoDB Memory Server:', error);
+      throw error;
+    }
+
+    try {
+      console.log(`🔧 Iniciando MongoDB Memory Server (CI: ${isCI})...`);
+      mongoServer = await MongoMemoryServer.create(mongoOptions);
     } catch (error) {
       // Si falla, intentar con configuración mínima pero especificando versión
       console.warn(
         'Falló la configuración inicial, intentando configuración mínima:',
         error instanceof Error ? error.message : error,
       );
-      mongoServer = await MongoMemoryServer.create({
-        binary: {
-          version: '6.0.1',
-        },
-      });
+
+      // Intentar con configuración alternativa
+      try {
+        mongoServer = await MongoMemoryServer.create({
+          binary: {
+            version: '6.0.1',
+            checkMD5: false,
+          },
+        });
+      } catch (secondError) {
+        console.error(
+          'Error crítico al iniciar MongoDB Memory Server:',
+          secondError,
+        );
+        throw new Error(
+          `No se pudo iniciar MongoDB Memory Server. ` +
+            `Error original: ${error instanceof Error ? error.message : error}. ` +
+            `Error secundario: ${secondError instanceof Error ? secondError.message : secondError}`,
+        );
+      }
     }
-    
+
     const mongoUri = mongoServer.getUri();
 
     // Crear módulo de testing
