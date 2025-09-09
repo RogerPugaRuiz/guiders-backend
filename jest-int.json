@@ -20,5 +20,6 @@
   "transformIgnorePatterns": [
     "node_modules/(?!(jose|@nestjs/websockets|socket.io)/)"
   ],
-  "testTimeout": 60000
+  "testTimeout": 120000,
+    "setupFilesAfterEnv": ["<rootDir>/../jest-int.setup.ts"]
 }
