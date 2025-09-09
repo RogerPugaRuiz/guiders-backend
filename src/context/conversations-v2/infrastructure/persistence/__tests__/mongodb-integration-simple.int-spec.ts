@@ -22,74 +22,96 @@ import { ChatId } from '../../../domain/value-objects/chat-id';
 import { MessageId } from '../../../domain/value-objects/message-id';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
+import { DockerMongoHelper } from './docker-mongo-helper';
 
 describe('MongoDB Integration - Conversations V2 Infrastructure', () => {
-  let mongoServer: MongoMemoryServer;
+  let mongoServer: MongoMemoryServer | null = null;
+  let dockerMongo: DockerMongoHelper | null = null;
   let module: TestingModule;
   let chatRepository: MongoChatRepositoryImpl;
   let messageRepository: MongoMessageRepositoryImpl;
   let chatModel: Model<ChatDocument>;
   let messageModel: Model<MessageDocument>;
+  let mongoUri: string;
 
   beforeAll(async () => {
     // Configurar MongoDB en memoria con timeout extendido
     const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'test';
-    const mongoOptions = {
-      binary: {
-        version: '6.0.1',
-        checkMD5: false,
-        downloadDir: './mongodb-binaries',
-        skipMD5: true,
+    
+    // Intentar primero con MongoDB Memory Server, luego Docker como fallback
+    let mongoMemoryServerWorked = false;
+    
+    // Configuración más simple con fallbacks conservadores
+    const mongoConfigs = [
+      // Configuración básica con versión más estable
+      {
+        binary: {
+          version: '4.4.25',
+          skipMD5: true,
+        },
+        instance: {
+          dbName: 'conversations-test',
+        },
+        autoStart: true,
       },
-      instance: {
-        dbName: 'conversations-test',
-        port: 27017,
-        storageEngine: 'wiredTiger' as const,
+      // Configuración con versión aún más antigua pero muy estable
+      {
+        binary: {
+          version: '4.2.24',
+          skipMD5: true,
+        },
+        instance: {
+          dbName: 'conversations-test',
+        },
+        autoStart: true,
       },
-      autoStart: true,
-    };
+    ];
 
-    try {
-      console.log(`🔧 Iniciando MongoDB Memory Server (CI: ${isCI})...`);
-      mongoServer = await MongoMemoryServer.create(mongoOptions);
-      console.log(`✅ MongoDB Memory Server iniciado exitosamente`);
-    } catch (error) {
-      console.error('❌ Error al iniciar MongoDB Memory Server:', error);
-      throw error;
+    let lastError: Error | null = null;
+    
+    // Intentar con MongoDB Memory Server
+    console.log('🔧 Intentando iniciar con MongoDB Memory Server...');
+    for (let i = 0; i < mongoConfigs.length; i++) {
+      const config = mongoConfigs[i];
+      try {
+        console.log(`🔧 Intento ${i + 1}: Iniciando MongoDB Memory Server con versión ${config.binary.version} (CI: ${isCI})...`);
+        mongoServer = await MongoMemoryServer.create(config);
+        mongoUri = mongoServer.getUri();
+        console.log(`✅ MongoDB Memory Server iniciado exitosamente con versión ${config.binary.version}`);
+        mongoMemoryServerWorked = true;
+        break; // Si llegamos aquí, fue exitoso
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(
+          `⚠️ Intento ${i + 1} falló con versión ${config.binary.version}:`,
+          lastError.message.slice(0, 100) + (lastError.message.length > 100 ? '...' : '')
+        );
+        
+        // Si no es el último intento, continuar al siguiente
+        if (i < mongoConfigs.length - 1) {
+          console.log(`🔄 Intentando con configuración de respaldo...`);
+          continue;
+        }
+      }
     }
 
-    try {
-      console.log(`🔧 Iniciando MongoDB Memory Server (CI: ${isCI})...`);
-      mongoServer = await MongoMemoryServer.create(mongoOptions);
-    } catch (error) {
-      // Si falla, intentar con configuración mínima pero especificando versión
-      console.warn(
-        'Falló la configuración inicial, intentando configuración mínima:',
-        error instanceof Error ? error.message : error,
-      );
-
-      // Intentar con configuración alternativa
+    // Si MongoDB Memory Server no funcionó, intentar con Docker
+    if (!mongoMemoryServerWorked) {
+      console.log('🐳 MongoDB Memory Server falló, intentando con Docker...');
       try {
-        mongoServer = await MongoMemoryServer.create({
-          binary: {
-            version: '6.0.1',
-            checkMD5: false,
-          },
-        });
-      } catch (secondError) {
-        console.error(
-          'Error crítico al iniciar MongoDB Memory Server:',
-          secondError,
-        );
+        dockerMongo = new DockerMongoHelper(27017);
+        mongoUri = await dockerMongo.start();
+        console.log('✅ MongoDB Docker iniciado exitosamente como fallback');
+      } catch (dockerError) {
         throw new Error(
-          `No se pudo iniciar MongoDB Memory Server. ` +
-            `Error original: ${error instanceof Error ? error.message : error}. ` +
-            `Error secundario: ${secondError instanceof Error ? secondError.message : secondError}`,
+          `❌ No se pudo iniciar MongoDB con ningún método. ` +
+          `Memory Server error: ${lastError?.message?.slice(0, 100) || 'Error desconocido'}. ` +
+          `Docker error: ${dockerError instanceof Error ? dockerError.message.slice(0, 100) : 'Error desconocido'}`
         );
       }
     }
 
-    const mongoUri = mongoServer.getUri();
+    console.log(`🔗 MongoDB URI: ${mongoUri}`);
 
     // Crear módulo de testing
     module = await Test.createTestingModule({
@@ -119,7 +141,9 @@ describe('MongoDB Integration - Conversations V2 Infrastructure', () => {
     messageModel = module.get<Model<MessageDocument>>(
       getModelToken(MessageSchema.name),
     );
-  }, 60000);
+    
+    console.log('🎯 Módulo de testing inicializado correctamente');
+  }, 240000);
 
   afterAll(async () => {
     if (module) {
@@ -127,6 +151,9 @@ describe('MongoDB Integration - Conversations V2 Infrastructure', () => {
     }
     if (mongoServer) {
       await mongoServer.stop();
+    }
+    if (dockerMongo) {
+      await dockerMongo.stop();
     }
   });
 
