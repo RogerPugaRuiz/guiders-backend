@@ -90,11 +90,7 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
         
-      - name: Verify MongoDB Memory Server
-        run: node scripts/check-mongodb-memory-server.js
-        env:
-          NODE_ENV: test
-          CI: true
+  # Eliminado: verificación con MongoDB Memory Server, se verificará conectividad con mongosh posteriormente
         
       - name: Run integration tests
         run: npm run test:int

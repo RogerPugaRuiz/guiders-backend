@@ -53,6 +53,10 @@ async function checkMongoMemoryServer() {
 
     if (systemBinary) {
       options.binary.systemBinary = systemBinary;
+      // Evitar conflictos de versión: no pasar "version" si usamos binario del sistema
+      if (options.binary && options.binary.version) {
+        delete options.binary.version;
+      }
       console.log(`🧭 Usando mongod del sistema: ${systemBinary}`);
     }
     
