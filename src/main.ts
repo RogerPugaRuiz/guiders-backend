@@ -119,6 +119,7 @@ async function bootstrap() {
               : 'http://localhost',
             'https://console.guiders.es',
             'https://admin.guiders.es',
+            '*',
           ]
         : ['http://localhost:4200', 'http://localhost:4201', '*'],
     allowedHeaders: [
