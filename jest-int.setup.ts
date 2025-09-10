@@ -20,6 +20,12 @@ if (isCI) {
   console.log(
     `🔧 Preferencia: ${process.env.MONGOMS_SYSTEM_BINARY ? 'systemBinary' : 'download'} (version=${process.env.MONGOMS_VERSION})`,
   );
+
+  // Si se usa binario del sistema, ignorar versión para evitar conflictos
+  if (process.env.MONGOMS_SYSTEM_BINARY) {
+    delete process.env.MONGOMS_VERSION;
+    console.log('ℹ️ Usando MONGOMS_SYSTEM_BINARY, se ignora MONGOMS_VERSION');
+  }
 } else {
   // Configuración para desarrollo local
   process.env.MONGOMS_DISABLE_POSTINSTALL = process.env.MONGOMS_DISABLE_POSTINSTALL ?? '1';
