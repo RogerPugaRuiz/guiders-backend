@@ -26,7 +26,8 @@
     "cli:prod": "NODE_ENV=production node dist/tools/cli.js",
     "typeorm:migrate:run": "npm run build && npx typeorm migration:run -d dist/src/data-source.js",
     "typeorm:migrate:generate": "npm run build && npx typeorm migration:generate -d dist/src/data-source.js",
-    "typeorm:migrate:generate:js": "tsc src/data-source.ts --module commonjs --outDir dist/tmp && npx typeorm migration:generate src/migrations/create-test-entity -d dist/tmp/data-source.js"
+  "typeorm:migrate:generate:js": "tsc src/data-source.ts --module commonjs --outDir dist/tmp && npx typeorm migration:generate src/migrations/create-test-entity -d dist/tmp/data-source.js",
+  "keycloak:configure": "node bin/keycloak-configure-client.js"
   },
   "dependencies": {
     "@faker-js/faker": "^9.6.0",
@@ -54,13 +55,18 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "commander": "^13.1.0",
+    "connect-redis": "^7.1.1",
+    "cookie-parser": "^1.4.7",
+    "express-session": "^1.18.2",
     "cookie-parser": "^1.4.7",
     "express-session": "^1.18.2",
     "inquirer": "^12.6.1",
+    "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "mongoose": "^8.16.1",
     "nodemailer": "^7.0.3",
+    "openid-client": "^6.7.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.13.3",
@@ -126,7 +132,12 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/src/$1"
-    }
+      "^src/(.*)$": "<rootDir>/src/$1",
+      "^jose$": "<rootDir>/__mocks__/jose.js"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(jose|@nestjs/websockets|socket.io)/)"
+    ],
+    "testTimeout": 60000
   }
 }

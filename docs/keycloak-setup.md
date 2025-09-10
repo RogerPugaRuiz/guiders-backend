@@ -52,17 +52,30 @@ Una vez iniciado, puedes acceder a la consola de administración de Keycloak en:
 4. Nombre sugerido: `guiders`
 5. Habilita el realm
 
-### 2. Crear un Cliente
+### 2. Crear un Cliente (console)
 
 1. Dentro del realm `guiders`, ve a "Clients"
 2. Haz clic en "Create client"
 3. Configuración sugerida:
-   - Client ID: `guiders-backend`
+   - Client ID: `console`
    - Client type: `OpenID Connect`
    - Authentication: Habilitado
 4. En la configuración del cliente:
-   - Valid redirect URIs: `http://localhost:3000/*`
-   - Web origins: `http://localhost:3000`
+    - Client type: `Public`
+    - Standard Flow Enabled: `On`
+    - Valid redirect URIs (exacto): `http://localhost:3000/api/bff/auth/callback/console`
+       - En desarrollo, puedes añadir también `http://localhost:3000/*` para evitar problemas provisionales
+    - Web origins: `http://localhost:3000`, `http://localhost:4200` (o `*` solo en local)
+
+### (Opcional) Configuración automática
+
+Puedes aplicar esta configuración automáticamente con el script incluido:
+
+```bash
+npm run keycloak:configure
+```
+
+Requisitos: Keycloak en `http://localhost:${KEYCLOAK_PORT:-8080}` y realm `guiders` creado. Usa credenciales `KEYCLOAK_ADMIN_USERNAME` y `KEYCLOAK_ADMIN_PASSWORD` del `.env`.
 
 ### 3. Crear Usuarios de Prueba
 
