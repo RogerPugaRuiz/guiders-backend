@@ -79,7 +79,7 @@ class MockAuthGuard {
     if (!auth) throw new UnauthorizedException('Token requerido');
     const token = auth.split(' ')[1];
     // token decide user id
-  if (token === 'valid-admin-token') {
+    if (token === 'valid-admin-token') {
       req.user = {
         id: baseUser.id,
         roles: ['admin'],
@@ -154,7 +154,7 @@ describe('AuthUserController /user/auth/me (e2e)', () => {
   });
 
   it('debe retornar 401 si no hay token', async () => {
-  await request(app.getHttpServer()).get('/user/auth/me').expect(401);
+    await request(app.getHttpServer()).get('/user/auth/me').expect(401);
   });
 
   it('debe retornar la información del usuario (admin)', async () => {

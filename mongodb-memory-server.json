@@ -1,0 +1,16 @@
+{
+  "version": "5.0.13",
+  "downloadDir": "./mongodb-binaries",
+  "checkMD5": false,
+  "skipMD5": true,
+  "instance": {
+    "port": 0,
+    "dbName": "test",
+    "storageEngine": "wiredTiger"
+  },
+  "disable_postinstall": true,
+  "runtime": {
+    "downloadBinary": true,
+    "useSharedDBForAllJestWorkers": false
+  }
+}
