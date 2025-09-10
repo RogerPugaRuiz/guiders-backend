@@ -67,16 +67,16 @@ jobs:
             echo "✅ Creado enlace simbólico para libssl.so.1.1"
           fi
           
-          # Instalar MongoDB Community Edition como respaldo
-          echo "📦 Instalando MongoDB Community Edition como respaldo..."
-          curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
-          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+          # Instalar mongod del sistema para uso por mongodb-memory-server
+          echo "📦 Instalando mongod para compatibilidad con MongoDB Memory Server..."
+          curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
           sudo apt-get update
-          sudo apt-get install -y mongodb-org-server mongodb-org-tools
+          sudo apt-get install -y mongodb-org-server mongodb-mongosh || true
           
           # Verificar instalación
-          echo "✅ MongoDB instalado:"
-          mongod --version | head -2 || echo "❌ MongoDB no disponible"
+          echo "✅ MongoDB instalado (si procede):"
+          (command -v mongod && mongod --version | head -2) || echo "❌ mongod no disponible"
       
       - name: Install dependencies
         run: npm ci
@@ -107,9 +107,9 @@ jobs:
           DATABASE_PASSWORD: postgres
           DATABASE: test
           # MongoDB Memory Server configuración
-          MONGOMS_VERSION: '6.0.1'
+          MONGOMS_VERSION: '5.0.13'
           MONGOMS_DISABLE_POSTINSTALL: '1'
-          MONGOMS_SYSTEM_BINARY: 'mongod'
+          MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
           # Configuración de timeout extendido para CI
           JEST_TIMEOUT: 120000
 

@@ -281,6 +281,12 @@ jobs:
           
           # Install MongoDB Community Edition as fallback
           sudo apt-get install -y mongodb-org=7.0.14 mongodb-org-database=7.0.14 mongodb-org-server=7.0.14 mongodb-org-mongos=7.0.14 mongodb-org-tools=7.0.14 || echo "MongoDB Community Edition not available, continuing..."
+
+          # Ensure mongod server is installed (unversioned as a fallback)
+          sudo apt-get install -y mongodb-org-server || true
+          
+          # Verify mongod availability
+          command -v mongod && mongod --version | head -2 || echo "mongod not found"
           
           # Create symbolic links for libcrypto compatibility
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
@@ -426,7 +432,8 @@ jobs:
           echo "MONGOMS_DOWNLOAD_DIR=/tmp/mongodb-binaries" >> $GITHUB_ENV
           echo "MONGOMS_VERSION=6.0.1" >> $GITHUB_ENV
           echo "MONGOMS_DISABLE_POSTINSTALL=1" >> $GITHUB_ENV
-          echo "MONGOMS_SYSTEM_BINARY=" >> $GITHUB_ENV
+          # Prefer system mongod to avoid binary download incompatibilities
+          echo "MONGOMS_SYSTEM_BINARY=/usr/bin/mongod" >> $GITHUB_ENV
           echo "MONGOMS_SKIP_MD5=true" >> $GITHUB_ENV
           echo "MONGOMS_ARCH=x64" >> $GITHUB_ENV
           echo "MONGOMS_PLATFORM=linux" >> $GITHUB_ENV
@@ -570,6 +577,12 @@ jobs:
           
           # Install MongoDB Community Edition as fallback
           sudo apt-get install -y mongodb-org=7.0.14 mongodb-org-database=7.0.14 mongodb-org-server=7.0.14 mongodb-org-mongos=7.0.14 mongodb-org-tools=7.0.14 || echo "MongoDB Community Edition not available, continuing..."
+
+          # Ensure mongod server is installed (unversioned as a fallback)
+          sudo apt-get install -y mongodb-org-server || true
+          
+          # Verify mongod availability
+          command -v mongod && mongod --version | head -2 || echo "mongod not found"
           
           # Create symbolic links for libcrypto compatibility
           sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 2>/dev/null || true
@@ -706,6 +719,7 @@ jobs:
           echo "TEST_MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
           echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
+          echo "MONGOMS_SYSTEM_BINARY=/usr/bin/mongod" >> $GITHUB_ENV
       
       - name: Wait for Redis to be ready (extra check before E2E)
         run: |
@@ -753,6 +767,7 @@ jobs:
           echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
           echo "MONGODB_URL=mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin" >> $GITHUB_ENV
           echo "ENCRYPTION_KEY=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2" >> $GITHUB_ENV
+          echo "MONGOMS_SYSTEM_BINARY=/usr/bin/mongod" >> $GITHUB_ENV
           
           # Configurar directorio de binarios MongoDB Memory Server
           sudo mkdir -p /tmp/mongodb-binaries

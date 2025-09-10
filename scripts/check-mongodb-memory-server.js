@@ -6,6 +6,8 @@
  */
 
 const { MongoMemoryServer } = require('mongodb-memory-server');
+const { execSync } = require('child_process');
+const fs = require('fs');
 
 async function checkMongoMemoryServer() {
   console.log('🔍 Verificando MongoDB Memory Server...');
@@ -17,9 +19,10 @@ async function checkMongoMemoryServer() {
   
   try {
     // Configuración específica para CI/CD
+    const preferredVersion = process.env.MONGOMS_VERSION || (isCI ? '5.0.13' : '6.0.1');
     const options = {
       binary: {
-        version: '6.0.1',
+        version: preferredVersion,
         checkMD5: false,
       },
       instance: {
@@ -27,11 +30,41 @@ async function checkMongoMemoryServer() {
         port: 27018, // Puerto diferente para no interferir
       },
     };
+
+    // En CI intentamos usar el binario del sistema para máxima compatibilidad
+    let systemBinary = process.env.MONGOMS_SYSTEM_BINARY;
+    if (isCI && !systemBinary) {
+      try {
+        // Detectar mongod instalado
+        const which = execSync('which mongod', { stdio: ['ignore', 'pipe', 'ignore'] })
+          .toString()
+          .trim();
+        if (which) {
+          systemBinary = which;
+        } else if (fs.existsSync('/usr/bin/mongod')) {
+          systemBinary = '/usr/bin/mongod';
+        }
+      } catch (_) {
+        if (fs.existsSync('/usr/bin/mongod')) {
+          systemBinary = '/usr/bin/mongod';
+        }
+      }
+    }
+
+    if (systemBinary) {
+      options.binary.systemBinary = systemBinary;
+      console.log(`🧭 Usando mongod del sistema: ${systemBinary}`);
+    }
     
-    console.log('⚙️ Opciones de MongoDB Memory Server:', JSON.stringify(options, null, 2));
+  console.log('⚙️ Opciones de MongoDB Memory Server:', JSON.stringify(options, null, 2));
     
     // Intentar crear instancia
     console.log('🚀 Creando instancia de MongoDB Memory Server...');
+    if (systemBinary) {
+      console.log('ℹ️ Preferencia: systemBinary (sin descarga de binarios)');
+    } else {
+      console.log(`ℹ️ Preferencia: descarga de binarios (version=${options.binary.version})`);
+    }
     mongoServer = await MongoMemoryServer.create(options);
     
     const uri = mongoServer.getUri();
@@ -66,10 +99,13 @@ async function checkMongoMemoryServer() {
     console.error('❌ Error en MongoDB Memory Server:');
     console.error('📋 Detalles del error:', error.message);
     
-    if (error.message.includes('libcrypto.so.1.1')) {
-      console.error('🔧 SOLUCIÓN: Falta la biblioteca libcrypto.so.1.1');
-      console.error('   En Ubuntu/Debian, instalar con:');
-      console.error('   sudo apt-get install libssl-dev libssl1.1');
+    if (error.message.includes('libcrypto.so.1.1') || error.message.includes('libssl.so.1.1')) {
+      console.error('🔧 SOLUCIÓN: Falta compatibilidad OpenSSL 1.1 en el runner');
+      console.error('   Acciones posibles:');
+      console.error('   1) Instalar libssl3 y crear enlaces simbólicos a *.1.1');
+      console.error('      sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1');
+      console.error('      sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3    /usr/lib/x86_64-linux-gnu/libssl.so.1.1');
+      console.error('   2) Preferir binario del sistema configurando MONGOMS_SYSTEM_BINARY=/usr/bin/mongod');
     }
     
     if (error.message.includes('ENOENT') && error.message.includes('mongod')) {
