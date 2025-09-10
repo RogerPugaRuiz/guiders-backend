@@ -430,14 +430,10 @@ jobs:
           
           # Variables específicas para MongoDB Memory Server
           echo "MONGOMS_DOWNLOAD_DIR=/tmp/mongodb-binaries" >> $GITHUB_ENV
-          echo "MONGOMS_VERSION=6.0.1" >> $GITHUB_ENV
-          echo "MONGOMS_DISABLE_POSTINSTALL=1" >> $GITHUB_ENV
           # Prefer system mongod to avoid binary download incompatibilities
           echo "MONGOMS_SYSTEM_BINARY=/usr/bin/mongod" >> $GITHUB_ENV
+          echo "MONGOMS_DISABLE_POSTINSTALL=1" >> $GITHUB_ENV
           echo "MONGOMS_SKIP_MD5=true" >> $GITHUB_ENV
-          echo "MONGOMS_ARCH=x64" >> $GITHUB_ENV
-          echo "MONGOMS_PLATFORM=linux" >> $GITHUB_ENV
-          echo "MONGOMS_DOWNLOAD_URL=https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-6.0.1.tgz" >> $GITHUB_ENV
           echo "CI=true" >> $GITHUB_ENV
       
       - name: Run integration tests with coverage (CRÍTICO)
@@ -775,13 +771,9 @@ jobs:
           
           # Variables específicas para MongoDB Memory Server (por si los tests E2E las necesitan)
           echo "MONGOMS_DOWNLOAD_DIR=/tmp/mongodb-binaries" >> $GITHUB_ENV
-          echo "MONGOMS_VERSION=6.0.1" >> $GITHUB_ENV
           echo "MONGOMS_DISABLE_POSTINSTALL=1" >> $GITHUB_ENV
-          echo "MONGOMS_SYSTEM_BINARY=" >> $GITHUB_ENV
           echo "MONGOMS_SKIP_MD5=true" >> $GITHUB_ENV
-          echo "MONGOMS_ARCH=x64" >> $GITHUB_ENV
-          echo "MONGOMS_PLATFORM=linux" >> $GITHUB_ENV
-          echo "MONGOMS_DOWNLOAD_URL=https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-6.0.1.tgz" >> $GITHUB_ENV
+          echo "MONGOMS_SYSTEM_BINARY=/usr/bin/mongod" >> $GITHUB_ENV
           echo "CI=true" >> $GITHUB_ENV
       
       - name: Final Redis readiness check for E2E

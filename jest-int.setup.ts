@@ -9,20 +9,25 @@ const isCI = process.env.CI === 'true' || process.env.NODE_ENV === 'test';
 // Configurar variables de entorno para MongoDB Memory Server
 // En CI evitar descarga de binarios usando configuración específica
 if (isCI) {
-  // Configuración específica para CI/CD - evitar descarga
-  process.env.MONGOMS_VERSION = '5.0.13'; // Versión más estable para CI
-  process.env.MONGOMS_DISABLE_POSTINSTALL = '1';
-  process.env.MONGOMS_SKIP_MD5 = 'true';
-  // Configurar descarga local si es necesaria
-  process.env.MONGOMS_DOWNLOAD_DIR = './mongodb-binaries';
+  // Configuración específica para CI/CD - preferir binario del sistema si está disponible
+  process.env.MONGOMS_DISABLE_POSTINSTALL = process.env.MONGOMS_DISABLE_POSTINSTALL ?? '1';
+  process.env.MONGOMS_SKIP_MD5 = process.env.MONGOMS_SKIP_MD5 ?? 'true';
+
+  process.env.MONGOMS_VERSION = process.env.MONGOMS_VERSION ?? '5.0.13'; // Versión estable
+  process.env.MONGOMS_DOWNLOAD_DIR = process.env.MONGOMS_DOWNLOAD_DIR ?? './mongodb-binaries';
+
   console.log('🔧 MongoDB Memory Server configurado para CI/CD');
-  console.log('🔧 Usando versión 5.0.13 para mayor estabilidad');
+  console.log(
+    `🔧 Preferencia: ${process.env.MONGOMS_SYSTEM_BINARY ? 'systemBinary' : 'download'} (version=${process.env.MONGOMS_VERSION})`,
+  );
 } else {
   // Configuración para desarrollo local
-  process.env.MONGOMS_VERSION = '6.0.1';
-  process.env.MONGOMS_DISABLE_POSTINSTALL = '1';
-  process.env.MONGOMS_SKIP_MD5 = 'true';
-  process.env.MONGOMS_DOWNLOAD_DIR = './mongodb-binaries';
+  process.env.MONGOMS_DISABLE_POSTINSTALL = process.env.MONGOMS_DISABLE_POSTINSTALL ?? '1';
+  process.env.MONGOMS_SKIP_MD5 = process.env.MONGOMS_SKIP_MD5 ?? 'true';
+
+  process.env.MONGOMS_VERSION = process.env.MONGOMS_VERSION ?? '6.0.1';
+  process.env.MONGOMS_DOWNLOAD_DIR = process.env.MONGOMS_DOWNLOAD_DIR ?? './mongodb-binaries';
+
   console.log('🔧 MongoDB Memory Server configurado para desarrollo local');
 }
 
