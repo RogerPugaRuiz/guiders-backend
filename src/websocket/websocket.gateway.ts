@@ -30,7 +30,7 @@ export class WebSocketGatewayBasic
   @WebSocketServer() server: Server;
   private logger = new Logger('WebSocketGateway');
 
-  afterInit(_server: Server) {
+  afterInit() {
     this.logger.log('WebSocket Gateway inicializado');
     this.logger.log(
       `Configuración: path=/socket.io/, transports=[websocket, polling]`,
