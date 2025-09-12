@@ -105,55 +105,9 @@ async function bootstrap() {
   // Excluimos docs y jwks; health queda bajo /api/health
   app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json', '/jwks'] });
 
-  // Configuración de CORS con soporte para dominios de clientes SDK
-  // Variable de entorno recomendada: SDK_CLIENT_DOMAINS="https://autopractik.es,https://otrocliente.com"
-  const sdkClientDomains: string[] = (() => {
-    if (process.env.SDK_CLIENT_DOMAINS) {
-      return process.env.SDK_CLIENT_DOMAINS.split(',')
-        .map((d) => d.trim())
-        .filter(Boolean);
-    }
-    // Por defecto en producción añadimos el cliente conocido si no se define env
-    if (process.env.NODE_ENV === 'production') {
-      return ['https://autopractik.es', 'http://autopractik.es'];
-    }
-    return [];
-  })();
-
-  const baseProdOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:4001',
-    process.env.DOMAIN ? `https://${process.env.DOMAIN}` : 'http://localhost',
-    process.env.DOMAIN ? `http://${process.env.DOMAIN}` : 'http://localhost',
-    'https://console.guiders.es',
-    'https://admin.guiders.es',
-  ];
-  const baseDevOrigins = ['http://localhost:4200', 'http://localhost:4201'];
-
-  const combinedOrigins = (
-    process.env.NODE_ENV === 'production'
-      ? [...baseProdOrigins, ...sdkClientDomains]
-      : [...baseDevOrigins, ...sdkClientDomains]
-  ).filter((v, i, arr) => arr.indexOf(v) === i);
-
-  const corsOptions = {
-    origin: combinedOrigins,
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Origin',
-      'Referer',
-      'X-Requested-With',
-      'Accept',
-      'Cache-Control',
-      'X-Real-IP',
-      'X-Forwarded-For',
-      'X-Forwarded-Proto',
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    credentials: true,
-  };
-
-  app.enableCors(corsOptions);
+  // CORS deshabilitado en NestJS - NGINX se encarga de manejar CORS
+  // Configuración movida a NGINX para mejor rendimiento y centralización
+  // app.enableCors() removido intencionalmente
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
@@ -181,7 +135,7 @@ async function bootstrap() {
     `Application is running in ${process.env.NODE_ENV || 'development'} mode`,
   );
   logger.log(`Global prefix: api (excluded: /docs, /docs-json, /jwks)`);
-  logger.log(`CORS origin: ${JSON.stringify(corsOptions.origin)}`);
+  logger.log(`CORS handled by NGINX proxy`);
   logger.log(
     `Application is running on ${useHttps ? 'https' : 'http'}://0.0.0.0:${
       process.env.PORT ?? 3000
