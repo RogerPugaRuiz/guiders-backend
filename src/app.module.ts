@@ -18,6 +18,7 @@ import { TrackingModule } from './context/tracking/tracking.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
+import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { ConversationsV2Module } from './context/conversations-v2/conversations-
     TrackingModule,
     CompanyModule,
     ConversationsV2Module,
+    WebSocketModule,
     // OpenSearchModule,
     CqrsModule.forRoot(),
     HttpModule,
