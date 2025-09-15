@@ -37,7 +37,14 @@ describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
     const event = new CompanyCreatedWithAdminEvent({
       companyId: Uuid.random().value, // Usa un UUID válido
       companyName: 'Test Company',
-      domain: 'test.com',
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin User',
       adminEmail: 'admin@email.com',
       adminTel: '123456789',
@@ -65,7 +72,14 @@ describe('CreateAdminOnCompanyCreatedWithAdminEventHandler', () => {
     const event = new CompanyCreatedWithAdminEvent({
       companyId: 'company-uuid',
       companyName: 'Test Company',
-      domain: 'test.com',
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin User',
       adminEmail: null, // null explícito para cumplir con el tipo
       adminTel: '123456789',

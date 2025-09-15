@@ -1,16 +1,17 @@
 // Entidad de dominio Company siguiendo DDD y CQRS
 import { AggregateRoot } from '@nestjs/cqrs';
 import { CompanyName } from './value-objects/company-name';
-import { CompanyDomains } from './value-objects/company-domains';
+import { CompanySites } from './value-objects/company-sites';
 import { CompanyCreatedEvent } from './events/company-created.event';
 import { Uuid } from '../../shared/domain/value-objects/uuid';
+import { SitePrimitives } from './entities/site';
 
 // Entidad principal del contexto Company
 export class Company extends AggregateRoot {
   // Propiedades encapsuladas
   private readonly id: Uuid;
   private readonly companyName: CompanyName;
-  private readonly domains: CompanyDomains;
+  private readonly sites: CompanySites;
   private readonly createdAt: Date;
   private readonly updatedAt: Date;
 
@@ -18,14 +19,14 @@ export class Company extends AggregateRoot {
   private constructor(props: {
     id: Uuid;
     companyName: CompanyName;
-    domains: CompanyDomains;
+    sites: CompanySites;
     createdAt: Date;
     updatedAt: Date;
   }) {
     super();
     this.id = props.id;
     this.companyName = props.companyName;
-    this.domains = props.domains;
+    this.sites = props.sites;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }
@@ -34,7 +35,7 @@ export class Company extends AggregateRoot {
   public static create(props: {
     id: Uuid;
     companyName: CompanyName;
-    domains: CompanyDomains;
+    sites: CompanySites;
     createdAt: Date;
     updatedAt: Date;
   }): Company {
@@ -44,7 +45,7 @@ export class Company extends AggregateRoot {
       new CompanyCreatedEvent({
         id: props.id.getValue(),
         companyName: props.companyName.getValue(),
-        domains: props.domains.toPrimitives(),
+        sites: props.sites.toPrimitives(),
         createdAt: props.createdAt.toISOString(),
         updatedAt: props.updatedAt.toISOString(),
       }),
@@ -56,14 +57,14 @@ export class Company extends AggregateRoot {
   public static fromPrimitives(primitives: {
     id: string;
     companyName: string;
-    domains: string[];
+    sites: SitePrimitives[];
     createdAt: string;
     updatedAt: string;
   }): Company {
     return new Company({
       id: new Uuid(primitives.id),
       companyName: new CompanyName(primitives.companyName),
-      domains: CompanyDomains.fromPrimitives(primitives.domains),
+      sites: CompanySites.fromPrimitives(primitives.sites),
       createdAt: new Date(primitives.createdAt),
       updatedAt: new Date(primitives.updatedAt),
     });
@@ -73,14 +74,14 @@ export class Company extends AggregateRoot {
   public toPrimitives(): {
     id: string;
     companyName: string;
-    domains: string[];
+    sites: SitePrimitives[];
     createdAt: string;
     updatedAt: string;
   } {
     return {
       id: this.id.getValue(),
       companyName: this.companyName.getValue(),
-      domains: this.domains.toPrimitives(),
+      sites: this.sites.toPrimitives(),
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };
@@ -93,8 +94,8 @@ export class Company extends AggregateRoot {
   public getCompanyName(): CompanyName {
     return this.companyName;
   }
-  public getDomains(): CompanyDomains {
-    return this.domains;
+  public getSites(): CompanySites {
+    return this.sites;
   }
   public getCreatedAt(): Date {
     return this.createdAt;

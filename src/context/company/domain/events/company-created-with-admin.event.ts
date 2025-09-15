@@ -2,10 +2,17 @@
 // Ubicación: src/context/company/domain/events/company-created-with-admin.event.ts
 import { DomainEvent } from 'src/context/shared/domain/domain-event';
 
+export interface SiteEventData {
+  id: string;
+  name: string;
+  canonicalDomain: string;
+  domainAliases: string[];
+}
+
 export interface CompanyCreatedWithAdminPayload {
   companyId: string;
   companyName: string;
-  domain: string;
+  sites: SiteEventData[];
   adminName: string;
   adminEmail: string | null;
   adminTel: string | null;

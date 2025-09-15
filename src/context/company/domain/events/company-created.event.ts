@@ -1,8 +1,10 @@
 import { DomainEvent } from 'src/context/shared/domain/domain-event';
+import { SitePrimitives } from '../entities/site';
+
 export class Payload {
   id: string;
   companyName: string;
-  domains: string[];
+  sites: SitePrimitives[];
   createdAt: string;
   updatedAt: string;
 }

@@ -48,7 +48,14 @@ describe('CreateCompanyWithAdminCommandHandler', () => {
     // Arrange
     const props = {
       companyName: 'GuiderTest',
-      domain: 'guiders.com',
+      sites: [
+        {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          name: 'Principal',
+          canonicalDomain: 'guiders.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin User',
       adminEmail: 'admin@guiders.com',
       adminTel: '123456789',
@@ -76,9 +83,11 @@ describe('CreateCompanyWithAdminCommandHandler', () => {
     const publishCall = eventBus.publish.mock.calls[0][0] as {
       _attributes: Record<string, unknown>;
     };
-    const attrs = publishCall._attributes as Record<string, string>;
+    const attrs = publishCall._attributes as Record<string, any>;
     expect(attrs.companyName).toBe(props.companyName);
-    expect(attrs.domain).toBe(props.domain);
+    expect(Array.isArray(attrs.sites)).toBe(true);
+    expect(attrs.sites).toHaveLength(1);
+    expect(attrs.sites[0].canonicalDomain).toBe('guiders.com');
     expect(attrs.adminName).toBe(props.adminName);
     expect(attrs.adminEmail).toBe(props.adminEmail);
     expect(attrs.adminTel).toBe(props.adminTel);

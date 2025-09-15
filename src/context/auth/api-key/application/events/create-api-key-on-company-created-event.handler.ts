@@ -21,16 +21,35 @@ export class CreateApiKeyOnCompanyCreatedEventHandler
 
   // Maneja el evento de creación de empresa
   async handle(event: CompanyCreatedEvent): Promise<void> {
-    // Se recorren todos los dominios de la empresa y se crea una API Key para cada uno
-    const domains = event.attributes.domains;
+    // Se obtienen todos los dominios de todos los sitios de la empresa
+    const sites = event.attributes.sites;
     const companyId = event.attributes.id;
-    if (!domains || domains.length === 0) {
+
+    if (!sites || sites.length === 0) {
       this.logger.warn(
-        `No se encontraron dominios para la empresa ${companyId}, no se crearán API Keys.`,
+        `No se encontraron sitios para la empresa ${companyId}, no se crearán API Keys.`,
       );
       return;
     }
-    for (const domain of domains) {
+
+    // Extraer todos los dominios (canónicos + aliases) de todos los sitios
+    const allDomains: string[] = [];
+    for (const site of sites) {
+      // Agregar dominio canónico
+      allDomains.push(site.canonicalDomain);
+      // Agregar aliases
+      allDomains.push(...site.domainAliases);
+    }
+
+    if (allDomains.length === 0) {
+      this.logger.warn(
+        `No se encontraron dominios en los sitios para la empresa ${companyId}, no se crearán API Keys.`,
+      );
+      return;
+    }
+
+    // Crear API Key para cada dominio
+    for (const domain of allDomains) {
       try {
         await this.createApiKeyForDomainUseCase.execute(
           ApiKeyDomain.create(domain),

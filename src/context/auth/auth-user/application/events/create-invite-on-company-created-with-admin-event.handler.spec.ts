@@ -47,7 +47,14 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
     const event = new CompanyCreatedWithAdminEvent({
       companyId: Uuid.random().value,
       companyName: 'Test Company',
-      domain: 'test.com',
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin',
       adminEmail: 'admin@test.com',
       adminTel: null,
@@ -85,7 +92,14 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
     const event = new CompanyCreatedWithAdminEvent({
       companyId: Uuid.random().value,
       companyName: 'Test Company',
-      domain: 'test.com',
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin',
       adminEmail: null,
       adminTel: null,

@@ -47,6 +47,7 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
     try {
       const entity = await this.companyRepo.findOne({
         where: { id: id.getValue() },
+        relations: ['sites'],
       });
       if (!entity) {
         return err(new CompanyNotFoundError());
@@ -80,7 +81,9 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
   // Devuelve todas las empresas
   async findAll(): Promise<Result<Company[], DomainError>> {
     try {
-      const entities = await this.companyRepo.find();
+      const entities = await this.companyRepo.find({
+        relations: ['sites'],
+      });
       return ok(entities.map((entity) => CompanyMapper.toDomain(entity)));
     } catch (error) {
       return err(
@@ -181,10 +184,11 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
   // Busca una empresa por dominio
   async findByDomain(domain: string): Promise<Result<Company, DomainError>> {
     try {
-      // Busca una empresa que tenga el dominio en su array de dominios
+      // Busca una empresa que tenga el dominio en sus sites
       const entity = await this.companyRepo
         .createQueryBuilder('companies')
-        .where(':domain = ANY(companies.domains)', { domain })
+        .leftJoinAndSelect('companies.sites', 'sites')
+        .where('sites.domain = :domain', { domain })
         .getOne();
 
       if (!entity) {

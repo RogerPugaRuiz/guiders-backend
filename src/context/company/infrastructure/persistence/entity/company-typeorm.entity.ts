@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, PrimaryColumn, OneToMany } from 'typeorm';
+import { CompanySiteTypeOrmEntity } from '../typeorm/company-site.entity';
 
 // Entidad de persistencia para Company en TypeORM
 @Entity('companies')
@@ -9,8 +10,11 @@ export class CompanyTypeOrmEntity {
   @Column({ name: 'company_name', type: 'varchar', length: 255 })
   companyName: string;
 
-  @Column('text', { name: 'domains', array: true })
-  domains: string[];
+  @OneToMany(() => CompanySiteTypeOrmEntity, (site) => site.company, {
+    cascade: true,
+    eager: true, // Cargar automáticamente los sites cuando se carga la company
+  })
+  sites: CompanySiteTypeOrmEntity[];
 
   @Column({
     name: 'created_at',
