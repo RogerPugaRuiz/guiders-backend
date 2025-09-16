@@ -7,6 +7,7 @@ import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { SiteId } from '../../../domain/value-objects/site-id';
 import { TenantId } from '../../../domain/value-objects/tenant-id';
 import { VisitorFingerprint } from '../../../domain/value-objects/visitor-fingerprint';
+import { SessionId } from '../../../domain/value-objects/session-id';
 import { Result, ok, err, okVoid } from '../../../../shared/domain/result';
 import { DomainError } from '../../../../shared/domain/domain.error';
 import { VisitorV2MongoEntity } from '../entity/visitor-v2-mongo.entity';
@@ -94,6 +95,33 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       return ok(visitor);
     } catch (error) {
       const errorMessage = `Error al buscar visitante por fingerprint y site: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  async findBySessionId(
+    sessionId: SessionId,
+  ): Promise<Result<VisitorV2, DomainError>> {
+    try {
+      const entity = await this.visitorModel.findOne({
+        'sessions.id': sessionId.value,
+      });
+
+      if (!entity) {
+        return err(
+          new VisitorV2PersistenceError(
+            `Visitante no encontrado con sessionId: ${sessionId.value}`,
+          ),
+        );
+      }
+
+      const visitor = VisitorV2Mapper.fromPersistence(entity);
+      return ok(visitor);
+    } catch (error) {
+      const errorMessage = `Error al buscar visitante por sessionId: ${
         error instanceof Error ? error.message : String(error)
       }`;
       this.logger.error(errorMessage);

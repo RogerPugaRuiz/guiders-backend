@@ -11,7 +11,10 @@ import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { TenantId } from '../../../domain/value-objects/tenant-id';
 import { SiteId } from '../../../domain/value-objects/site-id';
 import { VisitorFingerprint } from '../../../domain/value-objects/visitor-fingerprint';
-import { VisitorLifecycleVO, VisitorLifecycle } from '../../../domain/value-objects/visitor-lifecycle';
+import {
+  VisitorLifecycleVO,
+  VisitorLifecycle,
+} from '../../../domain/value-objects/visitor-lifecycle';
 import { ok, err, okVoid } from '../../../../shared/domain/result';
 import { IdentifyVisitorResponseDto } from '../../dtos/identify-visitor-response.dto';
 import { VisitorV2PersistenceError } from '../../../infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
@@ -41,7 +44,9 @@ describe('IdentifyVisitorCommandHandler', () => {
       ],
     }).compile();
 
-    handler = module.get<IdentifyVisitorCommandHandler>(IdentifyVisitorCommandHandler);
+    handler = module.get<IdentifyVisitorCommandHandler>(
+      IdentifyVisitorCommandHandler,
+    );
     visitorRepository = module.get<VisitorV2Repository>(VISITOR_V2_REPOSITORY);
     eventPublisher = module.get<EventPublisher>(EventPublisher);
   });
@@ -60,7 +65,9 @@ describe('IdentifyVisitorCommandHandler', () => {
         commit: jest.fn(),
         startNewSession: jest.fn(),
         getId: jest.fn().mockReturnValue(VisitorId.random()),
-        getLifecycle: jest.fn().mockReturnValue(new VisitorLifecycleVO(VisitorLifecycle.ANON)),
+        getLifecycle: jest
+          .fn()
+          .mockReturnValue(new VisitorLifecycleVO(VisitorLifecycle.ANON)),
         getActiveSessions: jest.fn().mockReturnValue([
           {
             getId: jest.fn().mockReturnValue({ value: 'session-123' }),
@@ -86,15 +93,15 @@ describe('IdentifyVisitorCommandHandler', () => {
 
       jest
         .spyOn(visitorRepository, 'findByFingerprintAndSite')
-        .mockResolvedValue(err(new VisitorV2PersistenceError('Visitante no encontrado')));
+        .mockResolvedValue(
+          err(new VisitorV2PersistenceError('Visitante no encontrado')),
+        );
 
       jest
         .spyOn(eventPublisher, 'mergeObjectContext')
         .mockReturnValue(mockVisitorContext as any);
 
-      jest
-        .spyOn(visitorRepository, 'save')
-        .mockResolvedValue(okVoid());
+      jest.spyOn(visitorRepository, 'save').mockResolvedValue(okVoid());
 
       // Act
       const result = await handler.execute(validCommand);
@@ -129,7 +136,9 @@ describe('IdentifyVisitorCommandHandler', () => {
         commit: jest.fn(),
         startNewSession: jest.fn(),
         getId: jest.fn().mockReturnValue(existingVisitorId),
-        getLifecycle: jest.fn().mockReturnValue(new VisitorLifecycleVO(VisitorLifecycle.ENGAGED)),
+        getLifecycle: jest
+          .fn()
+          .mockReturnValue(new VisitorLifecycleVO(VisitorLifecycle.ENGAGED)),
         getActiveSessions: jest.fn().mockReturnValue([
           {
             getId: jest.fn().mockReturnValue({ value: 'session-456' }),
@@ -145,9 +154,7 @@ describe('IdentifyVisitorCommandHandler', () => {
         .spyOn(eventPublisher, 'mergeObjectContext')
         .mockReturnValue(mockVisitorContext as any);
 
-      jest
-        .spyOn(visitorRepository, 'save')
-        .mockResolvedValue(okVoid());
+      jest.spyOn(visitorRepository, 'save').mockResolvedValue(okVoid());
 
       // Act
       const result = await handler.execute(validCommand);
@@ -169,7 +176,9 @@ describe('IdentifyVisitorCommandHandler', () => {
         commit: jest.fn(),
         startNewSession: jest.fn(),
         getId: jest.fn().mockReturnValue(VisitorId.random()),
-        getLifecycle: jest.fn().mockReturnValue(new VisitorLifecycleVO(VisitorLifecycle.ANON)),
+        getLifecycle: jest
+          .fn()
+          .mockReturnValue(new VisitorLifecycleVO(VisitorLifecycle.ANON)),
         getActiveSessions: jest.fn().mockReturnValue([
           {
             getId: jest.fn().mockReturnValue({ value: 'session-123' }),
@@ -179,7 +188,9 @@ describe('IdentifyVisitorCommandHandler', () => {
 
       jest
         .spyOn(visitorRepository, 'findByFingerprintAndSite')
-        .mockResolvedValue(err(new VisitorV2PersistenceError('Visitante no encontrado')));
+        .mockResolvedValue(
+          err(new VisitorV2PersistenceError('Visitante no encontrado')),
+        );
 
       jest
         .spyOn(eventPublisher, 'mergeObjectContext')
@@ -187,10 +198,14 @@ describe('IdentifyVisitorCommandHandler', () => {
 
       jest
         .spyOn(visitorRepository, 'save')
-        .mockResolvedValue(err(new VisitorV2PersistenceError('Error de base de datos')));
+        .mockResolvedValue(
+          err(new VisitorV2PersistenceError('Error de base de datos')),
+        );
 
       // Act & Assert
-      await expect(handler.execute(validCommand)).rejects.toThrow('Error al guardar visitante');
+      await expect(handler.execute(validCommand)).rejects.toThrow(
+        'Error al guardar visitante',
+      );
       expect(mockVisitorContext.commit).not.toHaveBeenCalled();
     });
 
@@ -201,7 +216,9 @@ describe('IdentifyVisitorCommandHandler', () => {
         .mockRejectedValue(new Error('Error de conexión'));
 
       // Act & Assert
-      await expect(handler.execute(validCommand)).rejects.toThrow('Error de conexión');
+      await expect(handler.execute(validCommand)).rejects.toThrow(
+        'Error de conexión',
+      );
     });
   });
 });

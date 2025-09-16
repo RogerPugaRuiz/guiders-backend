@@ -3,6 +3,7 @@ import { VisitorId } from './value-objects/visitor-id';
 import { SiteId } from './value-objects/site-id';
 import { TenantId } from './value-objects/tenant-id';
 import { VisitorFingerprint } from './value-objects/visitor-fingerprint';
+import { SessionId } from './value-objects/session-id';
 import { Result } from '../../shared/domain/result';
 import { DomainError } from '../../shared/domain/domain.error';
 
@@ -29,6 +30,13 @@ export interface VisitorV2Repository {
   findByFingerprintAndSite(
     fingerprint: VisitorFingerprint,
     siteId: SiteId,
+  ): Promise<Result<VisitorV2, DomainError>>;
+
+  /**
+   * Busca un visitante por sessionId
+   */
+  findBySessionId(
+    sessionId: SessionId,
   ): Promise<Result<VisitorV2, DomainError>>;
 
   /**

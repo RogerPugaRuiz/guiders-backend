@@ -7,6 +7,8 @@ import {
 } from './infrastructure/persistence/entity/visitor-v2-mongo.entity';
 import { VisitorV2Controller } from './infrastructure/controllers/visitor-v2.controller';
 import { IdentifyVisitorCommandHandler } from './application/commands/identify-visitor.command-handler';
+import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
+import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
 import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 
@@ -24,6 +26,8 @@ import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
       useClass: VisitorV2MongoRepositoryImpl,
     },
     IdentifyVisitorCommandHandler,
+    UpdateSessionHeartbeatCommandHandler,
+    EndSessionCommandHandler,
   ],
   exports: [VISITOR_V2_REPOSITORY],
 })
