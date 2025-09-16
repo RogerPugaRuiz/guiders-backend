@@ -1,6 +1,9 @@
 import { VisitorV2 } from './visitor-v2.aggregate';
 import { VisitorId } from './value-objects/visitor-id';
-import { DomainId } from './value-objects/domain-id';
+import { SiteId } from './value-objects/site-id';
+import { TenantId } from './value-objects/tenant-id';
+import { VisitorFingerprint } from './value-objects/visitor-fingerprint';
+import { SessionId } from './value-objects/session-id';
 import { Result } from '../../shared/domain/result';
 import { DomainError } from '../../shared/domain/domain.error';
 
@@ -22,17 +25,29 @@ export interface VisitorV2Repository {
   findById(id: VisitorId): Promise<Result<VisitorV2, DomainError>>;
 
   /**
-   * Busca un visitante por su fingerprint y domainId
+   * Busca un visitante por su fingerprint y siteId
    */
-  findByFingerprintAndDomain(
-    fingerprint: string,
-    domainId: DomainId,
+  findByFingerprintAndSite(
+    fingerprint: VisitorFingerprint,
+    siteId: SiteId,
   ): Promise<Result<VisitorV2, DomainError>>;
 
   /**
-   * Busca todos los visitantes de un dominio
+   * Busca un visitante por sessionId
    */
-  findByDomain(domainId: DomainId): Promise<Result<VisitorV2[], DomainError>>;
+  findBySessionId(
+    sessionId: SessionId,
+  ): Promise<Result<VisitorV2, DomainError>>;
+
+  /**
+   * Busca todos los visitantes de un sitio
+   */
+  findBySiteId(siteId: SiteId): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca todos los visitantes de un tenant
+   */
+  findByTenantId(tenantId: TenantId): Promise<Result<VisitorV2[], DomainError>>;
 
   /**
    * Elimina un visitante por su ID

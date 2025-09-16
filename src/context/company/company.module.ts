@@ -5,16 +5,19 @@ import { companyRepositoryProvider } from './infrastructure/persistence/impl/com
 import { CreateCompanyCommandHandler } from './application/commands/create-company-command.handler';
 import { CreateCompanyWithAdminCommandHandler } from './application/commands/create-company-with-admin-command.handler';
 import { FindCompanyByDomainQueryHandler } from './application/queries/find-company-by-domain.query-handler';
+import { ResolveSiteByHostQueryHandler } from './application/queries/resolve-site-by-host.query-handler';
+import { CompanyController } from './infrastructure/controllers/company.controller';
 import { CqrsModule } from '@nestjs/cqrs';
 
 @Module({
   imports: [TypeOrmModule.forFeature([CompanyTypeOrmEntity]), CqrsModule],
-  controllers: [],
+  controllers: [CompanyController],
   providers: [
     companyRepositoryProvider,
     CreateCompanyCommandHandler,
     CreateCompanyWithAdminCommandHandler,
     FindCompanyByDomainQueryHandler,
+    ResolveSiteByHostQueryHandler,
   ],
 })
 export class CompanyModule {}
