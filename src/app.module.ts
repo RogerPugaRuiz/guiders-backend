@@ -16,6 +16,7 @@ import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 import { TrackingModule } from './context/tracking/tracking.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
+import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
 import { WebSocketModule } from './websocket/websocket.module';
@@ -28,6 +29,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     BFFModule,
     ApiKeyModule,
     VisitorsModule,
+    VisitorsV2Module,
     TrackingModule,
     CompanyModule,
     ConversationsV2Module,

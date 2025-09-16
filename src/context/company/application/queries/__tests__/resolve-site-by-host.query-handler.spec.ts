@@ -96,7 +96,10 @@ describe('ResolveSiteByHostQueryHandler', () => {
         id: siteId,
         name: new SiteName('Landing Site'),
         canonicalDomain: new CanonicalDomain('landing.mytech.com'),
-        domainAliases: DomainAliases.fromPrimitives(['www.mytech.com', 'alt.mytech.com']),
+        domainAliases: DomainAliases.fromPrimitives([
+          'www.mytech.com',
+          'alt.mytech.com',
+        ]),
       });
 
       const mockCompany = Company.create({
