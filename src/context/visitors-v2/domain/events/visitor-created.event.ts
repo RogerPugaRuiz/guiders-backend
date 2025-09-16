@@ -2,9 +2,10 @@ import { DomainEvent } from '../../../shared/domain/domain-event';
 
 export interface VisitorCreatedEventPayload {
   readonly id: string;
-  readonly domainId: string;
+  readonly tenantId: string;
+  readonly siteId: string;
   readonly fingerprint: string;
-  readonly state: string;
+  readonly lifecycle: string;
   readonly createdAt: string;
 }
 
