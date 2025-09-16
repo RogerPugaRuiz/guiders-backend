@@ -49,8 +49,8 @@ export class UpdateSessionHeartbeatCommandHandler
         throw new Error('Sesión no válida para este visitante');
       }
 
-      // Actualizar el heartbeat de la sesión
-      visitor.updateSessionActivity(sessionId);
+      // Actualizar el heartbeat de la sesión activa
+      visitor.updateSessionActivity();
 
       // Persistir cambios con eventos
       const visitorContext = this.publisher.mergeObjectContext(visitor);

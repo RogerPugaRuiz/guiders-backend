@@ -5,6 +5,7 @@ import {
   Response,
   HttpCode,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
@@ -106,7 +107,7 @@ export class VisitorV2Controller {
         : undefined);
 
     if (!sessionId) {
-      throw new Error('SessionId no proporcionado');
+      throw new BadRequestException('SessionId no proporcionado');
     }
 
     const command = new UpdateSessionHeartbeatCommand(
@@ -153,7 +154,7 @@ export class VisitorV2Controller {
         : undefined);
 
     if (!sessionId) {
-      throw new Error('SessionId no proporcionado');
+      throw new BadRequestException('SessionId no proporcionado');
     }
 
     const command = new EndSessionCommand(

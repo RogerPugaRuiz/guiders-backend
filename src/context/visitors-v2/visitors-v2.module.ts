@@ -6,11 +6,14 @@ import {
   VisitorV2MongoEntitySchema,
 } from './infrastructure/persistence/entity/visitor-v2-mongo.entity';
 import { VisitorV2Controller } from './infrastructure/controllers/visitor-v2.controller';
+import { SitesController } from './infrastructure/controllers/sites.controller';
 import { IdentifyVisitorCommandHandler } from './application/commands/identify-visitor.command-handler';
 import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
+import { ResolveSiteCommandHandler } from './application/commands/resolve-site.command-handler';
 import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
+import { CompanyModule } from '../company/company.module';
 
 @Module({
   imports: [
@@ -18,8 +21,9 @@ import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
       { name: VisitorV2MongoEntity.name, schema: VisitorV2MongoEntitySchema },
     ]),
     CqrsModule,
+    CompanyModule,
   ],
-  controllers: [VisitorV2Controller],
+  controllers: [VisitorV2Controller, SitesController],
   providers: [
     {
       provide: VISITOR_V2_REPOSITORY,
@@ -28,6 +32,7 @@ import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
     IdentifyVisitorCommandHandler,
     UpdateSessionHeartbeatCommandHandler,
     EndSessionCommandHandler,
+    ResolveSiteCommandHandler,
   ],
   exports: [VISITOR_V2_REPOSITORY],
 })
