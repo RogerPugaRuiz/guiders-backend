@@ -6,7 +6,7 @@ import {
 } from 'src/context/visitors/domain/visitor.repository';
 import { VisitorId } from 'src/context/visitors/domain/value-objects/visitor-id';
 import { GetVisitorByIdQuery } from './get-visitor-by-id.query';
-import { VisitorPrimitives } from 'src/context/visitors/domain/visitor';
+import { VisitorPrimitives } from 'src/context/visitors/domain/visitor.aggregate';
 
 @QueryHandler(GetVisitorByIdQuery)
 export class GetVisitorByIdQueryHandler

@@ -7,7 +7,7 @@ import {
   USER_ACCOUNT_REPOSITORY,
   UserAccountRepository,
 } from '../../domain/user-account.repository';
-import { UserAccountPrimitives } from '../../domain/user-account';
+import { UserAccountPrimitives } from '../../domain/user-account.aggregate';
 // import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
 
 @QueryHandler(FindUsersByCompanyIdQuery)

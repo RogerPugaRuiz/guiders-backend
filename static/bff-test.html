@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BFF Multi-Client Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .app-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .console-section {
+            border-left: 4px solid #4CAF50;
+        }
+        .admin-section {
+            border-left: 4px solid #FF9800;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 3px solid #17a2b8;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .authenticated {
+            background: #d4edda;
+            color: #155724;
+        }
+        .unauthenticated {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test BFF Multiple Clients</h1>
+    <p>Esta página permite probar la autenticación BFF con múltiples clientes (Console y Admin)</p>
+
+    <!-- Console App Section -->
+    <div class="app-section console-section">
+        <h2>🖥️ Console App <span id="console-status" class="status unauthenticated">Not Authenticated</span></h2>
+        <p><strong>Puerto:</strong> 4200 | <strong>Cliente:</strong> console | <strong>Cookies:</strong> console_session, console_refresh</p>
+        
+        <div>
+            <button onclick="consoleLogin()">🔐 Login Console</button>
+            <button onclick="consoleMe()">👤 Get User Info</button>
+            <button onclick="consoleRefresh()">🔄 Refresh Token</button>
+            <button onclick="consoleLogout()">🚪 Logout</button>
+        </div>
+        
+        <div id="console-result" class="result"></div>
+    </div>
+
+    <!-- Admin App Section -->
+    <div class="app-section admin-section">
+        <h2>⚙️ Admin App <span id="admin-status" class="status unauthenticated">Not Authenticated</span></h2>
+        <p><strong>Puerto:</strong> 4201 | <strong>Cliente:</strong> admin | <strong>Cookies:</strong> admin_session, admin_refresh</p>
+        
+        <div>
+            <button onclick="adminLogin()">🔐 Login Admin</button>
+            <button onclick="adminMe()">👤 Get User Info</button>
+            <button onclick="adminRefresh()">🔄 Refresh Token</button>
+            <button onclick="adminLogout()">🚪 Logout</button>
+        </div>
+        
+        <div id="admin-result" class="result"></div>
+    </div>
+
+    <!-- Debug Section -->
+    <div class="app-section">
+        <h2>🔍 Debug Info</h2>
+        <div>
+            <button onclick="showCookies()">🍪 Show All Cookies</button>
+            <button onclick="testRoutes()">🛣️ Test All Routes</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+        <div id="debug-result" class="result"></div>
+    </div>
+
+    <script>
+        // Utility functions
+        function updateStatus(app, isAuthenticated) {
+            const statusEl = document.getElementById(`${app}-status`);
+            statusEl.textContent = isAuthenticated ? 'Authenticated ✅' : 'Not Authenticated ❌';
+            statusEl.className = 'status ' + (isAuthenticated ? 'authenticated' : 'unauthenticated');
+        }
+
+        function showResult(elementId, content) {
+            document.getElementById(elementId).textContent = JSON.stringify(content, null, 2);
+        }
+
+        function appendResult(elementId, content) {
+            const current = document.getElementById(elementId).textContent;
+            document.getElementById(elementId).textContent = current + '\n' + JSON.stringify(content, null, 2);
+        }
+
+        // Console App Functions
+        function consoleLogin() {
+            window.location.href = '/api/bff/auth/login/console?redirect=' + encodeURIComponent(window.location.href);
+        }
+
+        async function consoleMe() {
+            try {
+                const response = await fetch('/api/bff/auth/me', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('console-result', { status: 'SUCCESS', data });
+                    updateStatus('console', true);
+                } else {
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    showResult('console-result', { status: 'ERROR', error, httpStatus: response.status });
+                    updateStatus('console', false);
+                }
+            } catch (error) {
+                showResult('console-result', { status: 'NETWORK_ERROR', error: error.message });
+                updateStatus('console', false);
+            }
+        }
+
+        async function consoleRefresh() {
+            try {
+                const response = await fetch('/api/bff/auth/refresh', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                showResult('console-result', { 
+                    status: response.ok ? 'SUCCESS' : 'ERROR', 
+                    httpStatus: response.status 
+                });
+            } catch (error) {
+                showResult('console-result', { status: 'NETWORK_ERROR', error: error.message });
+            }
+        }
+
+        async function consoleLogout() {
+            try {
+                const response = await fetch('/api/bff/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.redirected || response.status === 302) {
+                    showResult('console-result', { status: 'LOGGED_OUT', redirected: true });
+                    updateStatus('console', false);
+                } else {
+                    showResult('console-result', { status: 'LOGOUT_RESPONSE', httpStatus: response.status });
+                }
+            } catch (error) {
+                showResult('console-result', { status: 'NETWORK_ERROR', error: error.message });
+            }
+        }
+
+        // Admin App Functions  
+        function adminLogin() {
+            window.location.href = '/api/bff/auth/login/admin?redirect=' + encodeURIComponent(window.location.href);
+        }
+
+        async function adminMe() {
+            try {
+                const response = await fetch('/api/bff/auth/me/admin', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult('admin-result', { status: 'SUCCESS', data });
+                    updateStatus('admin', true);
+                } else {
+                    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    showResult('admin-result', { status: 'ERROR', error, httpStatus: response.status });
+                    updateStatus('admin', false);
+                }
+            } catch (error) {
+                showResult('admin-result', { status: 'NETWORK_ERROR', error: error.message });
+                updateStatus('admin', false);
+            }
+        }
+
+        async function adminRefresh() {
+            try {
+                const response = await fetch('/api/bff/auth/refresh/admin', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                showResult('admin-result', { 
+                    status: response.ok ? 'SUCCESS' : 'ERROR', 
+                    httpStatus: response.status 
+                });
+            } catch (error) {
+                showResult('admin-result', { status: 'NETWORK_ERROR', error: error.message });
+            }
+        }
+
+        async function adminLogout() {
+            try {
+                const response = await fetch('/api/bff/auth/logout/admin', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.redirected || response.status === 302) {
+                    showResult('admin-result', { status: 'LOGGED_OUT', redirected: true });
+                    updateStatus('admin', false);
+                } else {
+                    showResult('admin-result', { status: 'LOGOUT_RESPONSE', httpStatus: response.status });
+                }
+            } catch (error) {
+                showResult('admin-result', { status: 'NETWORK_ERROR', error: error.message });
+            }
+        }
+
+        // Debug Functions
+        function showCookies() {
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+                const [name, value] = cookie.trim().split('=');
+                acc[name] = value;
+                return acc;
+            }, {});
+            
+            showResult('debug-result', { 
+                cookies,
+                cookieString: document.cookie,
+                hasConsoleSession: 'console_session' in cookies,
+                hasConsoleRefresh: 'console_refresh' in cookies,
+                hasAdminSession: 'admin_session' in cookies,
+                hasAdminRefresh: 'admin_refresh' in cookies
+            });
+        }
+
+        async function testRoutes() {
+            const routes = [
+                { url: '/api/bff/auth/me', app: 'console (legacy)' },
+                { url: '/api/bff/auth/me/console', app: 'console (explicit)' },
+                { url: '/api/bff/auth/me/admin', app: 'admin' }
+            ];
+
+            let results = [];
+            
+            for (const route of routes) {
+                try {
+                    const response = await fetch(route.url, { credentials: 'include' });
+                    const data = response.ok ? await response.json() : await response.text();
+                    results.push({
+                        route: route.url,
+                        app: route.app,
+                        status: response.status,
+                        ok: response.ok,
+                        data: response.ok ? data : { error: data }
+                    });
+                } catch (error) {
+                    results.push({
+                        route: route.url,
+                        app: route.app,
+                        error: error.message
+                    });
+                }
+            }
+            
+            showResult('debug-result', { routeTests: results });
+        }
+
+        function clearResults() {
+            document.getElementById('console-result').textContent = '';
+            document.getElementById('admin-result').textContent = '';
+            document.getElementById('debug-result').textContent = '';
+        }
+
+        // Auto-check authentication status on page load
+        window.addEventListener('load', () => {
+            consoleMe();
+            adminMe();
+        });
+    </script>
+</body>
+</html>

@@ -72,6 +72,8 @@ jobs:
           echo 'DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}' >> .env.production
           echo 'DATABASE=${{ secrets.DATABASE }}' >> .env.production
           echo 'APP_URL=${{ secrets.APP_URL }}' >> .env.production
+          # JWKS_BASE_URL opcional; de momento replicamos APP_URL (ajustar si se define secreto separado)
+          echo 'JWKS_BASE_URL=${{ secrets.APP_URL }}' >> .env.production
           echo 'ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}' >> .env.production
           echo 'GLOBAL_TOKEN_SECRET=${{ secrets.GLOBAL_TOKEN_SECRET }}' >> .env.production
           echo 'ACCESS_TOKEN_EXPIRATION=${{ secrets.ACCESS_TOKEN_EXPIRATION }}' >> .env.production
@@ -84,6 +86,10 @@ jobs:
           echo 'MONGODB_ROOT_USERNAME=${{ secrets.MONGODB_ROOT_USERNAME }}' >> .env.production
           echo 'MONGODB_ROOT_PASSWORD=${{ secrets.MONGODB_ROOT_PASSWORD }}' >> .env.production
           echo 'NODE_ENV=production' >> .env.production
+          # Configuración de Keycloak para producción
+          echo 'KEYCLOAK_ISSUER=${{ secrets.KEYCLOAK_ISSUER }}' >> .env.production
+          echo 'KEYCLOAK_JWKS_URI=${{ secrets.KEYCLOAK_JWKS_URI }}' >> .env.production
+          echo 'KEYCLOAK_AUDIENCE=${{ secrets.KEYCLOAK_AUDIENCE }}' >> .env.production
 
           # Subir archivos al servidor
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"

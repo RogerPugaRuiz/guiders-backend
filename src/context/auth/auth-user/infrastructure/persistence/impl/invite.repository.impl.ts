@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InviteRepository } from '../../../domain/invite.repository';
-import { Invite } from '../../../domain/invite';
+import { Invite } from '../../../domain/invite.aggregate';
 import { InviteId } from '../../../domain/value-objects/invite-id';
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { DomainError } from 'src/context/shared/domain/domain.error';

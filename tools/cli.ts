@@ -41,17 +41,44 @@ program
   .command('create-company')
   .description('Crea una nueva compañía desde CLI')
   .requiredOption('--name <companyName>', 'Nombre de la compañía')
-  .requiredOption('--domain <domain>', 'Dominio de la compañía')
+  .requiredOption('--domain <domain>', 'Dominio canónico de la compañía')
+  .option('--aliases <aliases>', 'Dominios alias separados por comas (opcional)')
+  .option(
+    '--site-name <siteName>',
+    'Nombre del sitio (opcional, por defecto "Sitio Principal")',
+  )
   .action(async (options: Record<string, string>) => {
     const app = await NestFactory.createApplicationContext(AppModule);
     const commandBus = app.get(CommandBus);
-    // Construye el DTO solo con los datos de la compañía
+
+    // Procesar aliases si existen
+    const domainAliases = options.aliases
+      ? options.aliases
+          .split(',')
+          .map((alias) => alias.trim())
+          .filter((alias) => alias.length > 0)
+      : [];
+
+    // Construye el DTO con la nueva estructura de sites
     const createCompanyDto = {
       companyName: String(options.name),
-      domain: String(options.domain),
+      sites: [
+        {
+          id: '', // Se generará automáticamente en el domain
+          name: options.siteName || 'Sitio Principal',
+          canonicalDomain: String(options.domain),
+          domainAliases: domainAliases,
+        },
+      ],
     };
+    
     await commandBus.execute(new CreateCompanyCommand(createCompanyDto));
     console.log('Compañía creada correctamente');
+    console.log(`- Nombre: ${options.name}`);
+    console.log(`- Dominio canónico: ${options.domain}`);
+    if (domainAliases.length > 0) {
+      console.log(`- Aliases: ${domainAliases.join(', ')}`);
+    }
     await app.close();
   });
 
@@ -59,25 +86,56 @@ program
   .command('create-company-with-admin')
   .description('Crea una nueva compañía y su admin desde CLI')
   .requiredOption('--name <companyName>', 'Nombre de la compañía')
-  .requiredOption('--domain <domain>', 'Dominio de la compañía')
+  .requiredOption('--domain <domain>', 'Dominio canónico de la compañía')
   .requiredOption('--adminName <adminName>', 'Nombre del administrador')
   .requiredOption('--adminEmail <adminEmail>', 'Email del administrador')
   .option('--adminTel <adminTel>', 'Teléfono del administrador')
+  .option(
+    '--aliases <aliases>',
+    'Dominios alias separados por comas (opcional)',
+  )
+  .option(
+    '--site-name <siteName>',
+    'Nombre del sitio (opcional, por defecto "Sitio Principal")',
+  )
   .action(async (options: Record<string, string>) => {
     const app = await NestFactory.createApplicationContext(AppModule);
     const commandBus = app.get(CommandBus);
-    // Construye el comando con los argumentos planos
+
+    // Procesar aliases si existen
+    const domainAliases = options.aliases
+      ? options.aliases
+          .split(',')
+          .map((alias) => alias.trim())
+          .filter((alias) => alias.length > 0)
+      : [];
+
+    // Construye el comando con la nueva estructura de sites
     const command = new CreateCompanyWithAdminCommand({
       adminName: String(options.adminName),
       adminEmail: String(options.adminEmail),
       adminTel: options.adminTel ? String(options.adminTel) : undefined,
       companyName: String(options.name),
-      domain: String(options.domain),
+      sites: [
+        {
+          id: '', // Se generará automáticamente
+          name: options.siteName || 'Sitio Principal',
+          canonicalDomain: String(options.domain),
+          domainAliases: domainAliases,
+        },
+      ],
     });
+    
     await commandBus.execute(command);
     // Espera explícita para asegurar que los eventos de dominio CQRS se procesen correctamente
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Ajusta el tiempo según sea necesario
     console.log('Compañía y admin creados correctamente');
+    console.log(`- Empresa: ${options.name}`);
+    console.log(`- Dominio canónico: ${options.domain}`);
+    if (domainAliases.length > 0) {
+      console.log(`- Aliases: ${domainAliases.join(', ')}`);
+    }
+    console.log(`- Admin: ${options.adminName} (${options.adminEmail})`);
     await app.close();
   });
 

@@ -22,7 +22,14 @@ import { CHAT_V2_REPOSITORY } from './domain/chat.repository';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+
+// Command Handlers
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
+import { ClearVisitorChatsCommandHandler } from './application/commands/clear-visitor-chats.command-handler';
+
+// Query Handlers
+import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
+import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.query-handler';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -54,12 +61,14 @@ import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiti
 
     // Command Handlers
     JoinWaitingRoomCommandHandler,
+    ClearVisitorChatsCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
 
     // Query Handlers
-    // GetChatsWithFiltersQueryHandler,
+    GetChatsWithFiltersQueryHandler,
+    GetChatByIdQueryHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

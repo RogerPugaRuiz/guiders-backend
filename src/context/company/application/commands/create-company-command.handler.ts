@@ -5,12 +5,16 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../domain/company.repository';
-import { Company } from '../../domain/company';
+import { Company } from '../../domain/company.aggregate';
 import { CompanyName } from '../../domain/value-objects/company-name';
-import { CompanyDomain } from '../../domain/value-objects/company-domain';
+import { CompanySites } from '../../domain/value-objects/company-sites';
+import { Site } from '../../domain/entities/site';
+import { SiteId } from '../../domain/value-objects/site-id';
+import { SiteName } from '../../domain/value-objects/site-name';
+import { CanonicalDomain } from '../../domain/value-objects/canonical-domain';
+import { DomainAliases } from '../../domain/value-objects/domain-aliases';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { Inject } from '@nestjs/common';
-import { CompanyDomains } from '../../domain/value-objects/company-domains';
 
 @CommandHandler(CreateCompanyCommand)
 export class CreateCompanyCommandHandler
@@ -25,17 +29,27 @@ export class CreateCompanyCommandHandler
 
   // Ejecuta el comando para crear y guardar la compañía
   async execute(command: CreateCompanyCommand): Promise<void> {
-    const { companyName, domain } = command.params;
+    const { companyName, sites } = command.params;
+
+    // Crear sites a partir de los primitivos recibidos
+    const siteEntities = sites.map((siteData) => {
+      return Site.create({
+        id: siteData.id ? new SiteId(siteData.id) : SiteId.random(),
+        name: new SiteName(siteData.name),
+        canonicalDomain: new CanonicalDomain(siteData.canonicalDomain),
+        domainAliases: DomainAliases.fromPrimitives(siteData.domainAliases),
+      });
+    });
+
     // Se crea la entidad de dominio Company
     const company = Company.create({
       id: Uuid.random(),
       companyName: new CompanyName(companyName),
-      domains: CompanyDomains.fromCompanyDomainArray([
-        new CompanyDomain(domain),
-      ]),
+      sites: CompanySites.fromSiteArray(siteEntities),
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
     // Se integra el contexto de eventos para publicar los eventos de dominio
     const companyAggregate = this.publisher.mergeObjectContext(company);
     // Persiste la compañía usando el repositorio

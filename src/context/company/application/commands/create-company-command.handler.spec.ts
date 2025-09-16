@@ -36,12 +36,14 @@ describe('CreateCompanyCommandHandler', () => {
   it('debe guardar la compañía y publicar eventos usando el repositorio y publisher', async () => {
     const dto = {
       companyName: 'Test Company',
-      domain: 'test.com',
-      admin: {
-        adminName: 'Admin',
-        adminEmail: 'admin@test.com',
-        adminTel: '123456',
-      },
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
     };
     const command = new CreateCompanyCommand(dto);
 

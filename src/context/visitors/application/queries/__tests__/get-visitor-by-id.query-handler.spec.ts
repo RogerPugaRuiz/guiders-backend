@@ -5,7 +5,7 @@ import {
   IVisitorRepository,
   VISITOR_REPOSITORY,
 } from 'src/context/visitors/domain/visitor.repository';
-import { Visitor } from 'src/context/visitors/domain/visitor';
+import { Visitor } from 'src/context/visitors/domain/visitor.aggregate';
 import { ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { VisitorNotFoundError } from 'src/context/visitors/domain/errors/visitor.error';
@@ -23,8 +23,6 @@ describe('GetVisitorByIdQueryHandler', () => {
     email: 'test@example.com',
     tel: '123456789',
     tags: ['tag1', 'tag2'],
-    notes: ['Note 1', 'Note 2'],
-    currentPage: '/home',
   });
 
   // Mock del error del repositorio

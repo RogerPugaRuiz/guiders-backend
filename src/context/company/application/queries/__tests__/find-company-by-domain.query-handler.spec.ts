@@ -6,9 +6,14 @@ import {
   COMPANY_REPOSITORY,
 } from '../../../domain/company.repository';
 import { FindCompanyByDomainResponseDto } from '../../dtos/find-company-by-domain-response.dto';
-import { Company } from '../../../domain/company';
+import { Company } from '../../../domain/company.aggregate';
 import { CompanyName } from '../../../domain/value-objects/company-name';
-import { CompanyDomains } from '../../../domain/value-objects/company-domains';
+import { CompanySites } from '../../../domain/value-objects/company-sites';
+import { Site } from '../../../domain/entities/site';
+import { SiteId } from '../../../domain/value-objects/site-id';
+import { SiteName } from '../../../domain/value-objects/site-name';
+import { CanonicalDomain } from '../../../domain/value-objects/canonical-domain';
+import { DomainAliases } from '../../../domain/value-objects/domain-aliases';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 import { ok, err } from '../../../../shared/domain/result';
 import { CompanyNotFoundError } from '../../../domain/errors/company.error';
@@ -43,10 +48,19 @@ describe('FindCompanyByDomainQueryHandler', () => {
       const query = new FindCompanyByDomainQuery(domain);
 
       const companyId = new Uuid('550e8400-e29b-41d4-a716-446655440000');
+
+      // Crear un sitio para la empresa
+      const site = Site.create({
+        id: new SiteId('550e8400-e29b-41d4-a716-446655440001'),
+        name: new SiteName('Sitio Principal'),
+        canonicalDomain: new CanonicalDomain('ejemplo.com'),
+        domainAliases: DomainAliases.fromPrimitives([]),
+      });
+
       const mockCompany = Company.create({
         id: companyId,
         companyName: new CompanyName('Empresa Ejemplo'),
-        domains: new CompanyDomains(['ejemplo.com']),
+        sites: CompanySites.fromSiteArray([site]),
         createdAt: new Date('2025-01-01'),
         updatedAt: new Date('2025-01-01'),
       });

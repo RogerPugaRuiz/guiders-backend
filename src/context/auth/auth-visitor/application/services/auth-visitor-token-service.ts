@@ -1,4 +1,4 @@
-import { VisitorAccount } from '../../domain/models/visitor-account';
+import { VisitorAccount } from '../../domain/models/visitor-account.aggregate';
 
 export const AUTH_VISITOR_TOKEN_SERVICE = 'AuthVisitorTokenService';
 export interface AuthVisitorTokenService {

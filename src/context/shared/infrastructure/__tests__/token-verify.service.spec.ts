@@ -110,7 +110,12 @@ describe('TokenVerifyService', () => {
       };
 
       jwtService.decode.mockReturnValue(decodedToken);
-      configService.get.mockReturnValue('https://test-app.com');
+      // Primero JWKS_BASE_URL devolverá undefined simulando ausencia, luego APP_URL
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'JWKS_BASE_URL') return undefined;
+        if (key === 'APP_URL') return 'https://test-app.com';
+        return undefined;
+      });
       httpService.get.mockReturnValue(
         of({
           data: jwksResponse,
@@ -180,7 +185,10 @@ describe('TokenVerifyService', () => {
       };
 
       jwtService.decode.mockReturnValue(decodedToken);
-      configService.get.mockReturnValue('https://test-app.com');
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'JWKS_BASE_URL') return 'https://test-app.com/';
+        return undefined;
+      });
       httpService.get.mockReturnValue(
         of({
           data: jwksResponse,
@@ -240,7 +248,10 @@ describe('TokenVerifyService', () => {
       };
 
       jwtService.decode.mockReturnValue(decodedToken);
-      configService.get.mockReturnValue('https://test-app.com');
+      configService.get.mockImplementation((key: string) => {
+        if (key === 'JWKS_BASE_URL') return 'https://test-app.com';
+        return undefined;
+      });
       httpService.get.mockImplementation(() => {
         throw new Error('HTTP error');
       });

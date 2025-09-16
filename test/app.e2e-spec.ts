@@ -14,9 +14,9 @@ describe('AppController (e2e)', () => {
       providers: [AppService],
     }).compile();
 
-  app = moduleFixture.createNestApplication();
-  app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
-  await app.init();
+    app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json'] });
+    await app.init();
   });
 
   afterAll(async () => {
@@ -25,9 +25,9 @@ describe('AppController (e2e)', () => {
     }
   });
 
-  it('/ (GET)', () => {
+  it('/api (GET)', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/api')
       .expect(200)
       .expect('Hello World!');
   });

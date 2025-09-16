@@ -3,7 +3,7 @@ import {
   AUTH_VISITOR_REPOSITORY,
   AuthVisitorRepository,
 } from '../../domain/repositories/auth-visitor.repository';
-import { VisitorAccount } from '../../domain/models/visitor-account';
+import { VisitorAccount } from '../../domain/models/visitor-account.aggregate';
 import { VisitorAccountApiKey } from '../../domain/models/visitor-account-api-key';
 import { VisitorAccountClientID } from '../../domain/models/visitor-account-client-id';
 import { VisitorAccountUserAgent } from '../../domain/models/visitor-account-user-agent';

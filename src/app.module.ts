@@ -9,31 +9,31 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { AppService } from './app.service';
 import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/auth-visitor.module';
 import { ApiKeyModule } from './context/auth/api-key/infrastructure/api-key.module';
-import { WebsocketModule } from './context/real-time/infrastructure/websocket.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-user.module';
-import { ChatModule } from './context/conversations/chat/infrastructure/chat.module';
+import { BFFModule } from './context/auth/bff/infrastructure/bff.module';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
 import { TrackingModule } from './context/tracking/tracking.module';
-import { MessageModule } from './context/conversations/message/infrastructure/message.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
+import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
+import { WebSocketModule } from './websocket/websocket.module';
 
 @Module({
   imports: [
     // Importar los módulos de los contextos
     AuthVisitorModule,
     AuthUserModule,
-    WebsocketModule,
+    BFFModule,
     ApiKeyModule,
     VisitorsModule,
-    ChatModule,
-    MessageModule,
+    VisitorsV2Module,
     TrackingModule,
     CompanyModule,
     ConversationsV2Module,
+    WebSocketModule,
     // OpenSearchModule,
     CqrsModule.forRoot(),
     HttpModule,

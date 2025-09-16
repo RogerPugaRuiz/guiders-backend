@@ -1,5 +1,5 @@
 import { ApiKeyEntity } from 'src/context/auth/api-key/infrastructure/api-key.entity';
-import { VisitorAccount } from '../../domain/models/visitor-account';
+import { VisitorAccount } from '../../domain/models/visitor-account.aggregate';
 import { VisitorAccountEntity } from '../visitor-account.entity';
 import { Injectable } from '@nestjs/common';
 

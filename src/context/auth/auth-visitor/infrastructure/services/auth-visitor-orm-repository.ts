@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuthVisitorRepository } from '../../domain/repositories/auth-visitor.repository';
-import { VisitorAccount } from '../../domain/models/visitor-account';
+import { VisitorAccount } from '../../domain/models/visitor-account.aggregate';
 import { InjectRepository } from '@nestjs/typeorm';
 import { VisitorAccountMapper } from '../mapper/visitor-account-mapper';
 import { Repository } from 'typeorm';

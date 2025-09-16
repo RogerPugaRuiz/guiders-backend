@@ -22,16 +22,4 @@ export class VisitorResponseDto {
     type: [String],
   })
   tags: string[];
-
-  @ApiProperty({ description: 'Notas asociadas al visitante', type: [String] })
-  notes: string[];
-
-  @ApiProperty({ description: 'Página actual del visitante', nullable: true })
-  currentPage: string | null;
-
-  @ApiProperty({
-    description: 'Tiempo de conexión de la sesión en milisegundos',
-    nullable: true,
-  })
-  connectionTime: number | null;
 }

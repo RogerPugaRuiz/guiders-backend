@@ -14,7 +14,7 @@ import {
 } from '../../domain/user-account.repository';
 import { InviteToken } from '../../domain/value-objects/invite-token';
 import { Criteria, Operator, Filter } from 'src/context/shared/domain/criteria';
-import { Invite } from '../../domain/invite';
+import { Invite } from '../../domain/invite.aggregate';
 import {
   USER_PASSWORD_HASHER,
   UserPasswordHasher,

@@ -4,7 +4,7 @@ import {
   UserAccountRepository,
 } from '../../domain/user-account.repository';
 import { UserAlreadyExistsError } from '../errors/user-already-exists.error';
-import { UserAccount } from '../../domain/user-account';
+import { UserAccount } from '../../domain/user-account.aggregate';
 import { UserAccountEmail } from '../../domain/user-account-email';
 import { UserAccountPassword } from '../../domain/user-account-password';
 import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';

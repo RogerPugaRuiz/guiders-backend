@@ -1,4 +1,4 @@
-import { Invite } from './invite';
+import { Invite } from './invite.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';

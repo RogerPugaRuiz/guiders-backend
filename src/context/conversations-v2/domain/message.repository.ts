@@ -1,4 +1,4 @@
-import { Message } from './entities/message';
+import { Message } from './entities/message.aggregate';
 import { MessageId } from './value-objects/message-id';
 import { ChatId } from './value-objects/chat-id';
 import { MessageType } from './value-objects/message-type';

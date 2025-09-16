@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UserAccountRepository } from '../../domain/user-account.repository';
-import { UserAccount } from '../../domain/user-account';
+import { UserAccount } from '../../domain/user-account.aggregate';
 import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { UserAccountEntity } from '../user-account.entity';

@@ -3,7 +3,7 @@ import { ProcessTrackingEventCommandHandler } from '../process-tracking-event-co
 import { ProcessTrackingEventCommand } from '../process-tracking-event.command';
 import { BasicIntentDetector } from 'src/context/tracking/domain/basic-intent-detector';
 import { INTENT_DETECTOR_REPOSITORY } from 'src/context/tracking/domain/intent-detector.repository';
-import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent';
+import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 // Mock para el repositorio

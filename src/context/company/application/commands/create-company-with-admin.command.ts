@@ -2,10 +2,18 @@
 // Ubicación: src/context/company/application/commands/create-company-with-admin.command.ts
 import { ICommand } from '@nestjs/cqrs';
 
+// Interfaz para los primitivos de un sitio
+export interface SitePrimitivesDto {
+  id?: string; // Opcional, se generará si no se proporciona
+  name: string;
+  canonicalDomain: string;
+  domainAliases: string[];
+}
+
 // DTO para agrupar los datos necesarios para crear la compañía y el admin
 export interface CreateCompanyWithAdminProps {
   companyName: string;
-  domain: string;
+  sites: SitePrimitivesDto[];
   adminName: string;
   adminEmail: string;
   adminTel?: string;

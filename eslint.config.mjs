@@ -33,7 +33,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.test.ts', '**/test/**/*.ts'],
+    files: [
+      '**/*.spec.ts',
+      '**/*.int-spec.ts',
+      '**/*.test.ts',
+      '**/test/**/*.ts',
+    ],
     rules: {
       '@typescript-eslint/unbound-method': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',

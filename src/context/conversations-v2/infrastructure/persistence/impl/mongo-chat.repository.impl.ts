@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -8,14 +8,14 @@ import {
   ChatSearchResult,
   CommercialMetrics,
 } from '../../../domain/chat.repository';
-import { Chat } from '../../../domain/entities/chat';
+import { Chat } from '../../../domain/entities/chat.aggregate';
 import { ChatId } from '../../../domain/value-objects/chat-id';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { CommercialId } from '../../../domain/value-objects/commercial-id';
 import { ChatStatus } from '../../../domain/value-objects/chat-status';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-// import { Criteria } from 'src/context/shared/domain/criteria';
+import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
 import { ChatSchema } from '../../schemas/chat.schema';
 import { ChatMapper } from '../../mappers/chat.mapper';
 
@@ -51,6 +51,8 @@ export class ChatPersistenceError extends DomainError {
  */
 @Injectable()
 export class MongoChatRepositoryImpl implements IChatRepository {
+  private readonly logger = new Logger(MongoChatRepositoryImpl.name);
+
   constructor(
     @InjectModel(ChatSchema.name) private readonly chatModel: Model<ChatSchema>,
     private readonly chatMapper: ChatMapper,
@@ -117,7 +119,9 @@ export class MongoChatRepositoryImpl implements IChatRepository {
    */
   async delete(chatId: ChatId): Promise<Result<void, DomainError>> {
     try {
-      const result = await this.chatModel.deleteOne({ id: chatId.value });
+      const result = await this.chatModel.deleteOne({
+        id: chatId.value,
+      });
       if (result.deletedCount === 0) {
         return err(
           new ChatPersistenceError('Chat no encontrado para eliminar'),
@@ -146,7 +150,6 @@ export class MongoChatRepositoryImpl implements IChatRepository {
           new ChatPersistenceError('Chat no encontrado para actualizar'),
         );
       }
-
       this.chatMapper.updateSchema(existingSchema, chat);
       await existingSchema.save();
       return okVoid();
@@ -161,17 +164,11 @@ export class MongoChatRepositoryImpl implements IChatRepository {
 
   /**
    * Busca un chat que cumple con criterios específicos
-   * Implementación básica - se puede extender para criterios más complejos
    */
-  async findOne(/* criteria: Criteria<Chat> */): Promise<
-    Result<Chat, DomainError>
-  > {
+  async findOne(criteria: Criteria<Chat>): Promise<Result<Chat, DomainError>> {
     try {
-      // Para esta implementación, buscamos por algunos filtros básicos
-      // En una implementación completa, se podría usar un convertidor similar a CriteriaConverter
-      const filter = this.buildMongoFilter();
+      const filter = this.buildMongoFilter(criteria);
       const schema = await this.chatModel.findOne(filter);
-
       if (!schema) {
         return err(
           new ChatPersistenceError(
@@ -179,7 +176,6 @@ export class MongoChatRepositoryImpl implements IChatRepository {
           ),
         );
       }
-
       const chat = this.chatMapper.toDomain(schema);
       return ok(chat);
     } catch (error) {
@@ -194,15 +190,69 @@ export class MongoChatRepositoryImpl implements IChatRepository {
   /**
    * Busca múltiples chats que cumplen con criterios específicos
    */
-  async match(/* criteria: Criteria<Chat> */): Promise<
-    Result<Chat[], DomainError>
-  > {
+  async match(criteria: Criteria<Chat>): Promise<Result<Chat[], DomainError>> {
     try {
-      const filter = this.buildMongoFilter();
-      const schemas = await this.chatModel.find(filter);
+      this.logger.debug('Executing find with query:');
+
+      const filter = this.buildMongoFilter(criteria);
+      this.logger.debug(JSON.stringify(filter));
+
+      const queryOptions: { sort?: Record<string, 1 | -1>; limit?: number } =
+        {};
+
+      if (criteria.orderBy) {
+        const sortObject: Record<string, 1 | -1> = {};
+        const orderByArray = Array.isArray(criteria.orderBy)
+          ? criteria.orderBy
+          : [criteria.orderBy];
+        for (const order of orderByArray) {
+          let mongoField = String(order.field);
+          if (order.field === 'visitorId') mongoField = 'visitorId';
+          sortObject[mongoField] = order.direction === 'ASC' ? 1 : -1;
+        }
+        queryOptions.sort = sortObject;
+        this.logger.debug(`Sort options: ${JSON.stringify(sortObject)}`);
+      }
+
+      if (criteria.limit !== undefined) {
+        queryOptions.limit = criteria.limit;
+        this.logger.debug(`Limit: ${criteria.limit}`);
+      }
+
+      if (criteria.cursor?.createdAt) {
+        const cursor = criteria.cursor;
+        const andArray = (filter.$and as unknown[]) || [];
+        if (!filter.$and) {
+          (filter as unknown as { $and?: unknown[] }).$and = andArray; // conversión mínima para asignar $and
+        }
+        andArray.push({
+          $or: [
+            { createdAt: { $lt: new Date(cursor.createdAt as string) } },
+            {
+              createdAt: new Date(cursor.createdAt as string),
+              _id: { $lt: cursor.id },
+            },
+          ],
+        });
+        this.logger.debug(`Cursor applied: ${JSON.stringify(cursor)}`);
+      }
+
+      this.logger.log(`Final MongoDB query: ${JSON.stringify(filter)}`);
+      this.logger.log(`Query options: ${JSON.stringify(queryOptions)}`);
+
+      const schemas = await this.chatModel.find(
+        filter,
+        undefined,
+        queryOptions,
+      );
+      this.logger.log(`Found ${schemas.length} chat documents in MongoDB`);
       const chats = this.chatMapper.toDomainList(schemas);
+      this.logger.log(`Mapped to ${chats.length} domain entities`);
       return ok(chats);
     } catch (error) {
+      this.logger.error(
+        `Error al buscar chats con criterios: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return err(
         new ChatPersistenceError(
           `Error al buscar chats con criterios: ${error instanceof Error ? error.message : String(error)}`,
@@ -672,15 +722,128 @@ export class MongoChatRepositoryImpl implements IChatRepository {
    * Construye un filtro MongoDB básico a partir de criterios
    * Implementación simplificada - se puede extender para casos más complejos
    */
-  private buildMongoFilter(/* criteria: Criteria<Chat> */): Record<
-    string,
-    any
-  > {
-    const filter: Record<string, any> = {};
+  private buildMongoFilter(criteria: Criteria<Chat>): Record<string, unknown> {
+    const filter: Record<string, unknown> = {};
 
-    // Esta implementación es básica y se puede extender
-    // para mapear completamente los criterios de búsqueda a filtros MongoDB
+    if (!criteria.filters || criteria.filters.length === 0) {
+      this.logger.debug('No filters in criteria, returning empty filter');
+      return filter;
+    }
 
+    const filters = criteria.filters;
+    this.logger.debug(`Processing ${filters.length} filters`);
+
+    filters.forEach((criteriaFilter, index) => {
+      if (criteriaFilter instanceof Filter) {
+        this.logger.debug(
+          `Processing filter ${index + 1}: ${String(criteriaFilter.field)} ${criteriaFilter.operator} ${JSON.stringify(criteriaFilter.value)}`,
+        );
+
+        const field = criteriaFilter.field as string;
+        const operator = criteriaFilter.operator;
+        const value = criteriaFilter.value;
+
+        // Mapear campos del dominio a campos de MongoDB
+        let mongoField = field;
+        if (field === 'visitorId') {
+          mongoField = 'visitorId'; // En MongoDB se almacena directamente como visitorId
+        } else if (field === 'assignedCommercialId') {
+          mongoField = 'assignedCommercialId';
+        } else if (field === 'status') {
+          mongoField = 'status';
+        } else if (field === 'priority') {
+          mongoField = 'priority';
+        } else if (field === 'createdAt') {
+          mongoField = 'createdAt';
+        } else if (field === 'totalMessages') {
+          mongoField = 'totalMessages';
+        } // Aplicar operadores
+        switch (operator) {
+          case Operator.EQUALS:
+            filter[mongoField] = value;
+            break;
+          case Operator.NOT_EQUALS:
+            filter[mongoField] = { $ne: value } as unknown;
+            break;
+          case Operator.IN:
+            filter[mongoField] = {
+              $in: Array.isArray(value) ? value : [value],
+            };
+            break;
+          case Operator.NOT_IN:
+            filter[mongoField] = {
+              $nin: Array.isArray(value) ? value : [value],
+            };
+            break;
+          case Operator.GREATER_THAN:
+            filter[mongoField] = { $gt: value } as unknown;
+            break;
+          case Operator.GREATER_OR_EQUALS:
+            filter[mongoField] = { $gte: value } as unknown;
+            break;
+          case Operator.LESS_THAN:
+            filter[mongoField] = { $lt: value } as unknown;
+            break;
+          case Operator.LESS_OR_EQUALS:
+            filter[mongoField] = { $lte: value } as unknown;
+            break;
+          case Operator.LIKE:
+            filter[mongoField] = { $regex: value, $options: 'i' } as unknown;
+            break;
+          case Operator.IS_NULL:
+            filter[mongoField] = null;
+            break;
+          case Operator.IS_NOT_NULL:
+            filter[mongoField] = { $ne: null } as unknown;
+            break;
+          default:
+            this.logger.warn(`Operador no soportado: ${String(operator)}`);
+        }
+
+        this.logger.debug(
+          `Applied filter: ${mongoField} = ${JSON.stringify(filter[mongoField])}`,
+        );
+      } else {
+        // Manejar FilterGroup (AND/OR)
+        this.logger.debug(
+          `Processing filter group ${index + 1}: ${criteriaFilter.operator}`,
+        );
+        // TODO: Implementar FilterGroup si es necesario
+      }
+    });
+
+    this.logger.debug(`Final MongoDB filter: ${JSON.stringify(filter)}`);
     return filter;
+  }
+
+  /**
+   * Elimina todos los chats de un visitante (operación administrativa)
+   */
+  async deleteByVisitorId(
+    visitorId: VisitorId,
+  ): Promise<Result<number, DomainError>> {
+    try {
+      this.logger.debug(`Eliminando chats del visitante: ${visitorId.value}`);
+
+      const result = await this.chatModel.deleteMany({
+        visitorId: visitorId.value,
+      });
+
+      const deletedCount = result.deletedCount ?? 0;
+      this.logger.log(
+        `Eliminados ${deletedCount} chats del visitante ${visitorId.value}`,
+      );
+
+      return ok(deletedCount);
+    } catch (error) {
+      this.logger.error(
+        `Error al eliminar chats del visitante ${visitorId.value}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return err(
+        new ChatPersistenceError(
+          `Error al eliminar chats por visitante: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
   }
 }

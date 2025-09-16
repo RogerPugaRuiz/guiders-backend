@@ -2,7 +2,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ProcessTrackingEventCommand } from './process-tracking-event.command';
 import { BasicIntentDetector } from 'src/context/tracking/domain/basic-intent-detector';
 import { VisitorId } from 'src/context/tracking/domain/value-objects/visitor-id';
-import { TrackingEvent } from 'src/context/tracking/domain/tracking-event';
+import { TrackingEvent } from 'src/context/tracking/domain/tracking-event.aggregate';
 import {
   IIntentDetectorRepository,
   INTENT_DETECTOR_REPOSITORY,

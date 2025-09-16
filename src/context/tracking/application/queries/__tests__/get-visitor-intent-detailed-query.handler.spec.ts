@@ -5,7 +5,7 @@ import {
   IIntentDetectorRepository,
   INTENT_DETECTOR_REPOSITORY,
 } from '../../../domain/intent-detector.repository';
-import { VisitorIntent } from '../../../domain/visitor-intent';
+import { VisitorIntent } from '../../../domain/visitor-intent.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { IntentType } from '../../../domain/value-objects/intent-type';
 import { IntentConfidence } from '../../../domain/value-objects/intent-confidence';

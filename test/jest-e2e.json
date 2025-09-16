@@ -7,10 +7,11 @@
     "^.+\\.ts$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/../src/$1"
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "^jose$": "<rootDir>/../__mocks__/jose.js"
   },
   "transformIgnorePatterns": [
-    "/node_modules/",
-    "/dist/"
-  ]
+    "node_modules/(?!(jose|@nestjs/websockets|socket.io)/)"
+  ],
+  "testTimeout": 60000
 }

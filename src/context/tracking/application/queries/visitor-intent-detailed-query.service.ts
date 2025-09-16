@@ -1,4 +1,4 @@
-import { VisitorIntent } from '../../domain/visitor-intent';
+import { VisitorIntent } from '../../domain/visitor-intent.aggregate';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { VisitorIntentDomainError } from '../../domain/visitor-intent-domain.error';
 import { VisitorIntentDetailedResponseDto } from '../dtos/visitor-intent-detailed-response.dto';

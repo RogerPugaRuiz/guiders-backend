@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AuthVisitorTokenService } from '../../application/services/auth-visitor-token-service';
-import { VisitorAccount } from '../../domain/models/visitor-account';
+import { VisitorAccount } from '../../domain/models/visitor-account.aggregate';
 import {
   JsonWebTokenError,
   JwtService,

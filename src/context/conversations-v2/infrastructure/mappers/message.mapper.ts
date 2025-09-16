@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Message } from '../../domain/entities/message';
+import { Message } from '../../domain/entities/message.aggregate';
 import { MessageSchema } from '../schemas/message.schema';
 
 /**

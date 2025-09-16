@@ -5,7 +5,7 @@ import {
   CompanyRepository,
   COMPANY_REPOSITORY,
 } from '../../../domain/company.repository';
-import { Company } from '../../../domain/company';
+import { Company } from '../../../domain/company.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
@@ -47,6 +47,7 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
     try {
       const entity = await this.companyRepo.findOne({
         where: { id: id.getValue() },
+        relations: ['sites'],
       });
       if (!entity) {
         return err(new CompanyNotFoundError());
@@ -80,7 +81,9 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
   // Devuelve todas las empresas
   async findAll(): Promise<Result<Company[], DomainError>> {
     try {
-      const entities = await this.companyRepo.find();
+      const entities = await this.companyRepo.find({
+        relations: ['sites'],
+      });
       return ok(entities.map((entity) => CompanyMapper.toDomain(entity)));
     } catch (error) {
       return err(
@@ -181,10 +184,11 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
   // Busca una empresa por dominio
   async findByDomain(domain: string): Promise<Result<Company, DomainError>> {
     try {
-      // Busca una empresa que tenga el dominio en su array de dominios
+      // Busca una empresa que tenga el dominio en sus sites
       const entity = await this.companyRepo
         .createQueryBuilder('companies')
-        .where(':domain = ANY(companies.domains)', { domain })
+        .leftJoinAndSelect('companies.sites', 'sites')
+        .where('sites.domain = :domain', { domain })
         .getOne();
 
       if (!entity) {

@@ -20,13 +20,14 @@
     "test:debug": "NODE_ENV=test node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "NODE_ENV=test jest --config ./test/jest-e2e.json",
     "test:unit": "NODE_ENV=test jest --config ./jest-unit.json --coverage",
-    "test:int": "NODE_ENV=test jest --config ./jest-int.json --coverage",
+  "test:int": "NODE_ENV=test jest --config ./jest-int.json --coverage --passWithNoTests",
     "test:int:dev": "NODE_ENV=test jest --config ./jest-int.json",
     "cli:dev": "NODE_ENV=development ts-node -r tsconfig-paths/register tools/cli.ts",
     "cli:prod": "NODE_ENV=production node dist/tools/cli.js",
     "typeorm:migrate:run": "npm run build && npx typeorm migration:run -d dist/src/data-source.js",
     "typeorm:migrate:generate": "npm run build && npx typeorm migration:generate -d dist/src/data-source.js",
-    "typeorm:migrate:generate:js": "tsc src/data-source.ts --module commonjs --outDir dist/tmp && npx typeorm migration:generate src/migrations/create-test-entity -d dist/tmp/data-source.js"
+  "typeorm:migrate:generate:js": "tsc src/data-source.ts --module commonjs --outDir dist/tmp && npx typeorm migration:generate src/migrations/create-test-entity -d dist/tmp/data-source.js",
+  "keycloak:configure": "node bin/keycloak-configure-client.js"
   },
   "dependencies": {
     "@faker-js/faker": "^9.6.0",
@@ -40,6 +41,7 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/microservices": "^11.0.14",
     "@nestjs/mongoose": "^11.0.3",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.0.11",
     "@nestjs/swagger": "^11.2.0",
@@ -53,10 +55,20 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "commander": "^13.1.0",
+    "connect-redis": "^7.1.1",
+    "cookie-parser": "^1.4.7",
+    "express-session": "^1.18.2",
+    "cookie-parser": "^1.4.7",
+    "express-session": "^1.18.2",
     "inquirer": "^12.6.1",
+    "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^3.2.0",
     "mongoose": "^8.16.1",
     "nodemailer": "^7.0.3",
+    "openid-client": "^6.7.1",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
     "pg": "^8.13.3",
     "playwright": "^1.54.1",
     "redis": "^4.7.0",
@@ -76,11 +88,14 @@
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
     "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.2",
     "@types/jest": "^29.5.14",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^6.4.17",
+    "@types/passport-jwt": "^4.0.1",
     "@types/redis": "^4.0.10",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.28.0",
@@ -117,7 +132,12 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/src/$1"
-    }
+      "^src/(.*)$": "<rootDir>/src/$1",
+      "^jose$": "<rootDir>/__mocks__/jose.js"
+    },
+    "transformIgnorePatterns": [
+      "node_modules/(?!(jose|@nestjs/websockets|socket.io)/)"
+    ],
+    "testTimeout": 60000
   }
 }

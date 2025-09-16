@@ -6,7 +6,7 @@ import {
   IVisitorRepository,
   VISITOR_REPOSITORY,
 } from '../../../domain/visitor.repository';
-import { Visitor } from '../../../domain/visitor';
+import { Visitor } from '../../../domain/visitor.aggregate';
 import { DomainError } from '../../../../shared/domain/domain.error';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 import { ok, err } from '../../../../shared/domain/result';

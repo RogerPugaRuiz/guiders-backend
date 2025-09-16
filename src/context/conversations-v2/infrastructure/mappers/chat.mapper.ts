@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Chat } from '../../domain/entities/chat';
+import { Chat } from '../../domain/entities/chat.aggregate';
 import { ChatSchema } from '../schemas/chat.schema';
 
 /**
@@ -31,8 +31,8 @@ export class ChatMapper {
     const visitorInfoData = chatPrimitives.visitorInfo;
     schema.visitorInfo = {
       id: chatPrimitives.visitorId,
-      name: visitorInfoData.name || '',
-      email: visitorInfoData.email || '',
+      name: visitorInfoData.name,
+      email: visitorInfoData.email,
       phone: visitorInfoData.phone,
       location:
         visitorInfoData.location?.city || visitorInfoData.location?.country,

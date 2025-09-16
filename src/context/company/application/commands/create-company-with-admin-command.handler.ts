@@ -12,14 +12,16 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../domain/company.repository';
-import { Company } from '../../domain/company';
+import { Company } from '../../domain/company.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { CompanyName } from '../../domain/value-objects/company-name';
-import { CompanyDomain } from '../../domain/value-objects/company-domain';
-import { Result, okVoid } from 'src/context/shared/domain/result';
-import { DomainError } from 'src/context/shared/domain/domain.error';
 import { CompanyCreatedWithAdminEvent } from '../../domain/events/company-created-with-admin.event';
-import { CompanyDomains } from '../../domain/value-objects/company-domains';
+import { Site } from '../../domain/entities/site';
+import { SiteId } from '../../domain/value-objects/site-id';
+import { SiteName } from '../../domain/value-objects/site-name';
+import { CanonicalDomain } from '../../domain/value-objects/canonical-domain';
+import { DomainAliases } from '../../domain/value-objects/domain-aliases';
+import { CompanySites } from '../../domain/value-objects/company-sites';
 
 @CommandHandler(CreateCompanyWithAdminCommand)
 export class CreateCompanyWithAdminCommandHandler
@@ -33,35 +35,52 @@ export class CreateCompanyWithAdminCommandHandler
   ) {}
 
   // Maneja la creación de la compañía y el usuario administrador asociado
-  async execute(
-    command: CreateCompanyWithAdminCommand,
-  ): Promise<Result<void, DomainError>> {
+  async execute(command: CreateCompanyWithAdminCommand): Promise<void> {
     // Extrae las propiedades del objeto props
-    const { companyName, domain, adminName, adminEmail, adminTel } =
+    const { companyName, sites, adminName, adminEmail, adminTel } =
       command.props;
     // 1. Crear la compañía
     const companyId = Uuid.random();
     const userId = Uuid.random();
     const now = new Date();
+
+    // Crear sites a partir de los primitivos recibidos
+    const siteEntities = sites.map((siteData) => {
+      return Site.create({
+        id: siteData.id ? new SiteId(siteData.id) : SiteId.random(),
+        name: new SiteName(siteData.name),
+        canonicalDomain: new CanonicalDomain(siteData.canonicalDomain),
+        domainAliases: DomainAliases.fromPrimitives(siteData.domainAliases),
+      });
+    });
+
     const company = Company.create({
       id: companyId,
-      companyName: CompanyName.create(companyName),
-      domains: CompanyDomains.fromCompanyDomainArray([
-        CompanyDomain.create(domain),
-      ]),
+      companyName: new CompanyName(companyName),
+      sites: CompanySites.fromSiteArray(siteEntities),
       createdAt: now,
       updatedAt: now,
     });
 
-    // 2. Persistir el agregado
-    await this.companyRepository.save(company);
+    // 2. Persistir el agregado y publicar eventos
+    const companyAggregate = this.publisher.mergeObjectContext(company);
+    await this.companyRepository.save(companyAggregate);
+    companyAggregate.commit();
+
     // 3. Publicar evento de integración para que el contexto de usuarios gestione el admin
-    this.publisher.mergeObjectContext(company).commit();
     this.eventBus.publish(
       new CompanyCreatedWithAdminEvent({
         companyId: companyId.getValue(),
         companyName,
-        domain,
+        sites: siteEntities.map((site) => {
+          const primitives = site.toPrimitives();
+          return {
+            id: primitives.id,
+            name: primitives.name,
+            canonicalDomain: primitives.canonicalDomain,
+            domainAliases: primitives.domainAliases,
+          };
+        }),
         adminName,
         adminEmail: adminEmail ?? null,
         adminTel: adminTel ?? null,
@@ -69,6 +88,5 @@ export class CreateCompanyWithAdminCommandHandler
         userId: userId.getValue(),
       }),
     );
-    return okVoid();
   }
 }

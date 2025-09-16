@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IIntentDetectorRepository } from 'src/context/tracking/domain/intent-detector.repository';
-import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent';
+import { VisitorIntent } from 'src/context/tracking/domain/visitor-intent.aggregate';
 import { VisitorId } from 'src/context/tracking/domain/value-objects/visitor-id';
 import { VisitorIntentEntity } from '../entity/visitor-intent.entity';
 import { VisitorIntentTypeOrmMapper } from '../visitor-intent.typeorm-mapper';

@@ -3,7 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
 import { INVITE_REPOSITORY } from '../../domain/invite.repository';
-import { Invite } from '../../domain/invite';
+import { Invite } from '../../domain/invite.aggregate';
 import { CreateInviteOnCompanyCreatedWithAdminEventHandler } from '../events/create-invite-on-company-created-with-admin-event.handler';
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
@@ -47,7 +47,14 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
     const event = new CompanyCreatedWithAdminEvent({
       companyId: Uuid.random().value,
       companyName: 'Test Company',
-      domain: 'test.com',
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin',
       adminEmail: 'admin@test.com',
       adminTel: null,
@@ -85,7 +92,14 @@ describe('CreateInviteOnCompanyCreatedWithAdminEventHandler', () => {
     const event = new CompanyCreatedWithAdminEvent({
       companyId: Uuid.random().value,
       companyName: 'Test Company',
-      domain: 'test.com',
+      sites: [
+        {
+          id: Uuid.random().value,
+          name: 'Principal',
+          canonicalDomain: 'test.com',
+          domainAliases: [],
+        },
+      ],
       adminName: 'Admin',
       adminEmail: null,
       adminTel: null,

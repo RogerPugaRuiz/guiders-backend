@@ -1,4 +1,4 @@
-import { TrackingEvent } from '../../domain/tracking-event';
+import { TrackingEvent } from '../../domain/tracking-event.aggregate';
 import { TrackingEventTypeOrmEntity } from './entity/tracking-event.typeorm.entity';
 
 // Mapper para convertir entre la entidad de dominio TrackingEvent y la entidad de infraestructura TrackingEventTypeOrmEntity

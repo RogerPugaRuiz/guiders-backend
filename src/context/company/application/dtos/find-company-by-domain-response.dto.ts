@@ -10,12 +10,24 @@ export class FindCompanyByDomainResponseDto {
   public static fromPrimitives(primitives: {
     id: string;
     companyName: string;
-    domains: string[];
+    sites: Array<{
+      id: string;
+      name: string;
+      canonicalDomain: string;
+      domainAliases: string[];
+    }>;
   }): FindCompanyByDomainResponseDto {
+    // Extraer todos los dominios de todos los sitios
+    const allDomains: string[] = [];
+    for (const site of primitives.sites) {
+      allDomains.push(site.canonicalDomain);
+      allDomains.push(...site.domainAliases);
+    }
+
     return new FindCompanyByDomainResponseDto(
       primitives.id,
       primitives.companyName,
-      primitives.domains,
+      allDomains,
     );
   }
 }

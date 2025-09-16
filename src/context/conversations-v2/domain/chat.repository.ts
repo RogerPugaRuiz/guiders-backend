@@ -1,4 +1,4 @@
-import { Chat } from './entities/chat';
+import { Chat } from './entities/chat.aggregate';
 import { ChatId } from './value-objects/chat-id';
 import { VisitorId } from './value-objects/visitor-id';
 import { CommercialId } from './value-objects/commercial-id';
@@ -200,6 +200,12 @@ export interface IChatRepository {
     date: Date,
     department?: string,
   ): Promise<Result<number, DomainError>>;
+
+  /**
+   * Elimina todos los chats asociados a un visitante específico
+   * Devuelve la cantidad de chats eliminados
+   */
+  deleteByVisitorId(visitorId: VisitorId): Promise<Result<number, DomainError>>;
 }
 
 /**
