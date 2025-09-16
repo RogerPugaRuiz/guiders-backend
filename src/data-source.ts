@@ -45,9 +45,16 @@ export const AppDataSource = new DataSource({
   username: process.env.DATABASE_USERNAME,
   password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE,
-  // Ajuste: solo buscar entidades compiladas (.js) para generación de migraciones
-  entities: [join(__dirname, '/../**/*.entity.js')],
-  migrations: [join(__dirname, '/migrations/*{.ts,.js}')],
+  // Rutas específicas para entidades TypeORM (solo PostgreSQL, no Mongo)
+  entities: [
+    join(__dirname, 'context/auth/**/*.entity.js'),
+    join(__dirname, 'context/company/**/*.entity.js'),
+    join(__dirname, 'context/conversations/**/*.entity.js'),
+    join(__dirname, 'context/tracking/**/*.entity.js'),
+    join(__dirname, 'context/visitors/**/*.entity.js'),
+    join(__dirname, 'context/shared/**/*.entity.js')
+  ],
+  migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
   synchronize: allowSync, // Solo si TYPEORM_SYNC=true
 });
 
