@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 import { RegisterVisitor } from '../register-visitor.usecase';
 import { AuthVisitorRepository } from '../../../domain/repositories/auth-visitor.repository';
 import { ValidateDomainApiKey } from '../../services/validate-domain-api-key';
-import { VisitorAccount } from '../../../domain/models/visitor-account';
+import { VisitorAccount } from '../../../domain/models/visitor-account.aggregate';
 import { VisitorAccountApiKey } from '../../../domain/models/visitor-account-api-key';
 import {
   InvalidDomainError,

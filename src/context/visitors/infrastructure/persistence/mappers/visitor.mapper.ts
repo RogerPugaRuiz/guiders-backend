@@ -1,6 +1,6 @@
 // Clase responsable de mapear entre la entidad de infraestructura y la entidad de dominio Visitor
 // Se ubica en infrastructure/persistence/mappers/visitor.mapper.ts
-import { Visitor } from '../../../domain/visitor';
+import { Visitor } from '../../../domain/visitor.aggregate';
 import { VisitorTypeOrmEntity } from '../visitor-typeorm.entity';
 
 export class VisitorMapper {

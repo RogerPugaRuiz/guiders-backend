@@ -2,7 +2,7 @@
 // Ubicación: src/context/visitors/infrastructure/persistence/mappers/__tests__/visitor.mapper.spec.ts
 import { VisitorMapper } from '../visitor.mapper';
 import { VisitorTypeOrmEntity } from '../../visitor-typeorm.entity';
-import { Visitor } from '../../../../domain/visitor';
+import { Visitor } from '../../../../domain/visitor.aggregate';
 import { Uuid } from '../../../../../shared/domain/value-objects/uuid';
 
 describe('VisitorMapper', () => {

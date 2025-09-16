@@ -5,7 +5,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { TypeOrmVisitorAdapter } from '../type-orm-visitor.adapter';
 import { VisitorTypeOrmEntity } from '../visitor-typeorm.entity';
-import { Visitor } from '../../../domain/visitor';
+import { Visitor } from '../../../domain/visitor.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { CriteriaConverter } from 'src/context/shared/infrastructure/criteria-converter/criteria-converter';

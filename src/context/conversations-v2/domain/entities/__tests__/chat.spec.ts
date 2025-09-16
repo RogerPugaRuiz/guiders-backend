@@ -1,4 +1,4 @@
-import { Chat } from '../chat';
+import { Chat } from '../chat.aggregate';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Chat', () => {

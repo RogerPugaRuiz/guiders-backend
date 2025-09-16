@@ -1,4 +1,4 @@
-import { VisitorIntent } from './visitor-intent';
+import { VisitorIntent } from './visitor-intent.aggregate';
 import { VisitorId } from './value-objects/visitor-id';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';

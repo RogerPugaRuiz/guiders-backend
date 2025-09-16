@@ -1,4 +1,4 @@
-import { VisitorIntent } from '../../domain/visitor-intent';
+import { VisitorIntent } from '../../domain/visitor-intent.aggregate';
 import { VisitorIntentDto } from './visitor-intent.dto';
 
 // Mapper para convertir entre VisitorIntent y VisitorIntentDto

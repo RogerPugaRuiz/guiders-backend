@@ -7,7 +7,7 @@ import {
 } from '../../domain/chat.repository';
 import { ChatId } from '../../domain/value-objects/chat-id';
 import { Result } from 'src/context/shared/domain/result';
-import { Chat } from '../../domain/entities/chat';
+import { Chat } from '../../domain/entities/chat.aggregate';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 
 @QueryHandler(GetChatByIdQuery)

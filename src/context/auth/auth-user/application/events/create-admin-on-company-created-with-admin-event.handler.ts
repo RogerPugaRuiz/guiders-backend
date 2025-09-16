@@ -7,7 +7,7 @@ import {
   UserAccountRepository,
   USER_ACCOUNT_REPOSITORY,
 } from '../../domain/user-account.repository';
-import { UserAccount } from '../../domain/user-account';
+import { UserAccount } from '../../domain/user-account.aggregate';
 import { UserAccountEmail } from '../../domain/user-account-email';
 import { UserAccountPassword } from '../../domain/user-account-password';
 import { UserAccountRoles } from '../../domain/value-objects/user-account-roles';

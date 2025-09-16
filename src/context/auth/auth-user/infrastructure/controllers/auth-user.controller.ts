@@ -24,7 +24,7 @@ import {
 } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { FindUsersByCompanyIdQuery } from '../../application/queries/find-users-by-company-id.query';
 import { UserListResponseDto } from '../../application/dtos/user-list-response.dto';
-import { UserAccountPrimitives } from '../../domain/user-account';
+import { UserAccountPrimitives } from '../../domain/user-account.aggregate';
 import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
 import { FindOneUserByIdQuery } from '../../application/read/find-one-user-by-id.query';
 import { CurrentUserResponseDto } from '../../application/dtos/current-user-response.dto';

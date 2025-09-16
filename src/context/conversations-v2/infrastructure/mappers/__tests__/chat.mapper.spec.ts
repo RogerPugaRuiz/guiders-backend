@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatMapper } from '../chat.mapper';
-import { Chat } from '../../../domain/entities/chat';
+import { Chat } from '../../../domain/entities/chat.aggregate';
 import { ChatSchema } from '../../schemas/chat.schema';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 

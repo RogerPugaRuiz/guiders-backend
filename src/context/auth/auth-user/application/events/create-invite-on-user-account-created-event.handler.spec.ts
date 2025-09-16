@@ -3,7 +3,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserAccountCreatedEvent } from '../../domain/events/user-account-created-event';
 import { INVITE_REPOSITORY } from '../../domain/invite.repository';
-import { Invite } from '../../domain/invite';
+import { Invite } from '../../domain/invite.aggregate';
 import { CreateInviteOnUserAccountCreatedEventHandler } from './create-invite-on-user-account-created-event.handler';
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';

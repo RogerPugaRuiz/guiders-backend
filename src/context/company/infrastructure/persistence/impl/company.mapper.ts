@@ -1,4 +1,4 @@
-import { Company } from '../../../domain/company';
+import { Company } from '../../../domain/company.aggregate';
 import { CompanyTypeOrmEntity } from '../entity/company-typeorm.entity';
 import { CompanySiteMapper } from './company-site.mapper';
 import { Site } from '../../../domain/entities/site';

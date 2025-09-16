@@ -1,4 +1,4 @@
-import { Chat } from './entities/chat';
+import { Chat } from './entities/chat.aggregate';
 import { ChatId } from './value-objects/chat-id';
 import { VisitorId } from './value-objects/visitor-id';
 import { CommercialId } from './value-objects/commercial-id';

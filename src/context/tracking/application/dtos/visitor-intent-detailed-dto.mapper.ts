@@ -1,4 +1,4 @@
-import { VisitorIntent } from '../../domain/visitor-intent';
+import { VisitorIntent } from '../../domain/visitor-intent.aggregate';
 import { VisitorIntentDetailedResponseDto } from '../dtos/visitor-intent-detailed-response.dto';
 import { IntentTagDto } from '../dtos/intent-tag.dto';
 import { NavigationPathDto } from '../dtos/navigation-path.dto';

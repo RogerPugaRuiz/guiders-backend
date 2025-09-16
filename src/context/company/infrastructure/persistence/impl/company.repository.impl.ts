@@ -5,7 +5,7 @@ import {
   CompanyRepository,
   COMPANY_REPOSITORY,
 } from '../../../domain/company.repository';
-import { Company } from '../../../domain/company';
+import { Company } from '../../../domain/company.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';

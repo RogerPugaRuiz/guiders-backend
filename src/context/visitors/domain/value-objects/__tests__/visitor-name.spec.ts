@@ -1,5 +1,5 @@
 // Prueba unitaria para VisitorName
-// Ubicación: src/context/visitors/domain/value-objects/__tests__/visitor-name.spec.ts
+// Ubicación: src/context/visitors/domain/value-objects/__tests__/visitor.name.spec.ts
 import { VisitorName } from '../visitor-name';
 
 describe('VisitorName', () => {

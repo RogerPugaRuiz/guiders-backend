@@ -4,7 +4,7 @@ import {
   ITrackingEventRepository,
   TRACKING_EVENT_REPOSITORY,
 } from '../../domain/tracking-event.repository';
-import { TrackingEvent } from '../../domain/tracking-event';
+import { TrackingEvent } from '../../domain/tracking-event.aggregate';
 import { TrackingEventId } from '../../domain/value-objects/tracking-event-id';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
 import { EventType } from '../../domain/value-objects/event-type';

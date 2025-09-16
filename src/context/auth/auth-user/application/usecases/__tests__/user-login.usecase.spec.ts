@@ -13,7 +13,7 @@ import {
   USER_TOKEN_SERVICE,
 } from '../../service/user-token-service';
 import { UnauthorizedError } from '../../errors/unauthorized.error';
-import { UserAccount } from '../../../domain/user-account';
+import { UserAccount } from '../../../domain/user-account.aggregate';
 import { UserAccountEmail } from '../../../domain/user-account-email';
 import { UserAccountPassword } from '../../../domain/user-account-password';
 import { UserAccountRoles } from '../../../domain/value-objects/user-account-roles';

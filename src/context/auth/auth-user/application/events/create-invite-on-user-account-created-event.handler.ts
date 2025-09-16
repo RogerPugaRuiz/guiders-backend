@@ -3,7 +3,7 @@
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { UserAccountCreatedEvent } from '../../domain/events/user-account-created-event';
 import { Inject, Logger } from '@nestjs/common';
-import { Invite } from '../../domain/invite';
+import { Invite } from '../../domain/invite.aggregate';
 import { InviteId } from '../../domain/value-objects/invite-id';
 import { UserId } from '../../domain/value-objects/user-id';
 import { InviteEmail } from '../../domain/value-objects/invite-email';

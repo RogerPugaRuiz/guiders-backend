@@ -9,7 +9,7 @@ import {
   CompanyRepository,
   COMPANY_REPOSITORY,
 } from '../src/context/company/domain/company.repository';
-import { Company } from '../src/context/company/domain/company';
+import { Company } from '../src/context/company/domain/company.aggregate';
 import { ok, err } from '../src/context/shared/domain/result';
 import { CompanyNotFoundError } from '../src/context/company/domain/errors/company.error';
 

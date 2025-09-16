@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ChatPrimitives } from '../../domain/entities/chat';
+import { ChatPrimitives } from '../../domain/entities/chat.aggregate';
 
 /**
  * DTO de respuesta para información del visitante

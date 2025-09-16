@@ -5,7 +5,7 @@ import {
   IVisitorRepository,
   VISITOR_REPOSITORY,
 } from 'src/context/visitors/domain/visitor.repository';
-import { Visitor } from 'src/context/visitors/domain/visitor';
+import { Visitor } from 'src/context/visitors/domain/visitor.aggregate';
 import { ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { VisitorNotFoundError } from 'src/context/visitors/domain/errors/visitor.error';

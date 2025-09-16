@@ -1,4 +1,4 @@
-import { UserAccount } from './user-account';
+import { UserAccount } from './user-account.aggregate';
 import { UserAccountCompanyId } from './value-objects/user-account-company-id';
 export const USER_ACCOUNT_REPOSITORY = 'USER_ACCOUNT_REPOSITORY';
 

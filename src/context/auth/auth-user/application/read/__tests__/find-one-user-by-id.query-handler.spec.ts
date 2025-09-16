@@ -5,7 +5,7 @@ import {
   UserAccountRepository,
   USER_ACCOUNT_REPOSITORY,
 } from '../../../domain/user-account.repository';
-import { UserAccount } from '../../../domain/user-account';
+import { UserAccount } from '../../../domain/user-account.aggregate';
 
 describe('FindOneUserByIdQueryHandler', () => {
   let handler: FindOneUserByIdQueryHandler;

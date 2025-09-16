@@ -39,7 +39,7 @@ import {
 } from '../../application/dtos/chat-response.dto';
 import { GetChatByIdQuery } from '../../application/queries/get-chat-by-id.query';
 import { Result } from 'src/context/shared/domain/result';
-import { Chat } from '../../domain/entities/chat';
+import { Chat } from '../../domain/entities/chat.aggregate';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   GetChatsQueryDto,

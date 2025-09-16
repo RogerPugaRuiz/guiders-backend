@@ -1,5 +1,5 @@
 import { Result } from 'src/context/shared/domain/result';
-import { Visitor } from './visitor';
+import { Visitor } from './visitor.aggregate';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { VisitorId } from './value-objects/visitor-id';
 import { Criteria } from 'src/context/shared/domain/criteria';

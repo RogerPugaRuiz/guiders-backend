@@ -8,7 +8,7 @@ import {
   ChatSearchResult,
   CommercialMetrics,
 } from '../../../domain/chat.repository';
-import { Chat } from '../../../domain/entities/chat';
+import { Chat } from '../../../domain/entities/chat.aggregate';
 import { ChatId } from '../../../domain/value-objects/chat-id';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { CommercialId } from '../../../domain/value-objects/commercial-id';

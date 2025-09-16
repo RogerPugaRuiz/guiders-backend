@@ -5,7 +5,7 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../domain/company.repository';
-import { Company } from '../../domain/company';
+import { Company } from '../../domain/company.aggregate';
 import { CompanyName } from '../../domain/value-objects/company-name';
 import { CompanySites } from '../../domain/value-objects/company-sites';
 import { Site } from '../../domain/entities/site';

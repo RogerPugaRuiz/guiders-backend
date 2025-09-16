@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MessageMapper } from '../message.mapper';
-import { Message } from '../../../domain/entities/message';
+import { Message } from '../../../domain/entities/message.aggregate';
 import { MessageSchema } from '../../schemas/message.schema';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 

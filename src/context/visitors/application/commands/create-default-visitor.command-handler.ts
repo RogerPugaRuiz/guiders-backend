@@ -5,7 +5,7 @@ import {
   IVisitorRepository,
   VISITOR_REPOSITORY,
 } from '../../domain/visitor.repository';
-import { Visitor } from '../../domain/visitor';
+import { Visitor } from '../../domain/visitor.aggregate';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
 import { VisitorName } from '../../domain/value-objects/visitor-name';
 import { Result } from 'src/context/shared/domain/result';

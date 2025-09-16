@@ -5,7 +5,7 @@ import {
   INVITE_REPOSITORY,
   InviteRepository,
 } from '../../domain/invite.repository';
-import { Invite } from '../../domain/invite';
+import { Invite } from '../../domain/invite.aggregate';
 import { InviteId } from '../../domain/value-objects/invite-id';
 import { UserId } from '../../domain/value-objects/user-id';
 import { InviteEmail } from '../../domain/value-objects/invite-email';

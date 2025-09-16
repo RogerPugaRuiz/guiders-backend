@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { FindOneUserByIdQuery } from './find-one-user-by-id.query';
 import { Optional } from 'src/context/shared/domain/optional';
-import { UserAccountPrimitives } from '../../domain/user-account';
+import { UserAccountPrimitives } from '../../domain/user-account.aggregate';
 import {
   USER_ACCOUNT_REPOSITORY,
   UserAccountRepository,

@@ -1,4 +1,4 @@
-import { Visitor } from '../visitor';
+import { Visitor } from '../visitor.aggregate';
 import { VisitorId } from '../value-objects/visitor-id';
 import { VisitorName } from '../value-objects/visitor-name';
 import { VisitorEmail } from '../value-objects/visitor-email';

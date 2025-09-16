@@ -3,7 +3,7 @@ import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from './create-admin
 import { CompanyCreatedWithAdminEvent } from 'src/context/company/domain/events/company-created-with-admin.event';
 import { USER_ACCOUNT_REPOSITORY } from '../../domain/user-account.repository';
 import { Role } from '../../domain/value-objects/role';
-import { UserAccount } from '../../domain/user-account';
+import { UserAccount } from '../../domain/user-account.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { EventPublisher } from '@nestjs/cqrs';
 

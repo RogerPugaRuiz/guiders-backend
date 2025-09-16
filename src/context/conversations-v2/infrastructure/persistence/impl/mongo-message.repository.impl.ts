@@ -12,7 +12,7 @@ import {
   ConversationStats,
   MessageMetrics,
 } from '../../../domain/message.repository';
-import { Message } from '../../../domain/entities/message';
+import { Message } from '../../../domain/entities/message.aggregate';
 import { MessageId } from '../../../domain/value-objects/message-id';
 import { ChatId } from '../../../domain/value-objects/chat-id';
 import { MessageType } from '../../../domain/value-objects/message-type';

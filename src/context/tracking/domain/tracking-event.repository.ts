@@ -1,4 +1,4 @@
-import { TrackingEvent } from './tracking-event';
+import { TrackingEvent } from './tracking-event.aggregate';
 import { TrackingEventId } from './value-objects/tracking-event-id';
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { Result } from 'src/context/shared/domain/result';

@@ -36,7 +36,7 @@ import { UpdateVisitorNameCommand } from '../../application/commands/update-visi
 import { UpdateVisitorTelCommand } from '../../application/commands/update-visitor-tel.command';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
-import { VisitorPrimitives } from '../../domain/visitor';
+import { VisitorPrimitives } from '../../domain/visitor.aggregate';
 
 @ApiTags('Visitantes')
 @Controller('visitor')

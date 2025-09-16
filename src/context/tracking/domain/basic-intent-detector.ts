@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { TrackingEvent } from './tracking-event';
-import { VisitorIntent } from './visitor-intent';
+import { TrackingEvent } from './tracking-event.aggregate';
+import { VisitorIntent } from './visitor-intent.aggregate';
 import { IntentType } from './value-objects/intent-type';
 import { IntentConfidence } from './value-objects/intent-confidence';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';

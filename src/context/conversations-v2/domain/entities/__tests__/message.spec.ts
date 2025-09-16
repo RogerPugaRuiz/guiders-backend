@@ -1,4 +1,4 @@
-import { Message } from '../message';
+import { Message } from '../message.aggregate';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Message', () => {

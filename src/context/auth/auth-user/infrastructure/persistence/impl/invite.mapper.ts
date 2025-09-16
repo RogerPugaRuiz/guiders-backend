@@ -1,4 +1,4 @@
-import { Invite } from '../../../domain/invite';
+import { Invite } from '../../../domain/invite.aggregate';
 import { InviteTypeOrmEntity } from '../entity/invite-typeorm.entity';
 import { InviteId } from '../../../domain/value-objects/invite-id';
 import { UserId } from '../../../domain/value-objects/user-id';

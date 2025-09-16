@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UserAccount } from '../domain/user-account';
+import { UserAccount } from '../domain/user-account.aggregate';
 import { UserAccountEntity } from './user-account.entity';
 
 @Injectable()

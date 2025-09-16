@@ -1,5 +1,5 @@
 import { VisitorIntentDetailedQueryService } from '../visitor-intent-detailed-query.service';
-import { VisitorIntent } from '../../../domain/visitor-intent';
+import { VisitorIntent } from '../../../domain/visitor-intent.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { IntentType } from '../../../domain/value-objects/intent-type';

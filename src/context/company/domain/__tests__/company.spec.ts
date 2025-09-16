@@ -1,4 +1,4 @@
-import { Company } from '../company';
+import { Company } from '../company.aggregate';
 import { CompanyName } from '../value-objects/company-name';
 import { CompanySites } from '../value-objects/company-sites';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';

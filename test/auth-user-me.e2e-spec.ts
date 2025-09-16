@@ -12,7 +12,7 @@ import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guar
 import { CqrsModule, QueryBus } from '@nestjs/cqrs';
 import { FindOneUserByIdQuery } from '../src/context/auth/auth-user/application/read/find-one-user-by-id.query';
 import { Optional } from '../src/context/shared/domain/optional';
-import { UserAccountPrimitives } from '../src/context/auth/auth-user/domain/user-account';
+import { UserAccountPrimitives } from '../src/context/auth/auth-user/domain/user-account.aggregate';
 
 // Mock AuthUserService (solo métodos usados indirectamente por el controlador en otros endpoints)
 const mockAuthUserService: Partial<AuthUserService> = {

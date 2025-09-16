@@ -1,6 +1,6 @@
 // Prueba unitaria para VisitorIntent aggregate
 // Ubicación: src/context/tracking/domain/__tests__/visitor-intent.spec.ts
-import { VisitorIntent, VisitorIntentProperties } from '../visitor-intent';
+import { VisitorIntent, VisitorIntentProperties } from '../visitor-intent.aggregate';
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
 import { VisitorId } from '../value-objects/visitor-id';
 import { IntentType } from '../value-objects/intent-type';

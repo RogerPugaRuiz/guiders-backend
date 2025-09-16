@@ -5,7 +5,7 @@ import {
   CHAT_V2_REPOSITORY,
   IChatRepository,
 } from '../../domain/chat.repository';
-import { Chat } from '../../domain/entities/chat';
+import { Chat } from '../../domain/entities/chat.aggregate';
 import { ChatMetadata } from '../../domain/value-objects/chat-metadata';
 import { Result } from 'src/context/shared/domain/result';
 

@@ -3,7 +3,7 @@ import { ITrackingEventRepository } from '../../domain/tracking-event.repository
 import { Criteria } from 'src/context/shared/domain/criteria';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
-import { TrackingEvent } from '../../domain/tracking-event';
+import { TrackingEvent } from '../../domain/tracking-event.aggregate';
 import { TrackingEventId } from '../../domain/value-objects/tracking-event-id';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TrackingEventTypeOrmEntity } from './entity/tracking-event.typeorm.entity';

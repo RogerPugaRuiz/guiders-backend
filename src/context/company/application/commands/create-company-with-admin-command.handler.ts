@@ -12,7 +12,7 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../domain/company.repository';
-import { Company } from '../../domain/company';
+import { Company } from '../../domain/company.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { CompanyName } from '../../domain/value-objects/company-name';
 import { CompanyCreatedWithAdminEvent } from '../../domain/events/company-created-with-admin.event';

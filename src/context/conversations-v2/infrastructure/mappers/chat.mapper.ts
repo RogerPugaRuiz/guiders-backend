@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Chat } from '../../domain/entities/chat';
+import { Chat } from '../../domain/entities/chat.aggregate';
 import { ChatSchema } from '../schemas/chat.schema';
 
 /**

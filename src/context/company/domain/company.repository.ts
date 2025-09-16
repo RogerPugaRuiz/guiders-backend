@@ -1,5 +1,5 @@
 // Interfaz del repositorio de Company para DDD
-import { Company } from './company';
+import { Company } from './company.aggregate';
 import { Uuid } from '../../shared/domain/value-objects/uuid';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';

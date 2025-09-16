@@ -1,6 +1,6 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetChatsWithFiltersQuery } from './get-chats-with-filters.query';
-import { Chat } from '../../domain/entities/chat';
+import { Chat } from '../../domain/entities/chat.aggregate';
 import { Inject, Logger } from '@nestjs/common';
 import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
 import {
