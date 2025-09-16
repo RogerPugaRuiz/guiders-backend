@@ -47,12 +47,45 @@ export const AppDataSource = new DataSource({
   database: process.env.DATABASE,
   // Rutas específicas para entidades TypeORM (solo PostgreSQL, no Mongo)
   entities: [
-    join(__dirname, 'context/auth/**/*.entity.js'),
-    join(__dirname, 'context/company/**/*.entity.js'),
-    join(__dirname, 'context/conversations/**/*.entity.js'),
-    join(__dirname, 'context/tracking/**/*.entity.js'),
-    join(__dirname, 'context/visitors/**/*.entity.js'),
-    join(__dirname, 'context/shared/**/*.entity.js')
+    join(__dirname, 'context/auth/api-key/infrastructure/api-key.entity.js'),
+    join(
+      __dirname,
+      'context/auth/auth-user/infrastructure/user-account.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/auth/auth-user/infrastructure/persistence/entity/invite-typeorm.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/auth/auth-visitor/infrastructure/visitor-account.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/company/infrastructure/persistence/entity/company-typeorm.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/company/infrastructure/persistence/typeorm/company-site.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/conversations/infrastructure/conversation.entity.js',
+    ),
+    join(__dirname, 'context/conversations/infrastructure/message.entity.js'),
+    join(
+      __dirname,
+      'context/tracking/infrastructure/persistence/entity/tracking-event.typeorm.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/tracking/infrastructure/persistence/entity/visitor-intent.entity.js',
+    ),
+    join(
+      __dirname,
+      'context/visitors/infrastructure/persistence/visitor-typeorm.entity.js',
+    ),
+    join(__dirname, 'context/shared/domain/entities/test-entity.entity.js'),
   ],
   migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
   synchronize: allowSync, // Solo si TYPEORM_SYNC=true

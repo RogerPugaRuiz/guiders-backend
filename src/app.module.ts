@@ -126,7 +126,32 @@ export class AppModule {
       database: isTest
         ? configService.get<string>('TEST_DATABASE', 'mydb')
         : configService.get<string>('DATABASE', 'mydb'),
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      entities: [
+        __dirname +
+          '/context/auth/api-key/infrastructure/api-key.entity{.ts,.js}',
+        __dirname +
+          '/context/auth/auth-user/infrastructure/user-account.entity{.ts,.js}',
+        __dirname +
+          '/context/auth/auth-user/infrastructure/persistence/entity/invite-typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/auth/auth-visitor/infrastructure/visitor-account.entity{.ts,.js}',
+        __dirname +
+          '/context/company/infrastructure/persistence/entity/company-typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/company/infrastructure/persistence/typeorm/company-site.entity{.ts,.js}',
+        __dirname +
+          '/context/conversations/infrastructure/conversation.entity{.ts,.js}',
+        __dirname +
+          '/context/conversations/infrastructure/message.entity{.ts,.js}',
+        __dirname +
+          '/context/tracking/infrastructure/persistence/entity/tracking-event.typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/tracking/infrastructure/persistence/entity/visitor-intent.entity{.ts,.js}',
+        __dirname +
+          '/context/visitors/infrastructure/persistence/visitor-typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/shared/domain/entities/test-entity.entity{.ts,.js}',
+      ],
       synchronize: allowSync || isE2ETest,
       autoLoadEntities: allowSync || isE2ETest,
     };

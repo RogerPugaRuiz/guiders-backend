@@ -19,5 +19,6 @@ import { CqrsModule } from '@nestjs/cqrs';
     FindCompanyByDomainQueryHandler,
     ResolveSiteByHostQueryHandler,
   ],
+  exports: [companyRepositoryProvider],
 })
 export class CompanyModule {}
