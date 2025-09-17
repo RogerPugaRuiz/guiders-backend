@@ -6,6 +6,9 @@ import {
   HttpCode,
   Req,
   BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
@@ -29,6 +32,8 @@ import { EndSessionCommand } from '../../application/commands/end-session.comman
 @ApiTags('visitors')
 @Controller('visitors')
 export class VisitorV2Controller {
+  private readonly logger = new Logger(VisitorV2Controller.name);
+
   constructor(private readonly commandBus: CommandBus) {}
 
   @Post('identify')
@@ -54,27 +59,45 @@ export class VisitorV2Controller {
     @Body() identifyVisitorDto: IdentifyVisitorDto,
     @Response({ passthrough: true }) response: ExpressResponse,
   ): Promise<IdentifyVisitorResponseDto> {
-    const command = new IdentifyVisitorCommand(
-      identifyVisitorDto.fingerprint,
-      identifyVisitorDto.siteId,
-      identifyVisitorDto.tenantId,
-      identifyVisitorDto.currentUrl,
-    );
+    try {
+      const command = new IdentifyVisitorCommand(
+        identifyVisitorDto.fingerprint,
+        identifyVisitorDto.siteId,
+        identifyVisitorDto.tenantId,
+        identifyVisitorDto.currentUrl,
+      );
 
-    const result = await this.commandBus.execute<
-      IdentifyVisitorCommand,
-      IdentifyVisitorResponseDto
-    >(command);
+      const result = await this.commandBus.execute<
+        IdentifyVisitorCommand,
+        IdentifyVisitorResponseDto
+      >(command);
 
-    // Setear cookie HttpOnly con el sessionId
-    response.cookie('sid', result.sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 24 horas
-    });
+      // Setear cookie HttpOnly con el sessionId
+      response.cookie('sid', result.sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      });
 
-    return result;
+      return result;
+    } catch (error) {
+      this.logger.error('Error al identificar visitante:', error);
+
+      // Si es un error de validación o datos inválidos
+      if (
+        error instanceof Error &&
+        (error.message?.includes('inválido') ||
+          error.message?.includes('invalid'))
+      ) {
+        throw new BadRequestException(error.message);
+      }
+
+      // Error genérico del servidor
+      throw new InternalServerErrorException(
+        'Error interno al identificar visitante',
+      );
+    }
   }
 
   @Post('session/heartbeat')
@@ -99,28 +122,61 @@ export class VisitorV2Controller {
     @Body() updateHeartbeatDto: UpdateSessionHeartbeatDto,
     @Req() request: ExpressRequest,
   ): Promise<{ success: boolean; message: string }> {
-    // Obtener sessionId de body o de cookie si no viene en body
-    const sessionId =
-      updateHeartbeatDto.sessionId ||
-      (request.cookies && typeof request.cookies.sid === 'string'
-        ? request.cookies.sid
-        : undefined);
+    try {
+      // Obtener sessionId de body o de cookie si no viene en body
+      const sessionId =
+        updateHeartbeatDto.sessionId ||
+        (request.cookies && typeof request.cookies.sid === 'string'
+          ? request.cookies.sid
+          : undefined);
 
-    if (!sessionId) {
-      throw new BadRequestException('SessionId no proporcionado');
+      if (!sessionId) {
+        throw new BadRequestException('SessionId no proporcionado');
+      }
+
+      const command = new UpdateSessionHeartbeatCommand(
+        sessionId,
+        updateHeartbeatDto.visitorId,
+      );
+
+      await this.commandBus.execute<UpdateSessionHeartbeatCommand, void>(
+        command,
+      );
+
+      return {
+        success: true,
+        message: 'Heartbeat actualizado exitosamente',
+      };
+    } catch (error) {
+      this.logger.error('Error al actualizar heartbeat:', error);
+
+      // Sesión no encontrada
+      if (
+        error instanceof Error &&
+        error.message?.includes('Sesión no encontrada')
+      ) {
+        throw new NotFoundException(error.message);
+      }
+
+      // Datos inválidos
+      if (
+        error instanceof BadRequestException ||
+        (error instanceof Error &&
+          (error.message?.includes('inválido') ||
+            error.message?.includes('invalid')))
+      ) {
+        throw new BadRequestException(
+          error instanceof BadRequestException
+            ? error.message
+            : error.message || 'Datos inválidos',
+        );
+      }
+
+      // Error genérico del servidor
+      throw new InternalServerErrorException(
+        'Error interno al actualizar heartbeat',
+      );
     }
-
-    const command = new UpdateSessionHeartbeatCommand(
-      sessionId,
-      updateHeartbeatDto.visitorId,
-    );
-
-    await this.commandBus.execute<UpdateSessionHeartbeatCommand, void>(command);
-
-    return {
-      success: true,
-      message: 'Heartbeat actualizado exitosamente',
-    };
   }
 
   @Post('session/end')
@@ -146,31 +202,60 @@ export class VisitorV2Controller {
     @Req() request: ExpressRequest,
     @Response({ passthrough: true }) response: ExpressResponse,
   ): Promise<{ success: boolean; message: string }> {
-    // Obtener sessionId de body o de cookie si no viene en body
-    const sessionId =
-      endSessionDto.sessionId ||
-      (request.cookies && typeof request.cookies.sid === 'string'
-        ? request.cookies.sid
-        : undefined);
+    try {
+      // Obtener sessionId de body o de cookie si no viene en body
+      const sessionId =
+        endSessionDto.sessionId ||
+        (request.cookies && typeof request.cookies.sid === 'string'
+          ? request.cookies.sid
+          : undefined);
 
-    if (!sessionId) {
-      throw new BadRequestException('SessionId no proporcionado');
+      if (!sessionId) {
+        throw new BadRequestException('SessionId no proporcionado');
+      }
+
+      const command = new EndSessionCommand(
+        sessionId,
+        endSessionDto.visitorId,
+        endSessionDto.reason,
+      );
+
+      await this.commandBus.execute<EndSessionCommand, void>(command);
+
+      // Limpiar cookie de sesión
+      response.clearCookie('sid');
+
+      return {
+        success: true,
+        message: 'Sesión cerrada exitosamente',
+      };
+    } catch (error) {
+      this.logger.error('Error al cerrar sesión:', error);
+
+      // Sesión no encontrada
+      if (
+        error instanceof Error &&
+        error.message?.includes('Sesión no encontrada')
+      ) {
+        throw new NotFoundException(error.message);
+      }
+
+      // Datos inválidos
+      if (
+        error instanceof BadRequestException ||
+        (error instanceof Error &&
+          (error.message?.includes('inválido') ||
+            error.message?.includes('invalid')))
+      ) {
+        throw new BadRequestException(
+          error instanceof BadRequestException
+            ? error.message
+            : error.message || 'Datos inválidos',
+        );
+      }
+
+      // Error genérico del servidor
+      throw new InternalServerErrorException('Error interno al cerrar sesión');
     }
-
-    const command = new EndSessionCommand(
-      sessionId,
-      endSessionDto.visitorId,
-      endSessionDto.reason,
-    );
-
-    await this.commandBus.execute<EndSessionCommand, void>(command);
-
-    // Limpiar cookie de sesión
-    response.clearCookie('sid');
-
-    return {
-      success: true,
-      message: 'Sesión cerrada exitosamente',
-    };
   }
 }

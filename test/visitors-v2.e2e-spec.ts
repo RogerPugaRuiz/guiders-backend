@@ -194,7 +194,7 @@ describe('Visitors E2E', () => {
       // Act & Assert
       await request(app.getHttpServer())
         .post('/sites/resolve?host=noexiste.com')
-        .expect(500);
+        .expect(404);
 
       expect(mockCompanyRepository.findByDomain).toHaveBeenCalledWith(
         'noexiste.com',
@@ -383,7 +383,7 @@ describe('Visitors E2E', () => {
       await request(app.getHttpServer())
         .post('/visitors/session/heartbeat')
         .send(validHeartbeatDto)
-        .expect(500);
+        .expect(404);
     });
 
     it('debe fallar con sessionId inválido', async () => {
@@ -483,7 +483,7 @@ describe('Visitors E2E', () => {
       await request(app.getHttpServer())
         .post('/visitors/session/end')
         .send(validEndSessionDto)
-        .expect(500);
+        .expect(404);
     });
 
     it('debe fallar con sessionId inválido', async () => {
