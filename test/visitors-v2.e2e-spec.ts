@@ -16,6 +16,10 @@ import {
   CompanyRepository,
   COMPANY_REPOSITORY,
 } from '../src/context/company/domain/company.repository';
+import {
+  VALIDATE_DOMAIN_API_KEY,
+  ValidateDomainApiKey,
+} from '../src/context/auth/auth-visitor/application/services/validate-domain-api-key';
 import { VisitorV2 } from '../src/context/visitors-v2/domain/visitor-v2.aggregate';
 import { Company } from '../src/context/company/domain/company.aggregate';
 import { VisitorId } from '../src/context/visitors-v2/domain/value-objects/visitor-id';
@@ -43,6 +47,7 @@ describe('Visitors E2E', () => {
   let app: INestApplication;
   let mockVisitorRepository: jest.Mocked<VisitorV2Repository>;
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
+  let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
 
   // Mock data
@@ -59,7 +64,10 @@ describe('Visitors E2E', () => {
       id: siteId,
       name: new SiteName('Landing Site'),
       canonicalDomain: new CanonicalDomain('landing.mytech.com'),
-      domainAliases: DomainAliases.fromPrimitives(['www.mytech.com']),
+      domainAliases: DomainAliases.fromPrimitives([
+        'landing.mytech.com',
+        'www.landing.mytech.com',
+      ]),
     });
 
     return Company.create({
@@ -103,6 +111,10 @@ describe('Visitors E2E', () => {
       findAll: jest.fn(),
     };
 
+    mockValidateDomainApiKey = {
+      validate: jest.fn(),
+    } as any;
+
     // Mock event publisher
     mockEventPublisher = {
       mergeObjectContext: jest.fn(),
@@ -125,6 +137,10 @@ describe('Visitors E2E', () => {
           useValue: mockCompanyRepository,
         },
         {
+          provide: VALIDATE_DOMAIN_API_KEY,
+          useValue: mockValidateDomainApiKey,
+        },
+        {
           provide: EventPublisher,
           useValue: mockEventPublisher,
         },
@@ -139,6 +155,27 @@ describe('Visitors E2E', () => {
     mockVisitorRepository.save.mockResolvedValue(okVoid());
     mockEventPublisher.mergeObjectContext.mockImplementation(
       (visitor) => visitor,
+    );
+
+    // Configurar validación de API Key exitosa por defecto
+    mockValidateDomainApiKey.validate.mockResolvedValue(true);
+
+    // Configurar mock company por defecto
+    const mockCompany = {
+      getSites: jest.fn().mockReturnValue({
+        toPrimitives: jest.fn().mockReturnValue([
+          {
+            id: mockSiteId,
+            domain: 'landing.mytech.com',
+            canonicalDomain: 'landing.mytech.com',
+            domainAliases: ['landing.mytech.com', 'www.landing.mytech.com'],
+          },
+        ]),
+      }),
+      getId: jest.fn().mockReturnValue({ getValue: () => mockTenantId }),
+    };
+    mockCompanyRepository.findByDomain.mockResolvedValue(
+      ok(mockCompany as any),
     );
   });
 
@@ -174,14 +211,14 @@ describe('Visitors E2E', () => {
 
       // Act
       const response = await request(app.getHttpServer())
-        .post('/sites/resolve?host=www.mytech.com')
+        .post('/sites/resolve?host=www.landing.mytech.com')
         .expect(200);
 
       // Assert
       expect(response.body).toHaveProperty('tenantId', mockTenantId);
       expect(response.body).toHaveProperty('siteId', mockSiteId);
       expect(mockCompanyRepository.findByDomain).toHaveBeenCalledWith(
-        'www.mytech.com',
+        'www.landing.mytech.com',
       );
     });
 
@@ -210,8 +247,8 @@ describe('Visitors E2E', () => {
   describe('POST /visitors/identify', () => {
     const validIdentifyDto = {
       fingerprint: 'fp_abc123def456',
-      siteId: mockSiteId,
-      tenantId: mockTenantId,
+      domain: 'landing.mytech.com',
+      apiKey: 'ak_live_1234567890',
       currentPath: 'https://landing.mytech.com/home',
     };
 
@@ -530,13 +567,14 @@ describe('Visitors E2E', () => {
       expect(resolveSiteResponse.body).toHaveProperty('tenantId');
       expect(resolveSiteResponse.body).toHaveProperty('siteId');
 
-      // 2. Identificar visitante (crear nuevo)
+      // 2. Identificar visitante con nuevo formato (domain/apiKey)
       const identifyResponse = await request(app.getHttpServer())
         .post('/visitors/identify')
         .send({
           fingerprint: 'fp_integration_test',
-          tenantId: resolveSiteResponse.body.tenantId,
-          siteId: resolveSiteResponse.body.siteId,
+          domain: 'landing.mytech.com',
+          apiKey: 'ak_live_1234567890',
+          currentPath: 'https://landing.mytech.com/home',
         })
         .expect(200);
 
