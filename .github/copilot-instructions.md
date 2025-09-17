@@ -69,6 +69,52 @@ Resumen rápido:
 Esta política evita mezcla arbitraria y facilita lectura al equipo actual; si cambia la composición lingüística del equipo, se podrá revisar.
 
 ---
+### 15. Documentación AI Auto-generada
+Sistema automático de documentación para agentes AI con scripts específicos:
+- `npm run docs:generate-ai`: Genera `/docs/api-ai/` analizando controllers y rutas de Swagger
+- `npm run docs:watch-ai`: Watcher que regenera docs automáticamente cuando cambian controllers
+- Script `scripts/generate-ai-docs-v2.ts` extrae metadata completa: endpoints, auth, params, responses
+- Documentación incluye ejemplos reales de payloads y contratos API actualizados
+- Usar siempre después de cambios en contratos API (DTOs, nuevos endpoints, cambios auth)
+
+### 16. Contextos V1 vs V2 (Evolutivo)
+Patrón de migración incremental para funcionalidades legacy:
+- **V1 (SQL)**: `conversations`, `visitors` - mantener solo para compatibilidad, no nuevas features
+- **V2 (Mongo)**: `conversations-v2`, `visitors-v2` - usar para todo desarrollo nuevo
+- V2 diseñado para alto volumen, agregaciones complejas y mejor performance
+- Migración gradual: V1 y V2 coexisten, V2 eventual reemplazo completo
+- Ejemplo patrón: `visitors-v2/application/commands/identify-visitor.command-handler.ts` usa validación API key + resolución automática domain→tenant/site
+
+### 17. API Key Flow & Domain Resolution 
+Patrón crítico para APIs públicas (frontend-facing):
+- Frontend envía `domain` + `apiKey` (externos), no UUIDs internos
+- Handler valida API key con `ValidateDomainApiKey` service inyectado via `VALIDATE_DOMAIN_API_KEY`
+- Auto-resolución: `companyRepository.findByDomain()` → `company.getSites().toPrimitives()`
+- Buscar sitio específico: `site.canonicalDomain === domain || site.domainAliases.includes(domain)`
+- Generar UUIDs internos: `new TenantId(company.getId().getValue())`, `new SiteId(targetSite.id)`
+- Pattern usado en: `/api/visitors/identify` (ejemplo reciente implementado)
+
+---
+### 18. Tasks & Development Workflows
+VS Code tasks configuradas para desarrollo eficiente (`.vscode/tasks.json`):
+- **Start Development Server**: `npm run start:dev` con hot-reload
+- **Build Project**: `npm run build` (default build task)
+- **Run Unit Tests**: `npm run test:unit` con coverage
+- **Run Integration Tests**: `npm run test:int` con PostgreSQL + Mongo
+- **Run E2E Tests**: `npm run test:e2e` contra servidor completo
+- **Format Code**: `npm run format` (Prettier)
+- **Lint Code**: `eslint --fix` automático
+- **CLI Development**: Acceso a CLI interna para datos de prueba
+
+### 19. CLI Interna & Data Management
+`bin/guiders-cli.js` para gestión de datos y escenarios de testing:
+- `clean-database --force`: Limpia completamente PostgreSQL + Mongo
+- `create-company-with-admin`: Crea empresa + admin + sitios para testing
+- `create-company`: Solo empresa sin admin
+- Ideal para E2E setup, reproducir bugs, preparar datos demo
+- CLI usa misma arquitectura CQRS que aplicación principal
+
+---
 ### Context7 (cuándo leer docs externas)
 Usar solo si falta en repo y afecta decisión (APIs Angular 20, signals avanzados, DI tree-shakable, Jest timers). Proceso: buscar local → si falta `resolve-library-id` → `get-library-docs(topic)` tokens ≤6000 → resumir y aplicar citando ("Context7: signals"). No para sintaxis básica.
 
