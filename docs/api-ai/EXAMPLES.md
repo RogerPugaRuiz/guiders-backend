@@ -471,6 +471,326 @@ validator.validateDocumentation().then(results => {
 });
 ```
 
+### 5. Ejemplo Específico: Identificación de Visitantes V2
+
+```javascript
+// Ejemplo práctico: IA que ayuda con la nueva API de identificación de visitantes
+class VisitorIdentificationHelper {
+  constructor() {
+    this.docs = JSON.parse(fs.readFileSync('docs/api-ai/contexts/visitors-v2.json'));
+  }
+
+  explainNewIdentificationFlow() {
+    const identifyEndpoint = this.docs.controllers
+      .find(ctrl => ctrl.name === 'VisitorV2Controller')
+      .endpoints
+      .find(ep => ep.path === '/visitors/identify');
+
+    return `
+## ✨ Nueva API de Identificación de Visitantes
+
+**Cambio Principal:** Ya no necesitas conocer internamente \`tenantId\` y \`siteId\`
+
+### Antes (Problemático):
+\`\`\`json
+POST /api/visitors/identify
+{
+  "fingerprint": "fp_abc123",
+  "siteId": "uuid-que-no-conoces",     // ❌ Requería UUIDs internos
+  "tenantId": "uuid-que-no-conoces"   // ❌ Datos no disponibles en frontend
+}
+\`\`\`
+
+### Ahora (Simplificado):
+\`\`\`json
+POST /api/visitors/identify
+{
+  "fingerprint": "fp_abc123",
+  "domain": "landing.mytech.com",      // ✅ Dominio conocido por el cliente
+  "apiKey": "ak_live_1234567890"       // ✅ API Key proporcionada al cliente
+}
+\`\`\`
+
+### Flujo Interno Automático:
+1. **Validación**: Verifica que \`apiKey\` sea válida para \`domain\`
+2. **Resolución**: Convierte \`domain\` → \`tenantId\` + \`siteId\` internamente
+3. **Identificación**: Procede con la lógica original de visitantes
+
+### Respuestas Mejoradas:
+- **200**: Visitante identificado correctamente
+- **400**: Datos inválidos (campos faltantes, formato incorrecto)
+- **401**: API Key no válida para el dominio proporcionado
+- **404**: Dominio no encontrado en el sistema
+- **500**: Error interno del servidor
+
+### Ejemplo de Uso Completo:
+\`\`\`javascript
+// Cliente frontend - Ahora mucho más simple
+async function identifyVisitor(fingerprint, currentUrl) {
+  try {
+    const response = await fetch('/api/visitors/identify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        fingerprint,
+        domain: window.location.hostname,
+        apiKey: process.env.GUIDERS_API_KEY,
+        currentUrl
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(\`Error \${response.status}: \${response.statusText}\`);
+    }
+
+    const { visitorId, sessionId, lifecycle, isNewVisitor } = await response.json();
+    
+    // El sessionId se guarda automáticamente en cookie HttpOnly
+    console.log('Visitante identificado:', { visitorId, lifecycle, isNewVisitor });
+    
+    return { visitorId, sessionId, lifecycle, isNewVisitor };
+  } catch (error) {
+    console.error('Error identificando visitante:', error);
+    throw error;
+  }
+}
+
+// Uso en tu aplicación
+identifyVisitor('fp_user_browser_fingerprint', window.location.href)
+  .then(visitor => {
+    if (visitor.isNewVisitor) {
+      console.log('¡Nuevo visitante! Iniciar tour/onboarding');
+    } else {
+      console.log('Visitante existente, cargar preferencias');
+    }
+  })
+  .catch(error => {
+    console.error('No se pudo identificar al visitante:', error);
+  });
+\`\`\`
+
+### Ventajas del Nuevo Enfoque:
+- ✅ **Más seguro**: Validación de API Key obligatoria
+- ✅ **Más simple**: Solo datos que el frontend conoce
+- ✅ **Más mantenible**: Resolución centralizada en backend
+- ✅ **Mejor UX**: Menos configuración necesaria
+- ✅ **Más robusto**: Validación automática con mensajes claros
+    `;
+  }
+
+  generateIntegrationExamples() {
+    return `
+## Ejemplos de Integración por Tecnología
+
+### React/Next.js
+\`\`\`jsx
+import { useEffect, useState } from 'react';
+
+export function useVisitorIdentification() {
+  const [visitor, setVisitor] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function identifyVisitor() {
+      try {
+        setLoading(true);
+        
+        // Generar fingerprint (puedes usar una librería como FingerprintJS)
+        const fingerprint = generateBrowserFingerprint();
+        
+        const response = await fetch('/api/visitors/identify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fingerprint,
+            domain: window.location.hostname,
+            apiKey: process.env.NEXT_PUBLIC_GUIDERS_API_KEY,
+            currentUrl: window.location.href
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(\`Error \${response.status}\`);
+        }
+
+        const visitorData = await response.json();
+        setVisitor(visitorData);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    identifyVisitor();
+  }, []);
+
+  return { visitor, loading, error };
+}
+
+// Componente que usa el hook
+function App() {
+  const { visitor, loading, error } = useVisitorIdentification();
+
+  if (loading) return <div>Identificando visitante...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div>
+      <h1>¡Hola{visitor?.isNewVisitor ? ' y bienvenido' : ' de nuevo'}!</h1>
+      <p>ID del visitante: {visitor?.visitorId}</p>
+      <p>Estado: {visitor?.lifecycle}</p>
+    </div>
+  );
+}
+\`\`\`
+
+### Vue.js
+\`\`\`vue
+<template>
+  <div>
+    <div v-if="loading">Identificando visitante...</div>
+    <div v-else-if="error">Error: {{ error }}</div>
+    <div v-else>
+      <h1>¡Hola{{ visitor?.isNewVisitor ? ' y bienvenido' : ' de nuevo' }}!</h1>
+      <p>ID del visitante: {{ visitor?.visitorId }}</p>
+      <p>Estado: {{ visitor?.lifecycle }}</p>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      visitor: null,
+      loading: true,
+      error: null
+    };
+  },
+  
+  async mounted() {
+    try {
+      const fingerprint = this.generateBrowserFingerprint();
+      
+      const response = await fetch('/api/visitors/identify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fingerprint,
+          domain: window.location.hostname,
+          apiKey: process.env.VUE_APP_GUIDERS_API_KEY,
+          currentUrl: window.location.href
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(\`Error \${response.status}\`);
+      }
+
+      this.visitor = await response.json();
+    } catch (err) {
+      this.error = err.message;
+    } finally {
+      this.loading = false;
+    }
+  },
+
+  methods: {
+    generateBrowserFingerprint() {
+      // Implementar generación de fingerprint
+      return 'fp_' + Math.random().toString(36).substring(2);
+    }
+  }
+};
+</script>
+\`\`\`
+
+### Vanilla JavaScript
+\`\`\`html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Guiders Visitor Identification</title>
+</head>
+<body>
+  <div id="visitor-info">Cargando...</div>
+  
+  <script>
+    async function identifyVisitor() {
+      const visitorInfoEl = document.getElementById('visitor-info');
+      
+      try {
+        // Generar fingerprint simple
+        const fingerprint = 'fp_' + Date.now() + '_' + Math.random().toString(36).substring(2);
+        
+        const response = await fetch('/api/visitors/identify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fingerprint,
+            domain: window.location.hostname,
+            apiKey: 'your-api-key-here', // En producción, obtener de config segura
+            currentUrl: window.location.href
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(\`Error \${response.status}: \${response.statusText}\`);
+        }
+
+        const visitor = await response.json();
+        
+        visitorInfoEl.innerHTML = \`
+          <h1>¡Hola\${visitor.isNewVisitor ? ' y bienvenido' : ' de nuevo'}!</h1>
+          <p><strong>ID del visitante:</strong> \${visitor.visitorId}</p>
+          <p><strong>ID de sesión:</strong> \${visitor.sessionId}</p>
+          <p><strong>Estado:</strong> \${visitor.lifecycle}</p>
+          <p><strong>Nuevo visitante:</strong> \${visitor.isNewVisitor ? 'Sí' : 'No'}</p>
+        \`;
+        
+        // Inicializar chat o funcionalidades adicionales
+        if (visitor.isNewVisitor) {
+          showWelcomeTour();
+        } else {
+          loadUserPreferences(visitor.visitorId);
+        }
+        
+      } catch (error) {
+        visitorInfoEl.innerHTML = \`<div style="color: red;">Error: \${error.message}</div>\`;
+        console.error('Error identificando visitante:', error);
+      }
+    }
+
+    function showWelcomeTour() {
+      console.log('Mostrar tour de bienvenida para nuevo visitante');
+      // Implementar tour/onboarding
+    }
+
+    function loadUserPreferences(visitorId) {
+      console.log('Cargar preferencias para visitante:', visitorId);
+      // Cargar configuraciones previas
+    }
+
+    // Ejecutar cuando la página carga
+    document.addEventListener('DOMContentLoaded', identifyVisitor);
+  </script>
+</body>
+</html>
+\`\`\`
+    `;
+  }
+}
+
+// Uso del helper
+const helper = new VisitorIdentificationHelper();
+console.log(helper.explainNewIdentificationFlow());
+console.log(helper.generateIntegrationExamples());
+```
+
 ## Comandos NPM Disponibles
 
 ```bash

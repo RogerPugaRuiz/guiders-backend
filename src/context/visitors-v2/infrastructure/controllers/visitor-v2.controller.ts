@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiOkResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 import {
   Response as ExpressResponse,
@@ -41,7 +42,37 @@ export class VisitorV2Controller {
   @ApiOperation({
     summary: 'Identificar visitante',
     description:
-      'Registra o actualiza un visitante en el sistema. Si el fingerprint ya existe en el siteId, actualiza al visitante. Si no existe, crea un nuevo Visitor en estado inicial (anónimo). Inicia una nueva Session asociada al visitante y devuelve un identificador de sesión en cookie HttpOnly.',
+      'Registra o actualiza un visitante en el sistema usando dominio y API Key. ' +
+      'El sistema valida automáticamente la API Key contra el dominio proporcionado, ' +
+      'resuelve el tenantId y siteId internamente, y procede a identificar al visitante. ' +
+      'Si el fingerprint ya existe en el sitio, actualiza al visitante existente. ' +
+      'Si no existe, crea un nuevo Visitor en estado inicial (anónimo). ' +
+      'Inicia una nueva Session asociada al visitante y devuelve un identificador de sesión en cookie HttpOnly.',
+  })
+  @ApiBody({
+    description: 'Datos del visitante para identificación',
+    examples: {
+      example1: {
+        summary: 'Visitante nuevo',
+        description:
+          'Ejemplo de identificación de un visitante nuevo con todos los campos',
+        value: {
+          fingerprint: 'fp_1234567890abcdef',
+          domain: 'landing.mytech.com',
+          apiKey: 'ak_live_1234567890abcdef',
+          currentUrl: 'https://landing.mytech.com/home',
+        },
+      },
+      example2: {
+        summary: 'Visitante mínimo',
+        description: 'Ejemplo con campos mínimos requeridos',
+        value: {
+          fingerprint: 'fp_abcdef1234567890',
+          domain: 'blog.mytech.com',
+          apiKey: 'ak_live_abcdef1234567890',
+        },
+      },
+    },
   })
   @ApiOkResponse({
     description: 'Visitante identificado exitosamente',
@@ -49,7 +80,16 @@ export class VisitorV2Controller {
   })
   @ApiResponse({
     status: 400,
-    description: 'Datos inválidos proporcionados',
+    description:
+      'Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'API Key no válida para el dominio proporcionado',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Dominio no encontrado en el sistema',
   })
   @ApiResponse({
     status: 500,
@@ -62,8 +102,8 @@ export class VisitorV2Controller {
     try {
       const command = new IdentifyVisitorCommand(
         identifyVisitorDto.fingerprint,
-        identifyVisitorDto.siteId,
-        identifyVisitorDto.tenantId,
+        identifyVisitorDto.domain,
+        identifyVisitorDto.apiKey,
         identifyVisitorDto.currentUrl,
       );
 

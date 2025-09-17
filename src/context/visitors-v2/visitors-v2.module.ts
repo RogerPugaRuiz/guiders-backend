@@ -14,6 +14,7 @@ import { ResolveSiteCommandHandler } from './application/commands/resolve-site.c
 import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 import { CompanyModule } from '../company/company.module';
+import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CompanyModule } from '../company/company.module';
     ]),
     CqrsModule,
     CompanyModule,
+    AuthVisitorModule,
   ],
   controllers: [VisitorV2Controller, SitesController],
   providers: [

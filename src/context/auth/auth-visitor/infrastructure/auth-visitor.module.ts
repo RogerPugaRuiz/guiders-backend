@@ -42,5 +42,6 @@ import { ApiKeyMapper } from '../../api-key/infrastructure/api-key.mapper';
     EncryptAdapter,
     TokenVerifyService,
   ],
+  exports: [VALIDATE_DOMAIN_API_KEY, API_KEY_REPOSITORY],
 })
 export class AuthVisitorModule {}

@@ -11,20 +11,20 @@ export class IdentifyVisitorDto {
   fingerprint: string;
 
   @ApiProperty({
-    description: 'ID del sitio donde está el visitante',
-    example: '550e8400-e29b-41d4-a716-446655440001',
+    description: 'Dominio donde está el visitante',
+    example: 'landing.mytech.com',
   })
   @IsString()
   @IsNotEmpty()
-  siteId: string;
+  domain: string;
 
   @ApiProperty({
-    description: 'ID del tenant/empresa',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'API Key para autenticación',
+    example: 'ak_live_1234567890abcdef',
   })
   @IsString()
   @IsNotEmpty()
-  tenantId: string;
+  apiKey: string;
 
   @ApiProperty({
     description: 'URL de la página actual (opcional)',

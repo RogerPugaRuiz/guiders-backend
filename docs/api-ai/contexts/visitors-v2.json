@@ -51,13 +51,19 @@
           "method": "POST",
           "path": "/visitors/identify",
           "summary": "Identificar visitante",
-          "description": "Registra o actualiza un visitante en el sistema. Si el fingerprint ya existe en el siteId, actualiza al visitante. Si no existe, crea un nuevo Visitor en estado inicial (anónimo). Inicia una nueva Session asociada al visitante y devuelve un identificador de sesión en cookie HttpOnly.",
+          "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key.",
           "tags": [],
           "auth": {
             "required": false,
             "bearer": false
           },
-          "parameters": {},
+          "parameters": {
+            "body": {
+              "description": "Datos del visitante para identificación",
+              "type": "object",
+              "required": true
+            }
+          },
           "responses": [],
           "examples": {}
         },

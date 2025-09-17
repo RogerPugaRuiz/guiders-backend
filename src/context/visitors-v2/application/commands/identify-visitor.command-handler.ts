@@ -15,6 +15,15 @@ import {
   VisitorLifecycleVO,
   VisitorLifecycle,
 } from '../../domain/value-objects/visitor-lifecycle';
+import {
+  CompanyRepository,
+  COMPANY_REPOSITORY,
+} from '../../../company/domain/company.repository';
+import {
+  ValidateDomainApiKey,
+  VALIDATE_DOMAIN_API_KEY,
+} from '../../../auth/auth-visitor/application/services/validate-domain-api-key';
+import { VisitorAccountApiKey } from '../../../auth/auth-visitor/domain/models/visitor-account-api-key';
 
 @CommandHandler(IdentifyVisitorCommand)
 export class IdentifyVisitorCommandHandler
@@ -25,6 +34,10 @@ export class IdentifyVisitorCommandHandler
   constructor(
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
+    @Inject(COMPANY_REPOSITORY)
+    private readonly companyRepository: CompanyRepository,
+    @Inject(VALIDATE_DOMAIN_API_KEY)
+    private readonly apiKeyValidator: ValidateDomainApiKey,
     private readonly publisher: EventPublisher,
   ) {}
 
@@ -33,13 +46,50 @@ export class IdentifyVisitorCommandHandler
   ): Promise<IdentifyVisitorResponseDto> {
     try {
       this.logger.log(
-        `Identificando visitante: fingerprint=${command.fingerprint}, siteId=${command.siteId}`,
+        `Identificando visitante: fingerprint=${command.fingerprint}, domain=${command.domain}`,
       );
+
+      // Validar API Key
+      const apiKeyValid = await this.apiKeyValidator.validate({
+        apiKey: new VisitorAccountApiKey(command.apiKey),
+        domain: command.domain,
+      });
+
+      if (!apiKeyValid) {
+        throw new Error('API Key inválida para el dominio proporcionado');
+      }
+
+      // Resolver dominio a tenantId y siteId
+      const companyResult = await this.companyRepository.findByDomain(
+        command.domain,
+      );
+
+      if (companyResult.isErr()) {
+        throw new Error(
+          `No se encontró una empresa para el dominio: ${command.domain}`,
+        );
+      }
+
+      const company = companyResult.value;
+      const sites = company.getSites();
+      const sitePrimitives = sites.toPrimitives();
+
+      const targetSite = sitePrimitives.find(
+        (site) =>
+          site.canonicalDomain === command.domain ||
+          site.domainAliases.includes(command.domain),
+      );
+
+      if (!targetSite) {
+        throw new Error(
+          `No se encontró un sitio específico para el dominio: ${command.domain}`,
+        );
+      }
 
       // Crear value objects
       const fingerprint = new VisitorFingerprint(command.fingerprint);
-      const siteId = new SiteId(command.siteId);
-      const tenantId = new TenantId(command.tenantId);
+      const siteId = new SiteId(targetSite.id);
+      const tenantId = new TenantId(company.getId().getValue());
 
       // Buscar visitante existente por fingerprint y siteId
       const existingVisitorResult =
