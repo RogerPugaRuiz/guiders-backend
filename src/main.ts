@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
@@ -105,9 +105,37 @@ async function bootstrap() {
   // Excluimos docs y jwks; health queda bajo /api/health
   app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json', '/jwks'] });
 
-  // CORS deshabilitado en NestJS - NGINX se encarga de manejar CORS
-  // Configuración movida a NGINX para mejor rendimiento y centralización
-  // app.enableCors() removido intencionalmente
+  // Configurar validación global para DTOs
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Remueve propiedades no definidas en el DTO
+      forbidNonWhitelisted: true, // Lanza error si hay propiedades no permitidas
+      transform: true, // Transforma tipos automáticamente
+      transformOptions: {
+        enableImplicitConversion: true, // Convierte tipos implícitamente
+      },
+    }),
+  );
+
+  // CORS: habilitado en desarrollo, deshabilitado en producción (NGINX se encarga)
+  if (
+    process.env.NODE_ENV === 'development' ||
+    process.env.NODE_ENV === 'test'
+  ) {
+    app.enableCors({
+      origin: true, // Permite cualquier origen en desarrollo
+      credentials: true, // Permite cookies y headers de autenticación
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Cookie',
+        'X-Requested-With',
+      ],
+    });
+  } else {
+    // En producción, CORS se maneja en NGINX para mejor rendimiento
+  }
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
@@ -135,12 +163,12 @@ async function bootstrap() {
     `Application is running in ${process.env.NODE_ENV || 'development'} mode`,
   );
   logger.log(`Global prefix: api (excluded: /docs, /docs-json, /jwks)`);
-  logger.log(`CORS handled by NGINX proxy`);
-  logger.log(
-    `Application is running on ${useHttps ? 'https' : 'http'}://0.0.0.0:${
-      process.env.PORT ?? 3000
-    }`,
-  );
+
+  const port = process.env.PORT ?? 3000;
+  const protocol = useHttps ? 'https' : 'http';
+
+  logger.log(`Application is running on ${protocol}://0.0.0.0:${port}`);
+  logger.log(`Swagger docs available at: ${protocol}://localhost:${port}/docs`);
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }

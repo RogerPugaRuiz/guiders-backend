@@ -1,0 +1,734 @@
+{
+  "context": "conversations-v2",
+  "description": "Sistema de chat V2 optimizado (MongoDB)",
+  "controllers": [
+    {
+      "name": "ChatV2Controller",
+      "context": "conversations-v2",
+      "baseUrl": "v2/chats",
+      "description": "Controller para la gestión de chats v2  Proporciona endpoints optimizados para comerciales y visitantes  IMPORTANTE: Todos los endpoints requieren autenticación válida",
+      "tags": [
+        "Chats V2"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/v2/chats",
+          "summary": "Crear nuevo chat",
+          "description": "Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "visitor"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "body": {
+              "description": "Datos opcionales para crear el chat",
+              "type": "object",
+              "required": true
+            }
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats",
+          "summary": "Obtener lista de chats con filtros y paginación con cursor",
+          "description": "Retorna una lista paginada de chats con filtros avanzados para usuarios autenticados con permisos de comercial, administrador o supervisor. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados. Los filtros y ordenamiento se aplican según los permisos del usuario autenticado.",
+          "tags": [],
+          "auth": {
+            "required": true,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "query": [
+              {
+                "name": "cursor",
+                "description": "Cursor para paginación (obtenido del campo nextCursor de la respuesta anterior). Permite navegar a través de páginas sin duplicados ni omisiones. Este valor es un base64 que contiene información de posición.",
+                "example": "eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de chats a retornar por página. Rango válido: 1-100. Por defecto: 20",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "filters",
+                "description": "Filtros de búsqueda para chats. Formato JSON con campos como status (PENDING, ASSIGNED, ACTIVE, CLOSED), priority (LOW, MEDIUM, HIGH, URGENT), visitorId, assignedCommercialId, department, dateFrom, dateTo, etc.",
+                "required": false,
+                "type": "object"
+              },
+              {
+                "name": "sort",
+                "description": "Opciones de ordenamiento. Especifica el campo y la dirección de ordenamiento.",
+                "required": false,
+                "type": "object"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats/response-time-stats",
+          "summary": "Obtener estadísticas de tiempo de respuesta",
+          "description": "Retorna estadísticas agregadas de tiempo de respuesta para comerciales y administradores autenticados",
+          "tags": [],
+          "auth": {
+            "required": true,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "query": [
+              {
+                "name": "dateFrom",
+                "description": "Fecha de inicio del período (ISO 8601)",
+                "example": "2025-07-01T00:00:00Z",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "dateTo",
+                "description": "Fecha de fin del período (ISO 8601)",
+                "example": "2025-07-31T23:59:59Z",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "groupBy",
+                "description": "Agrupación temporal de las estadísticas",
+                "example": "day",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats/:chatId",
+          "summary": "Obtener chat por ID",
+          "description": "Retorna los detalles completos de un chat específico para usuarios autenticados",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "chatId",
+                "description": "ID único del chat",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats/commercial/:commercialId",
+          "summary": "Obtener chats de un comercial con paginación cursor",
+          "description": "Retorna los chats asignados a un comercial específico usando paginación basada en cursor. Requiere autenticación.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "commercialId",
+                "description": "ID del comercial",
+                "example": "550e8400-e29b-41d4-a716-446655440001",
+                "required": true
+              }
+            ],
+            "query": [
+              {
+                "name": "cursor",
+                "description": "Cursor para paginación (opcional)",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de chats a retornar (1-100)",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "filters",
+                "description": "Filtros adicionales para chats",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "sort",
+                "description": "Opciones de ordenamiento",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats/visitor/:visitorId",
+          "summary": "Obtener chats de un visitante con paginación cursor",
+          "description": "Retorna el historial de chats de un visitante específico usando paginación basada en cursor. Requiere autenticación.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "visitorId",
+                "description": "ID del visitante",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ],
+            "query": [
+              {
+                "name": "cursor",
+                "description": "Cursor para paginación (opcional)",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de chats a retornar (1-100)",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats/queue/pending",
+          "summary": "Obtener cola de chats pendientes",
+          "description": "Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "query": [
+              {
+                "name": "department",
+                "description": "Filtrar por departamento",
+                "example": "ventas",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de chats a retornar",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/chats/metrics/commercial/:commercialId",
+          "summary": "Obtener métricas de comercial",
+          "description": "Retorna métricas agregadas de rendimiento de un comercial. Requiere autenticación.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "commercialId",
+                "description": "ID del comercial",
+                "example": "550e8400-e29b-41d4-a716-446655440001",
+                "required": true
+              }
+            ],
+            "query": [
+              {
+                "name": "dateFrom",
+                "description": "Fecha de inicio del período (ISO 8601)",
+                "example": "2025-07-01T00:00:00Z",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "dateTo",
+                "description": "Fecha de fin del período (ISO 8601)",
+                "example": "2025-07-31T23:59:59Z",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "PUT",
+          "path": "/v2/chats/:chatId/assign/:commercialId",
+          "summary": "Asignar chat a comercial",
+          "description": "Asigna un chat específico a un comercial. Requiere autenticación y permisos apropiados.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "chatId",
+                "description": "ID del chat",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              },
+              {
+                "name": "commercialId",
+                "description": "ID del comercial",
+                "example": "550e8400-e29b-41d4-a716-446655440001",
+                "required": true
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "PUT",
+          "path": "/v2/chats/:chatId/close",
+          "summary": "Cerrar chat",
+          "description": "Marca un chat como cerrado. Requiere autenticación y permisos apropiados.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "chatId",
+                "description": "ID del chat",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "DELETE",
+          "path": "/v2/chats/visitor/:visitorId/clear",
+          "summary": "Eliminar todos los chats de un visitante",
+          "description": "Elimina permanentemente todos los chats asociados a un visitante específico. Esta operación es irreversible y requiere permisos de administrador.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "admin"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "visitorId",
+                "description": "ID del visitante",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        }
+      ],
+      "filePath": "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
+    },
+    {
+      "name": "MessageV2Controller",
+      "context": "conversations-v2",
+      "baseUrl": "v2/messages",
+      "description": "Controller para la gestión de mensajes v2  Proporciona endpoints para enviar, obtener y gestionar mensajes en chats",
+      "tags": [
+        "Messages V2"
+      ],
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/v2/messages",
+          "summary": "Enviar un nuevo mensaje",
+          "description": "Envía un mensaje de texto, imagen o archivo a un chat específico",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {},
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/chat/:chatId",
+          "summary": "Obtener mensajes de un chat",
+          "description": "Retorna los mensajes de un chat con filtros y paginación basada en cursor",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "chatId",
+                "description": "ID único del chat",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ],
+            "query": [
+              {
+                "name": "cursor",
+                "description": "Cursor para paginación (obtenido de nextCursor)",
+                "example": "eyJzZW50QXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6Im1zZy0xMjMifQ==",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de mensajes a retornar (1-100)",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "filters",
+                "description": "Filtros de búsqueda para mensajes",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "sort",
+                "description": "Opciones de ordenamiento",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/:messageId",
+          "summary": "Obtener mensaje por ID",
+          "description": "Retorna los detalles de un mensaje específico",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "messageId",
+                "description": "ID único del mensaje",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "PUT",
+          "path": "/v2/messages/mark-as-read",
+          "summary": "Marcar mensajes como leídos",
+          "description": "Marca una lista de mensajes como leídos por el usuario actual",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {},
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/chat/:chatId/unread",
+          "summary": "Obtener mensajes no leídos de un chat",
+          "description": "Retorna los mensajes no leídos de un chat específico",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "chatId",
+                "description": "ID único del chat",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/search",
+          "summary": "Buscar mensajes por contenido",
+          "description": "Busca mensajes que contengan palabras clave específicas",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "query": [
+              {
+                "name": "keyword",
+                "description": "Palabra clave a buscar en el contenido",
+                "example": "problema técnico",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "chatId",
+                "description": "ID del chat para limitar la búsqueda (opcional)",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "filters",
+                "description": "Filtros adicionales de búsqueda",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de resultados (1-100)",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/chat/:chatId/stats",
+          "summary": "Obtener estadísticas de conversación",
+          "description": "Retorna estadísticas detalladas de un chat específico",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "path": [
+              {
+                "name": "chatId",
+                "description": "ID único del chat",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": true
+              }
+            ],
+            "query": [
+              {
+                "name": "dateFrom",
+                "description": "Fecha de inicio del período (ISO 8601)",
+                "example": "2025-07-01T00:00:00Z",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "dateTo",
+                "description": "Fecha de fin del período (ISO 8601)",
+                "example": "2025-07-31T23:59:59Z",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/metrics",
+          "summary": "Obtener métricas de mensajería",
+          "description": "Retorna métricas agregadas de mensajería por período de tiempo",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "query": [
+              {
+                "name": "dateFrom",
+                "description": "Fecha de inicio del período (ISO 8601)",
+                "example": "2025-07-01T00:00:00Z",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "dateTo",
+                "description": "Fecha de fin del período (ISO 8601)",
+                "example": "2025-07-31T23:59:59Z",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "groupBy",
+                "description": "Agrupación temporal",
+                "example": "day",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "chatId",
+                "description": "ID del chat para limitar las métricas (opcional)",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
+          "method": "GET",
+          "path": "/v2/messages/attachments",
+          "summary": "Obtener mensajes con archivos adjuntos",
+          "description": "Retorna mensajes que contienen archivos adjuntos",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "commercial"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "query": [
+              {
+                "name": "chatId",
+                "description": "ID del chat para filtrar (opcional)",
+                "example": "550e8400-e29b-41d4-a716-446655440000",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "fileTypes",
+                "description": "Tipos de archivo a incluir (MIME types)",
+                "required": false,
+                "type": "string"
+              },
+              {
+                "name": "limit",
+                "description": "Número máximo de mensajes (1-100)",
+                "required": false,
+                "type": "string"
+              }
+            ]
+          },
+          "responses": [],
+          "examples": {}
+        }
+      ],
+      "filePath": "src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts"
+    }
+  ],
+  "summary": {
+    "controllersCount": 2,
+    "endpointsCount": 20
+  }
+}

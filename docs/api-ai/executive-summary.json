@@ -1,0 +1,100 @@
+{
+  "overview": {
+    "totalEndpoints": 51,
+    "totalControllers": 10,
+    "contexts": 6,
+    "generated": "2025-09-17T16:01:44.341Z"
+  },
+  "contexts": [
+    {
+      "name": "visitors-v2",
+      "description": "Gestión de visitantes V2 optimizada",
+      "controllers": 2,
+      "endpoints": 4
+    },
+    {
+      "name": "visitors",
+      "description": "Gestión de visitantes V1",
+      "controllers": 1,
+      "endpoints": 5
+    },
+    {
+      "name": "tracking",
+      "description": "Seguimiento de intenciones y métricas",
+      "controllers": 2,
+      "endpoints": 2
+    },
+    {
+      "name": "conversations-v2",
+      "description": "Sistema de chat V2 optimizado (MongoDB)",
+      "controllers": 2,
+      "endpoints": 20
+    },
+    {
+      "name": "company",
+      "description": "Gestión de empresas y sitios web",
+      "controllers": 1,
+      "endpoints": 3
+    },
+    {
+      "name": "auth",
+      "description": "Autenticación y autorización de usuarios",
+      "controllers": 2,
+      "endpoints": 17
+    }
+  ],
+  "authentication": {
+    "methods": [
+      "Bearer JWT",
+      "OIDC"
+    ],
+    "roles": [
+      "admin",
+      "commercial",
+      "visitor"
+    ]
+  },
+  "endpoints": {
+    "byMethod": {
+      "POST": 17,
+      "GET": 27,
+      "PUT": 6,
+      "DELETE": 1
+    },
+    "byContext": [
+      {
+        "context": "visitors-v2",
+        "count": 4
+      },
+      {
+        "context": "visitors",
+        "count": 5
+      },
+      {
+        "context": "tracking",
+        "count": 2
+      },
+      {
+        "context": "conversations-v2",
+        "count": 20
+      },
+      {
+        "context": "company",
+        "count": 3
+      },
+      {
+        "context": "auth",
+        "count": 17
+      }
+    ],
+    "byAuth": {
+      "authenticated": 10,
+      "public": 41,
+      "byRole": {
+        "visitor": 1,
+        "commercial": 6,
+        "admin": 3
+      }
+    }
+  }
+}

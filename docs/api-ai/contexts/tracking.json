@@ -1,0 +1,58 @@
+{
+  "context": "tracking",
+  "description": "Seguimiento de intenciones y métricas",
+  "controllers": [
+    {
+      "name": "VisitorIntentController",
+      "context": "tracking",
+      "baseUrl": "tracking/intent",
+      "description": "Controller sin descripción",
+      "tags": [],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/tracking/intent/:visitorId",
+          "summary": "Sin resumen",
+          "description": "Sin descripción",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "bearer": false
+          },
+          "parameters": {},
+          "responses": [],
+          "examples": {}
+        }
+      ],
+      "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
+    },
+    {
+      "name": "VisitorIntentTagsController",
+      "context": "tracking",
+      "baseUrl": "tracking/intent-tags",
+      "description": "Controller sin descripción",
+      "tags": [],
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/tracking/intent-tags/:visitorId",
+          "summary": "Sin resumen",
+          "description": "Sin descripción",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "bearer": false
+          },
+          "parameters": {},
+          "responses": [],
+          "examples": {}
+        }
+      ],
+      "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent-tags.controller.ts"
+    }
+  ],
+  "summary": {
+    "controllersCount": 2,
+    "endpointsCount": 2
+  }
+}
