@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-17T21:12:23.406Z",
+  "generated": "2025-09-17T21:18:07.963Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -102,6 +102,163 @@
             }
           ],
           "filePath": "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
+        }
+      ]
+    },
+    {
+      "name": "visitors",
+      "description": "Gestión de visitantes V1",
+      "controllers": [
+        {
+          "name": "VisitorController",
+          "context": "visitors",
+          "baseUrl": "visitor",
+          "description": "Controller sin descripción",
+          "tags": [
+            "Visitantes"
+          ],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/visitor/me",
+              "summary": "Obtener información del visitante autenticado",
+              "description": "Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio perfil sin necesidad de conocer su ID.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "visitor"
+                ],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/visitor/:visitorId",
+              "summary": "Obtener datos del visitante por ID",
+              "description": "Obtiene los datos del visitante a partir del ID en la URL",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/visitor/:visitorId/email",
+              "summary": "Actualizar email del visitante",
+              "description": "Actualiza el correo electrónico del visitante",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/visitor/:visitorId/name",
+              "summary": "Actualizar nombre del visitante",
+              "description": "Actualiza el nombre del visitante",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/visitor/:visitorId/tel",
+              "summary": "Actualizar teléfono del visitante",
+              "description": "Actualiza el número de teléfono del visitante",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/visitors/infrastructure/controllers/visitor.controller.ts"
+        }
+      ]
+    },
+    {
+      "name": "tracking",
+      "description": "Seguimiento de intenciones y métricas",
+      "controllers": [
+        {
+          "name": "VisitorIntentController",
+          "context": "tracking",
+          "baseUrl": "tracking/intent",
+          "description": "Controller sin descripción",
+          "tags": [],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/tracking/intent/:visitorId",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "bearer": false
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
+        },
+        {
+          "name": "VisitorIntentTagsController",
+          "context": "tracking",
+          "baseUrl": "tracking/intent-tags",
+          "description": "Controller sin descripción",
+          "tags": [],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/tracking/intent-tags/:visitorId",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "bearer": false
+              },
+              "parameters": {},
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent-tags.controller.ts"
         }
       ]
     },
@@ -832,163 +989,6 @@
             }
           ],
           "filePath": "src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts"
-        }
-      ]
-    },
-    {
-      "name": "visitors",
-      "description": "Gestión de visitantes V1",
-      "controllers": [
-        {
-          "name": "VisitorController",
-          "context": "visitors",
-          "baseUrl": "visitor",
-          "description": "Controller sin descripción",
-          "tags": [
-            "Visitantes"
-          ],
-          "endpoints": [
-            {
-              "method": "GET",
-              "path": "/visitor/me",
-              "summary": "Obtener información del visitante autenticado",
-              "description": "Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio perfil sin necesidad de conocer su ID.",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "visitor"
-                ],
-                "bearer": true
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/visitor/:visitorId",
-              "summary": "Obtener datos del visitante por ID",
-              "description": "Obtiene los datos del visitante a partir del ID en la URL",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/visitor/:visitorId/email",
-              "summary": "Actualizar email del visitante",
-              "description": "Actualiza el correo electrónico del visitante",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/visitor/:visitorId/name",
-              "summary": "Actualizar nombre del visitante",
-              "description": "Actualiza el nombre del visitante",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/visitor/:visitorId/tel",
-              "summary": "Actualizar teléfono del visitante",
-              "description": "Actualiza el número de teléfono del visitante",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/visitors/infrastructure/controllers/visitor.controller.ts"
-        }
-      ]
-    },
-    {
-      "name": "tracking",
-      "description": "Seguimiento de intenciones y métricas",
-      "controllers": [
-        {
-          "name": "VisitorIntentController",
-          "context": "tracking",
-          "baseUrl": "tracking/intent",
-          "description": "Controller sin descripción",
-          "tags": [],
-          "endpoints": [
-            {
-              "method": "GET",
-              "path": "/tracking/intent/:visitorId",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "bearer": false
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
-        },
-        {
-          "name": "VisitorIntentTagsController",
-          "context": "tracking",
-          "baseUrl": "tracking/intent-tags",
-          "description": "Controller sin descripción",
-          "tags": [],
-          "endpoints": [
-            {
-              "method": "GET",
-              "path": "/tracking/intent-tags/:visitorId",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "bearer": false
-              },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent-tags.controller.ts"
         }
       ]
     },
