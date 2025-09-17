@@ -148,13 +148,21 @@ services:
     ports:
       - "8082:8081"
     environment:
+      # Configuración explícita del servidor MongoDB
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGODB_ROOT_USERNAME}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGODB_ROOT_PASSWORD}
       ME_CONFIG_MONGODB_SERVER: mongodb-staging
       ME_CONFIG_MONGODB_PORT: 27017
+      # URL completa para evitar problemas de resolución
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGODB_ROOT_USERNAME}:${MONGODB_ROOT_PASSWORD}@mongodb-staging:27017/?authSource=admin
+      # Configuración de autenticación básica
       ME_CONFIG_BASICAUTH_USERNAME: admin
       ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-staging123}
-      ME_CONFIG_SITE_BASEURL: /mongo/
+      # Configuración adicional para evitar conflictos
+      ME_CONFIG_SITE_BASEURL: /
+      ME_CONFIG_OPTIONS_EDITORTHEME: 3024-night
+      # Deshabilitar configuraciones por defecto problemáticas
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
     depends_on:
       mongodb:
         condition: service_healthy
