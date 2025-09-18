@@ -20,6 +20,7 @@ import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { WebSocketModule } from './websocket/websocket.module';
     CompanyModule,
     ConversationsV2Module,
     WebSocketModule,
+    ScheduleModule.forRoot(),
     // OpenSearchModule,
     CqrsModule.forRoot(),
     HttpModule,

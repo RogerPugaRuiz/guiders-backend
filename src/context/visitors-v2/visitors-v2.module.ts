@@ -11,6 +11,7 @@ import { IdentifyVisitorCommandHandler } from './application/commands/identify-v
 import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
 import { ResolveSiteCommandHandler } from './application/commands/resolve-site.command-handler';
+import { CleanExpiredSessionsCommandHandler } from './application/commands/clean-expired-sessions.command-handler';
 import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 import { CompanyModule } from '../company/company.module';
@@ -24,6 +25,8 @@ import { GetVisitorConnectionStatusQueryHandler } from './application/queries/ge
 import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
 import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
 import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
+import { SessionCleanupScheduler } from './application/services/session-cleanup.scheduler';
+import { SESSION_MANAGEMENT_SERVICE_PROVIDER } from './infrastructure/providers/session-management.provider';
 
 @Module({
   imports: [
@@ -44,6 +47,7 @@ import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection
     UpdateSessionHeartbeatCommandHandler,
     EndSessionCommandHandler,
     ResolveSiteCommandHandler,
+    CleanExpiredSessionsCommandHandler,
     GoOnlineVisitorCommandHandler,
     StartChattingVisitorCommandHandler,
     GoOfflineVisitorCommandHandler,
@@ -52,6 +56,8 @@ import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection
     GetVisitorConnectionStatusQueryHandler,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
     VISITOR_CONNECTION_SERVICE_PROVIDER,
+    SESSION_MANAGEMENT_SERVICE_PROVIDER,
+    SessionCleanupScheduler,
   ],
   exports: [VISITOR_V2_REPOSITORY, VISITOR_CONNECTION_DOMAIN_SERVICE],
 })

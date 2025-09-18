@@ -9,8 +9,8 @@ import {
   VISITOR_V2_REPOSITORY,
   VisitorV2Repository,
 } from '../../domain/visitor-v2.repository';
-import { Result } from 'src/context/shared/domain/result';
-import { DomainError } from 'src/context/shared/domain/domain.error';
+import { Result, ok, err } from '../../../shared/domain/result';
+import { VisitorV2PersistenceError } from '../../infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 
 /**
  * Command Handler para limpiar sesiones expiradas de visitantes
@@ -31,7 +31,7 @@ export class CleanExpiredSessionsCommandHandler
 
   async execute(
     command: CleanExpiredSessionsCommand,
-  ): Promise<Result<{ cleanedCount: number }, DomainError>> {
+  ): Promise<Result<{ cleanedCount: number }, VisitorV2PersistenceError>> {
     this.logger.debug('Iniciando limpieza de sesiones expiradas');
 
     try {
@@ -43,7 +43,7 @@ export class CleanExpiredSessionsCommandHandler
         });
 
       if (visitorsResult.isErr()) {
-        return Result.err(visitorsResult.error);
+        return err(visitorsResult.error);
       }
 
       const visitors = visitorsResult.value;
@@ -76,11 +76,13 @@ export class CleanExpiredSessionsCommandHandler
         `Limpieza completada. Visitantes procesados: ${cleanedCount}`,
       );
 
-      return Result.ok({ cleanedCount });
+      return ok({ cleanedCount });
     } catch (error) {
       this.logger.error('Error durante la limpieza de sesiones', error);
-      return Result.err(
-        new DomainError('Error durante la limpieza de sesiones expiradas'),
+      return err(
+        new VisitorV2PersistenceError(
+          'Error durante la limpieza de sesiones expiradas',
+        ),
       );
     }
   }

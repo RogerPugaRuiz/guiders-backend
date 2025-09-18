@@ -327,4 +327,53 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       return err(new VisitorV2PersistenceError(errorMessage));
     }
   }
+
+  async findWithActiveSessions(options?: {
+    tenantId?: TenantId;
+    limit?: number;
+  }): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      const filter: Record<string, unknown> = {
+        // Buscar visitantes que tienen al menos una sesión sin endedAt
+        'sessions.0': { $exists: true }, // Tiene al menos una sesión
+        sessions: {
+          $elemMatch: {
+            endedAt: { $exists: false }, // Al menos una sesión activa
+          },
+        },
+      };
+
+      if (options?.tenantId) {
+        filter.tenantId = options.tenantId.value;
+      }
+
+      this.logger.debug(
+        `🔍 Buscando visitantes con sesiones activas. Filtro: ${JSON.stringify(filter)}`,
+      );
+
+      const query = this.visitorModel.find(filter);
+
+      if (options?.limit) {
+        query.limit(options.limit);
+      }
+
+      const entities = await query.exec();
+
+      this.logger.debug(
+        `📊 Encontrados ${entities.length} visitantes con sesiones activas`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok(visitors);
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con sesiones activas: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
 }

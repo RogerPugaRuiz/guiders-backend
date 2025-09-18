@@ -63,4 +63,12 @@ export interface VisitorV2Repository {
    * Actualiza un visitante existente
    */
   update(visitor: VisitorV2): Promise<Result<void, DomainError>>;
+
+  /**
+   * Busca visitantes que tienen sesiones activas (sin endedAt)
+   */
+  findWithActiveSessions(options?: {
+    tenantId?: TenantId;
+    limit?: number;
+  }): Promise<Result<VisitorV2[], DomainError>>;
 }
