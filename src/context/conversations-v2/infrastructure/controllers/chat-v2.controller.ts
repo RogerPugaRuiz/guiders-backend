@@ -23,7 +23,6 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiCookieAuth,
-  ApiSecurity,
 } from '@nestjs/swagger';
 import {
   AuthenticatedRequest,

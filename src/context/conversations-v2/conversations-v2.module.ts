@@ -3,6 +3,9 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 
+// Import dependencies from other modules
+import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
+
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
 import { MessageV2Controller } from './infrastructure/controllers/message-v2.controller';
@@ -20,8 +23,10 @@ import { CHAT_V2_REPOSITORY } from './domain/chat.repository';
 
 // Guards
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
 
 // Command Handlers
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
@@ -39,6 +44,7 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
   imports: [
     CqrsModule, // Para Command/Query handlers
     HttpModule, // Para TokenVerifyService
+    VisitorsV2Module, // Para acceso al VisitorV2Repository
     MongooseModule.forFeature([
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
     ]),
@@ -47,8 +53,12 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
   providers: [
     // Guards
     AuthGuard,
+    OptionalAuthGuard,
     RolesGuard,
     TokenVerifyService,
+
+    // Services
+    VisitorSessionAuthService,
 
     // Mappers
     ChatMapper,
