@@ -117,14 +117,29 @@ async function bootstrap() {
     }),
   );
 
-  // CORS: habilitado en desarrollo, deshabilitado en producción (NGINX se encarga)
-  if (
-    process.env.NODE_ENV === 'development' ||
-    process.env.NODE_ENV === 'test'
-  ) {
+  // CORS: configuración explícita para soportar cookies (credentials: true) sin abrir todo (*)
+  // Problema original: uso directo de app.use(cors({...})) o origin:true podía provocar orígenes no deseados.
+  // Estrategia: variable de entorno CORS_ALLOWED_ORIGINS = lista separada por comas.
+  // Ejemplo: CORS_ALLOWED_ORIGINS="http://localhost:8082,http://localhost:8080,https://app.frontend.com"
+  const rawAllowed = process.env.CORS_ALLOWED_ORIGINS;
+  const parsedAllowed = (rawAllowed || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0);
+
+  const isDevLike =
+    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+
+  // Si no se define la variable y estamos en dev/test, permitimos origen reflejado (function) para DX;
+  // en producción sin lista explícita se deshabilita CORS (NGINX debe filtrar) para evitar exposición accidental.
+  if (parsedAllowed.length > 0) {
     app.enableCors({
-      origin: true, // Permite cualquier origen en desarrollo
-      credentials: true, // Permite cookies y headers de autenticación
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // llamadas server-to-server o curl sin Origin
+        if (parsedAllowed.includes(origin)) return callback(null, true);
+        return callback(new Error(`Origen no permitido por CORS: ${origin}`));
+      },
+      credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: [
         'Content-Type',
@@ -132,9 +147,23 @@ async function bootstrap() {
         'Cookie',
         'X-Requested-With',
       ],
+      exposedHeaders: ['Set-Cookie'],
+    });
+  } else if (isDevLike) {
+    app.enableCors({
+      origin: (origin, callback) => callback(null, true), // abierto solo en entornos no productivos
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Cookie',
+        'X-Requested-With',
+      ],
+      exposedHeaders: ['Set-Cookie'],
     });
   } else {
-    // En producción, CORS se maneja en NGINX para mejor rendimiento
+    // Producción sin lista -> confiar en proxy inverso/Nginx para filtrado de orígenes.
   }
 
   // Configuración de Swagger

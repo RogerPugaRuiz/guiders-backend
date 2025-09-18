@@ -29,6 +29,11 @@ import { UpdateSessionHeartbeatDto } from '../../application/dtos/update-session
 import { UpdateSessionHeartbeatCommand } from '../../application/commands/update-session-heartbeat.command';
 import { EndSessionDto } from '../../application/dtos/end-session.dto';
 import { EndSessionCommand } from '../../application/commands/end-session.command';
+import {
+  setVisitorSessionCookie,
+  resolveVisitorSessionId,
+  clearVisitorSessionCookie,
+} from '../http/visitor-session-cookie.util';
 
 @ApiTags('visitors')
 @Controller('visitors')
@@ -112,13 +117,8 @@ export class VisitorV2Controller {
         IdentifyVisitorResponseDto
       >(command);
 
-      // Setear cookie HttpOnly con el sessionId
-      response.cookie('sid', result.sessionId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 24 * 60 * 60 * 1000, // 24 horas
-      });
+      // Setear cookie HttpOnly con util centralizado
+      setVisitorSessionCookie(response, result.sessionId);
 
       return result;
     } catch (error) {
@@ -163,12 +163,11 @@ export class VisitorV2Controller {
     @Req() request: ExpressRequest,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Obtener sessionId de body o de cookie si no viene en body
-      const sessionId =
-        updateHeartbeatDto.sessionId ||
-        (request.cookies && typeof request.cookies.sid === 'string'
-          ? request.cookies.sid
-          : undefined);
+      // Obtener sessionId centralizado (body precede a cookie)
+      const sessionId = resolveVisitorSessionId(
+        request,
+        updateHeartbeatDto.sessionId,
+      );
 
       if (!sessionId) {
         throw new BadRequestException('SessionId no proporcionado');
@@ -243,12 +242,11 @@ export class VisitorV2Controller {
     @Response({ passthrough: true }) response: ExpressResponse,
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Obtener sessionId de body o de cookie si no viene en body
-      const sessionId =
-        endSessionDto.sessionId ||
-        (request.cookies && typeof request.cookies.sid === 'string'
-          ? request.cookies.sid
-          : undefined);
+      // Obtener sessionId centralizado (body precede a cookie)
+      const sessionId = resolveVisitorSessionId(
+        request,
+        endSessionDto.sessionId,
+      );
 
       if (!sessionId) {
         throw new BadRequestException('SessionId no proporcionado');
@@ -262,8 +260,8 @@ export class VisitorV2Controller {
 
       await this.commandBus.execute<EndSessionCommand, void>(command);
 
-      // Limpiar cookie de sesión
-      response.clearCookie('sid');
+      // Limpiar cookie de sesión usando util centralizado
+      clearVisitorSessionCookie(response);
 
       return {
         success: true,

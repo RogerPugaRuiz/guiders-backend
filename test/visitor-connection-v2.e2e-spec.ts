@@ -61,7 +61,7 @@ describe('Visitor Connection V2 E2E', () => {
       lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
     });
     // Guardar por repositorio real
-  await repository.save(seed as any);
+    await repository.save(seed as any);
   });
 
   afterAll(async () => {
@@ -83,9 +83,7 @@ describe('Visitor Connection V2 E2E', () => {
       new GetVisitorConnectionStatusQuery(visitorId),
     );
     expect(statusChatting).toBe('chatting');
-    const chattingList = await queryBus.execute(
-      new GetChattingVisitorsQuery(),
-    );
+    const chattingList = await queryBus.execute(new GetChattingVisitorsQuery());
     expect(chattingList).toContain(visitorId);
 
     await commandBus.execute(new GoOfflineVisitorCommand(visitorId));
