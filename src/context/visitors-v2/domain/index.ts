@@ -7,6 +7,7 @@ export * from './value-objects/visitor-lifecycle';
 export * from './value-objects/tenant-id';
 export * from './value-objects/site-id';
 export * from './value-objects/session-id';
+export * from './value-objects/session-timeout';
 
 // Events
 export * from './events/visitor-created.event';
@@ -16,6 +17,7 @@ export * from './events/session.events';
 
 // Domain Services
 export * from './visitor-connection.domain-service';
+export * from './session-management.domain-service';
 
 // Entities
 export * from './session.entity';
