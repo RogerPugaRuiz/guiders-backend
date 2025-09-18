@@ -133,12 +133,9 @@ async function bootstrap() {
   // Si no se define la variable y estamos en dev/test, permitimos origen reflejado (function) para DX;
   // en producción sin lista explícita se deshabilita CORS (NGINX debe filtrar) para evitar exposición accidental.
   if (parsedAllowed.length > 0) {
+    // Lista explícita de orígenes permitidos
     app.enableCors({
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // llamadas server-to-server o curl sin Origin
-        if (parsedAllowed.includes(origin)) return callback(null, true);
-        return callback(new Error(`Origen no permitido por CORS: ${origin}`));
-      },
+      origin: parsedAllowed,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: [
@@ -150,8 +147,9 @@ async function bootstrap() {
       exposedHeaders: ['Set-Cookie'],
     });
   } else if (isDevLike) {
+    // Desarrollo/Test abierto (solo para DX). En producción usar lista explícita o proxy.
     app.enableCors({
-      origin: (origin, callback) => callback(null, true), // abierto solo en entornos no productivos
+      origin: true,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: [
@@ -162,9 +160,7 @@ async function bootstrap() {
       ],
       exposedHeaders: ['Set-Cookie'],
     });
-  } else {
-    // Producción sin lista -> confiar en proxy inverso/Nginx para filtrado de orígenes.
-  }
+  } // else producción sin CORS explícito (proxy inverso gestiona)
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
