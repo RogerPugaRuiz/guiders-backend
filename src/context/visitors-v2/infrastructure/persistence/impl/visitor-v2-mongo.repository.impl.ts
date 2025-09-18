@@ -35,15 +35,26 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     try {
       const persistenceEntity = VisitorV2Mapper.toPersistence(visitor);
 
+      this.logger.log(
+        `💾 Guardando visitante: ID=${persistenceEntity.id}, fingerprint=${persistenceEntity.fingerprint}, siteId=${persistenceEntity.siteId}`,
+      );
+
       // Verificar si el visitante ya existe
       const existingVisitor = await this.visitorModel.findOne({
         id: persistenceEntity.id,
       });
 
       if (existingVisitor) {
+        this.logger.log(
+          `🔄 Visitante existente encontrado, actualizando: ${persistenceEntity.id}`,
+        );
+
         // Visitante existente: hacer merge de sesiones para preservar historial
         const existingSessions = existingVisitor.sessions || [];
         const newSessions = persistenceEntity.sessions || [];
+
+        this.logger.log(`   - Sesiones existentes: ${existingSessions.length}`);
+        this.logger.log(`   - Sesiones nuevas: ${newSessions.length}`);
 
         // Crear un mapa de sesiones existentes por ID para evitar duplicados
         const existingSessionsMap = new Map(
@@ -55,6 +66,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         newSessions.forEach((newSession) => {
           if (!existingSessionsMap.has(newSession.id)) {
             mergedSessions.push(newSession);
+            this.logger.log(`   + Nueva sesión agregada: ${newSession.id}`);
           } else {
             // Actualizar sesión existente (para casos como heartbeat)
             const existingIndex = mergedSessions.findIndex(
@@ -62,6 +74,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
             );
             if (existingIndex !== -1) {
               mergedSessions[existingIndex] = newSession;
+              this.logger.log(`   ~ Sesión actualizada: ${newSession.id}`);
             }
           }
         });
@@ -75,16 +88,24 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
           },
           { new: true },
         );
+
+        this.logger.log(
+          `✅ Visitante actualizado con ${mergedSessions.length} sesiones totales`,
+        );
       } else {
+        this.logger.log(`🆕 Visitante nuevo, creando: ${persistenceEntity.id}`);
+
         // Visitante nuevo: crear con upsert
         await this.visitorModel.findOneAndUpdate(
           { id: persistenceEntity.id },
           persistenceEntity,
           { upsert: true, new: true },
         );
+
+        this.logger.log(`✅ Visitante creado exitosamente`);
       }
 
-      this.logger.log(`Visitante guardado: ${persistenceEntity.id}`);
+      this.logger.log(`💾 Visitante guardado: ${persistenceEntity.id}`);
       return okVoid();
     } catch (error) {
       const errorMessage = `Error al guardar visitante: ${
@@ -121,18 +142,45 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     siteId: SiteId,
   ): Promise<Result<VisitorV2, DomainError>> {
     try {
-      const entity = await this.visitorModel.findOne({
+      const query = {
         fingerprint: fingerprint.value,
         siteId: siteId.value,
-      });
+      };
+
+      this.logger.log(
+        `🔍 Buscando visitante en DB con query: ${JSON.stringify(query)}`,
+      );
+
+      const entity = await this.visitorModel.findOne(query);
 
       if (!entity) {
+        this.logger.log(
+          `❌ No se encontró visitante con fingerprint: ${fingerprint.value} y siteId: ${siteId.value}`,
+        );
+
+        // Verificar si existen visitantes con este fingerprint en otros sitios
+        const allWithFingerprint = await this.visitorModel.find({
+          fingerprint: fingerprint.value,
+        });
+        this.logger.log(
+          `🔍 Visitantes con este fingerprint en otros sitios: ${allWithFingerprint.length}`,
+        );
+        allWithFingerprint.forEach((v) => {
+          this.logger.log(
+            `   - ID: ${v.id}, siteId: ${v.siteId}, fingerprint: ${v.fingerprint}`,
+          );
+        });
+
         return err(
           new VisitorV2PersistenceError(
             `Visitante no encontrado con fingerprint: ${fingerprint.value} y siteId: ${siteId.value}`,
           ),
         );
       }
+
+      this.logger.log(
+        `✅ Visitante encontrado: ID=${entity.id}, fingerprint=${entity.fingerprint}, siteId=${entity.siteId}`,
+      );
 
       const visitor = VisitorV2Mapper.fromPersistence(entity);
       return ok(visitor);

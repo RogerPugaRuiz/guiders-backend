@@ -74,6 +74,14 @@ export class IdentifyVisitorCommandHandler
       const sites = company.getSites();
       const sitePrimitives = sites.toPrimitives();
 
+      this.logger.log(`🏢 Empresa encontrada: ${company.getId().getValue()}`);
+      this.logger.log(`🌐 Sitios disponibles: ${sitePrimitives.length}`);
+      sitePrimitives.forEach((site, index) => {
+        this.logger.log(
+          `   ${index + 1}. ID: ${site.id}, domain: ${site.canonicalDomain}, aliases: ${JSON.stringify(site.domainAliases)}`,
+        );
+      });
+
       const targetSite = sitePrimitives.find(
         (site) =>
           site.canonicalDomain === command.domain ||
@@ -86,10 +94,18 @@ export class IdentifyVisitorCommandHandler
         );
       }
 
+      this.logger.log(
+        `🎯 Sitio seleccionado: ID=${targetSite.id}, domain=${targetSite.canonicalDomain}`,
+      );
+
       // Crear value objects
       const fingerprint = new VisitorFingerprint(command.fingerprint);
       const siteId = new SiteId(targetSite.id);
       const tenantId = new TenantId(company.getId().getValue());
+
+      this.logger.log(
+        `Buscando visitante existente: fingerprint=${fingerprint.value}, siteId=${siteId.value}`,
+      );
 
       // Buscar visitante existente por fingerprint y siteId
       const existingVisitorResult =
@@ -105,7 +121,7 @@ export class IdentifyVisitorCommandHandler
         // Visitante existente - actualizar con nueva sesión
         visitor = existingVisitorResult.value;
         this.logger.log(
-          `Visitante existente encontrado: ${visitor.getId().value}`,
+          `✅ Visitante existente encontrado: ${visitor.getId().value}`,
         );
 
         // Iniciar nueva sesión
@@ -113,7 +129,10 @@ export class IdentifyVisitorCommandHandler
       } else {
         // Visitante nuevo - crear con estado anónimo
         isNewVisitor = true;
-        this.logger.log('Creando nuevo visitante anónimo');
+        this.logger.log(
+          `❌ Visitante NO encontrado. Razón: ${existingVisitorResult.error.message}`,
+        );
+        this.logger.log('🆕 Creando nuevo visitante anónimo');
 
         visitor = VisitorV2.create({
           id: VisitorId.random(),
@@ -122,6 +141,8 @@ export class IdentifyVisitorCommandHandler
           fingerprint,
           lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
         });
+
+        this.logger.log(`🆕 Nuevo visitante creado: ${visitor.getId().value}`);
       }
 
       // Persistir cambios con eventos
