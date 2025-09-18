@@ -22,11 +22,14 @@ import {
   ApiQuery,
   ApiBody,
   ApiBearerAuth,
+  ApiCookieAuth,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import {
   AuthenticatedRequest,
   AuthGuard,
 } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import {
   RolesGuard,
   RequiredRoles,
@@ -673,14 +676,20 @@ export class ChatV2Controller {
 
   /**
    * Obtiene chats de un visitante específico
-   * Requiere autenticación y permisos apropiados
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Get('visitor/:visitorId')
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard)
+  @ApiBearerAuth()
+  @ApiCookieAuth('sid')
   @ApiOperation({
     summary: 'Obtener chats de un visitante con paginación cursor',
     description:
-      'Retorna el historial de chats de un visitante específico usando paginación basada en cursor. Requiere autenticación.',
+      'Retorna el historial de chats de un visitante específico usando paginación basada en cursor. ' +
+      'Soporta dos tipos de autenticación:\n' +
+      '1. **Bearer Token (JWT)**: Para comerciales, administradores y supervisores que pueden acceder a chats de cualquier visitante\n' +
+      '2. **Cookie de sesión (sid)**: Para visitantes que solo pueden acceder a sus propios chats\n' +
+      'La validación de permisos se realiza automáticamente según el tipo de autenticación.',
   })
   @ApiParam({
     name: 'visitorId',
@@ -707,12 +716,13 @@ export class ChatV2Controller {
   })
   @ApiResponse({
     status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
   })
   @ApiResponse({
     status: 403,
     description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador, supervisor o visitante',
+      'Usuario sin permisos suficientes - Los comerciales/administradores pueden ver cualquier visitante, los visitantes solo sus propios chats',
   })
   @ApiResponse({
     status: 500,
@@ -724,10 +734,42 @@ export class ChatV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<ChatListResponseDto> {
     try {
+      // Verificar que haya autenticación
+      if (!req.user) {
+        throw new HttpException(
+          'Se requiere autenticación por Bearer token o cookie de sesión de visitante',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
       this.logger.log(
         `Usuario autenticado: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
+
+      // Validar autorización según el tipo de usuario
+      const userRoles = req.user.roles || [];
+      const isCommercialOrAdmin = userRoles.some((role) =>
+        ['commercial', 'admin', 'supervisor'].includes(role),
+      );
+      const isVisitor = userRoles.includes('visitor');
+
+      if (isVisitor) {
+        // Los visitantes solo pueden ver sus propios chats
+        if (req.user.id !== visitorId) {
+          throw new HttpException(
+            'Los visitantes solo pueden acceder a sus propios chats',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+      } else if (!isCommercialOrAdmin) {
+        // Usuarios sin roles apropiados
+        throw new HttpException(
+          'Permisos insuficientes para acceder a chats de visitantes',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
       this.logger.log(`Query params recibidos: ${JSON.stringify(queryParams)}`);
 
       // Crear filtros específicos para el visitante
