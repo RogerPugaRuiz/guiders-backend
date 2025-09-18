@@ -10,6 +10,7 @@ export const VISITOR_SESSION_COOKIE = 'sid';
 // Deriva opciones de la cookie desde variables de entorno y entorno de ejecución
 export function buildVisitorSessionCookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
+  const allowDevNone = process.env.ALLOW_DEV_SAMESITE_NONE === 'true';
   const sameSiteEnv = (
     process.env.VISITOR_SESSION_COOKIE_SAMESITE || 'lax'
   ).toLowerCase();
@@ -18,7 +19,7 @@ export function buildVisitorSessionCookieOptions() {
     sameSite = sameSiteEnv as 'lax' | 'strict' | 'none';
   }
   // Evitar SameSite=None sin secure en producción (sería rechazado por navegadores modernos)
-  if (!isProd && sameSite === 'none') {
+  if (!isProd && sameSite === 'none' && !allowDevNone) {
     sameSite = 'lax';
   }
   const domain = process.env.VISITOR_SESSION_COOKIE_DOMAIN || undefined;
