@@ -15,6 +15,15 @@ import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 import { CompanyModule } from '../company/company.module';
 import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
+import { GoOnlineVisitorCommandHandler } from './application/commands/go-online-visitor.command-handler';
+import { StartChattingVisitorCommandHandler } from './application/commands/start-chatting-visitor.command-handler';
+import { GoOfflineVisitorCommandHandler } from './application/commands/go-offline-visitor.command-handler';
+import { GetOnlineVisitorsQueryHandler } from './application/queries/get-online-visitors.query-handler';
+import { GetChattingVisitorsQueryHandler } from './application/queries/get-chatting-visitors.query-handler';
+import { GetVisitorConnectionStatusQueryHandler } from './application/queries/get-visitor-connection-status.query-handler';
+import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
+import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
+import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
 
 @Module({
   imports: [
@@ -35,7 +44,15 @@ import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visi
     UpdateSessionHeartbeatCommandHandler,
     EndSessionCommandHandler,
     ResolveSiteCommandHandler,
+    GoOnlineVisitorCommandHandler,
+    StartChattingVisitorCommandHandler,
+    GoOfflineVisitorCommandHandler,
+    GetOnlineVisitorsQueryHandler,
+    GetChattingVisitorsQueryHandler,
+    GetVisitorConnectionStatusQueryHandler,
+    SyncConnectionOnVisitorConnectionChangedEventHandler,
+    VISITOR_CONNECTION_SERVICE_PROVIDER,
   ],
-  exports: [VISITOR_V2_REPOSITORY],
+  exports: [VISITOR_V2_REPOSITORY, VISITOR_CONNECTION_DOMAIN_SERVICE],
 })
 export class VisitorsV2Module {}

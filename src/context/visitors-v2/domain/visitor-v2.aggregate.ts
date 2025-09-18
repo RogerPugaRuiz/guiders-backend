@@ -7,10 +7,12 @@ import {
   VisitorLifecycle,
   VisitorLifecycleVO,
 } from './value-objects/visitor-lifecycle';
+import { ConnectionStatus } from './value-objects/visitor-connection';
 import { Session } from './session.entity';
 import { SessionId } from './value-objects/session-id';
 import { VisitorCreatedEvent } from './events/visitor-created.event';
 import { VisitorLifecycleChangedEvent } from './events/visitor-state-changed.event';
+import { VisitorConnectionChangedEvent } from './events/visitor-connection-changed.event';
 import {
   SessionStartedEvent,
   SessionEndedEvent,
@@ -310,5 +312,53 @@ export class VisitorV2 extends AggregateRoot {
    */
   public isConverted(): boolean {
     return this.lifecycle.isConverted();
+  }
+
+  // ========== MÉTODOS DE GESTIÓN DE CONEXIÓN ==========
+  // Estos métodos emiten eventos que serán manejados por la infraestructura para sincronizar con Redis
+
+  /**
+   * Marca el visitante como online (conectado)
+   * Emite evento para que la infraestructura sincronice con Redis
+   */
+  public goOnline(): void {
+    this.apply(
+      new VisitorConnectionChangedEvent({
+        visitorId: this.id.getValue(),
+        previousConnection: null, // Asumimos que venía de offline
+        newConnection: ConnectionStatus.ONLINE,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
+
+  /**
+   * Marca el visitante como activo en chat
+   * Emite evento para que la infraestructura sincronice con Redis
+   */
+  public startChatting(): void {
+    this.apply(
+      new VisitorConnectionChangedEvent({
+        visitorId: this.id.getValue(),
+        previousConnection: ConnectionStatus.ONLINE,
+        newConnection: ConnectionStatus.CHATTING,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
+
+  /**
+   * Marca el visitante como desconectado
+   * Emite evento para que la infraestructura sincronice con Redis
+   */
+  public goOffline(): void {
+    this.apply(
+      new VisitorConnectionChangedEvent({
+        visitorId: this.id.getValue(),
+        previousConnection: null, // Podría venir de cualquier estado
+        newConnection: ConnectionStatus.OFFLINE,
+        timestamp: new Date().toISOString(),
+      }),
+    );
   }
 }
