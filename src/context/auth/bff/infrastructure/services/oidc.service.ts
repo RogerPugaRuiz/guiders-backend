@@ -51,6 +51,12 @@ export class OidcService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    // Saltar inicialización OIDC en entorno de test para evitar problemas con ES modules
+    if (process.env.NODE_ENV === 'test') {
+      this.logger.log('OIDC inicialización omitida en entorno de test');
+      return;
+    }
+    
     // Carga ESM en entorno CommonJS
     const client = await import('openid-client');
     this.clientLib = client;

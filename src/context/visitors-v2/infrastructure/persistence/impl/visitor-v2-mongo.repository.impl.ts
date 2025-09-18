@@ -35,11 +35,54 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     try {
       const persistenceEntity = VisitorV2Mapper.toPersistence(visitor);
 
-      await this.visitorModel.findOneAndUpdate(
-        { id: persistenceEntity.id },
-        persistenceEntity,
-        { upsert: true, new: true },
-      );
+      // Verificar si el visitante ya existe
+      const existingVisitor = await this.visitorModel.findOne({
+        id: persistenceEntity.id,
+      });
+
+      if (existingVisitor) {
+        // Visitante existente: hacer merge de sesiones para preservar historial
+        const existingSessions = existingVisitor.sessions || [];
+        const newSessions = persistenceEntity.sessions || [];
+
+        // Crear un mapa de sesiones existentes por ID para evitar duplicados
+        const existingSessionsMap = new Map(
+          existingSessions.map((session) => [session.id, session]),
+        );
+
+        // Añadir solo las sesiones nuevas (que no existen ya)
+        const mergedSessions = [...existingSessions];
+        newSessions.forEach((newSession) => {
+          if (!existingSessionsMap.has(newSession.id)) {
+            mergedSessions.push(newSession);
+          } else {
+            // Actualizar sesión existente (para casos como heartbeat)
+            const existingIndex = mergedSessions.findIndex(
+              (s) => s.id === newSession.id,
+            );
+            if (existingIndex !== -1) {
+              mergedSessions[existingIndex] = newSession;
+            }
+          }
+        });
+
+        // Actualizar con sesiones preservadas
+        await this.visitorModel.findOneAndUpdate(
+          { id: persistenceEntity.id },
+          {
+            ...persistenceEntity,
+            sessions: mergedSessions,
+          },
+          { new: true },
+        );
+      } else {
+        // Visitante nuevo: crear con upsert
+        await this.visitorModel.findOneAndUpdate(
+          { id: persistenceEntity.id },
+          persistenceEntity,
+          { upsert: true, new: true },
+        );
+      }
 
       this.logger.log(`Visitante guardado: ${persistenceEntity.id}`);
       return okVoid();

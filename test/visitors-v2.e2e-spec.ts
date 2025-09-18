@@ -638,5 +638,93 @@ describe('Visitors E2E', () => {
       expect(mockCompanyRepository.findByDomain).toHaveBeenCalled();
       expect(mockVisitorRepository.findByFingerprintAndSite).toHaveBeenCalled();
     });
+
+    it('debe preservar sesiones existentes en múltiples llamadas a identify', async () => {
+      // Configurar mocks para API key válido
+      mockValidateDomainApiKey.validate.mockResolvedValue(true);
+
+      // Mock company repository para resolver el domain
+      const mockCompany = createMockCompany();
+      mockCompanyRepository.findByDomain.mockResolvedValue(ok(mockCompany));
+
+      // Variable para capturar el visitante guardado
+      let capturedVisitor: VisitorV2 | null = null;
+
+      // Primera llamada: visitante no existe, se crea nuevo
+      mockVisitorRepository.findByFingerprintAndSite.mockResolvedValue(
+        err(new VisitorV2PersistenceError('Visitor not found')),
+      );
+
+      mockVisitorRepository.save.mockImplementation((visitor: VisitorV2) => {
+        capturedVisitor = visitor;
+        return Promise.resolve(okVoid());
+      });
+
+      // Primera identificación - crear visitante con primera sesión
+      const firstResponse = await request(app.getHttpServer())
+        .post('/visitors/identify')
+        .send({
+          domain: 'landing.mytech.com',
+          apiKey: 'test-api-key',
+          fingerprint: 'fp_test_123',
+        })
+        .expect((res) => {
+          // Aceptar tanto 200 (visitor existente) como 201 (nuevo visitor)
+          expect([200, 201]).toContain(res.status);
+        });
+
+      const firstSessionId = firstResponse.body.sessionId;
+      const visitorId = firstResponse.body.visitorId;
+      const firstVisitor = capturedVisitor!;
+
+      // Verificar que se capturó el primer visitante
+      expect(firstVisitor).toBeDefined();
+      expect(firstVisitor.toPrimitives().sessions).toHaveLength(1);
+
+      // Segunda llamada: visitante existe, agregar nueva sesión
+      mockVisitorRepository.findByFingerprintAndSite.mockResolvedValue(
+        ok(firstVisitor),
+      );
+
+      // Reset del visitante capturado
+      capturedVisitor = null;
+
+      // Segunda identificación - agregar nueva sesión
+      const secondResponse = await request(app.getHttpServer())
+        .post('/visitors/identify')
+        .send({
+          domain: 'landing.mytech.com',
+          apiKey: 'test-api-key',
+          fingerprint: 'fp_test_123',
+        })
+        .expect((res) => {
+          // Debería devolver 200 porque el visitor ya existe
+          expect(res.status).toBe(200);
+        });
+
+      const secondSessionId = secondResponse.body.sessionId;
+      const secondVisitor = capturedVisitor!;
+
+      // Verificar que son IDs diferentes
+      expect(secondSessionId).not.toBe(firstSessionId);
+      expect(secondResponse.body.visitorId).toBe(visitorId);
+
+      // Verificar que el visitante guardado tiene ambas sesiones
+      expect(secondVisitor).toBeDefined();
+      const visitorPrimitives = secondVisitor.toPrimitives();
+      expect(visitorPrimitives.sessions).toHaveLength(2);
+
+      // Verificar que la primera sesión se preservó
+      const sessionIds = visitorPrimitives.sessions.map(
+        (s: { id: string }) => s.id,
+      );
+      expect(sessionIds).toContain(firstSessionId);
+      expect(sessionIds).toContain(secondSessionId);
+
+      // Verificar que ambas sesiones están activas (sin endedAt)
+      visitorPrimitives.sessions.forEach((session) => {
+        expect(session.endedAt).toBeUndefined();
+      });
+    });
   });
 });
