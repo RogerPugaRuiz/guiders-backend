@@ -165,6 +165,7 @@ if (endpoint.auth.required) {
 2. **`api-documentation.yaml`** - Documentación completa en formato YAML  
 3. **`executive-summary.json`** - Resumen estadístico y métricas
 4. **`contexts/{context-name}.json`** - Documentación por contexto de dominio
+5. **`endpoint-chat-with-message.md`** - Documentación detallada del nuevo endpoint de chat con mensaje
 
 ### Casos de Uso para IAs
 

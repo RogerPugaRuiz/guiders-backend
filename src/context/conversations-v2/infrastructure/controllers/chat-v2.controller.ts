@@ -171,6 +171,34 @@ export class ChatV2Controller {
 
   /**
    * Crea un nuevo chat con un primer mensaje para el visitante autenticado
+   * 
+   * @example
+   * Request:
+   * ```json
+   * {
+   *   "firstMessage": {
+   *     "content": "Hola, necesito ayuda con mi pedido",
+   *     "type": "text"
+   *   },
+   *   "visitorInfo": {
+   *     "name": "María García",
+   *     "email": "maria@example.com"
+   *   },
+   *   "metadata": {
+   *     "department": "soporte",
+   *     "priority": "NORMAL"
+   *   }
+   * }
+   * ```
+   * 
+   * Response:
+   * ```json
+   * {
+   *   "chatId": "550e8400-e29b-41d4-a716-446655440000",
+   *   "messageId": "550e8400-e29b-41d4-a716-446655440001",
+   *   "position": 2
+   * }
+   * ```
    */
   @Post('with-message')
   @UseGuards(OptionalAuthGuard)
@@ -178,38 +206,148 @@ export class ChatV2Controller {
   @ApiOperation({
     summary: 'Crear nuevo chat con primer mensaje',
     description:
-      'Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica.',
+      'Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica que garantiza que tanto el chat como el mensaje se crean juntos o fallan juntos.',
   })
   @ApiBody({
     description: 'Datos del chat y primer mensaje',
     type: CreateChatWithMessageRequestDto,
+    examples: {
+      'texto-simple': {
+        summary: 'Mensaje de texto simple',
+        description: 'Ejemplo básico con solo mensaje de texto',
+        value: {
+          firstMessage: {
+            content: 'Hola, me gustaría información sobre sus productos',
+            type: 'text'
+          },
+          visitorInfo: {
+            name: 'Juan Pérez',
+            email: 'juan@example.com'
+          },
+          metadata: {
+            department: 'ventas',
+            priority: 'NORMAL'
+          }
+        }
+      },
+      'con-archivo': {
+        summary: 'Mensaje con archivo adjunto',
+        description: 'Ejemplo de mensaje con archivo adjunto',
+        value: {
+          firstMessage: {
+            content: 'Adjunto mi consulta técnica',
+            type: 'file',
+            attachment: {
+              url: 'https://storage.example.com/files/consulta.pdf',
+              fileName: 'consulta_tecnica.pdf',
+              fileSize: 245760,
+              mimeType: 'application/pdf'
+            }
+          },
+          metadata: {
+            department: 'soporte',
+            priority: 'HIGH'
+          }
+        }
+      },
+      'minimo': {
+        summary: 'Mensaje mínimo',
+        description: 'Solo con el contenido requerido',
+        value: {
+          firstMessage: {
+            content: 'Hola, necesito ayuda'
+          }
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 201,
     description: 'Chat y mensaje creados exitosamente',
     schema: {
-      example: {
-        chatId: 'chat-456',
-        messageId: 'msg-789',
-        position: 3,
+      type: 'object',
+      properties: {
+        chatId: {
+          type: 'string',
+          description: 'ID único del chat creado',
+          example: '550e8400-e29b-41d4-a716-446655440000'
+        },
+        messageId: {
+          type: 'string',
+          description: 'ID único del primer mensaje creado',
+          example: '550e8400-e29b-41d4-a716-446655440001'
+        },
+        position: {
+          type: 'number',
+          description: 'Posición del chat en la cola de espera',
+          example: 3,
+          minimum: 1
+        }
       },
+      required: ['chatId', 'messageId', 'position']
     },
+    examples: {
+      'exitoso': {
+        summary: 'Respuesta exitosa',
+        value: {
+          chatId: 'chat-456',
+          messageId: 'msg-789',
+          position: 3
+        }
+      }
+    }
   })
   @ApiResponse({
     status: 400,
     description: 'Datos de entrada inválidos',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { 
+          type: 'array',
+          items: { type: 'string' },
+          example: ['firstMessage.content should not be empty', 'firstMessage.type must be one of the following values: text, image, file']
+        },
+        error: { type: 'string', example: 'Bad Request' }
+      }
+    }
   })
   @ApiResponse({
     status: 401,
     description: 'Usuario no autenticado',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: { type: 'string', example: 'Se requiere autenticación para crear un chat' },
+        error: { type: 'string', example: 'Unauthorized' }
+      }
+    }
   })
   @ApiResponse({
     status: 403,
     description: 'Usuario sin permisos suficientes',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 403 },
+        message: { type: 'string', example: 'Acceso denegado' },
+        error: { type: 'string', example: 'Forbidden' }
+      }
+    }
   })
   @ApiResponse({
     status: 500,
     description: 'Error interno del servidor',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 500 },
+        message: { type: 'string', example: 'Error interno del servidor' },
+        error: { type: 'string', example: 'Internal Server Error' }
+      }
+    }
   })
   async createChatWithMessage(
     @Body() createChatWithMessageDto: CreateChatWithMessageRequestDto,

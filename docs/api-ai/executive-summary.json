@@ -3,7 +3,7 @@
     "totalEndpoints": 52,
     "totalControllers": 10,
     "contexts": 6,
-    "generated": "2025-09-19T17:59:59.434Z"
+    "generated": "2025-09-19T18:17:46.955Z"
   },
   "contexts": [
     {
@@ -13,28 +13,28 @@
       "endpoints": 4
     },
     {
-      "name": "visitors",
-      "description": "Gestión de visitantes V1",
-      "controllers": 1,
-      "endpoints": 5
-    },
-    {
-      "name": "tracking",
-      "description": "Seguimiento de intenciones y métricas",
-      "controllers": 2,
-      "endpoints": 2
-    },
-    {
       "name": "conversations-v2",
       "description": "Sistema de chat V2 optimizado (MongoDB)",
       "controllers": 2,
       "endpoints": 21
     },
     {
+      "name": "visitors",
+      "description": "Gestión de visitantes V1",
+      "controllers": 1,
+      "endpoints": 5
+    },
+    {
       "name": "company",
       "description": "Gestión de empresas y sitios web",
       "controllers": 1,
       "endpoints": 3
+    },
+    {
+      "name": "tracking",
+      "description": "Seguimiento de intenciones y métricas",
+      "controllers": 2,
+      "endpoints": 2
     },
     {
       "name": "auth",
@@ -67,20 +67,20 @@
         "count": 4
       },
       {
-        "context": "visitors",
-        "count": 5
-      },
-      {
-        "context": "tracking",
-        "count": 2
-      },
-      {
         "context": "conversations-v2",
         "count": 21
       },
       {
+        "context": "visitors",
+        "count": 5
+      },
+      {
         "context": "company",
         "count": 3
+      },
+      {
+        "context": "tracking",
+        "count": 2
       },
       {
         "context": "auth",

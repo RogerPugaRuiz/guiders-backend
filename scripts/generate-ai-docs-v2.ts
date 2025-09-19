@@ -304,6 +304,11 @@ class ImprovedControllerAnalyzer {
     };
   }
 
+  private extractEndpointTags(content: string): string[] {
+    // Por ahora, devolver array vacío ya que los tags suelen estar a nivel de controller
+    return [];
+  }
+
   private extractApiOperationField(content: string, field: string): string | null {
     // Buscar el bloque @ApiOperation completo
     const operationMatch = content.match(/@ApiOperation\(\s*\{([\s\S]*?)\}\s*\)/);
@@ -455,17 +460,219 @@ class ImprovedControllerAnalyzer {
     if (match) {
       const bodyConfig = match[1];
       const description = this.extractFromConfig(bodyConfig, 'description') || 'Cuerpo de la petición';
-      const type = this.extractFromConfig(bodyConfig, 'type') || 'object';
+      const typeStr = this.extractFromConfig(bodyConfig, 'type') || 'object';
       const required = this.extractFromConfig(bodyConfig, 'required') !== 'false';
+      
+      // Extraer el tipo DTO para buscar su esquema
+      const dtoType = this.extractDtoType(bodyConfig);
+      let schema = undefined;
+      
+      if (dtoType) {
+        schema = this.extractDtoSchema(content, dtoType);
+      }
+      
+      // Extraer ejemplos del @ApiBody
+      const examples = this.extractExamplesFromConfig(bodyConfig);
       
       return {
         description,
-        type,
+        type: typeStr,
         required,
+        schema: schema || (examples ? { examples } : undefined),
       };
     }
 
     return null;
+  }
+
+  private extractDtoType(config: string): string | null {
+    // Buscar type: SomeDto o type: () => SomeDto
+    const patterns = [
+      /type:\s*([A-Z][A-Za-z0-9_]+)/,
+      /type:\s*\(\)\s*=>\s*([A-Z][A-Za-z0-9_]+)/,
+    ];
+    
+    for (const pattern of patterns) {
+      const match = config.match(pattern);
+      if (match) return match[1];
+    }
+    
+    return null;
+  }
+
+  private extractDtoSchema(content: string, dtoType: string): any {
+    // Buscar el import del DTO
+    const importRegex = new RegExp(`import.*${dtoType}.*from\\s+['"\`]([^'"\`]+)['"\`]`);
+    const importMatch = content.match(importRegex);
+    
+    if (importMatch) {
+      const dtoPath = importMatch[1];
+      try {
+        // Construir la ruta completa del DTO
+        const fullDtoPath = this.resolveDtoPath(dtoPath);
+        if (fs.existsSync(fullDtoPath)) {
+          const dtoContent = fs.readFileSync(fullDtoPath, 'utf-8');
+          return this.parseDtoSchema(dtoContent, dtoType);
+        }
+      } catch (error) {
+        console.warn(`⚠️  No se pudo leer el esquema del DTO ${dtoType}:`, error.message);
+      }
+    }
+    
+    return undefined;
+  }
+
+  private resolveDtoPath(importPath: string): string {
+    // Si es un path relativo, construir la ruta completa
+    if (importPath.startsWith('.')) {
+      return path.resolve(this.sourceDir, importPath + '.ts');
+    }
+    
+    // Si es un path absoluto del proyecto
+    return path.resolve(this.sourceDir, importPath.replace(/^src\//, '') + '.ts');
+  }
+
+  private parseDtoSchema(dtoContent: string, dtoType: string): any {
+    const schema: any = {
+      type: 'object',
+      properties: {},
+      required: []
+    };
+
+    // Buscar la clase DTO específica
+    const classRegex = new RegExp(`export\\s+class\\s+${dtoType}\\s*\\{([\\s\\S]*?)\\}(?:\\s*$|\\s*export)`);
+    const classMatch = dtoContent.match(classRegex);
+    
+    if (!classMatch) return schema;
+    
+    const classBody = classMatch[1];
+    
+    // Extraer propiedades con sus decoradores
+    const propertyRegex = /@ApiProperty\(\s*\{([\s\S]*?)\}\s*\)[\s\S]*?(\w+)(\?)?:\s*([^;]+);/g;
+    let propertyMatch;
+    
+    while ((propertyMatch = propertyRegex.exec(classBody)) !== null) {
+      const [, apiPropertyConfig, propertyName, optional, propertyType] = propertyMatch;
+      
+      const description = this.extractFromConfig(apiPropertyConfig, 'description') || '';
+      const example = this.extractFromConfig(apiPropertyConfig, 'example');
+      const enumValues = this.extractArrayFromConfig(apiPropertyConfig, 'enum');
+      
+      schema.properties[propertyName] = {
+        type: this.mapTypeScriptTypeToJsonType(propertyType),
+        description,
+        ...(example && { example }),
+        ...(enumValues && { enum: enumValues })
+      };
+      
+      // Si no es opcional, añadir a required
+      if (!optional) {
+        schema.required.push(propertyName);
+      }
+    }
+    
+    return schema;
+  }
+
+  private extractArrayFromConfig(config: string, field: string): string[] | null {
+    const pattern = new RegExp(`${field}:\\s*\\[([^\\]]+)\\]`);
+    const match = config.match(pattern);
+    
+    if (match) {
+      return match[1]
+        .split(',')
+        .map(item => item.trim().replace(/['"]/g, ''))
+        .filter(item => item.length > 0);
+    }
+    
+    return null;
+  }
+
+  private extractExamplesFromConfig(config: string): any {
+    // Buscar examples: { ... } en la configuración
+    const examplesRegex = /examples:\s*\{([\s\S]*?)\}(?:,|\s*\})/;
+    const match = config.match(examplesRegex);
+    
+    if (match) {
+      try {
+        const examplesContent = match[1];
+        return this.parseExamplesObject(examplesContent);
+      } catch (error) {
+        console.warn('Error parsing examples:', error);
+      }
+    }
+    
+    return undefined;
+  }
+
+  private parseExamplesObject(content: string): any {
+    const examples: any = {};
+    
+    // Buscar ejemplos individuales como 'key': { ... }
+    const exampleRegex = /['"`]([^'"`]+)['"`]:\s*\{([\s\S]*?)\}(?:,|\s*$)/g;
+    let match;
+    
+    while ((match = exampleRegex.exec(content)) !== null) {
+      const [, exampleName, exampleContent] = match;
+      try {
+        examples[exampleName] = this.parseExampleObject(exampleContent);
+      } catch (error) {
+        // Si no se puede parsear, guardar como string
+        examples[exampleName] = exampleContent.trim();
+      }
+    }
+    
+    return Object.keys(examples).length > 0 ? examples : undefined;
+  }
+
+  private parseExampleObject(content: string): any {
+    const example: any = {};
+    
+    // Extraer summary
+    const summaryMatch = content.match(/summary:\s*['"`]([^'"`]+)['"`]/);
+    if (summaryMatch) {
+      example.summary = summaryMatch[1];
+    }
+    
+    // Extraer description
+    const descMatch = content.match(/description:\s*['"`]([^'"`]+)['"`]/);
+    if (descMatch) {
+      example.description = descMatch[1];
+    }
+    
+    // Extraer value
+    const valueMatch = content.match(/value:\s*\{([\s\S]*?)\}(?:,|\s*$)/);
+    if (valueMatch) {
+      try {
+        example.value = this.parseJsonLikeObject(valueMatch[1]);
+      } catch (error) {
+        example.value = valueMatch[1].trim();
+      }
+    }
+    
+    return example;
+  }
+
+  private parseJsonLikeObject(content: string): any {
+    try {
+      // Limpiar y convertir a JSON válido
+      let jsonString = content
+        .replace(/(\w+):\s*/g, '"$1": ') // Agregar comillas a las claves
+        .replace(/'/g, '"') // Convertir comillas simples a dobles
+        .replace(/,\s*\}/g, '}') // Quitar comas trailing en objetos
+        .replace(/,\s*\]/g, ']') // Quitar comas trailing en arrays
+        .trim();
+      
+      // Si no empieza con { o [, envolverlo
+      if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {
+        jsonString = `{${jsonString}}`;
+      }
+      
+      return JSON.parse(jsonString);
+    } catch (error) {
+      // Si falla el parsing, devolver como string
+      return content.trim();
+    }
   }
 
   private extractFromConfig(config: string, field: string): string | null {
@@ -494,12 +701,19 @@ class ImprovedControllerAnalyzer {
       const description = this.extractFromConfig(responseConfig, 'description');
       const type = this.extractFromConfig(responseConfig, 'type');
       
+      // Buscar esquema en la configuración
+      let schema = this.extractSchemaFromConfig(responseConfig);
+      
+      if (!schema && type) {
+        schema = { type };
+      }
+      
       if (statusStr && description) {
         const status = parseInt(statusStr, 10);
         responses.push({
           status,
           description,
-          schema: type ? { type } : undefined,
+          schema,
         });
       }
     }
@@ -507,14 +721,154 @@ class ImprovedControllerAnalyzer {
     return responses;
   }
 
-  private extractEndpointTags(content: string): string[] {
-    // Por ahora, devolver array vacío ya que los tags suelen estar a nivel de controller
-    return [];
+  private extractSchemaFromConfig(config: string): any {
+    // Buscar schema: { ... } en la configuración
+    const schemaRegex = /schema:\s*\{([\s\S]*?)\}(?:,|\s*\})/;
+    const match = config.match(schemaRegex);
+    
+    if (match) {
+      try {
+        // Intentar extraer el contenido del esquema
+        const schemaContent = match[1];
+        return this.parseSchemaContent(schemaContent);
+      } catch (error) {
+        console.warn('Error parsing schema:', error);
+      }
+    }
+    
+    return undefined;
+  }
+
+  private parseSchemaContent(content: string): any {
+    const schema: any = {};
+    
+    // Extraer type
+    const typeMatch = content.match(/type:\s*['"`](\w+)['"`]/);
+    if (typeMatch) {
+      schema.type = typeMatch[1];
+    }
+    
+    // Extraer properties
+    const propertiesMatch = content.match(/properties:\s*\{([\s\S]*?)\}/);
+    if (propertiesMatch) {
+      schema.properties = this.parseProperties(propertiesMatch[1]);
+    }
+    
+    // Extraer example
+    const exampleMatch = content.match(/example:\s*\{([\s\S]*?)\}/);
+    if (exampleMatch) {
+      try {
+        schema.example = this.parseExample(exampleMatch[1]);
+      } catch (error) {
+        // Si no se puede parsear como JSON, usar como string
+        schema.example = exampleMatch[1].trim();
+      }
+    }
+    
+    return schema;
+  }
+
+  private parseProperties(propertiesContent: string): any {
+    const properties: any = {};
+    
+    // Regex mejorado para capturar propiedades anidadas
+    const propertyRegex = /(\w+):\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
+    let match;
+    
+    while ((match = propertyRegex.exec(propertiesContent)) !== null) {
+      const [, propertyName, propertyConfig] = match;
+      properties[propertyName] = this.parsePropertyConfig(propertyConfig);
+    }
+    
+    return properties;
+  }
+
+  private parsePropertyConfig(config: string): any {
+    const property: any = {};
+    
+    // Extraer type
+    const typeMatch = config.match(/type:\s*['"`](\w+)['"`]/);
+    if (typeMatch) {
+      property.type = typeMatch[1];
+    }
+    
+    // Extraer description
+    const descMatch = config.match(/description:\s*['"`]([^'"`]+)['"`]/);
+    if (descMatch) {
+      property.description = descMatch[1];
+    }
+    
+    // Extraer example
+    const exampleMatch = config.match(/example:\s*['"`]([^'"`]+)['"`]/);
+    if (exampleMatch) {
+      property.example = exampleMatch[1];
+    }
+    
+    return property;
+  }
+
+  private parseExample(exampleContent: string): any {
+    try {
+      // Intentar parsear como JSON-like
+      const jsonLike = exampleContent
+        .replace(/(\w+):/g, '"$1":') // Agregar comillas a las claves
+        .replace(/'/g, '"') // Convertir comillas simples a dobles
+        .replace(/,\s*\}/g, '}') // Quitar comas trailing
+        .replace(/,\s*\]/g, ']');
+      
+      return JSON.parse(`{${jsonLike}}`);
+    } catch (error) {
+      return exampleContent.trim();
+    }
+  }
+
+  private mapTypeScriptTypeToJsonType(tsType: string): string {
+    const cleanType = tsType.trim().replace(/\?$/, '');
+    
+    if (cleanType === 'string') return 'string';
+    if (cleanType === 'number') return 'number';
+    if (cleanType === 'boolean') return 'boolean';
+    if (cleanType.includes('[]')) return 'array';
+    if (cleanType === 'object' || cleanType.includes('Record<') || cleanType.includes('{')) return 'object';
+    
+    return 'object'; // Default para tipos complejos
   }
 
   private extractExamples(content: string): { request?: any; response?: any } {
-    // Esta función podría expandirse para extraer ejemplos de la documentación
-    return {};
+    const examples: { request?: any; response?: any } = {};
+    
+    // Buscar ejemplos en comentarios JSDoc
+    const docRegex = /\/\*\*[\s\S]*?@example[\s\S]*?([\s\S]*?)\*\//g;
+    let match;
+    
+    while ((match = docRegex.exec(content)) !== null) {
+      try {
+        const exampleContent = match[1];
+        
+        // Buscar bloques de código JSON
+        const requestMatch = exampleContent.match(/Request:\s*```json\s*([\s\S]*?)```/);
+        if (requestMatch) {
+          try {
+            examples.request = JSON.parse(requestMatch[1].trim());
+          } catch (error) {
+            examples.request = requestMatch[1].trim();
+          }
+        }
+        
+        const responseMatch = exampleContent.match(/Response:\s*```json\s*([\s\S]*?)```/);
+        if (responseMatch) {
+          try {
+            examples.response = JSON.parse(responseMatch[1].trim());
+          } catch (error) {
+            examples.response = responseMatch[1].trim();
+          }
+        }
+      } catch (error) {
+        // Ignorar errores de parsing de ejemplos
+      }
+    }
+    
+    return examples;
   }
 
   private getContextDescription(contextName: string): string {
