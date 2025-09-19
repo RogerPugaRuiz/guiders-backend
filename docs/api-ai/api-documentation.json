@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-19T16:19:45.237Z",
+  "generated": "2025-09-19T17:59:59.434Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -305,7 +305,7 @@
               "description": "Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica.",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [
                   "visitor"
                 ],

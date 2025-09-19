@@ -3,7 +3,7 @@
     "totalEndpoints": 52,
     "totalControllers": 10,
     "contexts": 6,
-    "generated": "2025-09-19T16:19:45.237Z"
+    "generated": "2025-09-19T17:59:59.434Z"
   },
   "contexts": [
     {
@@ -88,10 +88,10 @@
       }
     ],
     "byAuth": {
-      "authenticated": 11,
-      "public": 41,
+      "authenticated": 12,
+      "public": 40,
       "byRole": {
-        "visitor": 1,
+        "visitor": 2,
         "commercial": 6,
         "admin": 3
       }

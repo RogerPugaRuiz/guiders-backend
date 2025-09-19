@@ -27,6 +27,8 @@ conversations-v2/
 
 ### Gestión de Chats
 
+- `POST /api/v2/chats` - Crear nuevo chat para visitante
+- `POST /api/v2/chats/with-message` - Crear chat con primer mensaje (NUEVO)
 - `GET /api/v2/chats` - Lista de chats con filtros avanzados
 - `GET /api/v2/chats/:chatId` - Obtener chat por ID
 - `GET /api/v2/chats/commercial/:commercialId` - Chats de un comercial
@@ -34,6 +36,19 @@ conversations-v2/
 - `GET /api/v2/chats/queue/pending` - Cola de chats pendientes
 - `PUT /api/v2/chats/:chatId/assign/:commercialId` - Asignar chat
 - `PUT /api/v2/chats/:chatId/close` - Cerrar chat
+- `DELETE /api/v2/chats/visitor/:visitorId/clear` - Limpiar chats de visitante
+
+### Gestión de Mensajes
+
+- `POST /api/v2/messages` - Enviar nuevo mensaje
+- `GET /api/v2/messages/chat/:chatId` - Obtener mensajes de un chat
+- `GET /api/v2/messages/:messageId` - Obtener mensaje por ID
+- `PUT /api/v2/messages/mark-as-read` - Marcar mensajes como leídos
+- `GET /api/v2/messages/chat/:chatId/unread` - Obtener mensajes no leídos
+- `GET /api/v2/messages/search` - Buscar mensajes
+- `GET /api/v2/messages/chat/:chatId/stats` - Estadísticas de mensajes
+- `GET /api/v2/messages/metrics` - Métricas de mensajes
+- `GET /api/v2/messages/attachments` - Obtener archivos adjuntos
 
 ### Métricas y Estadísticas
 
@@ -71,24 +86,28 @@ conversations-v2/
 
 ### ✅ Completado
 
-- Esquema MongoDB optimizado
-- DTOs para requests/responses
-- Controller con todos los endpoints
-- Módulo básico de NestJS
-- Tests del esquema MongoDB
+- Esquema MongoDB optimizado para chats y mensajes
+- DTOs para requests/responses de chats y mensajes
+- Controllers completos (ChatV2Controller, MessageV2Controller)
+- Command handlers implementados (CreateChatWithMessage, JoinWaitingRoom, ClearVisitorChats)
+- Query handlers implementados (GetChatsWithFilters, GetChatById)
+- Repositorios MongoDB (MongoChatRepositoryImpl, MongoMessageRepositoryImpl)
+- Mappers dominio-persistencia (ChatMapper, MessageMapper)
+- Módulo completamente configurado con providers
+- Tests unitarios y E2E para endpoints principales
+- Documentación Swagger completa
 
 ### 🚧 En Progreso
 
-- Command/Query handlers
-- Implementación del repositorio MongoDB
-- Services de dominio
+- Event handlers para comunicación entre contextos
+- Optimización de índices MongoDB basada en uso real
+- Tests de integración adicionales
 
 ### ⏳ Pendiente
 
-- Event handlers
-- Integración con el contexto existente
-- Tests de integración
-- Documentación Swagger completa
+- Integración completa con sistema de notificaciones WebSocket
+- Métricas avanzadas de rendimiento
+- Soporte para archivos adjuntos en mensajes
 
 ## Uso
 
@@ -117,15 +136,50 @@ GET /api/v2/chats/commercial/123?page=1&limit=20
 
 // Métricas del último mes
 GET /api/v2/chats/metrics/commercial/123?dateFrom=2025-07-01&dateTo=2025-07-31
+
+// Crear chat con primer mensaje (NUEVO)
+POST /api/v2/chats/with-message
+{
+  "firstMessage": {
+    "content": "Hola, necesito ayuda con un producto",
+    "type": "text"
+  },
+  "visitorInfo": {
+    "name": "Juan Pérez",
+    "email": "juan@example.com"
+  },
+  "metadata": {
+    "department": "ventas",
+    "source": "website"
+  }
+}
 ```
 
 ## Próximos Pasos
 
-1. **Implementar Command/Query handlers** - Para la lógica de negocio
-2. **Crear repositorio MongoDB** - Para la persistencia de datos
-3. **Añadir event handling** - Para la comunicación entre contextos
-4. **Tests de integración** - Para validar el funcionamiento completo
-5. **Optimizar índices** - Basado en patrones de uso reales
+1. **Optimizar Event handlers** - Para notificaciones en tiempo real vía WebSocket
+2. **Implementar métricas avanzadas** - Dashboard comercial con métricas detalladas  
+3. **Añadir soporte para archivos adjuntos** - Upload y gestión de archivos en mensajes
+4. **Tests de carga** - Para validar rendimiento con alto volumen de mensajes
+5. **Optimizar índices MongoDB** - Basado en patrones de uso en producción
+
+## Características Destacadas (NUEVAS)
+
+### Endpoint de Chat con Mensaje Atómico
+
+El nuevo endpoint `POST /api/v2/chats/with-message` permite crear un chat y enviar el primer mensaje en una sola operación atómica, mejorando la experiencia del usuario visitante:
+
+- **Transacción atómica**: Chat y mensaje se crean juntos o fallan juntos
+- **Validación completa**: DTO con validación de campos requeridos
+- **Posición en cola**: Retorna automáticamente la posición del visitante
+- **Autenticación flexible**: Soporta tanto JWT como sesión de visitante
+
+### Architecture CQRS Implementada
+
+- **Commands**: CreateChatWithMessageCommand, JoinWaitingRoomCommand, ClearVisitorChatsCommand
+- **Queries**: GetChatsWithFiltersQuery, GetChatByIdQuery  
+- **Handlers**: Implementación completa con manejo de errores y logging
+- **Events**: Preparado para eventos de dominio (ChatCreated, MessageSent)
 
 ## Diferencias con Conversations V1
 
