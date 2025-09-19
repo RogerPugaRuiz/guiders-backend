@@ -18,6 +18,7 @@ import {
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { CreateChatWithMessageCommand } from '../src/context/conversations-v2/application/commands/create-chat-with-message.command';
 import { TokenVerifyService } from '../src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from '../src/context/shared/infrastructure/services/visitor-session-auth.service';
@@ -120,6 +121,44 @@ export class MockRolesGuard {
   }
 }
 
+@Injectable()
+export class MockOptionalAuthGuard {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<MockRequest>();
+    const authHeader = request.headers.authorization;
+
+    // Si no hay auth, permitir acceso (opcional)
+    if (!authHeader) {
+      return true;
+    }
+
+    // Si hay token inválido, rechazar
+    if (authHeader.includes('invalid-token')) {
+      throw new UnauthorizedException('Token inválido');
+    }
+
+    // Si hay auth válido, validar y asignar usuario
+    let roles = ['commercial'];
+    if (authHeader.includes('visitor-token')) {
+      roles = ['visitor'];
+    } else if (authHeader.includes('admin-token')) {
+      roles = ['admin'];
+    } else if (authHeader.includes('supervisor-token')) {
+      roles = ['supervisor'];
+    }
+
+    request.user = {
+      id: 'test-user-id',
+      sub: 'test-user-sub',
+      roles,
+      username: 'test-user',
+      email: 'test@example.com',
+    };
+
+    return true;
+  }
+}
+
 describe('ChatV2Controller E2E - createChatWithMessage', () => {
   let app: INestApplication;
   let httpServer: App;
@@ -164,6 +203,8 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
       .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
+      .overrideGuard(OptionalAuthGuard)
+      .useClass(MockOptionalAuthGuard)
       .compile();
 
     app = moduleFixture.createNestApplication();

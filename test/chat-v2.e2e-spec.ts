@@ -20,6 +20,7 @@ import {
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
 
 // Tipos para evitar problemas de importación
@@ -409,6 +410,38 @@ class MockRolesGuard {
   }
 }
 
+class MockOptionalAuthGuard {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<MockRequest>();
+    const authHeader = request.headers.authorization;
+
+    // Si no hay auth, permitir acceso (opcional)
+    if (!authHeader) {
+      return true;
+    }
+
+    // Si hay auth, validar y asignar usuario
+    let roles = ['commercial'];
+    if (authHeader.includes('visitor-token')) {
+      roles = ['visitor'];
+    } else if (authHeader.includes('admin-token')) {
+      roles = ['admin'];
+    } else if (authHeader.includes('supervisor-token')) {
+      roles = ['supervisor'];
+    }
+
+    request.user = {
+      id: 'test-user-id',
+      sub: 'test-user-sub',
+      roles,
+      username: 'test-user',
+      email: 'test@example.com',
+    };
+
+    return true;
+  }
+}
+
 describe('ChatV2Controller (e2e)', () => {
   let app: INestApplication<App>;
   let queryBus: QueryBus;
@@ -436,6 +469,8 @@ describe('ChatV2Controller (e2e)', () => {
       .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
+      .overrideGuard(OptionalAuthGuard)
+      .useClass(MockOptionalAuthGuard)
       .compile();
 
     app = module.createNestApplication();
