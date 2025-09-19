@@ -15,11 +15,17 @@ import {
   ChatSchema,
   ChatSchemaDefinition,
 } from './infrastructure/schemas/chat.schema';
+import {
+  MessageSchema,
+  MessageSchemaDefinition,
+} from './infrastructure/schemas/message.schema';
 import { ChatMapper } from './infrastructure/mappers/chat.mapper';
 import { MongoChatRepositoryImpl } from './infrastructure/persistence/impl/mongo-chat.repository.impl';
+import { MongoMessageRepositoryImpl } from './infrastructure/persistence/impl/mongo-message.repository.impl';
 
 // Domain
 import { CHAT_V2_REPOSITORY } from './domain/chat.repository';
+import { MESSAGE_V2_REPOSITORY } from './domain/message.repository';
 
 // Guards
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
@@ -31,6 +37,7 @@ import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/ser
 // Command Handlers
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
 import { ClearVisitorChatsCommandHandler } from './application/commands/clear-visitor-chats.command-handler';
+import { CreateChatWithMessageCommandHandler } from './application/commands/create-chat-with-message.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
@@ -47,6 +54,7 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
     VisitorsV2Module, // Para acceso al VisitorV2Repository
     MongooseModule.forFeature([
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
+      { name: MessageSchema.name, schema: MessageSchemaDefinition },
     ]),
   ],
   controllers: [ChatV2Controller, MessageV2Controller],
@@ -68,10 +76,15 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
       provide: CHAT_V2_REPOSITORY,
       useClass: MongoChatRepositoryImpl,
     },
+    {
+      provide: MESSAGE_V2_REPOSITORY,
+      useClass: MongoMessageRepositoryImpl,
+    },
 
     // Command Handlers
     JoinWaitingRoomCommandHandler,
     ClearVisitorChatsCommandHandler,
+    CreateChatWithMessageCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,

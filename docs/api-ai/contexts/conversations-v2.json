@@ -35,6 +35,29 @@
           "examples": {}
         },
         {
+          "method": "POST",
+          "path": "/v2/chats/with-message",
+          "summary": "Crear nuevo chat con primer mensaje",
+          "description": "Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica.",
+          "tags": [],
+          "auth": {
+            "required": false,
+            "roles": [
+              "visitor"
+            ],
+            "bearer": false
+          },
+          "parameters": {
+            "body": {
+              "description": "Datos del chat y primer mensaje",
+              "type": "object",
+              "required": true
+            }
+          },
+          "responses": [],
+          "examples": {}
+        },
+        {
           "method": "GET",
           "path": "/v2/chats",
           "summary": "Obtener lista de chats con filtros y paginación con cursor",
@@ -202,14 +225,11 @@
           "method": "GET",
           "path": "/v2/chats/visitor/:visitorId",
           "summary": "Obtener chats de un visitante con paginación cursor",
-          "description": "Retorna el historial de chats de un visitante específico usando paginación basada en cursor. Requiere autenticación.",
+          "description": "Retorna el historial de chats de un visitante específico usando paginación basada en cursor.",
           "tags": [],
           "auth": {
-            "required": false,
-            "roles": [
-              "commercial"
-            ],
-            "bearer": false
+            "required": true,
+            "bearer": true
           },
           "parameters": {
             "path": [
@@ -729,6 +749,6 @@
   ],
   "summary": {
     "controllersCount": 2,
-    "endpointsCount": 20
+    "endpointsCount": 21
   }
 }

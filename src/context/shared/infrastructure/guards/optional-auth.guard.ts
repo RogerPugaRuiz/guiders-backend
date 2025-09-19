@@ -41,7 +41,9 @@ export class OptionalAuthGuard implements CanActivate {
 
       // Intentar autenticación por cookie de sesión de visitante V2
       if (await this.tryVisitorSessionAuth(request)) {
-        this.logger.debug('✅ Autenticación exitosa por sesión de visitante V2');
+        this.logger.debug(
+          '✅ Autenticación exitosa por sesión de visitante V2',
+        );
         return true;
       }
 

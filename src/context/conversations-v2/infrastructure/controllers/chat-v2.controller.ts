@@ -51,8 +51,10 @@ import {
   ResponseTimeStatsDto,
 } from '../../application/dtos/chat-query.dto';
 import { CreateChatRequestDto } from '../../application/dtos/create-chat-request.dto';
+import { CreateChatWithMessageRequestDto } from '../../application/dtos/create-chat-with-message-request.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
 import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
+import { CreateChatWithMessageCommand } from '../../application/commands/create-chat-with-message.command';
 
 /**
  * Controller para la gestión de chats v2
@@ -148,6 +150,132 @@ export class ChatV2Controller {
       return result;
     } catch (error) {
       this.logger.error('Error al crear chat:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Crea un nuevo chat con un primer mensaje para el visitante autenticado
+   */
+  @Post('with-message')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('visitor', 'commercial', 'admin')
+  @ApiOperation({
+    summary: 'Crear nuevo chat con primer mensaje',
+    description:
+      'Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica.',
+  })
+  @ApiBody({
+    description: 'Datos del chat y primer mensaje',
+    type: CreateChatWithMessageRequestDto,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Chat y mensaje creados exitosamente',
+    schema: {
+      example: {
+        chatId: 'chat-456',
+        messageId: 'msg-789',
+        position: 3,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos de entrada inválidos',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Usuario no autenticado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos suficientes',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async createChatWithMessage(
+    @Body() createChatWithMessageDto: CreateChatWithMessageRequestDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<{ chatId: string; messageId: string; position: number }> {
+    try {
+      this.logger.log(
+        `Creando chat con primer mensaje para visitante: ${req.user.id}`,
+      );
+
+      // El visitorId se obtiene del token autenticado
+      const visitorId = req.user.id;
+
+      // Usar los datos del DTO
+      const {
+        firstMessage,
+        visitorInfo: visitorInfoDto,
+        metadata,
+      } = createChatWithMessageDto;
+
+      // Transformar visitorInfo DTO a VisitorInfoData
+      const visitorInfo = visitorInfoDto
+        ? {
+            name: visitorInfoDto.name,
+            email: visitorInfoDto.email,
+            phone: visitorInfoDto.phone,
+            company: visitorInfoDto.additionalData?.company,
+            ipAddress: visitorInfoDto.additionalData?.ipAddress,
+            location: visitorInfoDto.location
+              ? {
+                  // Si location es string, lo ponemos en city
+                  city: visitorInfoDto.location,
+                  country: visitorInfoDto.additionalData?.country,
+                }
+              : undefined,
+            referrer: visitorInfoDto.additionalData?.referrer,
+            userAgent: visitorInfoDto.additionalData?.userAgent,
+          }
+        : undefined;
+
+      const command = new CreateChatWithMessageCommand(
+        visitorId,
+        {
+          content: firstMessage.content,
+          type: firstMessage.type || 'text',
+          attachment: firstMessage.attachment,
+        },
+        visitorInfo,
+        metadata,
+      );
+
+      this.logger.debug(
+        `Ejecutando command: ${JSON.stringify({
+          visitorId,
+          messageContent: firstMessage.content,
+          messageType: firstMessage.type || 'text',
+          hasAttachment: !!firstMessage.attachment,
+        })}`,
+      );
+
+      const result = (await this.commandBus.execute(command)) as {
+        chatId: string;
+        messageId: string;
+        position: number;
+      };
+
+      this.logger.log(
+        `Chat creado exitosamente: ${result.chatId}, mensaje: ${result.messageId}, posición en cola: ${result.position}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error('Error al crear chat con primer mensaje:', error);
 
       if (error instanceof HttpException) {
         throw error;
@@ -743,10 +871,10 @@ export class ChatV2Controller {
   ): Promise<ChatListResponseDto> {
     try {
       this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
-      
+
       // Determinar el nivel de acceso según la autenticación
       let accessLevel: 'public' | 'visitor' | 'staff' = 'public';
-      
+
       if (req.user) {
         this.logger.log(
           `Usuario autenticado: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,

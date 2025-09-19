@@ -1,9 +1,9 @@
 {
   "overview": {
-    "totalEndpoints": 51,
+    "totalEndpoints": 52,
     "totalControllers": 10,
     "contexts": 6,
-    "generated": "2025-09-18T10:18:02.075Z"
+    "generated": "2025-09-19T16:19:45.237Z"
   },
   "contexts": [
     {
@@ -28,7 +28,7 @@
       "name": "conversations-v2",
       "description": "Sistema de chat V2 optimizado (MongoDB)",
       "controllers": 2,
-      "endpoints": 20
+      "endpoints": 21
     },
     {
       "name": "company",
@@ -56,7 +56,7 @@
   },
   "endpoints": {
     "byMethod": {
-      "POST": 17,
+      "POST": 18,
       "GET": 27,
       "PUT": 6,
       "DELETE": 1
@@ -76,7 +76,7 @@
       },
       {
         "context": "conversations-v2",
-        "count": 20
+        "count": 21
       },
       {
         "context": "company",
@@ -88,7 +88,7 @@
       }
     ],
     "byAuth": {
-      "authenticated": 10,
+      "authenticated": 11,
       "public": 41,
       "byRole": {
         "visitor": 1,

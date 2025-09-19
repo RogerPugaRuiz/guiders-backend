@@ -1,5 +1,5 @@
 version: 1.0.0
-generated: 2025-09-18T10:18:02.075Z
+generated: 2025-09-19T16:19:45.237Z
 baseUrl: http://localhost:3000
 contexts:
   - 
@@ -247,6 +247,24 @@ contexts:
             responses:
             examples:
           - 
+            method: POST
+            path: /v2/chats/with-message
+            summary: Crear nuevo chat con primer mensaje
+            description: Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica.
+            tags:
+            auth:
+              required: false
+              roles:
+                - visitor
+              bearer: false
+            parameters:
+              body:
+                description: Datos del chat y primer mensaje
+                type: object
+                required: true
+            responses:
+            examples:
+          - 
             method: GET
             path: /v2/chats
             summary: Obtener lista de chats con filtros y paginación con cursor
@@ -387,13 +405,12 @@ contexts:
             method: GET
             path: /v2/chats/visitor/:visitorId
             summary: Obtener chats de un visitante con paginación cursor
-            description: Retorna el historial de chats de un visitante específico usando paginación basada en cursor. Requiere autenticación.
+            description: Retorna el historial de chats de un visitante específico usando paginación basada en cursor.
             tags:
             auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
+              required: true
+              roles: undefined
+              bearer: true
             parameters:
               path:
                 - 
@@ -1135,7 +1152,7 @@ contexts:
             examples:
         filePath: src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts
 summary:
-  totalEndpoints: 51
+  totalEndpoints: 52
   totalControllers: 10
   authenticationMethods:
     - Bearer JWT
