@@ -251,7 +251,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
 
       await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
-        .expect(401);
+        .expect(200); // OptionalAuthGuard permite acceso público
 
       // Verificar que no se llamaron los servicios de autenticación
       expect(mockTokenVerifyService.verifyToken).not.toHaveBeenCalled();
@@ -260,7 +260,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('debe denegar acceso con JWT inválido', async () => {
+    it('debe permitir acceso con JWT inválido (continuar como público)', async () => {
       const visitorId = 'visitor-123';
       const mockToken = 'invalid-token';
 
@@ -272,7 +272,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
       await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
         .set('Authorization', `Bearer ${mockToken}`)
-        .expect(401);
+        .expect(200); // OptionalAuthGuard permite continuar sin autenticación válida
 
       expect(mockTokenVerifyService.verifyToken).toHaveBeenCalledWith(
         mockToken,

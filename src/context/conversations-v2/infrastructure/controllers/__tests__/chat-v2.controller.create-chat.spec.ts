@@ -6,6 +6,9 @@ import { ChatV2Controller } from '../chat-v2.controller';
 import { JoinWaitingRoomCommand } from '../../../application/commands/join-waiting-room.command';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
 
 describe('ChatV2Controller - createChat', () => {
   let app: INestApplication;
@@ -36,6 +39,18 @@ describe('ChatV2Controller - createChat', () => {
       canActivate: jest.fn().mockReturnValue(true),
     };
 
+    const mockOptionalAuthGuard = {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+
+    const mockTokenVerifyService = {
+      verifyToken: jest.fn(),
+    };
+
+    const mockVisitorSessionAuthService = {
+      authenticateVisitor: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
       providers: [
@@ -47,12 +62,22 @@ describe('ChatV2Controller - createChat', () => {
           provide: QueryBus,
           useValue: mockQueryBus,
         },
+        {
+          provide: TokenVerifyService,
+          useValue: mockTokenVerifyService,
+        },
+        {
+          provide: VisitorSessionAuthService,
+          useValue: mockVisitorSessionAuthService,
+        },
       ],
     })
       .overrideGuard(AuthGuard)
       .useValue(mockAuthGuard)
       .overrideGuard(RolesGuard)
       .useValue(mockRolesGuard)
+      .overrideGuard(OptionalAuthGuard)
+      .useValue(mockOptionalAuthGuard)
       .compile();
 
     app = module.createNestApplication();

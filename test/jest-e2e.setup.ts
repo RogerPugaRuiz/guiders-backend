@@ -48,6 +48,15 @@ if (!process.env.TEST_DATABASE) {
   process.env.TEST_DATABASE = 'guiders_test';
 }
 
+// Configurar variables adicionales que requiere el módulo principal
+if (!process.env.MONGODB_USERNAME) {
+  process.env.MONGODB_USERNAME = process.env.TEST_MONGODB_ROOT_USERNAME;
+}
+
+if (!process.env.MONGODB_PASSWORD) {
+  process.env.MONGODB_PASSWORD = process.env.TEST_MONGODB_ROOT_PASSWORD;
+}
+
 console.log('🔧 E2E Test Setup configurado');
 console.log(
   `🔧 MongoDB Test Host: ${process.env.TEST_MONGODB_HOST}:${process.env.TEST_MONGODB_PORT}`,

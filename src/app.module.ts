@@ -206,8 +206,14 @@ export class AppModule {
       logger.warn(
         'MongoDB credentials are not set. Using default connection without authentication.',
       );
+      const mongoUserVar = isTest
+        ? 'TEST_MONGODB_ROOT_USERNAME'
+        : 'MONGODB_ROOT_USERNAME';
+      const mongoPasswordVar = isTest
+        ? 'TEST_MONGODB_ROOT_PASSWORD'
+        : 'MONGODB_ROOT_PASSWORD';
       throw new Error(
-        'MongoDB credentials are required. Please set MONGODB_USERNAME and MONGODB_PASSWORD in your environment variables.',
+        `MongoDB credentials are required. Please set ${mongoUserVar} and ${mongoPasswordVar} in your environment variables.`,
       );
     }
 

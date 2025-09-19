@@ -1,11 +1,13 @@
+import { INestApplication, HttpStatus, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus, INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import * as request from 'supertest';
+
 import { ChatV2Controller } from '../chat-v2.controller';
 import { CreateChatWithMessageCommand } from '../../../application/commands/create-chat-with-message.command';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
 
@@ -35,6 +37,10 @@ describe('ChatV2Controller - createChatWithMessage', () => {
     };
 
     const mockRolesGuard = {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+
+    const mockOptionalAuthGuard = {
       canActivate: jest.fn().mockReturnValue(true),
     };
 
@@ -71,9 +77,20 @@ describe('ChatV2Controller - createChatWithMessage', () => {
       .useValue(mockAuthGuard)
       .overrideGuard(RolesGuard)
       .useValue(mockRolesGuard)
+      .overrideGuard(OptionalAuthGuard)
+      .useValue(mockOptionalAuthGuard)
       .compile();
 
     app = module.createNestApplication();
+
+    // Configurar ValidationPipe para validaciones
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
 
     // Mock del user en el request
     app.use((req: any, res, next) => {
@@ -138,9 +155,16 @@ describe('ChatV2Controller - createChatWithMessage', () => {
         createChatWithMessageDto.firstMessage.content,
       );
       expect(executedCommand.firstMessage.type).toBe('text');
-      expect(executedCommand.visitorInfo).toEqual(
-        createChatWithMessageDto.visitorInfo,
-      );
+      expect(executedCommand.visitorInfo).toEqual({
+        name: 'Juan Pérez',
+        email: 'juan@example.com',
+        phone: undefined,
+        company: '',
+        ipAddress: '',
+        location: undefined,
+        referrer: '',
+        userAgent: '',
+      });
       expect(executedCommand.metadata).toEqual(
         createChatWithMessageDto.metadata,
       );
@@ -318,9 +342,19 @@ describe('ChatV2Controller - createChatWithMessage', () => {
 
       const executedCommand = (commandBus.execute as jest.Mock).mock
         .calls[0][0];
-      expect(executedCommand.visitorInfo).toEqual(
-        createChatWithMessageDto.visitorInfo,
-      );
+      expect(executedCommand.visitorInfo).toEqual({
+        name: 'Carlos Rodríguez',
+        email: 'carlos@example.com',
+        phone: '+34666777888',
+        company: 'TechCorp',
+        ipAddress: '192.168.1.100',
+        location: {
+          city: 'Barcelona, España',
+          country: '',
+        },
+        referrer: '',
+        userAgent: '',
+      });
       expect(executedCommand.metadata).toEqual(
         createChatWithMessageDto.metadata,
       );
@@ -364,7 +398,16 @@ describe('ChatV2Controller - createChatWithMessage', () => {
             type: 'text',
             attachment: undefined,
           },
-          visitorInfo: createChatWithMessageDto.visitorInfo,
+          visitorInfo: {
+            name: 'Test User',
+            email: undefined,
+            phone: undefined,
+            company: '',
+            ipAddress: '',
+            location: undefined,
+            referrer: '',
+            userAgent: '',
+          },
           metadata: createChatWithMessageDto.metadata,
         }),
       );
