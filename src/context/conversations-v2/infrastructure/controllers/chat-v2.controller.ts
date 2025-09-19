@@ -171,7 +171,7 @@ export class ChatV2Controller {
 
   /**
    * Crea un nuevo chat con un primer mensaje para el visitante autenticado
-   * 
+   *
    * @example
    * Request:
    * ```json
@@ -190,7 +190,7 @@ export class ChatV2Controller {
    *   }
    * }
    * ```
-   * 
+   *
    * Response:
    * ```json
    * {
@@ -218,17 +218,17 @@ export class ChatV2Controller {
         value: {
           firstMessage: {
             content: 'Hola, me gustaría información sobre sus productos',
-            type: 'text'
+            type: 'text',
           },
           visitorInfo: {
             name: 'Juan Pérez',
-            email: 'juan@example.com'
+            email: 'juan@example.com',
           },
           metadata: {
             department: 'ventas',
-            priority: 'NORMAL'
-          }
-        }
+            priority: 'NORMAL',
+          },
+        },
       },
       'con-archivo': {
         summary: 'Mensaje con archivo adjunto',
@@ -241,25 +241,25 @@ export class ChatV2Controller {
               url: 'https://storage.example.com/files/consulta.pdf',
               fileName: 'consulta_tecnica.pdf',
               fileSize: 245760,
-              mimeType: 'application/pdf'
-            }
+              mimeType: 'application/pdf',
+            },
           },
           metadata: {
             department: 'soporte',
-            priority: 'HIGH'
-          }
-        }
+            priority: 'HIGH',
+          },
+        },
       },
-      'minimo': {
+      minimo: {
         summary: 'Mensaje mínimo',
         description: 'Solo con el contenido requerido',
         value: {
           firstMessage: {
-            content: 'Hola, necesito ayuda'
-          }
-        }
-      }
-    }
+            content: 'Hola, necesito ayuda',
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 201,
@@ -270,32 +270,32 @@ export class ChatV2Controller {
         chatId: {
           type: 'string',
           description: 'ID único del chat creado',
-          example: '550e8400-e29b-41d4-a716-446655440000'
+          example: '550e8400-e29b-41d4-a716-446655440000',
         },
         messageId: {
           type: 'string',
           description: 'ID único del primer mensaje creado',
-          example: '550e8400-e29b-41d4-a716-446655440001'
+          example: '550e8400-e29b-41d4-a716-446655440001',
         },
         position: {
           type: 'number',
           description: 'Posición del chat en la cola de espera',
           example: 3,
-          minimum: 1
-        }
+          minimum: 1,
+        },
       },
-      required: ['chatId', 'messageId', 'position']
+      required: ['chatId', 'messageId', 'position'],
     },
     examples: {
-      'exitoso': {
+      exitoso: {
         summary: 'Respuesta exitosa',
         value: {
           chatId: 'chat-456',
           messageId: 'msg-789',
-          position: 3
-        }
-      }
-    }
+          position: 3,
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -304,14 +304,17 @@ export class ChatV2Controller {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 400 },
-        message: { 
+        message: {
           type: 'array',
           items: { type: 'string' },
-          example: ['firstMessage.content should not be empty', 'firstMessage.type must be one of the following values: text, image, file']
+          example: [
+            'firstMessage.content should not be empty',
+            'firstMessage.type must be one of the following values: text, image, file',
+          ],
         },
-        error: { type: 'string', example: 'Bad Request' }
-      }
-    }
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -320,10 +323,13 @@ export class ChatV2Controller {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 401 },
-        message: { type: 'string', example: 'Se requiere autenticación para crear un chat' },
-        error: { type: 'string', example: 'Unauthorized' }
-      }
-    }
+        message: {
+          type: 'string',
+          example: 'Se requiere autenticación para crear un chat',
+        },
+        error: { type: 'string', example: 'Unauthorized' },
+      },
+    },
   })
   @ApiResponse({
     status: 403,
@@ -333,9 +339,9 @@ export class ChatV2Controller {
       properties: {
         statusCode: { type: 'number', example: 403 },
         message: { type: 'string', example: 'Acceso denegado' },
-        error: { type: 'string', example: 'Forbidden' }
-      }
-    }
+        error: { type: 'string', example: 'Forbidden' },
+      },
+    },
   })
   @ApiResponse({
     status: 500,
@@ -345,9 +351,9 @@ export class ChatV2Controller {
       properties: {
         statusCode: { type: 'number', example: 500 },
         message: { type: 'string', example: 'Error interno del servidor' },
-        error: { type: 'string', example: 'Internal Server Error' }
-      }
-    }
+        error: { type: 'string', example: 'Internal Server Error' },
+      },
+    },
   })
   async createChatWithMessage(
     @Body() createChatWithMessageDto: CreateChatWithMessageRequestDto,
