@@ -30,24 +30,26 @@ export class OptionalAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
+    this.logger.debug('🔍 OptionalAuthGuard iniciado');
+
     try {
       // Intentar autenticación por JWT Bearer token primero
       if (await this.tryJwtAuth(request)) {
-        this.logger.debug('Autenticación exitosa por JWT Bearer token');
+        this.logger.debug('✅ Autenticación exitosa por JWT Bearer token');
         return true;
       }
 
       // Intentar autenticación por cookie de sesión de visitante V2
       if (await this.tryVisitorSessionAuth(request)) {
-        this.logger.debug('Autenticación exitosa por sesión de visitante V2');
+        this.logger.debug('✅ Autenticación exitosa por sesión de visitante V2');
         return true;
       }
 
       // No hay autenticación, pero permitir continuar
-      this.logger.debug('Sin autenticación detectada, continuar sin user');
+      this.logger.debug('❌ Sin autenticación detectada, continuar sin user');
       return true;
     } catch (error) {
-      this.logger.warn(`Error en autenticación opcional: ${error}`);
+      this.logger.warn(`💥 Error en autenticación opcional: ${error}`);
       // En caso de error, continuar sin autenticación
       return true;
     }
@@ -100,6 +102,10 @@ export class OptionalAuthGuard implements CanActivate {
   ): Promise<boolean> {
     try {
       const sessionId = resolveVisitorSessionId(request);
+
+      this.logger.debug(
+        `Visitor session ID resuelto: ${sessionId || 'no encontrado'}`,
+      );
 
       if (!sessionId) {
         return false;

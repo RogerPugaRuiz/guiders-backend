@@ -32,26 +32,46 @@ export class VisitorSessionAuthService {
    */
   async validateSession(sessionId: string): Promise<VisitorSessionInfo | null> {
     try {
-      this.logger.debug(`Validando sesión: ${sessionId}`);
+      this.logger.debug(`🔍 Validando sesión: ${sessionId}`);
 
       const sessionIdVO = new SessionId(sessionId);
+      this.logger.debug(`🔍 SessionId VO creado: ${sessionIdVO.getValue()}`);
+
       const result = await this.visitorRepository.findBySessionId(sessionIdVO);
+      this.logger.debug(
+        `🔍 Resultado de búsqueda: ${result.isOk() ? 'ENCONTRADO' : 'NO ENCONTRADO'}`,
+      );
 
       if (result.isErr()) {
-        this.logger.debug(`Sesión no encontrada: ${sessionId}`);
+        this.logger.warn(
+          `❌ Sesión no encontrada: ${sessionId} - Error: ${result.error.message}`,
+        );
         return null;
       }
 
       const visitor = result.unwrap();
+      this.logger.debug(
+        `✅ Visitante encontrado: ${visitor.getId().getValue()}`,
+      );
 
       // Verificar que la sesión esté activa
       const activeSessions = visitor.getActiveSessions();
+      this.logger.debug(
+        `🔍 Sesiones activas encontradas: ${activeSessions.length}`,
+      );
+
+      activeSessions.forEach((session, index) => {
+        this.logger.debug(`  Sesión ${index}: ${session.getId().getValue()}`);
+      });
+
       const targetSession = activeSessions.find(
         (session) => session.getId().getValue() === sessionId,
       );
 
       if (!targetSession) {
-        this.logger.debug(`Sesión inactiva: ${sessionId}`);
+        this.logger.warn(
+          `❌ Sesión inactiva o no encontrada en sesiones activas: ${sessionId}`,
+        );
         return null;
       }
 
@@ -68,11 +88,11 @@ export class VisitorSessionAuthService {
       };
 
       this.logger.debug(
-        `Sesión válida para visitante: ${visitorInfo.visitorId}`,
+        `✅ Sesión válida para visitante: ${visitorInfo.visitorId}`,
       );
       return visitorInfo;
     } catch (error) {
-      this.logger.error(`Error validando sesión ${sessionId}:`, error);
+      this.logger.error(`💥 Error validando sesión ${sessionId}:`, error);
       return null;
     }
   }

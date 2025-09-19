@@ -197,11 +197,19 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     sessionId: SessionId,
   ): Promise<Result<VisitorV2, DomainError>> {
     try {
-      const entity = await this.visitorModel.findOne({
-        'sessions.id': sessionId.value,
-      });
+      const query = { 'sessions.id': sessionId.value };
+      this.logger.debug(`🔍 MongoDB query: ${JSON.stringify(query)}`);
+      this.logger.debug(`🔍 Buscando sessionId: ${sessionId.value}`);
+
+      const entity = await this.visitorModel.findOne(query);
+      this.logger.debug(
+        `🔍 MongoDB resultado: ${entity ? 'ENCONTRADO' : 'NO ENCONTRADO'}`,
+      );
 
       if (!entity) {
+        this.logger.warn(
+          `❌ Visitante no encontrado con sessionId: ${sessionId.value}`,
+        );
         return err(
           new VisitorV2PersistenceError(
             `Visitante no encontrado con sessionId: ${sessionId.value}`,
@@ -209,6 +217,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         );
       }
 
+      this.logger.debug(`✅ Entidad encontrada: ${entity._id}`);
       const visitor = VisitorV2Mapper.fromPersistence(entity);
       return ok(visitor);
     } catch (error) {

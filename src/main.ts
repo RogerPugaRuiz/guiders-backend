@@ -165,6 +165,7 @@ async function bootstrap() {
     'Cookie',
     'X-Requested-With',
     'X-API-Key',
+    'X-Guiders-Sid',
   ];
   const corsExposedHeaders: ReadonlyArray<string> = ['Set-Cookie'];
   const baseCors: SafeCorsOptions = {

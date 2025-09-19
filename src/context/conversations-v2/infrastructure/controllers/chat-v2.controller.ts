@@ -23,6 +23,7 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiCookieAuth,
+  ApiHeader,
 } from '@nestjs/swagger';
 import {
   AuthenticatedRequest,
@@ -61,7 +62,6 @@ import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-
 @ApiTags('Chats V2')
 @ApiBearerAuth()
 @Controller('v2/chats')
-@UseGuards(AuthGuard, RolesGuard)
 export class ChatV2Controller {
   private readonly logger = new Logger(ChatV2Controller.name);
 
@@ -681,14 +681,23 @@ export class ChatV2Controller {
   @UseGuards(OptionalAuthGuard)
   @ApiBearerAuth()
   @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Obtener chats de un visitante con paginación cursor',
     description:
       'Retorna el historial de chats de un visitante específico usando paginación basada en cursor. ' +
-      'Soporta dos tipos de autenticación:\n' +
+      'Soporta múltiples tipos de autenticación:\n' +
       '1. **Bearer Token (JWT)**: Para comerciales, administradores y supervisores que pueden acceder a chats de cualquier visitante\n' +
       '2. **Cookie de sesión (sid)**: Para visitantes que solo pueden acceder a sus propios chats\n' +
-      'La validación de permisos se realiza automáticamente según el tipo de autenticación.',
+      '3. **Header X-Guiders-Sid**: Cabecera HTTP alternativa para enviar el session ID\n' +
+      '4. **Cookies adicionales**: x-guiders-sid, guiders_session_id (accesibles desde JavaScript)\n' +
+      'La validación de permisos se realiza automáticamente según el tipo de autenticación. ' +
+      'Orden de prioridad: Body > Header X-Guiders-Sid > Cookie sid > Cookie x-guiders-sid > Cookie guiders_session_id',
   })
   @ApiParam({
     name: 'visitorId',
@@ -733,55 +742,64 @@ export class ChatV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<ChatListResponseDto> {
     try {
-      // Verificar que haya autenticación
-      if (!req.user) {
-        throw new HttpException(
-          'Se requiere autenticación por Bearer token o cookie de sesión de visitante',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
       this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
-      this.logger.log(
-        `Usuario autenticado: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
-      );
+      
+      // Determinar el nivel de acceso según la autenticación
+      let accessLevel: 'public' | 'visitor' | 'staff' = 'public';
+      
+      if (req.user) {
+        this.logger.log(
+          `Usuario autenticado: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
+        );
 
-      // Validar autorización según el tipo de usuario
-      const userRoles = req.user.roles || [];
-      const isCommercialOrAdmin = userRoles.some((role) =>
-        ['commercial', 'admin', 'supervisor'].includes(role),
-      );
-      const isVisitor = userRoles.includes('visitor');
+        // Validar autorización según el tipo de usuario
+        const userRoles = req.user.roles || [];
+        const isCommercialOrAdmin = userRoles.some((role) =>
+          ['commercial', 'admin', 'supervisor'].includes(role),
+        );
+        const isVisitor = userRoles.includes('visitor');
 
-      if (isVisitor) {
-        // Los visitantes solo pueden ver sus propios chats
-        if (req.user.id !== visitorId) {
+        if (isVisitor) {
+          // Los visitantes solo pueden ver sus propios chats
+          if (req.user.id !== visitorId) {
+            throw new HttpException(
+              'Los visitantes solo pueden acceder a sus propios chats',
+              HttpStatus.FORBIDDEN,
+            );
+          }
+          accessLevel = 'visitor';
+        } else if (isCommercialOrAdmin) {
+          accessLevel = 'staff';
+        } else {
+          // Usuarios sin roles apropiados
           throw new HttpException(
-            'Los visitantes solo pueden acceder a sus propios chats',
+            'Permisos insuficientes para acceder a chats de visitantes',
             HttpStatus.FORBIDDEN,
           );
         }
-      } else if (!isCommercialOrAdmin) {
-        // Usuarios sin roles apropiados
-        throw new HttpException(
-          'Permisos insuficientes para acceder a chats de visitantes',
-          HttpStatus.FORBIDDEN,
-        );
+      } else {
+        this.logger.log('Sin autenticación - acceso público a chats básicos');
       }
 
       this.logger.log(`Query params recibidos: ${JSON.stringify(queryParams)}`);
+      this.logger.log(`Nivel de acceso determinado: ${accessLevel}`);
 
-      // Crear filtros específicos para el visitante
+      // Crear filtros específicos según el nivel de acceso
       const filters = {
         visitorId: visitorId,
+        ...(accessLevel === 'public' && { publicOnly: true }), // Solo chats públicos para acceso no autenticado
       };
 
       this.logger.log(`Filtros aplicados: ${JSON.stringify(filters)}`);
 
+      // Determinar userId y userRole según el contexto de autenticación
+      const userId = req.user?.id || visitorId; // Para acceso público, usar el visitorId como fallback
+      const userRole = req.user?.roles?.[0] || 'visitor'; // Para acceso público, asumir rol visitor
+
       // Usar el query handler existente con filtros específicos para el visitante
       const query = GetChatsWithFiltersQuery.create({
-        userId: req.user.id,
-        userRole: req.user.roles[0] || 'visitor',
+        userId: userId,
+        userRole: userRole,
         filters: filters,
         sort: { field: 'createdAt', direction: 'DESC' },
         cursor: queryParams.cursor,
@@ -790,8 +808,8 @@ export class ChatV2Controller {
 
       this.logger.log(
         `Query creado: ${JSON.stringify({
-          userId: req.user.id,
-          userRole: req.user.roles[0] || 'visitor',
+          userId: userId,
+          userRole: userRole,
           filters: filters,
           cursor: queryParams.cursor,
           limit: queryParams.limit || 20,

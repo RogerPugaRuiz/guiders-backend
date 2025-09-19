@@ -1,11 +1,13 @@
-// Utilidades centralizadas para la cookie de sesión de Visitor V2
+// Utilidades centralizadas para las cookies de sesión de Visitor V2
 // Mantener lógica aquí evita duplicación en controllers y facilita cambios futuros (nombre, flags, dominio, etc.)
 import {
   Response as ExpressResponse,
   Request as ExpressRequest,
 } from 'express';
 
-export const VISITOR_SESSION_COOKIE = 'sid';
+export const VISITOR_SESSION_COOKIE = 'sid'; // Cookie segura (httpOnly)
+export const VISITOR_SESSION_COOKIE_JS = 'guiders_session_id'; // Cookie accesible desde JavaScript
+export const VISITOR_SESSION_COOKIE_X_GUIDERS = 'x-guiders-sid'; // Cookie adicional para frontend
 
 // Deriva opciones de la cookie desde variables de entorno y entorno de ejecución
 export function buildVisitorSessionCookieOptions() {
@@ -39,40 +41,90 @@ export function buildVisitorSessionCookieOptions() {
   } as const;
 }
 
-// Escribe la cookie de sesión
+// Escribe las cookies de sesión (segura y accesibles)
 export function setVisitorSessionCookie(
   res: ExpressResponse,
   sessionId: string,
 ) {
+  // Cookie segura con httpOnly para autenticación de backend
   res.cookie(
     VISITOR_SESSION_COOKIE,
     sessionId,
     buildVisitorSessionCookieOptions(),
   );
+
+  // Cookie accesible desde JavaScript para frontend
+  const jsAccessibleOptions = {
+    ...buildVisitorSessionCookieOptions(),
+    httpOnly: false, // Accesible desde JavaScript
+  };
+  res.cookie(VISITOR_SESSION_COOKIE_JS, sessionId, jsAccessibleOptions);
+
+  // Cookie adicional x-guiders-sid (también accesible desde JavaScript)
+  res.cookie(VISITOR_SESSION_COOKIE_X_GUIDERS, sessionId, jsAccessibleOptions);
 }
 
-// Limpia la cookie de sesión (usando mismas opciones base para asegurar eliminación consistente)
+// Limpia todas las cookies de sesión (segura y accesibles)
 export function clearVisitorSessionCookie(res: ExpressResponse) {
   const opts = buildVisitorSessionCookieOptions();
+
+  // Limpiar cookie segura (httpOnly)
   res.clearCookie(VISITOR_SESSION_COOKIE, { ...opts, maxAge: 0 });
+
+  // Limpiar cookies accesibles desde JavaScript
+  const jsAccessibleOpts = { ...opts, httpOnly: false, maxAge: 0 };
+  res.clearCookie(VISITOR_SESSION_COOKIE_JS, jsAccessibleOpts);
+  res.clearCookie(VISITOR_SESSION_COOKIE_X_GUIDERS, jsAccessibleOpts);
 }
 
-// Extrae el sessionId proporcionado por body o desde la cookie. Body prevalece.
+// Extrae el sessionId proporcionado por body, cabeceras HTTP o cookies.
+// Orden de prioridad: body > X-Guiders-Sid header > sid cookie > x-guiders-sid cookie > guiders_session_id cookie
 export function resolveVisitorSessionId(
   req: ExpressRequest,
   bodySessionId?: string | null,
 ): string | undefined {
+  // 1. Si viene en el body, tiene prioridad máxima
   if (bodySessionId && typeof bodySessionId === 'string') return bodySessionId;
+
+  // 2. Buscar en cabecera HTTP 'X-Guiders-Sid'
+  const headerSessionId = req.headers['x-guiders-sid'];
+  if (headerSessionId && typeof headerSessionId === 'string') {
+    return headerSessionId;
+  }
+
+  // 3. Buscar en cookies (múltiples opciones)
   const maybeCookies = (req as unknown as { cookies?: unknown }).cookies;
   if (
     maybeCookies &&
     typeof maybeCookies === 'object' &&
-    maybeCookies !== null &&
-    VISITOR_SESSION_COOKIE in maybeCookies &&
-    typeof (maybeCookies as Record<string, unknown>)[VISITOR_SESSION_COOKIE] ===
-      'string'
+    maybeCookies !== null
   ) {
-    return (maybeCookies as Record<string, string>)[VISITOR_SESSION_COOKIE];
+    const cookies = maybeCookies as Record<string, unknown>;
+
+    // 3a. Buscar en cookie 'sid' (principal, httpOnly)
+    if (
+      VISITOR_SESSION_COOKIE in cookies &&
+      typeof cookies[VISITOR_SESSION_COOKIE] === 'string'
+    ) {
+      return cookies[VISITOR_SESSION_COOKIE];
+    }
+
+    // 3b. Buscar en cookie 'x-guiders-sid' (alternativa)
+    if (
+      VISITOR_SESSION_COOKIE_X_GUIDERS in cookies &&
+      typeof cookies[VISITOR_SESSION_COOKIE_X_GUIDERS] === 'string'
+    ) {
+      return cookies[VISITOR_SESSION_COOKIE_X_GUIDERS];
+    }
+
+    // 3c. Buscar en cookie 'guiders_session_id' (accesible por JS)
+    if (
+      VISITOR_SESSION_COOKIE_JS in cookies &&
+      typeof cookies[VISITOR_SESSION_COOKIE_JS] === 'string'
+    ) {
+      return cookies[VISITOR_SESSION_COOKIE_JS];
+    }
   }
+
   return undefined;
 }
