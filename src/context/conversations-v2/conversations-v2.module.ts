@@ -20,6 +20,7 @@ import {
   MessageSchemaDefinition,
 } from './infrastructure/schemas/message.schema';
 import { ChatMapper } from './infrastructure/mappers/chat.mapper';
+import { MessageMapper } from './infrastructure/mappers/message.mapper';
 import { MongoChatRepositoryImpl } from './infrastructure/persistence/impl/mongo-chat.repository.impl';
 import { MongoMessageRepositoryImpl } from './infrastructure/persistence/impl/mongo-message.repository.impl';
 
@@ -70,6 +71,7 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
 
     // Mappers
     ChatMapper,
+    MessageMapper,
 
     // Repository Implementation
     {

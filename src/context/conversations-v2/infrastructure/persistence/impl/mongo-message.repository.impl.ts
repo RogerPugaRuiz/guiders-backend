@@ -41,7 +41,8 @@ export class MessagePersistenceError extends DomainError {
 @Injectable()
 export class MongoMessageRepositoryImpl implements IMessageRepository {
   constructor(
-    @InjectModel('Message') private readonly messageModel: Model<MessageSchema>,
+    @InjectModel(MessageSchema.name)
+    private readonly messageModel: Model<MessageSchema>,
     private readonly messageMapper: MessageMapper,
   ) {}
 

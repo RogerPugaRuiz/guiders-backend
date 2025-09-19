@@ -10,7 +10,7 @@ import {
   MESSAGE_V2_REPOSITORY,
   IMessageRepository,
 } from '../../../domain/message.repository';
-import { Result, ok, okVoid, err } from 'src/context/shared/domain/result';
+import { ok, okVoid, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 
 // Error concreto para tests

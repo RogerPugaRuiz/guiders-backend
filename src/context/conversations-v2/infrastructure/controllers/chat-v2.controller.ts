@@ -56,6 +56,13 @@ import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-wi
 import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
 import { CreateChatWithMessageCommand } from '../../application/commands/create-chat-with-message.command';
 
+// Interfaces para respuestas de comandos
+interface CreateChatWithMessageResult {
+  chatId: string;
+  messageId: string;
+  position: number;
+}
+
 /**
  * Controller para la gestión de chats v2
  * Proporciona endpoints optimizados para comerciales y visitantes
@@ -166,7 +173,7 @@ export class ChatV2Controller {
    * Crea un nuevo chat con un primer mensaje para el visitante autenticado
    */
   @Post('with-message')
-  @UseGuards(AuthGuard, RolesGuard)
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('visitor', 'commercial', 'admin')
   @ApiOperation({
     summary: 'Crear nuevo chat con primer mensaje',
@@ -207,8 +214,16 @@ export class ChatV2Controller {
   async createChatWithMessage(
     @Body() createChatWithMessageDto: CreateChatWithMessageRequestDto,
     @Req() req: AuthenticatedRequest,
-  ): Promise<{ chatId: string; messageId: string; position: number }> {
+  ): Promise<CreateChatWithMessageResult> {
     try {
+      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
+      if (!req.user || !req.user.id) {
+        throw new HttpException(
+          'Se requiere autenticación para crear un chat',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       this.logger.log(
         `Creando chat con primer mensaje para visitante: ${req.user.id}`,
       );
@@ -229,17 +244,20 @@ export class ChatV2Controller {
             name: visitorInfoDto.name,
             email: visitorInfoDto.email,
             phone: visitorInfoDto.phone,
-            company: visitorInfoDto.additionalData?.company,
-            ipAddress: visitorInfoDto.additionalData?.ipAddress,
+            company: (visitorInfoDto.additionalData?.company as string) || '',
+            ipAddress:
+              (visitorInfoDto.additionalData?.ipAddress as string) || '',
             location: visitorInfoDto.location
               ? {
                   // Si location es string, lo ponemos en city
                   city: visitorInfoDto.location,
-                  country: visitorInfoDto.additionalData?.country,
+                  country:
+                    (visitorInfoDto.additionalData?.country as string) || '',
                 }
               : undefined,
-            referrer: visitorInfoDto.additionalData?.referrer,
-            userAgent: visitorInfoDto.additionalData?.userAgent,
+            referrer: (visitorInfoDto.additionalData?.referrer as string) || '',
+            userAgent:
+              (visitorInfoDto.additionalData?.userAgent as string) || '',
           }
         : undefined;
 
@@ -263,16 +281,15 @@ export class ChatV2Controller {
         })}`,
       );
 
-      const result = (await this.commandBus.execute(command)) as {
-        chatId: string;
-        messageId: string;
-        position: number;
-      };
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const result = await this.commandBus.execute(command);
 
       this.logger.log(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         `Chat creado exitosamente: ${result.chatId}, mensaje: ${result.messageId}, posición en cola: ${result.position}`,
       );
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result;
     } catch (error) {
       this.logger.error('Error al crear chat con primer mensaje:', error);

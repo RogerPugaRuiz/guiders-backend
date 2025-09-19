@@ -12,7 +12,6 @@ import { App } from 'supertest/types';
 import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure/controllers/chat-v2.controller';
 import {
   CqrsModule,
-  QueryBus,
   CommandBus,
   ICommandHandler,
   CommandHandler,
@@ -168,7 +167,7 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    
+
     // Habilitar pipes de validación para E2E tests
     app.useGlobalPipes(
       new ValidationPipe({
@@ -177,7 +176,7 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
         transform: true,
       }),
     );
-    
+
     await app.init();
 
     httpServer = app.getHttpServer();

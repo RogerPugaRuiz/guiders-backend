@@ -13,7 +13,6 @@ import { Chat } from '../../domain/entities/chat.aggregate';
 import { Message } from '../../domain/entities/message.aggregate';
 import { ChatMetadata } from '../../domain/value-objects/chat-metadata';
 import { Result } from 'src/context/shared/domain/result';
-import { DomainError } from 'src/context/shared/domain/domain.error';
 
 @CommandHandler(CreateChatWithMessageCommand)
 export class CreateChatWithMessageCommandHandler

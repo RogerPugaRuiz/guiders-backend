@@ -6,6 +6,8 @@ import { ChatV2Controller } from '../chat-v2.controller';
 import { CreateChatWithMessageCommand } from '../../../application/commands/create-chat-with-message.command';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
 
 describe('ChatV2Controller - createChatWithMessage', () => {
   let app: INestApplication;
@@ -36,6 +38,14 @@ describe('ChatV2Controller - createChatWithMessage', () => {
       canActivate: jest.fn().mockReturnValue(true),
     };
 
+    const mockTokenVerifyService = {
+      verifyToken: jest.fn(),
+    };
+
+    const mockVisitorSessionAuthService = {
+      authenticateVisitor: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
       providers: [
@@ -46,6 +56,14 @@ describe('ChatV2Controller - createChatWithMessage', () => {
         {
           provide: QueryBus,
           useValue: mockQueryBus,
+        },
+        {
+          provide: TokenVerifyService,
+          useValue: mockTokenVerifyService,
+        },
+        {
+          provide: VisitorSessionAuthService,
+          useValue: mockVisitorSessionAuthService,
         },
       ],
     })

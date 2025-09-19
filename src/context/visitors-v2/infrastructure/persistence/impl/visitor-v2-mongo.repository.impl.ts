@@ -217,7 +217,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         );
       }
 
-      this.logger.debug(`✅ Entidad encontrada: ${entity._id}`);
+      this.logger.debug(`✅ Entidad encontrada: ${String(entity._id)}`);
       const visitor = VisitorV2Mapper.fromPersistence(entity);
       return ok(visitor);
     } catch (error) {
