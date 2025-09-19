@@ -1,8 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  INestApplication,
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+} from '@nestjs/common';
 import * as request from 'supertest';
 import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure/controllers/chat-v2.controller';
-import { CqrsModule, QueryBus, CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { CqrsModule, IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
@@ -11,8 +16,11 @@ import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/applic
 // Mock query handler for GetChatsWithFiltersQuery
 @Injectable()
 @QueryHandler(GetChatsWithFiltersQuery)
-class MockGetChatsWithFiltersQueryHandler implements IQueryHandler<GetChatsWithFiltersQuery> {
-  execute(query: GetChatsWithFiltersQuery): Promise<any> {
+class MockGetChatsWithFiltersQueryHandler
+  implements IQueryHandler<GetChatsWithFiltersQuery>
+{
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  execute(_query: GetChatsWithFiltersQuery): Promise<any> {
     return Promise.resolve({
       chats: [],
       total: 0,
@@ -41,7 +49,7 @@ class MockRolesGuard implements CanActivate {
 class MockOptionalAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    
+
     // OptionalAuthGuard permite siempre el acceso
     // Solo setea el usuario si hay autenticación válida
     const authHeader = request.headers.authorization;
@@ -64,9 +72,7 @@ describe('ChatV2Controller - Dual Authentication Simple E2E', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
       imports: [CqrsModule],
-      providers: [
-        MockGetChatsWithFiltersQueryHandler,
-      ],
+      providers: [MockGetChatsWithFiltersQueryHandler],
     })
       .overrideGuard(AuthGuard)
       .useClass(MockAuthGuard)
