@@ -27,9 +27,7 @@
     "typeorm:migrate:run": "npm run build && npx typeorm migration:run -d dist/src/data-source.js",
     "typeorm:migrate:generate": "npm run build && npx typeorm migration:generate -d dist/src/data-source.js",
     "typeorm:migrate:generate:js": "tsc src/data-source.ts --module commonjs --outDir dist/tmp && npx typeorm migration:generate src/migrations/create-test-entity -d dist/tmp/data-source.js",
-    "keycloak:configure": "node bin/keycloak-configure-client.js",
-    "docs:generate-ai": "ts-node -r tsconfig-paths/register scripts/generate-ai-docs-v2.ts",
-    "docs:watch-ai": "nodemon --watch 'src/**/*controller*.ts' --exec 'npm run docs:generate-ai'"
+    "keycloak:configure": "node bin/keycloak-configure-client.js"
   },
   "dependencies": {
     "@faker-js/faker": "^9.6.0",

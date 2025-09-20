@@ -69,13 +69,13 @@ Resumen rápido:
 Esta política evita mezcla arbitraria y facilita lectura al equipo actual; si cambia la composición lingüística del equipo, se podrá revisar.
 
 ---
-### 15. Documentación AI Auto-generada
-Sistema automático de documentación para agentes AI con scripts específicos:
-- `npm run docs:generate-ai`: Genera `/docs/api-ai/` analizando controllers y rutas de Swagger
-- `npm run docs:watch-ai`: Watcher que regenera docs automáticamente cuando cambian controllers
-- Script `scripts/generate-ai-docs-v2.ts` extrae metadata completa: endpoints, auth, params, responses
-- Documentación incluye ejemplos reales de payloads y contratos API actualizados
-- Usar siempre después de cambios en contratos API (DTOs, nuevos endpoints, cambios auth)
+### 15. Documentación AI Manual
+Sistema de documentación manual para agentes AI con control total:
+- Archivos principales: `/docs/api-ai/api-documentation.json` y `/docs/api-ai/api-documentation.yaml`
+- Documentación mantenida manualmente para mayor precisión y control
+- Incluye ejemplos reales de payloads, esquemas completos y contratos API actualizados
+- Actualizar manualmente después de cambios en contratos API (DTOs, nuevos endpoints, cambios auth)
+- Evita inconsistencias de generación automática y permite documentación específica para IA
 
 ### 16. Contextos V1 vs V2 (Evolutivo)
 Patrón de migración incremental para funcionalidades legacy:

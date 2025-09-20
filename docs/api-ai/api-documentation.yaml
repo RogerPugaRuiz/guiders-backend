@@ -1,1170 +1,847 @@
-version: 1.0.0
-generated: 2025-09-19T18:17:46.955Z
-baseUrl: http://localhost:3000
+version: "1.0.0"
+generated: "2025-09-20T16:30:00.000Z"
+baseUrl: "http://localhost:3000"
 contexts:
-  - 
-    name: visitors-v2
-    description: Gestión de visitantes V2 optimizada
+  - name: "visitors-v2"
+    description: "Gestión de visitantes V2 optimizada"
     controllers:
-      - 
-        name: SitesController
-        context: visitors-v2
-        baseUrl: sites
-        description: Controller sin descripción
+      - name: "SitesController"
+        context: "visitors-v2"
+        baseUrl: "sites"
+        description: "Controller para resolución de sitios por host"
         tags:
-          - sites
+          - "sites"
         endpoints:
-          - 
-            method: POST
-            path: /sites/resolve
-            summary: Resolver sitio por host
-            description: Resuelve el host actual del navegador (ejemplo: landing.mytech.com) y determina a qué site y tenant pertenece. El host es solo un alias que se mapea al modelo interno (siteId, tenantId) para trabajar con identidades estables.
-            tags:
+          - method: "POST"
+            path: "/sites/resolve"
+            summary: "Resolver sitio por host"
+            description: "Resuelve el host actual del navegador y determina a qué site y tenant pertenece"
+            tags: []
             auth:
               required: false
-              roles: undefined
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: host
-                  description: Host del navegador a resolver
-                  example: landing.mytech.com
-                  required: false
-                  type: string
-            responses:
-            examples:
-        filePath: src/context/visitors-v2/infrastructure/controllers/sites.controller.ts
-      - 
-        name: VisitorV2Controller
-        context: visitors-v2
-        baseUrl: visitors
-        description: Controller sin descripción
-        tags:
-          - visitors
-        endpoints:
-          - 
-            method: POST
-            path: /visitors/identify
-            summary: Identificar visitante
-            description: Registra o actualiza un visitante en el sistema usando dominio y API Key.
-            tags:
-            auth:
-              required: false
-              roles: undefined
               bearer: false
             parameters:
               body:
-                description: Datos del visitante para identificación
-                type: object
+                description: "Datos del host a resolver"
+                type: "object"
                 required: true
-                schema: undefined
+                schema:
+                  type: "object"
+                  properties:
+                    host:
+                      type: "string"
+                      description: "Dominio del navegador"
+                      example: "landing.mytech.com"
+                  required:
+                    - "host"
             responses:
+              - status: 200
+                description: "Sitio resuelto exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    siteId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    tenantId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440001"
+                    siteName:
+                      type: "string"
+                      example: "Landing Principal"
+                    companyName:
+                      type: "string"
+                      example: "MyTech Solutions"
+              - status: 404
+                description: "Host no encontrado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Host no encontrado"
             examples:
-          - 
-            method: POST
-            path: /visitors/session/heartbeat
-            summary: Actualizar heartbeat de sesión
-            description: Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). Mientras se reciban heartbeats, el visitante se considera online.
-            tags:
+              request:
+                host: "landing.mytech.com"
+              response:
+                siteId: "550e8400-e29b-41d4-a716-446655440000"
+                tenantId: "550e8400-e29b-41d4-a716-446655440001"
+                siteName: "Landing Principal"
+                companyName: "MyTech Solutions"
+        filePath: "src/context/visitors-v2/infrastructure/controllers/sites.controller.ts"
+      - name: "VisitorV2Controller"
+        context: "visitors-v2"
+        baseUrl: "visitors"
+        description: "Controller para gestión de visitantes V2"
+        tags:
+          - "visitors"
+        endpoints:
+          - method: "POST"
+            path: "/visitors/identify"
+            summary: "Identificar visitante"
+            description: "Registra o actualiza un visitante en el sistema usando dominio y API Key"
+            tags: []
             auth:
               required: false
-              roles: undefined
               bearer: false
             parameters:
+              body:
+                description: "Datos del visitante para identificación"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    domain:
+                      type: "string"
+                      description: "Dominio del sitio web"
+                      example: "mytech.com"
+                    apiKey:
+                      type: "string"
+                      description: "API Key del sitio"
+                      example: "gd_live_sk_abc123def456"
+                    visitorId:
+                      type: "string"
+                      description: "ID único del visitante (opcional)"
+                      example: "visitor_550e8400e29b41d4a716446655440000"
+                    email:
+                      type: "string"
+                      description: "Email del visitante (opcional)"
+                      example: "visitante@ejemplo.com"
+                    name:
+                      type: "string"
+                      description: "Nombre del visitante (opcional)"
+                      example: "Juan Pérez"
+                  required:
+                    - "domain"
+                    - "apiKey"
             responses:
+              - status: 201
+                description: "Visitante identificado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    visitorId:
+                      type: "string"
+                      example: "visitor_550e8400e29b41d4a716446655440000"
+                    sessionId:
+                      type: "string"
+                      example: "session_650e8400e29b41d4a716446655440001"
+                    siteId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    tenantId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440001"
+                    isNewVisitor:
+                      type: "boolean"
+                      example: true
+              - status: 400
+                description: "Datos inválidos"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Domain y apiKey son requeridos"
+              - status: 401
+                description: "API Key inválida"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "API Key inválida para el dominio especificado"
             examples:
-          - 
-            method: POST
-            path: /visitors/session/end
-            summary: Cerrar sesión de visitante
-            description: Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-        filePath: src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts
-  - 
-    name: conversations-v2
-    description: Sistema de chat V2 optimizado (MongoDB)
+              request:
+                domain: "mytech.com"
+                apiKey: "gd_live_sk_abc123def456"
+                email: "visitante@ejemplo.com"
+                name: "Juan Pérez"
+              response:
+                visitorId: "visitor_550e8400e29b41d4a716446655440000"
+                sessionId: "session_650e8400e29b41d4a716446655440001"
+                siteId: "550e8400-e29b-41d4-a716-446655440000"
+                tenantId: "550e8400-e29b-41d4-a716-446655440001"
+                isNewVisitor: true
+        filePath: "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
+
+  - name: "conversations-v2"
+    description: "Sistema de chat V2 optimizado (MongoDB)"
     controllers:
-      - 
-        name: ChatV2Controller
-        context: conversations-v2
-        baseUrl: v2/chats
-        description: Controller para la gestión de chats v2  Proporciona endpoints optimizados para comerciales y visitantes  IMPORTANTE: Todos los endpoints requieren autenticación válida
+      - name: "ChatV2Controller"
+        context: "conversations-v2"
+        baseUrl: "v2/chats"
+        description: "Controller para la gestión de chats v2"
         tags:
-          - Chats V2
+          - "Chats V2"
         endpoints:
-          - 
-            method: POST
-            path: /v2/chats
-            summary: Crear nuevo chat
-            description: Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera
-            tags:
+          - method: "POST"
+            path: "/v2/chats"
+            summary: "Crear nuevo chat"
+            description: "Crea un nuevo chat para el visitante autenticado"
+            tags: []
             auth:
-              required: false
+              required: true
               roles:
-                - visitor
+                - "visitor"
               bearer: false
             parameters:
               body:
-                description: Datos opcionales para crear el chat
-                type: object
+                description: "Datos opcionales para crear el chat"
+                type: "object"
                 required: true
-                schema: undefined
+                schema:
+                  type: "object"
+                  properties:
+                    department:
+                      type: "string"
+                      description: "Departamento al que dirigir el chat"
+                      example: "ventas"
+                    priority:
+                      type: "string"
+                      enum:
+                        - "LOW"
+                        - "MEDIUM"
+                        - "HIGH"
+                        - "URGENT"
+                      example: "MEDIUM"
+                    subject:
+                      type: "string"
+                      description: "Asunto del chat"
+                      example: "Consulta sobre precios"
             responses:
+              - status: 201
+                description: "Chat creado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    chatId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    status:
+                      type: "string"
+                      example: "PENDING"
+                    queuePosition:
+                      type: "number"
+                      example: 3
+                    estimatedWaitTime:
+                      type: "number"
+                      example: 180
             examples:
-          - 
-            method: POST
-            path: /v2/chats/with-message
-            summary: Crear nuevo chat con primer mensaje
-            description: Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica que garantiza que tanto el chat como el mensaje se crean juntos o fallan juntos.
-            tags:
+              request:
+                department: "ventas"
+                priority: "MEDIUM"
+                subject: "Consulta sobre precios"
+              response:
+                chatId: "550e8400-e29b-41d4-a716-446655440000"
+                status: "PENDING"
+                queuePosition: 3
+                estimatedWaitTime: 180
+          - method: "POST"
+            path: "/v2/chats/with-message"
+            summary: "Crear nuevo chat con primer mensaje"
+            description: "Crea un nuevo chat con mensaje inicial de forma atómica"
+            tags: []
             auth:
               required: true
               roles:
-                - visitor
+                - "visitor"
               bearer: false
             parameters:
               body:
-                description: Datos del chat y primer mensaje
-                type: text
+                description: "Datos del chat y primer mensaje"
+                type: "object"
                 required: true
-                schema: undefined
+                schema:
+                  type: "object"
+                  properties:
+                    chat:
+                      type: "object"
+                      properties:
+                        department:
+                          type: "string"
+                          example: "soporte"
+                        priority:
+                          type: "string"
+                          example: "HIGH"
+                        subject:
+                          type: "string"
+                          example: "Problema técnico urgente"
+                    message:
+                      type: "object"
+                      properties:
+                        content:
+                          type: "string"
+                          example: "Hola, tengo un problema urgente"
+                        type:
+                          type: "string"
+                          enum:
+                            - "TEXT"
+                            - "IMAGE"
+                            - "FILE"
+                          example: "TEXT"
+                      required:
+                        - "content"
+                        - "type"
+                  required:
+                    - "message"
             responses:
+              - status: 201
+                description: "Chat y mensaje creados exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    chat:
+                      type: "object"
+                      properties:
+                        chatId:
+                          type: "string"
+                          example: "550e8400-e29b-41d4-a716-446655440000"
+                        status:
+                          type: "string"
+                          example: "PENDING"
+                    message:
+                      type: "object"
+                      properties:
+                        messageId:
+                          type: "string"
+                          example: "msg_750e8400e29b41d4a716446655440001"
+                        content:
+                          type: "string"
+                          example: "Hola, tengo un problema urgente"
             examples:
-          - 
-            method: GET
-            path: /v2/chats
-            summary: Obtener lista de chats con filtros y paginación con cursor
-            description: Retorna una lista paginada de chats con filtros avanzados para usuarios autenticados con permisos de comercial, administrador o supervisor. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados. Los filtros y ordenamiento se aplican según los permisos del usuario autenticado.
-            tags:
-            auth:
-              required: true
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: cursor
-                  description: Cursor para paginación (obtenido del campo nextCursor de la respuesta anterior). Permite navegar a través de páginas sin duplicados ni omisiones. Este valor es un base64 que contiene información de posición.
-                  example: eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de chats a retornar por página. Rango válido: 1-100. Por defecto: 20
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: filters
-                  description: Filtros de búsqueda para chats. Formato JSON con campos como status (PENDING, ASSIGNED, ACTIVE, CLOSED), priority (LOW, MEDIUM, HIGH, URGENT), visitorId, assignedCommercialId, department, dateFrom, dateTo, etc.
-                  example: undefined
-                  required: false
-                  type: object
-                - 
-                  name: sort
-                  description: Opciones de ordenamiento. Especifica el campo y la dirección de ordenamiento.
-                  example: undefined
-                  required: false
-                  type: object
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/chats/response-time-stats
-            summary: Obtener estadísticas de tiempo de respuesta
-            description: Retorna estadísticas agregadas de tiempo de respuesta para comerciales y administradores autenticados
-            tags:
-            auth:
-              required: true
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: dateFrom
-                  description: Fecha de inicio del período (ISO 8601)
-                  example: 2025-07-01T00:00:00Z
-                  required: false
-                  type: string
-                - 
-                  name: dateTo
-                  description: Fecha de fin del período (ISO 8601)
-                  example: 2025-07-31T23:59:59Z
-                  required: false
-                  type: string
-                - 
-                  name: groupBy
-                  description: Agrupación temporal de las estadísticas
-                  example: day
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/chats/:chatId
-            summary: Obtener chat por ID
-            description: Retorna los detalles completos de un chat específico para usuarios autenticados
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: chatId
-                  description: ID único del chat
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/chats/commercial/:commercialId
-            summary: Obtener chats de un comercial con paginación cursor
-            description: Retorna los chats asignados a un comercial específico usando paginación basada en cursor. Requiere autenticación.
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: commercialId
-                  description: ID del comercial
-                  example: 550e8400-e29b-41d4-a716-446655440001
-                  required: true
-              query:
-                - 
-                  name: cursor
-                  description: Cursor para paginación (opcional)
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de chats a retornar (1-100)
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: filters
-                  description: Filtros adicionales para chats
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: sort
-                  description: Opciones de ordenamiento
-                  example: undefined
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/chats/visitor/:visitorId
-            summary: Obtener chats de un visitante con paginación cursor
-            description: Retorna el historial de chats de un visitante específico usando paginación basada en cursor.
-            tags:
-            auth:
-              required: true
-              roles: undefined
-              bearer: true
-            parameters:
-              path:
-                - 
-                  name: visitorId
-                  description: ID del visitante
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-              query:
-                - 
-                  name: cursor
-                  description: Cursor para paginación (opcional)
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de chats a retornar (1-100)
-                  example: undefined
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/chats/queue/pending
-            summary: Obtener cola de chats pendientes
-            description: Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: department
-                  description: Filtrar por departamento
-                  example: ventas
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de chats a retornar
-                  example: undefined
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/chats/metrics/commercial/:commercialId
-            summary: Obtener métricas de comercial
-            description: Retorna métricas agregadas de rendimiento de un comercial. Requiere autenticación.
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: commercialId
-                  description: ID del comercial
-                  example: 550e8400-e29b-41d4-a716-446655440001
-                  required: true
-              query:
-                - 
-                  name: dateFrom
-                  description: Fecha de inicio del período (ISO 8601)
-                  example: 2025-07-01T00:00:00Z
-                  required: false
-                  type: string
-                - 
-                  name: dateTo
-                  description: Fecha de fin del período (ISO 8601)
-                  example: 2025-07-31T23:59:59Z
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: PUT
-            path: /v2/chats/:chatId/assign/:commercialId
-            summary: Asignar chat a comercial
-            description: Asigna un chat específico a un comercial. Requiere autenticación y permisos apropiados.
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: chatId
-                  description: ID del chat
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-                - 
-                  name: commercialId
-                  description: ID del comercial
-                  example: 550e8400-e29b-41d4-a716-446655440001
-                  required: true
-            responses:
-            examples:
-          - 
-            method: PUT
-            path: /v2/chats/:chatId/close
-            summary: Cerrar chat
-            description: Marca un chat como cerrado. Requiere autenticación y permisos apropiados.
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: chatId
-                  description: ID del chat
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-            responses:
-            examples:
-          - 
-            method: DELETE
-            path: /v2/chats/visitor/:visitorId/clear
-            summary: Eliminar todos los chats de un visitante
-            description: Elimina permanentemente todos los chats asociados a un visitante específico. Esta operación es irreversible y requiere permisos de administrador.
-            tags:
-            auth:
-              required: false
-              roles:
-                - admin
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: visitorId
-                  description: ID del visitante
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-            responses:
-            examples:
-        filePath: src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts
-      - 
-        name: MessageV2Controller
-        context: conversations-v2
-        baseUrl: v2/messages
-        description: Controller para la gestión de mensajes v2  Proporciona endpoints para enviar, obtener y gestionar mensajes en chats
+              request:
+                chat:
+                  department: "soporte"
+                  priority: "HIGH"
+                  subject: "Problema técnico urgente"
+                message:
+                  content: "Hola, tengo un problema urgente"
+                  type: "TEXT"
+              response:
+                chat:
+                  chatId: "550e8400-e29b-41d4-a716-446655440000"
+                  status: "PENDING"
+                message:
+                  messageId: "msg_750e8400e29b41d4a716446655440001"
+                  content: "Hola, tengo un problema urgente"
+        filePath: "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
+      - name: "MessageV2Controller"
+        context: "conversations-v2"
+        baseUrl: "v2/messages"
+        description: "Controller para la gestión de mensajes v2"
         tags:
-          - Messages V2
+          - "Messages V2"
         endpoints:
-          - 
-            method: POST
-            path: /v2/messages
-            summary: Enviar un nuevo mensaje
-            description: Envía un mensaje de texto, imagen o archivo a un chat específico
-            tags:
+          - method: "POST"
+            path: "/v2/messages"
+            summary: "Enviar un nuevo mensaje"
+            description: "Envía un mensaje de texto, imagen o archivo a un chat específico"
+            tags: []
             auth:
-              required: false
+              required: true
               roles:
-                - commercial
+                - "commercial"
+                - "visitor"
               bearer: false
             parameters:
+              body:
+                description: "Datos del mensaje a enviar"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    chatId:
+                      type: "string"
+                      description: "ID del chat"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    content:
+                      type: "string"
+                      description: "Contenido del mensaje"
+                      example: "Hola, ¿en qué puedo ayudarte?"
+                    type:
+                      type: "string"
+                      enum:
+                        - "TEXT"
+                        - "IMAGE"
+                        - "FILE"
+                        - "SYSTEM"
+                      example: "TEXT"
+                  required:
+                    - "chatId"
+                    - "content"
+                    - "type"
             responses:
+              - status: 201
+                description: "Mensaje enviado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    messageId:
+                      type: "string"
+                      example: "msg_750e8400e29b41d4a716446655440001"
+                    chatId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    senderId:
+                      type: "string"
+                      example: "user_850e8400e29b41d4a716446655440002"
+                    senderType:
+                      type: "string"
+                      example: "COMMERCIAL"
+                    content:
+                      type: "string"
+                      example: "Hola, ¿en qué puedo ayudarte?"
+                    sentAt:
+                      type: "string"
+                      format: "date-time"
+                      example: "2025-09-20T10:35:00Z"
+                    status:
+                      type: "string"
+                      example: "SENT"
+              - status: 400
+                description: "Datos inválidos"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "El contenido del mensaje es requerido"
+              - status: 404
+                description: "Chat no encontrado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Chat no encontrado"
             examples:
-          - 
-            method: GET
-            path: /v2/messages/chat/:chatId
-            summary: Obtener mensajes de un chat
-            description: Retorna los mensajes de un chat con filtros y paginación basada en cursor
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: chatId
-                  description: ID único del chat
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-              query:
-                - 
-                  name: cursor
-                  description: Cursor para paginación (obtenido de nextCursor)
-                  example: eyJzZW50QXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6Im1zZy0xMjMifQ==
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de mensajes a retornar (1-100)
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: filters
-                  description: Filtros de búsqueda para mensajes
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: sort
-                  description: Opciones de ordenamiento
-                  example: undefined
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/messages/:messageId
-            summary: Obtener mensaje por ID
-            description: Retorna los detalles de un mensaje específico
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: messageId
-                  description: ID único del mensaje
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-            responses:
-            examples:
-          - 
-            method: PUT
-            path: /v2/messages/mark-as-read
-            summary: Marcar mensajes como leídos
-            description: Marca una lista de mensajes como leídos por el usuario actual
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/messages/chat/:chatId/unread
-            summary: Obtener mensajes no leídos de un chat
-            description: Retorna los mensajes no leídos de un chat específico
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: chatId
-                  description: ID único del chat
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/messages/search
-            summary: Buscar mensajes por contenido
-            description: Busca mensajes que contengan palabras clave específicas
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: keyword
-                  description: Palabra clave a buscar en el contenido
-                  example: problema técnico
-                  required: false
-                  type: string
-                - 
-                  name: chatId
-                  description: ID del chat para limitar la búsqueda (opcional)
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: false
-                  type: string
-                - 
-                  name: filters
-                  description: Filtros adicionales de búsqueda
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de resultados (1-100)
-                  example: undefined
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/messages/chat/:chatId/stats
-            summary: Obtener estadísticas de conversación
-            description: Retorna estadísticas detalladas de un chat específico
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              path:
-                - 
-                  name: chatId
-                  description: ID único del chat
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: true
-              query:
-                - 
-                  name: dateFrom
-                  description: Fecha de inicio del período (ISO 8601)
-                  example: 2025-07-01T00:00:00Z
-                  required: false
-                  type: string
-                - 
-                  name: dateTo
-                  description: Fecha de fin del período (ISO 8601)
-                  example: 2025-07-31T23:59:59Z
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/messages/metrics
-            summary: Obtener métricas de mensajería
-            description: Retorna métricas agregadas de mensajería por período de tiempo
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: dateFrom
-                  description: Fecha de inicio del período (ISO 8601)
-                  example: 2025-07-01T00:00:00Z
-                  required: false
-                  type: string
-                - 
-                  name: dateTo
-                  description: Fecha de fin del período (ISO 8601)
-                  example: 2025-07-31T23:59:59Z
-                  required: false
-                  type: string
-                - 
-                  name: groupBy
-                  description: Agrupación temporal
-                  example: day
-                  required: false
-                  type: string
-                - 
-                  name: chatId
-                  description: ID del chat para limitar las métricas (opcional)
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /v2/messages/attachments
-            summary: Obtener mensajes con archivos adjuntos
-            description: Retorna mensajes que contienen archivos adjuntos
-            tags:
-            auth:
-              required: false
-              roles:
-                - commercial
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: chatId
-                  description: ID del chat para filtrar (opcional)
-                  example: 550e8400-e29b-41d4-a716-446655440000
-                  required: false
-                  type: string
-                - 
-                  name: fileTypes
-                  description: Tipos de archivo a incluir (MIME types)
-                  example: undefined
-                  required: false
-                  type: string
-                - 
-                  name: limit
-                  description: Número máximo de mensajes (1-100)
-                  example: undefined
-                  required: false
-                  type: string
-            responses:
-            examples:
-        filePath: src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts
-  - 
-    name: visitors
-    description: Gestión de visitantes V1
+              request:
+                chatId: "550e8400-e29b-41d4-a716-446655440000"
+                content: "Hola, ¿en qué puedo ayudarte?"
+                type: "TEXT"
+              response:
+                messageId: "msg_750e8400e29b41d4a716446655440001"
+                chatId: "550e8400-e29b-41d4-a716-446655440000"
+                senderId: "user_850e8400e29b41d4a716446655440002"
+                senderType: "COMMERCIAL"
+                content: "Hola, ¿en qué puedo ayudarte?"
+                sentAt: "2025-09-20T10:35:00Z"
+                status: "SENT"
+        filePath: "src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts"
+
+  - name: "auth"
+    description: "Autenticación y autorización de usuarios"
     controllers:
-      - 
-        name: VisitorController
-        context: visitors
-        baseUrl: visitor
-        description: Controller sin descripción
+      - name: "AuthUserController"
+        context: "auth"
+        baseUrl: "user/auth"
+        description: "Controller para autenticación de usuarios"
         tags:
-          - Visitantes
+          - "Autenticación de Usuarios"
         endpoints:
-          - 
-            method: GET
-            path: /visitor/me
-            summary: Obtener información del visitante autenticado
-            description: Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio perfil sin necesidad de conocer su ID.
-            tags:
+          - method: "POST"
+            path: "/user/auth/login"
+            summary: "Iniciar sesión de usuario"
+            description: "Verifica las credenciales y devuelve tokens de acceso"
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Credenciales de login"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    email:
+                      type: "string"
+                      format: "email"
+                      description: "Email del usuario"
+                      example: "admin@mytech.com"
+                    password:
+                      type: "string"
+                      description: "Contraseña del usuario"
+                      example: "SecurePassword123!"
+                  required:
+                    - "email"
+                    - "password"
+            responses:
+              - status: 200
+                description: "Login exitoso"
+                schema:
+                  type: "object"
+                  properties:
+                    accessToken:
+                      type: "string"
+                      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refreshToken:
+                      type: "string"
+                      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    user:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "user_550e8400e29b41d4a716446655440000"
+                        email:
+                          type: "string"
+                          example: "admin@mytech.com"
+                        name:
+                          type: "string"
+                          example: "Admin Usuario"
+                        role:
+                          type: "string"
+                          example: "admin"
+                        companyId:
+                          type: "string"
+                          example: "company_650e8400e29b41d4a716446655440001"
+                    expiresIn:
+                      type: "number"
+                      example: 3600
+              - status: 401
+                description: "Credenciales inválidas"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Email o contraseña incorrectos"
+            examples:
+              request:
+                email: "admin@mytech.com"
+                password: "SecurePassword123!"
+              response:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  id: "user_550e8400e29b41d4a716446655440000"
+                  email: "admin@mytech.com"
+                  name: "Admin Usuario"
+                  role: "admin"
+                  companyId: "company_650e8400e29b41d4a716446655440001"
+                expiresIn: 3600
+          - method: "GET"
+            path: "/user/auth/me"
+            summary: "Obtener usuario autenticado"
+            description: "Devuelve la información del usuario autenticado"
+            tags: []
             auth:
               required: true
               roles:
-                - visitor
+                - "admin"
+                - "commercial"
               bearer: true
-            parameters:
+            parameters: {}
             responses:
+              - status: 200
+                description: "Información del usuario autenticado"
+                schema:
+                  type: "object"
+                  properties:
+                    user:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "user_550e8400e29b41d4a716446655440000"
+                        email:
+                          type: "string"
+                          example: "admin@mytech.com"
+                        name:
+                          type: "string"
+                          example: "Admin Usuario"
+                        role:
+                          type: "string"
+                          example: "admin"
+                        companyId:
+                          type: "string"
+                          example: "company_650e8400e29b41d4a716446655440001"
+                        company:
+                          type: "object"
+                          properties:
+                            name:
+                              type: "string"
+                              example: "MyTech Solutions"
+                            domain:
+                              type: "string"
+                              example: "mytech.com"
+                        permissions:
+                          type: "array"
+                          items:
+                            type: "string"
+                          example:
+                            - "MANAGE_USERS"
+                            - "VIEW_ANALYTICS"
+                            - "MANAGE_CHATS"
+                        status:
+                          type: "string"
+                          example: "ACTIVE"
+              - status: 401
+                description: "Token inválido o expirado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Token inválido"
             examples:
-          - 
-            method: GET
-            path: /visitor/:visitorId
-            summary: Obtener datos del visitante por ID
-            description: Obtiene los datos del visitante a partir del ID en la URL
-            tags:
-            auth:
-              required: true
-              roles:
-                - commercial
-              bearer: true
-            parameters:
-            responses:
-            examples:
-          - 
-            method: PUT
-            path: /visitor/:visitorId/email
-            summary: Actualizar email del visitante
-            description: Actualiza el correo electrónico del visitante
-            tags:
-            auth:
-              required: true
-              roles:
-                - commercial
-              bearer: true
-            parameters:
-            responses:
-            examples:
-          - 
-            method: PUT
-            path: /visitor/:visitorId/name
-            summary: Actualizar nombre del visitante
-            description: Actualiza el nombre del visitante
-            tags:
-            auth:
-              required: true
-              roles:
-                - commercial
-              bearer: true
-            parameters:
-            responses:
-            examples:
-          - 
-            method: PUT
-            path: /visitor/:visitorId/tel
-            summary: Actualizar teléfono del visitante
-            description: Actualiza el número de teléfono del visitante
-            tags:
-            auth:
-              required: true
-              roles:
-                - commercial
-              bearer: true
-            parameters:
-            responses:
-            examples:
-        filePath: src/context/visitors/infrastructure/controllers/visitor.controller.ts
-  - 
-    name: company
-    description: Gestión de empresas y sitios web
+              response:
+                user:
+                  id: "user_550e8400e29b41d4a716446655440000"
+                  email: "admin@mytech.com"
+                  name: "Admin Usuario"
+                  role: "admin"
+                  companyId: "company_650e8400e29b41d4a716446655440001"
+                  company:
+                    name: "MyTech Solutions"
+                    domain: "mytech.com"
+                  permissions:
+                    - "MANAGE_USERS"
+                    - "VIEW_ANALYTICS"
+                    - "MANAGE_CHATS"
+                  status: "ACTIVE"
+        filePath: "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts"
+
+  - name: "company"
+    description: "Gestión de empresas y sitios web"
     controllers:
-      - 
-        name: CompanyController
-        context: company
-        baseUrl: 
-        description: Controller sin descripción
+      - name: "CompanyController"
+        context: "company"
+        baseUrl: ""
+        description: "Controller para gestión de empresas"
         tags:
-          - companies
+          - "companies"
         endpoints:
-          - 
-            method: POST
-            path: /company
-            summary: Crear nueva empresa con administrador
-            description: Crea una nueva empresa junto con su usuario administrador inicial
-            tags:
+          - method: "POST"
+            path: "/company"
+            summary: "Crear nueva empresa con administrador"
+            description: "Crea una nueva empresa junto con su usuario administrador inicial"
+            tags: []
             auth:
               required: false
-              roles: undefined
               bearer: false
             parameters:
+              body:
+                description: "Datos de la nueva empresa y administrador"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    company:
+                      type: "object"
+                      properties:
+                        name:
+                          type: "string"
+                          example: "TechStart Solutions"
+                        domain:
+                          type: "string"
+                          example: "techstart.com"
+                        industry:
+                          type: "string"
+                          example: "Tecnología"
+                        size:
+                          type: "string"
+                          enum:
+                            - "SMALL"
+                            - "MEDIUM"
+                            - "LARGE"
+                            - "ENTERPRISE"
+                          example: "MEDIUM"
+                      required:
+                        - "name"
+                        - "domain"
+                    admin:
+                      type: "object"
+                      properties:
+                        name:
+                          type: "string"
+                          example: "Carlos Administrador"
+                        email:
+                          type: "string"
+                          format: "email"
+                          example: "admin@techstart.com"
+                        password:
+                          type: "string"
+                          example: "SecurePassword123!"
+                      required:
+                        - "name"
+                        - "email"
+                        - "password"
+                  required:
+                    - "company"
+                    - "admin"
             responses:
+              - status: 201
+                description: "Empresa creada exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    company:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "company_550e8400e29b41d4a716446655440000"
+                        name:
+                          type: "string"
+                          example: "TechStart Solutions"
+                        domain:
+                          type: "string"
+                          example: "techstart.com"
+                    admin:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "user_650e8400e29b41d4a716446655440001"
+                        email:
+                          type: "string"
+                          example: "admin@techstart.com"
+                    apiKey:
+                      type: "string"
+                      description: "API Key generada para la empresa"
+                      example: "gd_live_sk_abc123def456ghi789"
+              - status: 400
+                description: "Datos inválidos"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "El dominio ya está en uso"
             examples:
-          - 
-            method: POST
-            path: /sites/resolve
-            summary: Resolver sitio por host
-            description: Resuelve el host actual del navegador y determina a qué site y tenant pertenece
-            tags:
+              request:
+                company:
+                  name: "TechStart Solutions"
+                  domain: "techstart.com"
+                  industry: "Tecnología"
+                  size: "MEDIUM"
+                admin:
+                  name: "Carlos Administrador"
+                  email: "admin@techstart.com"
+                  password: "SecurePassword123!"
+              response:
+                company:
+                  id: "company_550e8400e29b41d4a716446655440000"
+                  name: "TechStart Solutions"
+                  domain: "techstart.com"
+                admin:
+                  id: "user_650e8400e29b41d4a716446655440001"
+                  email: "admin@techstart.com"
+                apiKey: "gd_live_sk_abc123def456ghi789"
+        filePath: "src/context/company/infrastructure/controllers/company.controller.ts"
+
+  - name: "tracking"
+    description: "Seguimiento de intenciones y métricas"
+    controllers:
+      - name: "VisitorIntentController"
+        context: "tracking"
+        baseUrl: "tracking/intent"
+        description: "Controller para seguimiento de intenciones"
+        tags: []
+        endpoints:
+          - method: "GET"
+            path: "/tracking/intent/:visitorId"
+            summary: "Obtener intenciones del visitante"
+            description: "Retorna las intenciones de compra y comportamiento registradas"
+            tags: []
             auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-              query:
-                - 
-                  name: host
-                  description: Host/dominio a resolver
-                  example: landing.mytech.com
-                  required: false
-                  type: string
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /company/by-domain/:domain
-            summary: Buscar empresa por dominio
-            description: Busca una empresa basándose en uno de sus dominios (canónico o alias)
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
             parameters:
               path:
-                - 
-                  name: domain
-                  description: Dominio de la empresa a buscar
-                  example: ejemplo.com
+                - name: "visitorId"
+                  description: "ID único del visitante"
+                  example: "visitor_550e8400e29b41d4a716446655440000"
                   required: true
             responses:
+              - status: 200
+                description: "Intenciones obtenidas exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    visitorId:
+                      type: "string"
+                      example: "visitor_550e8400e29b41d4a716446655440000"
+                    intents:
+                      type: "array"
+                      items:
+                        type: "object"
+                        properties:
+                          type:
+                            type: "string"
+                            enum:
+                              - "PURCHASE"
+                              - "INQUIRY"
+                              - "SUPPORT"
+                              - "BROWSING"
+                            example: "PURCHASE"
+                          confidence:
+                            type: "number"
+                            minimum: 0
+                            maximum: 1
+                            example: 0.85
+                          category:
+                            type: "string"
+                            example: "product-pricing"
+                          value:
+                            type: "string"
+                            example: "Interesado en plan premium"
+                          detectedAt:
+                            type: "string"
+                            format: "date-time"
+                            example: "2025-09-20T10:15:00Z"
+                    summary:
+                      type: "object"
+                      properties:
+                        totalIntents:
+                          type: "number"
+                          example: 5
+                        highestConfidence:
+                          type: "number"
+                          example: 0.92
+                        dominantCategory:
+                          type: "string"
+                          example: "product-pricing"
+              - status: 404
+                description: "Visitante no encontrado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Visitante no encontrado"
             examples:
-        filePath: src/context/company/infrastructure/controllers/company.controller.ts
-  - 
-    name: tracking
-    description: Seguimiento de intenciones y métricas
-    controllers:
-      - 
-        name: VisitorIntentController
-        context: tracking
-        baseUrl: tracking/intent
-        description: Controller sin descripción
-        tags:
-        endpoints:
-          - 
-            method: GET
-            path: /tracking/intent/:visitorId
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-        filePath: src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts
-      - 
-        name: VisitorIntentTagsController
-        context: tracking
-        baseUrl: tracking/intent-tags
-        description: Controller sin descripción
-        tags:
-        endpoints:
-          - 
-            method: GET
-            path: /tracking/intent-tags/:visitorId
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-        filePath: src/context/tracking/infrastructure/controllers/visitor-intent-tags.controller.ts
-  - 
-    name: auth
-    description: Autenticación y autorización de usuarios
-    controllers:
-      - 
-        name: AuthUserController
-        context: auth
-        baseUrl: user/auth
-        description: Controller sin descripción
-        tags:
-          - Autenticación de Usuarios
-        endpoints:
-          - 
-            method: POST
-            path: /user/auth/login
-            summary: Iniciar sesión de usuario
-            description: Verifica las credenciales y devuelve tokens de acceso y actualización
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-              body:
-                description: Cuerpo de la petición
-                type: object
-                required: true
-                schema: undefined
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /user/auth/register
-            summary: Registrar un nuevo usuario
-            description: Crea un nuevo usuario en el sistema con el rol especificado
-            tags:
-            auth:
-              required: true
-              roles:
-                - admin
-              bearer: true
-            parameters:
-              body:
-                description: Cuerpo de la petición
-                type: object
-                required: true
-                schema: undefined
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /user/auth/refresh
-            summary: Renovar token de acceso
-            description: Utiliza un token de actualización para obtener un nuevo token de acceso
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-              body:
-                description: Cuerpo de la petición
-                type: object
-                required: true
-                schema: undefined
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /user/auth/logout
-            summary: Cerrar sesión
-            description: Cierra la sesión del usuario y revoca sus tokens
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /user/auth/validate
-            summary: Validar token de acceso
-            description: Verifica que el token de acceso sea válido
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: true
-            parameters:
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /user/auth/accept-invite
-            summary: Aceptar invitación
-            description: Acepta una invitación para unirse a una compañía y establece la contraseña
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-              body:
-                description: Datos para aceptar la invitación
-                type: object
-                required: true
-                schema: undefined
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /user/auth/company-users
-            summary: Listar usuarios de la compañía
-            description: Devuelve los usuarios asociados a la compañía del token JWT
-            tags:
-            auth:
-              required: true
-              roles:
-                - admin
-              bearer: true
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /user/auth/me
-            summary: Obtener usuario autenticado
-            description: Devuelve la información del usuario asociado al token de acceso. Requiere rol admin o commercial.
-            tags:
-            auth:
-              required: true
-              roles:
-                - admin
-              bearer: true
-            parameters:
-            responses:
-            examples:
-        filePath: src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts
-      - 
-        name: BffController
-        context: auth
-        baseUrl: bff/auth
-        description: Controller sin descripción
-        tags:
-        endpoints:
-          - 
-            method: GET
-            path: /bff/auth/login
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /bff/auth/login/:app
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /bff/auth/callback/:app
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /bff/auth/me
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: GET
-            path: /bff/auth/me/:app
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /bff/auth/refresh
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /bff/auth/refresh/:app
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /bff/auth/logout
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-          - 
-            method: POST
-            path: /bff/auth/logout/:app
-            summary: Sin resumen
-            description: Sin descripción
-            tags:
-            auth:
-              required: false
-              roles: undefined
-              bearer: false
-            parameters:
-            responses:
-            examples:
-        filePath: src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts
+              response:
+                visitorId: "visitor_550e8400e29b41d4a716446655440000"
+                intents:
+                  - type: "PURCHASE"
+                    confidence: 0.85
+                    category: "product-pricing"
+                    value: "Interesado en plan premium"
+                    detectedAt: "2025-09-20T10:15:00Z"
+                summary:
+                  totalIntents: 5
+                  highestConfidence: 0.92
+                  dominantCategory: "product-pricing"
+        filePath: "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
+
 summary:
   totalEndpoints: 52
   totalControllers: 10
   authenticationMethods:
-    - Bearer JWT
-    - OIDC
+    - "Bearer JWT"
+    - "OIDC"
   availableRoles:
-    - admin
-    - commercial
-    - visitor
+    - "admin"
+    - "commercial"
+    - "visitor"

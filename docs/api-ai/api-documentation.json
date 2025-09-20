@@ -27,18 +27,74 @@
                 "bearer": false
               },
               "parameters": {
-                "query": [
-                  {
-                    "name": "host",
-                    "description": "Host del navegador a resolver",
-                    "example": "landing.mytech.com",
-                    "required": false,
-                    "type": "string"
+                "body": {
+                  "description": "Datos del host a resolver",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "host": {
+                        "type": "string",
+                        "description": "Dominio del navegador",
+                        "example": "landing.mytech.com"
+                      }
+                    },
+                    "required": ["host"]
                   }
-                ]
+                }
               },
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Sitio resuelto exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "siteId": {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                      },
+                      "tenantId": {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440001"
+                      },
+                      "siteName": {
+                        "type": "string",
+                        "example": "Landing Principal"
+                      },
+                      "companyName": {
+                        "type": "string",
+                        "example": "MyTech Solutions"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 404,
+                  "description": "Host no encontrado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Host no encontrado"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "host": "landing.mytech.com"
+                },
+                "response": {
+                  "siteId": "550e8400-e29b-41d4-a716-446655440000",
+                  "tenantId": "550e8400-e29b-41d4-a716-446655440001",
+                  "siteName": "Landing Principal",
+                  "companyName": "MyTech Solutions"
+                }
+              }
             }
           ],
           "filePath": "src/context/visitors-v2/infrastructure/controllers/sites.controller.ts"
@@ -56,7 +112,7 @@
               "method": "POST",
               "path": "/visitors/identify",
               "summary": "Identificar visitante",
-              "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key.",
+              "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key. Este endpoint utiliza el patrón de resolución automática domain→tenant/site para identificar y gestionar visitantes.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -66,11 +122,130 @@
                 "body": {
                   "description": "Datos del visitante para identificación",
                   "type": "object",
-                  "required": true
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "domain": {
+                        "type": "string",
+                        "description": "Dominio del sitio web",
+                        "example": "mytech.com"
+                      },
+                      "apiKey": {
+                        "type": "string",
+                        "description": "API Key del sitio",
+                        "example": "gd_live_sk_abc123def456"
+                      },
+                      "visitorId": {
+                        "type": "string",
+                        "description": "ID único del visitante (opcional, se genera si no se proporciona)",
+                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "Email del visitante (opcional)",
+                        "example": "visitante@ejemplo.com"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Nombre del visitante (opcional)",
+                        "example": "Juan Pérez"
+                      },
+                      "userAgent": {
+                        "type": "string",
+                        "description": "User agent del navegador",
+                        "example": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+                      },
+                      "ip": {
+                        "type": "string",
+                        "description": "Dirección IP del visitante",
+                        "example": "192.168.1.100"
+                      }
+                    },
+                    "required": ["domain", "apiKey"]
+                  }
                 }
               },
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Visitante identificado/creado exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "visitorId": {
+                        "type": "string",
+                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                      },
+                      "sessionId": {
+                        "type": "string",
+                        "example": "session_650e8400e29b41d4a716446655440001"
+                      },
+                      "siteId": {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                      },
+                      "tenantId": {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440001"
+                      },
+                      "isNewVisitor": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "lastActivityAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-20T10:30:00Z"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Domain y apiKey son requeridos"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 401,
+                  "description": "API Key inválida",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "API Key inválida para el dominio especificado"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "domain": "mytech.com",
+                  "apiKey": "gd_live_sk_abc123def456",
+                  "email": "visitante@ejemplo.com",
+                  "name": "Juan Pérez",
+                  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+                  "ip": "192.168.1.100"
+                },
+                "response": {
+                  "visitorId": "visitor_550e8400e29b41d4a716446655440000",
+                  "sessionId": "session_650e8400e29b41d4a716446655440001",
+                  "siteId": "550e8400-e29b-41d4-a716-446655440000",
+                  "tenantId": "550e8400-e29b-41d4-a716-446655440001",
+                  "isNewVisitor": true,
+                  "lastActivityAt": "2025-09-20T10:30:00Z"
+                }
+              }
             },
             {
               "method": "POST",
@@ -82,23 +257,184 @@
                 "required": false,
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
+              "parameters": {
+                "body": {
+                  "description": "Datos para el heartbeat de la sesión",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "sessionId": {
+                        "type": "string",
+                        "description": "ID de la sesión activa",
+                        "example": "session_650e8400e29b41d4a716446655440001"
+                      },
+                      "visitorId": {
+                        "type": "string",
+                        "description": "ID del visitante",
+                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                      }
+                    },
+                    "required": ["sessionId", "visitorId"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Heartbeat actualizado exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "lastActivityAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-20T10:35:00Z"
+                      },
+                      "sessionStatus": {
+                        "type": "string",
+                        "example": "ACTIVE"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 404,
+                  "description": "Sesión no encontrada",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Sesión no encontrada o expirada"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "sessionId": "session_650e8400e29b41d4a716446655440001",
+                  "visitorId": "visitor_550e8400e29b41d4a716446655440000"
+                },
+                "response": {
+                  "success": true,
+                  "lastActivityAt": "2025-09-20T10:35:00Z",
+                  "sessionStatus": "ACTIVE"
+                }
+              }
             },
             {
               "method": "POST",
               "path": "/visitors/session/end",
               "summary": "Cerrar sesión de visitante",
-              "description": "Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de",
+              "description": "Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de activos.",
               "tags": [],
               "auth": {
                 "required": false,
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
+              "parameters": {
+                "body": {
+                  "description": "Datos para cerrar la sesión",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "sessionId": {
+                        "type": "string",
+                        "description": "ID de la sesión a cerrar",
+                        "example": "session_650e8400e29b41d4a716446655440001"
+                      },
+                      "visitorId": {
+                        "type": "string",
+                        "description": "ID del visitante",
+                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                      },
+                      "reason": {
+                        "type": "string",
+                        "description": "Motivo del cierre (opcional)",
+                        "example": "EXPLICIT_LOGOUT"
+                      }
+                    },
+                    "required": ["sessionId", "visitorId"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Sesión cerrada exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "success": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "sessionId": {
+                        "type": "string",
+                        "example": "session_650e8400e29b41d4a716446655440001"
+                      },
+                      "endedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-20T11:00:00Z"
+                      },
+                      "duration": {
+                        "type": "number",
+                        "description": "Duración de la sesión en segundos",
+                        "example": 1800
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 404,
+                  "description": "Sesión no encontrada",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Sesión no encontrada"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Sesión ya cerrada",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "La sesión ya está cerrada"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "sessionId": "session_650e8400e29b41d4a716446655440001",
+                  "visitorId": "visitor_550e8400e29b41d4a716446655440000",
+                  "reason": "EXPLICIT_LOGOUT"
+                },
+                "response": {
+                  "success": true,
+                  "sessionId": "session_650e8400e29b41d4a716446655440001",
+                  "endedAt": "2025-09-20T11:00:00Z",
+                  "duration": 1800
+                }
+              }
             }
           ],
           "filePath": "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
@@ -125,7 +461,7 @@
               "description": "Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [
                   "visitor"
                 ],
@@ -135,11 +471,115 @@
                 "body": {
                   "description": "Datos opcionales para crear el chat",
                   "type": "object",
-                  "required": true
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "department": {
+                        "type": "string",
+                        "description": "Departamento al que dirigir el chat",
+                        "example": "ventas"
+                      },
+                      "priority": {
+                        "type": "string",
+                        "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"],
+                        "description": "Prioridad del chat",
+                        "example": "MEDIUM"
+                      },
+                      "subject": {
+                        "type": "string",
+                        "description": "Asunto o tema del chat",
+                        "example": "Consulta sobre precios"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "description": "Metadatos adicionales del chat",
+                        "example": {
+                          "source": "landing-page",
+                          "campaign": "summer-2025"
+                        }
+                      }
+                    }
+                  }
                 }
               },
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Chat creado exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "chatId": {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                      },
+                      "status": {
+                        "type": "string",
+                        "example": "PENDING"
+                      },
+                      "queuePosition": {
+                        "type": "number",
+                        "example": 3
+                      },
+                      "estimatedWaitTime": {
+                        "type": "number",
+                        "description": "Tiempo estimado de espera en segundos",
+                        "example": 180
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-20T10:30:00Z"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Prioridad inválida"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 401,
+                  "description": "No autenticado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Token de visitante requerido"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "department": "ventas",
+                  "priority": "MEDIUM",
+                  "subject": "Consulta sobre precios",
+                  "metadata": {
+                    "source": "landing-page",
+                    "campaign": "summer-2025"
+                  }
+                },
+                "response": {
+                  "chatId": "550e8400-e29b-41d4-a716-446655440000",
+                  "status": "PENDING",
+                  "queuePosition": 3,
+                  "estimatedWaitTime": 180,
+                  "createdAt": "2025-09-20T10:30:00Z"
+                }
+              }
             },
             {
               "method": "POST",
@@ -157,12 +597,156 @@
               "parameters": {
                 "body": {
                   "description": "Datos del chat y primer mensaje",
-                  "type": "text",
-                  "required": true
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "chat": {
+                        "type": "object",
+                        "description": "Configuración del chat",
+                        "properties": {
+                          "department": {
+                            "type": "string",
+                            "example": "soporte"
+                          },
+                          "priority": {
+                            "type": "string",
+                            "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"],
+                            "example": "HIGH"
+                          },
+                          "subject": {
+                            "type": "string",
+                            "example": "Problema técnico urgente"
+                          }
+                        }
+                      },
+                      "message": {
+                        "type": "object",
+                        "description": "Primer mensaje del chat",
+                        "properties": {
+                          "content": {
+                            "type": "string",
+                            "example": "Hola, tengo un problema con mi cuenta que necesito resolver urgentemente."
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": ["TEXT", "IMAGE", "FILE"],
+                            "example": "TEXT"
+                          },
+                          "attachments": {
+                            "type": "array",
+                            "description": "Archivos adjuntos (opcional)",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "example": "https://storage.example.com/screenshot.png"
+                                },
+                                "filename": {
+                                  "type": "string",
+                                  "example": "screenshot.png"
+                                },
+                                "mimeType": {
+                                  "type": "string",
+                                  "example": "image/png"
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "required": ["content", "type"]
+                      }
+                    },
+                    "required": ["message"]
+                  }
                 }
               },
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Chat y mensaje creados exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "chat": {
+                        "type": "object",
+                        "properties": {
+                          "chatId": {
+                            "type": "string",
+                            "example": "550e8400-e29b-41d4-a716-446655440000"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "PENDING"
+                          },
+                          "queuePosition": {
+                            "type": "number",
+                            "example": 1
+                          }
+                        }
+                      },
+                      "message": {
+                        "type": "object",
+                        "properties": {
+                          "messageId": {
+                            "type": "string",
+                            "example": "msg_750e8400e29b41d4a716446655440001"
+                          },
+                          "content": {
+                            "type": "string",
+                            "example": "Hola, tengo un problema con mi cuenta que necesito resolver urgentemente."
+                          },
+                          "sentAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-09-20T10:30:00Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "El contenido del mensaje es requerido"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "chat": {
+                    "department": "soporte",
+                    "priority": "HIGH",
+                    "subject": "Problema técnico urgente"
+                  },
+                  "message": {
+                    "content": "Hola, tengo un problema con mi cuenta que necesito resolver urgentemente.",
+                    "type": "TEXT"
+                  }
+                },
+                "response": {
+                  "chat": {
+                    "chatId": "550e8400-e29b-41d4-a716-446655440000",
+                    "status": "PENDING",
+                    "queuePosition": 1
+                  },
+                  "message": {
+                    "messageId": "msg_750e8400e29b41d4a716446655440001",
+                    "content": "Hola, tengo un problema con mi cuenta que necesito resolver urgentemente.",
+                    "sentAt": "2025-09-20T10:30:00Z"
+                  }
+                }
+              }
             },
             {
               "method": "GET",
@@ -543,15 +1127,177 @@
               "description": "Envía un mensaje de texto, imagen o archivo a un chat específico",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [
-                  "commercial"
+                  "commercial",
+                  "visitor"
                 ],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
+              "parameters": {
+                "body": {
+                  "description": "Datos del mensaje a enviar",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "chatId": {
+                        "type": "string",
+                        "description": "ID del chat al que enviar el mensaje",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                      },
+                      "content": {
+                        "type": "string",
+                        "description": "Contenido del mensaje",
+                        "example": "Hola, ¿en qué puedo ayudarte hoy?"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": ["TEXT", "IMAGE", "FILE", "SYSTEM"],
+                        "description": "Tipo de mensaje",
+                        "example": "TEXT"
+                      },
+                      "attachments": {
+                        "type": "array",
+                        "description": "Archivos adjuntos (opcional)",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string",
+                              "example": "https://storage.example.com/file.pdf"
+                            },
+                            "filename": {
+                              "type": "string",
+                              "example": "documento.pdf"
+                            },
+                            "mimeType": {
+                              "type": "string",
+                              "example": "application/pdf"
+                            },
+                            "size": {
+                              "type": "number",
+                              "description": "Tamaño en bytes",
+                              "example": 1024576
+                            }
+                          }
+                        }
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "description": "Metadatos adicionales del mensaje",
+                        "example": {
+                          "readReceipt": true,
+                          "urgent": false
+                        }
+                      }
+                    },
+                    "required": ["chatId", "content", "type"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Mensaje enviado exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "messageId": {
+                        "type": "string",
+                        "example": "msg_750e8400e29b41d4a716446655440001"
+                      },
+                      "chatId": {
+                        "type": "string",
+                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                      },
+                      "senderId": {
+                        "type": "string",
+                        "example": "user_850e8400e29b41d4a716446655440002"
+                      },
+                      "senderType": {
+                        "type": "string",
+                        "enum": ["VISITOR", "COMMERCIAL", "ADMIN", "SYSTEM"],
+                        "example": "COMMERCIAL"
+                      },
+                      "content": {
+                        "type": "string",
+                        "example": "Hola, ¿en qué puedo ayudarte hoy?"
+                      },
+                      "sentAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-20T10:35:00Z"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["SENT", "DELIVERED", "READ"],
+                        "example": "SENT"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "El contenido del mensaje es requerido"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 404,
+                  "description": "Chat no encontrado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Chat no encontrado"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 403,
+                  "description": "Sin permisos para enviar mensajes a este chat",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "No tienes permisos para enviar mensajes a este chat"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "chatId": "550e8400-e29b-41d4-a716-446655440000",
+                  "content": "Hola, ¿en qué puedo ayudarte hoy?",
+                  "type": "TEXT",
+                  "metadata": {
+                    "readReceipt": true,
+                    "urgent": false
+                  }
+                },
+                "response": {
+                  "messageId": "msg_750e8400e29b41d4a716446655440001",
+                  "chatId": "550e8400-e29b-41d4-a716-446655440000",
+                  "senderId": "user_850e8400e29b41d4a716446655440002",
+                  "senderType": "COMMERCIAL",
+                  "content": "Hola, ¿en qué puedo ayudarte hoy?",
+                  "sentAt": "2025-09-20T10:35:00Z",
+                  "status": "SENT"
+                }
+              }
             },
             {
               "method": "GET",
@@ -981,9 +1727,200 @@
                 "required": false,
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
+              "parameters": {
+                "body": {
+                  "description": "Datos de la nueva empresa y administrador",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "company": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "example": "TechStart Solutions"
+                          },
+                          "domain": {
+                            "type": "string",
+                            "example": "techstart.com"
+                          },
+                          "industry": {
+                            "type": "string",
+                            "example": "Tecnología"
+                          },
+                          "size": {
+                            "type": "string",
+                            "enum": ["SMALL", "MEDIUM", "LARGE", "ENTERPRISE"],
+                            "example": "MEDIUM"
+                          }
+                        },
+                        "required": ["name", "domain"]
+                      },
+                      "admin": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "example": "Carlos Administrador"
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "example": "admin@techstart.com"
+                          },
+                          "password": {
+                            "type": "string",
+                            "example": "SecurePassword123!"
+                          }
+                        },
+                        "required": ["name", "email", "password"]
+                      },
+                      "sites": {
+                        "type": "array",
+                        "description": "Sitios web iniciales (opcional)",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "example": "Sitio Principal"
+                            },
+                            "canonicalDomain": {
+                              "type": "string",
+                              "example": "www.techstart.com"
+                            },
+                            "domainAliases": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "example": ["techstart.com", "landing.techstart.com"]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "required": ["company", "admin"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Empresa creada exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "company": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "company_550e8400e29b41d4a716446655440000"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "TechStart Solutions"
+                          },
+                          "domain": {
+                            "type": "string",
+                            "example": "techstart.com"
+                          }
+                        }
+                      },
+                      "admin": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "user_650e8400e29b41d4a716446655440001"
+                          },
+                          "email": {
+                            "type": "string",
+                            "example": "admin@techstart.com"
+                          }
+                        }
+                      },
+                      "apiKey": {
+                        "type": "string",
+                        "description": "API Key generada para la empresa",
+                        "example": "gd_live_sk_abc123def456ghi789"
+                      },
+                      "sites": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "example": "site_750e8400e29b41d4a716446655440002"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Sitio Principal"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "El dominio ya está en uso"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "company": {
+                    "name": "TechStart Solutions",
+                    "domain": "techstart.com",
+                    "industry": "Tecnología",
+                    "size": "MEDIUM"
+                  },
+                  "admin": {
+                    "name": "Carlos Administrador",
+                    "email": "admin@techstart.com",
+                    "password": "SecurePassword123!"
+                  },
+                  "sites": [
+                    {
+                      "name": "Sitio Principal",
+                      "canonicalDomain": "www.techstart.com",
+                      "domainAliases": ["techstart.com", "landing.techstart.com"]
+                    }
+                  ]
+                },
+                "response": {
+                  "company": {
+                    "id": "company_550e8400e29b41d4a716446655440000",
+                    "name": "TechStart Solutions",
+                    "domain": "techstart.com"
+                  },
+                  "admin": {
+                    "id": "user_650e8400e29b41d4a716446655440001",
+                    "email": "admin@techstart.com"
+                  },
+                  "apiKey": "gd_live_sk_abc123def456ghi789",
+                  "sites": [
+                    {
+                      "id": "site_750e8400e29b41d4a716446655440002",
+                      "name": "Sitio Principal"
+                    }
+                  ]
+                }
+              }
             },
             {
               "method": "POST",
@@ -1051,16 +1988,152 @@
             {
               "method": "GET",
               "path": "/tracking/intent/:visitorId",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener intenciones del visitante",
+              "description": "Retorna las intenciones de compra y comportamiento registradas para un visitante específico",
               "tags": [],
               "auth": {
-                "required": false,
-                "bearer": false
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "admin"
+                ],
+                "bearer": true
               },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
+              "parameters": {
+                "path": [
+                  {
+                    "name": "visitorId",
+                    "description": "ID único del visitante",
+                    "example": "visitor_550e8400e29b41d4a716446655440000",
+                    "required": true
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "dateFrom",
+                    "description": "Fecha de inicio del período (ISO 8601)",
+                    "example": "2025-09-01T00:00:00Z",
+                    "required": false,
+                    "type": "string"
+                  },
+                  {
+                    "name": "dateTo",
+                    "description": "Fecha de fin del período (ISO 8601)",
+                    "example": "2025-09-20T23:59:59Z",
+                    "required": false,
+                    "type": "string"
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Intenciones del visitante obtenidas exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "visitorId": {
+                        "type": "string",
+                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                      },
+                      "intents": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["PURCHASE", "INQUIRY", "SUPPORT", "BROWSING"],
+                              "example": "PURCHASE"
+                            },
+                            "confidence": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1,
+                              "example": 0.85
+                            },
+                            "category": {
+                              "type": "string",
+                              "example": "product-pricing"
+                            },
+                            "value": {
+                              "type": "string",
+                              "example": "Interesado en plan premium"
+                            },
+                            "detectedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "example": "2025-09-20T10:15:00Z"
+                            },
+                            "source": {
+                              "type": "string",
+                              "example": "page-view"
+                            }
+                          }
+                        }
+                      },
+                      "summary": {
+                        "type": "object",
+                        "properties": {
+                          "totalIntents": {
+                            "type": "number",
+                            "example": 5
+                          },
+                          "highestConfidence": {
+                            "type": "number",
+                            "example": 0.92
+                          },
+                          "dominantCategory": {
+                            "type": "string",
+                            "example": "product-pricing"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 404,
+                  "description": "Visitante no encontrado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Visitante no encontrado"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "response": {
+                  "visitorId": "visitor_550e8400e29b41d4a716446655440000",
+                  "intents": [
+                    {
+                      "type": "PURCHASE",
+                      "confidence": 0.85,
+                      "category": "product-pricing",
+                      "value": "Interesado en plan premium",
+                      "detectedAt": "2025-09-20T10:15:00Z",
+                      "source": "page-view"
+                    },
+                    {
+                      "type": "INQUIRY",
+                      "confidence": 0.72,
+                      "category": "features",
+                      "value": "Pregunta sobre integrations",
+                      "detectedAt": "2025-09-20T10:20:00Z",
+                      "source": "chat-message"
+                    }
+                  ],
+                  "summary": {
+                    "totalIntents": 5,
+                    "highestConfidence": 0.92,
+                    "dominantCategory": "product-pricing"
+                  }
+                }
+              }
             }
           ],
           "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
@@ -1075,16 +2148,130 @@
             {
               "method": "GET",
               "path": "/tracking/intent-tags/:visitorId",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener tags de intención del visitante",
+              "description": "Retorna las etiquetas categorizadas de comportamiento e intenciones del visitante",
               "tags": [],
               "auth": {
-                "required": false,
-                "bearer": false
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "admin"
+                ],
+                "bearer": true
               },
-              "parameters": {},
-              "responses": [],
-              "examples": {}
+              "parameters": {
+                "path": [
+                  {
+                    "name": "visitorId",
+                    "description": "ID único del visitante",
+                    "example": "visitor_550e8400e29b41d4a716446655440000",
+                    "required": true
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Tags de intención obtenidas exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "visitorId": {
+                        "type": "string",
+                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "category": {
+                              "type": "string",
+                              "example": "engagement"
+                            },
+                            "tag": {
+                              "type": "string",
+                              "example": "high-interest"
+                            },
+                            "confidence": {
+                              "type": "number",
+                              "example": 0.89
+                            },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "example": "2025-09-20T10:30:00Z"
+                            }
+                          }
+                        }
+                      },
+                      "categories": {
+                        "type": "object",
+                        "properties": {
+                          "engagement": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": ["high-interest", "frequent-visitor"]
+                          },
+                          "intent": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": ["purchase-ready", "price-sensitive"]
+                          },
+                          "behavior": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": ["researcher", "comparison-shopper"]
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 404,
+                  "description": "Visitante no encontrado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Visitante no encontrado"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "response": {
+                  "visitorId": "visitor_550e8400e29b41d4a716446655440000",
+                  "tags": [
+                    {
+                      "category": "engagement",
+                      "tag": "high-interest",
+                      "confidence": 0.89,
+                      "createdAt": "2025-09-20T10:30:00Z"
+                    },
+                    {
+                      "category": "intent",
+                      "tag": "purchase-ready",
+                      "confidence": 0.95,
+                      "createdAt": "2025-09-20T10:32:00Z"
+                    }
+                  ],
+                  "categories": {
+                    "engagement": ["high-interest", "frequent-visitor"],
+                    "intent": ["purchase-ready", "price-sensitive"],
+                    "behavior": ["researcher", "comparison-shopper"]
+                  }
+                }
+              }
             }
           ],
           "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent-tags.controller.ts"
@@ -1116,13 +2303,122 @@
               },
               "parameters": {
                 "body": {
-                  "description": "Cuerpo de la petición",
+                  "description": "Credenciales de login",
                   "type": "object",
-                  "required": true
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Email del usuario",
+                        "example": "admin@mytech.com"
+                      },
+                      "password": {
+                        "type": "string",
+                        "description": "Contraseña del usuario",
+                        "example": "SecurePassword123!"
+                      }
+                    },
+                    "required": ["email", "password"]
+                  }
                 }
               },
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Login exitoso",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "accessToken": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      },
+                      "refreshToken": {
+                        "type": "string",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      },
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "user_550e8400e29b41d4a716446655440000"
+                          },
+                          "email": {
+                            "type": "string",
+                            "example": "admin@mytech.com"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Admin Usuario"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": ["admin", "commercial"],
+                            "example": "admin"
+                          },
+                          "companyId": {
+                            "type": "string",
+                            "example": "company_650e8400e29b41d4a716446655440001"
+                          }
+                        }
+                      },
+                      "expiresIn": {
+                        "type": "number",
+                        "description": "Tiempo de expiración del token en segundos",
+                        "example": 3600
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 401,
+                  "description": "Credenciales inválidas",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Email o contraseña incorrectos"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Email y contraseña son requeridos"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "email": "admin@mytech.com",
+                  "password": "SecurePassword123!"
+                },
+                "response": {
+                  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                  "user": {
+                    "id": "user_550e8400e29b41d4a716446655440000",
+                    "email": "admin@mytech.com",
+                    "name": "Admin Usuario",
+                    "role": "admin",
+                    "companyId": "company_650e8400e29b41d4a716446655440001"
+                  },
+                  "expiresIn": 3600
+                }
+              }
             },
             {
               "method": "POST",
@@ -1139,13 +2435,134 @@
               },
               "parameters": {
                 "body": {
-                  "description": "Cuerpo de la petición",
+                  "description": "Datos del nuevo usuario",
                   "type": "object",
-                  "required": true
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Email del nuevo usuario",
+                        "example": "comercial@mytech.com"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Nombre completo del usuario",
+                        "example": "María González"
+                      },
+                      "password": {
+                        "type": "string",
+                        "description": "Contraseña temporal",
+                        "example": "TempPassword123!"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": ["commercial", "admin"],
+                        "description": "Rol del usuario",
+                        "example": "commercial"
+                      },
+                      "department": {
+                        "type": "string",
+                        "description": "Departamento del usuario (opcional)",
+                        "example": "ventas"
+                      },
+                      "sendInvite": {
+                        "type": "boolean",
+                        "description": "Enviar invitación por email",
+                        "example": true
+                      }
+                    },
+                    "required": ["email", "name", "role"]
+                  }
                 }
               },
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Usuario creado exitosamente",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "string",
+                        "example": "user_750e8400e29b41d4a716446655440002"
+                      },
+                      "email": {
+                        "type": "string",
+                        "example": "comercial@mytech.com"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "María González"
+                      },
+                      "role": {
+                        "type": "string",
+                        "example": "commercial"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["PENDING", "ACTIVE"],
+                        "example": "PENDING"
+                      },
+                      "inviteSent": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-09-20T10:30:00Z"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "El email ya está en uso"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 403,
+                  "description": "Sin permisos para crear usuarios",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Solo los administradores pueden crear usuarios"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "request": {
+                  "email": "comercial@mytech.com",
+                  "name": "María González",
+                  "role": "commercial",
+                  "department": "ventas",
+                  "sendInvite": true
+                },
+                "response": {
+                  "userId": "user_750e8400e29b41d4a716446655440002",
+                  "email": "comercial@mytech.com",
+                  "name": "María González",
+                  "role": "commercial",
+                  "status": "PENDING",
+                  "inviteSent": true,
+                  "createdAt": "2025-09-20T10:30:00Z"
+                }
+              }
             },
             {
               "method": "POST",
@@ -1241,13 +2658,128 @@
               "auth": {
                 "required": true,
                 "roles": [
-                  "admin"
+                  "admin",
+                  "commercial"
                 ],
                 "bearer": true
               },
               "parameters": {},
-              "responses": [],
-              "examples": {}
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Información del usuario autenticado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "user": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "user_550e8400e29b41d4a716446655440000"
+                          },
+                          "email": {
+                            "type": "string",
+                            "example": "admin@mytech.com"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Admin Usuario"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": ["admin", "commercial"],
+                            "example": "admin"
+                          },
+                          "department": {
+                            "type": "string",
+                            "example": "administracion"
+                          },
+                          "companyId": {
+                            "type": "string",
+                            "example": "company_650e8400e29b41d4a716446655440001"
+                          },
+                          "company": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "example": "MyTech Solutions"
+                              },
+                              "domain": {
+                                "type": "string",
+                                "example": "mytech.com"
+                              }
+                            }
+                          },
+                          "permissions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": ["MANAGE_USERS", "VIEW_ANALYTICS", "MANAGE_CHATS"]
+                          },
+                          "lastLoginAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-09-20T09:00:00Z"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": ["ACTIVE", "INACTIVE", "PENDING"],
+                            "example": "ACTIVE"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 401,
+                  "description": "Token inválido o expirado",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Token inválido"
+                      }
+                    }
+                  }
+                },
+                {
+                  "status": 403,
+                  "description": "Sin permisos suficientes",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Acceso denegado"
+                      }
+                    }
+                  }
+                }
+              ],
+              "examples": {
+                "response": {
+                  "user": {
+                    "id": "user_550e8400e29b41d4a716446655440000",
+                    "email": "admin@mytech.com",
+                    "name": "Admin Usuario",
+                    "role": "admin",
+                    "department": "administracion",
+                    "companyId": "company_650e8400e29b41d4a716446655440001",
+                    "company": {
+                      "name": "MyTech Solutions",
+                      "domain": "mytech.com"
+                    },
+                    "permissions": ["MANAGE_USERS", "VIEW_ANALYTICS", "MANAGE_CHATS"],
+                    "lastLoginAt": "2025-09-20T09:00:00Z",
+                    "status": "ACTIVE"
+                  }
+                }
+              }
             }
           ],
           "filePath": "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts"

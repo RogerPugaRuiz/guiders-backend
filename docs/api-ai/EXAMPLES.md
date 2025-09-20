@@ -791,18 +791,17 @@ console.log(helper.explainNewIdentificationFlow());
 console.log(helper.generateIntegrationExamples());
 ```
 
-## Comandos NPM Disponibles
+## Mantenimiento de la Documentación
+
+La documentación de API está ahora gestionada de forma manual para mayor control y precisión:
 
 ```bash
-# Generar documentación manualmente
-npm run docs:generate-ai
-
-# Regenerar documentación automáticamente cuando cambian los controllers
-npm run docs:watch-ai
-
-# Integrar en el flujo de build
-npm run build && npm run docs:generate-ai
+# Los archivos de documentación se encuentran en:
+docs/api-ai/api-documentation.json    # Documentación completa en JSON
+docs/api-ai/api-documentation.yaml    # Documentación completa en YAML
 ```
+
+**Importante**: Cuando agregues o modifiques endpoints, actualiza manualmente estos archivos para mantener la documentación sincronizada.
 
 ## Estructura del JSON de Documentación
 
@@ -814,4 +813,4 @@ La documentación generada incluye toda la información necesaria para que una I
 4. **Validar respuestas** - Códigos de estado y esquemas
 5. **Generar código** - SDKs, tests, documentación
 
-Esta documentación se actualiza automáticamente cada vez que cambias los controllers, manteniendo siempre sincronizada la información que las IAs necesitan para trabajar con tu API.
+Esta documentación se mantiene manualmente para garantizar precisión y control total sobre la información que las IAs utilizan para trabajar con la API.
