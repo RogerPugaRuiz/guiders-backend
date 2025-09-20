@@ -102,6 +102,16 @@ export interface IMessageRepository {
    */
   match(criteria: Criteria<Message>): Promise<Result<Message[], DomainError>>;
 
+  /**
+   * Cuenta mensajes que cumplen con criterios específicos
+   */
+  count(criteria: Criteria<Message>): Promise<Result<number, DomainError>>;
+
+  /**
+   * Cuenta mensajes que cumplen con criterios específicos
+   */
+  count(criteria: Criteria<Message>): Promise<Result<number, DomainError>>;
+
   // Métodos específicos para el dominio de mensajería
 
   /**

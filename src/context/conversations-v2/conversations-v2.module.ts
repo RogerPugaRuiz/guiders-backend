@@ -39,10 +39,12 @@ import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/ser
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
 import { ClearVisitorChatsCommandHandler } from './application/commands/clear-visitor-chats.command-handler';
 import { CreateChatWithMessageCommandHandler } from './application/commands/create-chat-with-message.command-handler';
+import { SendMessageCommandHandler } from './application/commands/send-message.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
 import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.query-handler';
+import { GetChatMessagesQueryHandler } from './application/queries/get-chat-messages.query-handler';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -87,6 +89,7 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
     JoinWaitingRoomCommandHandler,
     ClearVisitorChatsCommandHandler,
     CreateChatWithMessageCommandHandler,
+    SendMessageCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
@@ -94,6 +97,7 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
     // Query Handlers
     GetChatsWithFiltersQueryHandler,
     GetChatByIdQueryHandler,
+    GetChatMessagesQueryHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

@@ -20,7 +20,7 @@ import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { CommercialId } from '../../../domain/value-objects/commercial-id';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-// import { Criteria } from 'src/context/shared/domain/criteria';
+import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
 import { MessageSchema } from '../../schemas/message.schema';
 import { MessageMapper } from '../../mappers/message.mapper';
 
@@ -169,9 +169,11 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   } /**
    * Busca un mensaje que cumple con criterios específicos
    */
-  async findOne(): Promise<Result<Message, DomainError>> {
+  async findOne(
+    criteria: Criteria<Message>,
+  ): Promise<Result<Message, DomainError>> {
     try {
-      const filter = this.buildMongoFilter();
+      const filter = this.buildMongoFilter(criteria);
       filter.isDeleted = false;
 
       const schema = await this.messageModel.findOne(filter);
@@ -198,18 +200,41 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   /**
    * Busca múltiples mensajes que cumplen con criterios específicos
    */
-  async match(): Promise<Result<Message[], DomainError>> {
+  async match(
+    criteria: Criteria<Message>,
+  ): Promise<Result<Message[], DomainError>> {
     try {
-      const filter = this.buildMongoFilter();
-      filter.isDeleted = false;
+      const mongoFilter = this.buildMongoFilter(criteria);
+      mongoFilter.isDeleted = false;
 
-      const schemas = await this.messageModel.find(filter);
+      const schemas = await this.messageModel.find(mongoFilter);
       const messages = this.messageMapper.toDomainList(schemas);
       return ok(messages);
     } catch (error) {
       return err(
         new MessagePersistenceError(
           `Error al buscar mensajes con criterios: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
+
+  /**
+   * Cuenta mensajes que cumplen con criterios específicos
+   */
+  async count(
+    criteria: Criteria<Message>,
+  ): Promise<Result<number, DomainError>> {
+    try {
+      const mongoFilter = this.buildMongoFilter(criteria);
+      mongoFilter.isDeleted = false;
+
+      const count = await this.messageModel.countDocuments(mongoFilter);
+      return ok(count);
+    } catch (error) {
+      return err(
+        new MessagePersistenceError(
+          `Error al contar mensajes con criterios: ${error instanceof Error ? error.message : String(error)}`,
         ),
       );
     }
@@ -1031,14 +1056,80 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
    * Implementación simplificada - se puede extender para casos más complejos
    */
 
-  private buildMongoFilter(/* criteria: Criteria<Message> */): Record<
-    string,
-    any
-  > {
+  private buildMongoFilter(criteria: Criteria<Message>): Record<string, any> {
     const filter: Record<string, any> = {};
 
-    // Esta implementación es básica y se puede extender
-    // para mapear completamente los criterios de búsqueda a filtros MongoDB
+    if (!criteria.filters || criteria.filters.length === 0) {
+      return filter;
+    }
+
+    const filters = criteria.filters;
+
+    filters.forEach((criteriaFilter) => {
+      if (criteriaFilter instanceof Filter) {
+        const field = criteriaFilter.field as string;
+        const operator = criteriaFilter.operator;
+        const value = criteriaFilter.value;
+
+        // Mapear campos del dominio a campos de MongoDB
+        let mongoField = field;
+        if (field === 'chatId') {
+          mongoField = 'chatId';
+        } else if (field === 'senderId') {
+          mongoField = 'senderId';
+        } else if (field === 'senderType') {
+          mongoField = 'senderType';
+        } else if (field === 'type') {
+          mongoField = 'type';
+        } else if (field === 'content') {
+          mongoField = 'content';
+        } else if (field === 'sentAt') {
+          mongoField = 'sentAt';
+        } else if (field === 'readAt') {
+          mongoField = 'readAt';
+        } else if (field === 'isRead') {
+          mongoField = 'isRead';
+        }
+
+        // Aplicar operadores
+        switch (operator) {
+          case Operator.EQUALS:
+            filter[mongoField] = value;
+            break;
+          case Operator.NOT_EQUALS:
+            filter[mongoField] = { $ne: value };
+            break;
+          case Operator.IN:
+            filter[mongoField] = {
+              $in: Array.isArray(value) ? value : [value],
+            };
+            break;
+          case Operator.NOT_IN:
+            filter[mongoField] = {
+              $nin: Array.isArray(value) ? value : [value],
+            };
+            break;
+          case Operator.GREATER_THAN:
+            filter[mongoField] = { $gt: value };
+            break;
+          case Operator.GREATER_OR_EQUALS:
+            filter[mongoField] = { $gte: value };
+            break;
+          case Operator.LESS_THAN:
+            filter[mongoField] = { $lt: value };
+            break;
+          case Operator.LESS_OR_EQUALS:
+            filter[mongoField] = { $lte: value };
+            break;
+          case Operator.LIKE:
+            filter[mongoField] = { $regex: value, $options: 'i' };
+            break;
+          default:
+            filter[mongoField] = value;
+            break;
+        }
+      }
+    });
 
     return filter;
   }

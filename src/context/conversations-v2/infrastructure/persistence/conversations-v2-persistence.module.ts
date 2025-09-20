@@ -5,7 +5,7 @@ import { MessageSchemaDefinition } from '../schemas/message.schema';
 import { ChatMapper } from '../mappers/chat.mapper';
 import { MessageMapper } from '../mappers/message.mapper';
 import { MongoChatRepositoryImpl } from './impl/mongo-chat.repository.impl';
-import { MongoMessageRepositoryImpl } from './impl/mongo-message.repository.simple';
+import { MongoMessageRepositorySimple } from './impl/mongo-message.repository.simple';
 import { CHAT_V2_REPOSITORY } from '../../domain/chat.repository';
 import { MESSAGE_V2_REPOSITORY } from '../../domain/message.repository';
 
@@ -32,12 +32,12 @@ import { MESSAGE_V2_REPOSITORY } from '../../domain/message.repository';
     },
     {
       provide: MESSAGE_V2_REPOSITORY,
-      useClass: MongoMessageRepositoryImpl,
+      useClass: MongoMessageRepositorySimple,
     },
 
     // Implementaciones directas para testing
     MongoChatRepositoryImpl,
-    MongoMessageRepositoryImpl,
+    MongoMessageRepositorySimple,
   ],
   exports: [
     CHAT_V2_REPOSITORY,
@@ -45,7 +45,7 @@ import { MESSAGE_V2_REPOSITORY } from '../../domain/message.repository';
     ChatMapper,
     MessageMapper,
     MongoChatRepositoryImpl,
-    MongoMessageRepositoryImpl,
+    MongoMessageRepositorySimple,
   ],
 })
 export class ConversationsV2PersistenceModule {}
@@ -65,13 +65,13 @@ export class ConversationsV2PersistenceModule {}
     ChatMapper,
     MessageMapper,
     MongoChatRepositoryImpl,
-    MongoMessageRepositoryImpl,
+    MongoMessageRepositorySimple,
   ],
   exports: [
     ChatMapper,
     MessageMapper,
     MongoChatRepositoryImpl,
-    MongoMessageRepositoryImpl,
+    MongoMessageRepositorySimple,
   ],
 })
 export class ConversationsV2TestingModule {}

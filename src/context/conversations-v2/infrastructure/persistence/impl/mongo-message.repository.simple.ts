@@ -17,7 +17,7 @@ import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { CommercialId } from '../../../domain/value-objects/commercial-id';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-// import { Criteria } from 'src/context/shared/domain/criteria';
+import { Criteria } from 'src/context/shared/domain/criteria';
 import { MessageSchema } from '../../schemas/message.schema';
 import { MessageMapper } from '../../mappers/message.mapper';
 
@@ -36,7 +36,7 @@ export class MessagePersistenceError extends DomainError {
  * Implementación básica para tests de integración
  */
 @Injectable()
-export class MongoMessageRepositoryImpl implements IMessageRepository {
+export class MongoMessageRepositorySimple implements IMessageRepository {
   constructor(
     @InjectModel(MessageSchema.name)
     private readonly messageModel: Model<MessageSchema>,
@@ -169,7 +169,10 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   /**
    * Busca un mensaje que cumple con criterios específicos
    */
-  async findOne(): Promise<Result<Message, DomainError>> {
+  async findOne(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    criteria?: Criteria<Message>,
+  ): Promise<Result<Message, DomainError>> {
     try {
       // Implementación básica - buscar por cualquier filtro básico
       const schema = await this.messageModel.findOne({ isDeleted: false });
@@ -196,7 +199,10 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   /**
    * Busca múltiples mensajes que cumplen con criterios específicos
    */
-  async match(): Promise<Result<Message[], DomainError>> {
+  async match(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    criteria?: Criteria<Message>,
+  ): Promise<Result<Message[], DomainError>> {
     try {
       // Implementación básica
       const schemas = await this.messageModel.find({ isDeleted: false });
@@ -605,5 +611,13 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
     toMessageId?: MessageId,
   ): Promise<Result<Message[], DomainError>> {
     return ok([]);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async count(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    criteria?: Criteria<Message>,
+  ): Promise<Result<number, DomainError>> {
+    return ok(0);
   }
 }
