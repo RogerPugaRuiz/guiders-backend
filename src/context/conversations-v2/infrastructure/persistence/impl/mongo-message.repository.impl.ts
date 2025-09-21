@@ -313,9 +313,11 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
       ]);
 
       const messages = this.messageMapper.toDomainList(schemas);
-      const hasMore = offset
-        ? offset + schemas.length < total
-        : schemas.length < total;
+      
+      // Para paginación por cursor, hasMore es true si:
+      // 1. Se obtuvieron exactamente 'limit' registros (indica que hay más)
+      // 2. O si el offset + registros obtenidos < total
+      const hasMore = limit ? schemas.length === limit : schemas.length < total;
 
       return ok({
         messages,

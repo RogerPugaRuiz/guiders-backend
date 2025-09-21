@@ -12,6 +12,7 @@ import {
   Logger,
   UseGuards,
   Req,
+  Header,
 } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
 import {
@@ -456,6 +457,9 @@ export class ChatV2Controller {
   @Get()
   @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Obtener lista de chats con filtros y paginación con cursor',
     description:
@@ -811,6 +815,9 @@ export class ChatV2Controller {
    */
   @Get(':chatId')
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Obtener chat por ID',
     description:
@@ -871,6 +878,9 @@ export class ChatV2Controller {
    */
   @Get('commercial/:commercialId')
   @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Obtener chats de un comercial con paginación cursor',
     description:
@@ -968,6 +978,9 @@ export class ChatV2Controller {
    */
   @Get('visitor/:visitorId')
   @UseGuards(OptionalAuthGuard)
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiBearerAuth()
   @ApiCookieAuth('sid')
   @ApiHeader({
@@ -1130,6 +1143,9 @@ export class ChatV2Controller {
    */
   @Get('queue/pending')
   @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Obtener cola de chats pendientes',
     description:

@@ -11,6 +11,7 @@ import {
   Logger,
   UseGuards,
   Req,
+  Header,
 } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
 import {
@@ -172,6 +173,9 @@ export class MessageV2Controller {
   @Get('chat/:chatId')
   @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiCookieAuth('sid')
   @ApiHeader({
     name: 'X-Guiders-Sid',
@@ -488,6 +492,9 @@ export class MessageV2Controller {
   @Get('chat/:chatId/unread')
   @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiCookieAuth('sid')
   @ApiHeader({
     name: 'X-Guiders-Sid',
@@ -571,6 +578,9 @@ export class MessageV2Controller {
   @Get('search')
   @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Buscar mensajes por contenido',
     description: 'Busca mensajes que contengan palabras clave específicas',
@@ -825,6 +835,9 @@ export class MessageV2Controller {
   @Get('attachments')
   @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiCookieAuth('sid')
   @ApiHeader({
     name: 'X-Guiders-Sid',

@@ -73,7 +73,8 @@ export class GetChatMessagesQueryHandler
           field: query.sort?.field || 'sentAt',
           direction: query.sort?.direction || 'DESC',
         },
-        this.parseCursor(query.cursor),
+        query.limit, // Agregar el límite aquí
+        this.parseCursor(query.cursor), // Offset como último parámetro
       );
 
       if (messagesResult.isErr()) {
@@ -105,8 +106,13 @@ export class GetChatMessagesQueryHandler
         messages: messageDtos,
         total: searchResult.total,
         hasMore: searchResult.hasMore,
-        nextCursor:
-          this.encodeCursor(messageDtos[messageDtos.length - 1]) || undefined,
+        nextCursor: searchResult.hasMore
+          ? this.encodeCursor(
+              messageDtos[messageDtos.length - 1],
+              this.parseCursor(query.cursor),
+              query.limit || 20,
+            ) || undefined
+          : undefined,
       };
     } catch (error) {
       this.logger.error('Error en GetChatMessagesQueryHandler', error);
@@ -143,7 +149,7 @@ export class GetChatMessagesQueryHandler
 
     try {
       const decoded = Buffer.from(cursor, 'base64').toString();
-      const data = JSON.parse(decoded) as { offset?: number };
+      const data = JSON.parse(decoded) as { offset?: number; lastId?: string };
       return data.offset || 0;
     } catch {
       return 0;
@@ -153,12 +159,16 @@ export class GetChatMessagesQueryHandler
   /**
    * Codifica el cursor para el siguiente lote
    */
-  private encodeCursor(lastMessage?: MessageResponseDto): string | null {
+  private encodeCursor(
+    lastMessage?: MessageResponseDto,
+    currentOffset = 0,
+    limit = 0,
+  ): string | null {
     if (!lastMessage) return null;
 
     const cursorData = {
       lastId: lastMessage.id,
-      offset: 0, // Simplificado por ahora
+      offset: currentOffset + limit, // Calcular el siguiente offset
     };
 
     return Buffer.from(JSON.stringify(cursorData)).toString('base64');
