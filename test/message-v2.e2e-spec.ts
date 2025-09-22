@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   INestApplication,
-  CanActivate,
   ExecutionContext,
   ValidationPipe,
   UnauthorizedException,
@@ -162,7 +161,10 @@ describe('MessageV2Controller (e2e)', () => {
         });
       }
       // Mock para stats queries
-      if (query.constructor.name.includes('Stats') || query.constructor.name.includes('Metrics')) {
+      if (
+        query.constructor.name.includes('Stats') ||
+        query.constructor.name.includes('Metrics')
+      ) {
         return Promise.resolve({
           totalMessages: 0,
           messagesByType: {},
@@ -423,21 +425,24 @@ describe('MessageV2Controller (e2e)', () => {
       // Mock específico para tests de paginación con datos masivos
       (queryBus.execute as jest.Mock).mockImplementation((query) => {
         if (query.constructor.name === 'GetChatMessagesQuery') {
-          let { limit = 50, cursor } = query;
-          
+          let { limit = 50 } = query;
+          const { cursor } = query;
+
           // Convertir limit a número si es string
           limit = Number(limit) || 50;
-          
+
           // Manejar limit 0 (usar default)
           if (limit === 0) {
             limit = 50;
           }
-          
+
           // Parsear cursor para obtener offset
           let offset = 0;
           if (cursor) {
             try {
-              const cursorData = JSON.parse(Buffer.from(cursor, 'base64').toString());
+              const cursorData = JSON.parse(
+                Buffer.from(cursor, 'base64').toString(),
+              );
               offset = cursorData.offset || 0;
             } catch {
               offset = 0;
@@ -448,15 +453,18 @@ describe('MessageV2Controller (e2e)', () => {
           const startIndex = offset;
           const endIndex = Math.min(startIndex + limit, TOTAL_MESSAGES);
           const actualMessagesInThisPage = Math.max(0, endIndex - startIndex);
-          
+
           let messages: any[] = [];
           if (actualMessagesInThisPage > 0) {
-            messages = generateTestMessages(startIndex, actualMessagesInThisPage);
+            messages = generateTestMessages(
+              startIndex,
+              actualMessagesInThisPage,
+            );
           }
-          
+
           // Calcular si hay más mensajes
           const hasMore = endIndex < TOTAL_MESSAGES;
-          
+
           // Generar cursor para siguiente página
           let nextCursor: string | undefined = undefined;
           if (hasMore && messages.length > 0) {
@@ -474,7 +482,10 @@ describe('MessageV2Controller (e2e)', () => {
         }
 
         // Otros mocks permanecen igual
-        if (query.constructor.name.includes('Stats') || query.constructor.name.includes('Metrics')) {
+        if (
+          query.constructor.name.includes('Stats') ||
+          query.constructor.name.includes('Metrics')
+        ) {
           return Promise.resolve({
             totalMessages: TOTAL_MESSAGES,
             messagesByType: { text: TOTAL_MESSAGES },
@@ -502,12 +513,12 @@ describe('MessageV2Controller (e2e)', () => {
 
         // Verificar que retorna exactamente 50 mensajes (límite por defecto)
         expect(response.body.messages).toHaveLength(50);
-        
+
         // Verificar que los mensajes están en el orden correcto
         const messages = response.body.messages;
         expect(messages[0].id).toBe('msg-000');
         expect(messages[49].id).toBe('msg-049');
-        
+
         // Verificar que hay cursor para siguiente página
         expect(response.body.nextCursor).toBeDefined();
         expect(typeof response.body.nextCursor).toBe('string');
@@ -522,7 +533,7 @@ describe('MessageV2Controller (e2e)', () => {
         expect(response.body.messages).toHaveLength(20);
         expect(response.body.total).toBe(TOTAL_MESSAGES);
         expect(response.body.hasMore).toBe(true);
-        
+
         // Verificar secuencia de IDs
         const messages = response.body.messages;
         expect(messages[0].id).toBe('msg-000');
@@ -539,7 +550,7 @@ describe('MessageV2Controller (e2e)', () => {
         expect(response.body.total).toBe(TOTAL_MESSAGES);
         expect(response.body.hasMore).toBe(false);
         expect(response.body.nextCursor).toBeUndefined();
-        
+
         // Verificar que todos los mensajes están presentes
         const messages = response.body.messages;
         expect(messages[0].id).toBe('msg-000');
@@ -620,7 +631,7 @@ describe('MessageV2Controller (e2e)', () => {
         expect(response.body.messages).toHaveLength(limit);
         expect(response.body.total).toBe(TOTAL_MESSAGES);
         expect(response.body.hasMore).toBe(true);
-        
+
         // Verificar que los mensajes corresponden al offset correcto
         const messages = response.body.messages;
         expect(messages[0].id).toBe('msg-040');
@@ -643,7 +654,7 @@ describe('MessageV2Controller (e2e)', () => {
         expect(response.body.total).toBe(TOTAL_MESSAGES);
         expect(response.body.hasMore).toBe(false);
         expect(response.body.nextCursor).toBeUndefined();
-        
+
         // Verificar IDs de la última página
         const messages = response.body.messages;
         expect(messages[0].id).toBe('msg-090');
@@ -725,12 +736,16 @@ describe('MessageV2Controller (e2e)', () => {
           expect(message).toHaveProperty('sentAt');
           expect(message).toHaveProperty('createdAt');
           expect(message).toHaveProperty('updatedAt');
-          
+
           // Verificar formato de fechas
           expect(new Date(message.sentAt).toISOString()).toBe(message.sentAt);
-          expect(new Date(message.createdAt).toISOString()).toBe(message.createdAt);
-          expect(new Date(message.updatedAt).toISOString()).toBe(message.updatedAt);
-          
+          expect(new Date(message.createdAt).toISOString()).toBe(
+            message.createdAt,
+          );
+          expect(new Date(message.updatedAt).toISOString()).toBe(
+            message.updatedAt,
+          );
+
           // Verificar ID secuencial
           expect(message.id).toBe(`msg-${index.toString().padStart(3, '0')}`);
         });
@@ -753,7 +768,7 @@ describe('MessageV2Controller (e2e)', () => {
         const responses = await Promise.all(promises);
 
         // Todas las respuestas deben ser exitosas
-        responses.forEach(response => {
+        responses.forEach((response) => {
           expect(response.status).toBe(200);
           expect(response.body.total).toBe(TOTAL_MESSAGES);
         });
@@ -764,7 +779,7 @@ describe('MessageV2Controller (e2e)', () => {
         expect(responses[2].body.messages).toHaveLength(35);
 
         // Todos deben mostrar hasMore = true (ya que ninguno llega a 100)
-        responses.forEach(response => {
+        responses.forEach((response) => {
           expect(response.body.hasMore).toBe(true);
           expect(response.body.nextCursor).toBeDefined();
         });
