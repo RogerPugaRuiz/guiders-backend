@@ -24,7 +24,7 @@ export class VerifyRoleMappingQueryHandler
 
   constructor(private readonly roleMapper: KeycloakRoleMapperService) {}
 
-  execute(query: VerifyRoleMappingQuery): RoleMappingVerificationDto {
+  execute(query: VerifyRoleMappingQuery): Promise<RoleMappingVerificationDto> {
     this.logger.log(
       `Verificando mapeo de roles: ${query.keycloakRoles.join(', ')}`,
     );
@@ -60,6 +60,6 @@ export class VerifyRoleMappingQueryHandler
       `Verificación completada: ${result.finalBackendRoles.length} roles finales`,
     );
 
-    return result;
+    return Promise.resolve(result);
   }
 }

@@ -56,6 +56,7 @@ describe('CreateInviteOnUserAccountCreatedEventHandler', () => {
         roles: ['admin'],
         companyId: Uuid.random().value,
         isActive: true,
+        keycloakId: null,
       },
     });
     inviteRepositoryMock.save.mockResolvedValue({ isOk: () => true });
@@ -93,6 +94,7 @@ describe('CreateInviteOnUserAccountCreatedEventHandler', () => {
         roles: ['admin'],
         companyId: Uuid.random().value,
         isActive: true,
+        keycloakId: null,
       },
     });
 

@@ -115,6 +115,8 @@ describe('BffSessionAuthService', () => {
 
       mockJwtVerify.mockResolvedValueOnce({
         payload: mockPayload,
+        protectedHeader: { alg: 'RS256', typ: 'JWT' },
+        key: {} as any,
       });
 
       const token =
@@ -150,6 +152,8 @@ describe('BffSessionAuthService', () => {
 
       mockJwtVerify.mockResolvedValueOnce({
         payload: mockPayload,
+        protectedHeader: { alg: 'RS256', typ: 'JWT' },
+        key: {} as any,
       });
 
       const token = 'valid-token';
@@ -172,6 +176,8 @@ describe('BffSessionAuthService', () => {
 
       mockJwtVerify.mockResolvedValueOnce({
         payload: mockPayload,
+        protectedHeader: { alg: 'RS256', typ: 'JWT' },
+        key: {} as any,
       });
 
       const token = 'valid-token';
