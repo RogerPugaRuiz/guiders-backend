@@ -319,9 +319,9 @@ jobs:
           # Configuración BFF
           OIDC_ISSUER=${{ secrets.STAGING_KEYCLOAK_ISSUER }}
           OIDC_CONSOLE_CLIENT_ID=console
-          OIDC_CONSOLE_REDIRECT_URI=${{ secrets.STAGING_APP_URL }}/api/bff/auth/callback/console
+          OIDC_CONSOLE_REDIRECT_URI=${{ secrets.OIDC_CONSOLE_REDIRECT_URI || 'https://guiders.es/api/bff/auth/callback/console' }}
           OIDC_ADMIN_CLIENT_ID=admin
-          OIDC_ADMIN_REDIRECT_URI=${{ secrets.STAGING_APP_URL }}/api/bff/auth/callback/admin
+          OIDC_ADMIN_REDIRECT_URI=${{ secrets.OIDC_ADMIN_REDIRECT_URI || 'https://guiders.es/api/bff/auth/callback/admin' }}
           # Configuración de cookies BFF para staging (HTTPS en producción)
           SAMESITE=lax
           COOKIE_SECURE=true
