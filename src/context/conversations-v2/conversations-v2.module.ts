@@ -34,6 +34,7 @@ import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/opti
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
+import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
 
 // Command Handlers
 import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiting-room.command-handler';
@@ -70,6 +71,7 @@ import { GetChatMessagesQueryHandler } from './application/queries/get-chat-mess
 
     // Services
     VisitorSessionAuthService,
+    BffSessionAuthService,
 
     // Mappers
     ChatMapper,

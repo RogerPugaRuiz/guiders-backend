@@ -35,6 +35,7 @@ const baseUser: UserAccountPrimitives = {
   roles: ['admin'],
   companyId: 'company-xyz',
   isActive: true,
+  keycloakId: null,
 };
 
 const commercialUser: UserAccountPrimitives = {
@@ -48,6 +49,7 @@ const commercialUser: UserAccountPrimitives = {
   roles: ['commercial'],
   companyId: 'company-xyz',
   isActive: true,
+  keycloakId: null,
 };
 
 // Mock QueryBus

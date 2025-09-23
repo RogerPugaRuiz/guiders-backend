@@ -9,6 +9,7 @@ import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard'
 import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
+import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
 
 describe('ChatV2Controller - createChat', () => {
   let app: INestApplication;
@@ -51,6 +52,11 @@ describe('ChatV2Controller - createChat', () => {
       authenticateVisitor: jest.fn(),
     };
 
+    const mockBffSessionAuthService = {
+      extractBffSessionTokens: jest.fn(),
+      validateBffSession: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
       providers: [
@@ -69,6 +75,10 @@ describe('ChatV2Controller - createChat', () => {
         {
           provide: VisitorSessionAuthService,
           useValue: mockVisitorSessionAuthService,
+        },
+        {
+          provide: BffSessionAuthService,
+          useValue: mockBffSessionAuthService,
         },
       ],
     })

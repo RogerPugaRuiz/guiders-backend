@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return */
 import {
   Body,
   Controller,
@@ -49,6 +50,16 @@ import {
   RequiredRoles,
   RolesGuard,
 } from 'src/context/shared/infrastructure/guards/role.guard';
+import { SyncUserWithKeycloakCommand } from '../../application/commands/sync-user-with-keycloak.command';
+import {
+  SyncUserWithKeycloakDto,
+  SyncUserResponseDto,
+} from '../../application/dtos/sync-user-with-keycloak.dto';
+import { VerifyRoleMappingQuery } from '../../application/queries/verify-role-mapping.query';
+import {
+  VerifyRoleMappingDto,
+  VerifyRoleMappingResponseDto,
+} from '../../application/dtos/verify-role-mapping.dto';
 
 @ApiTags('Autenticación de Usuarios')
 @Controller('user/auth')
@@ -403,9 +414,13 @@ export class AuthUserController {
       users: users.map((u) => ({
         id: u.id,
         email: u.email,
+        name: u.name,
         roles: u.roles,
         companyId: u.companyId,
-        isActive: u.isActive, // Exponer el estado activo/inactivo
+        isActive: u.isActive,
+        keycloakId: u.keycloakId,
+        createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt ?? null,
       })),
     };
   }
@@ -460,6 +475,96 @@ export class AuthUserController {
       }
       throw new HttpException(
         'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('sync-with-keycloak')
+  @ApiOperation({
+    summary: 'Sincronizar usuario con Keycloak',
+    description:
+      'Crea un nuevo usuario en el backend y lo vincula con un usuario existente de Keycloak',
+  })
+  @ApiBody({ type: SyncUserWithKeycloakDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario sincronizado exitosamente',
+    type: SyncUserResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({
+    status: 409,
+    description: 'Usuario ya existe o Keycloak ID ya está vinculado',
+  })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async syncWithKeycloak(
+    @Body() dto: SyncUserWithKeycloakDto,
+  ): Promise<SyncUserResponseDto> {
+    try {
+      const result = await this.commandBus.execute(
+        new SyncUserWithKeycloakCommand(
+          dto.email,
+          dto.name,
+          dto.keycloakId,
+          dto.roles,
+          dto.companyId,
+        ),
+      );
+
+      if (result && typeof result.isErr === 'function' && result.isErr()) {
+        const error = result.unwrapErr();
+
+        throw new HttpException(error.message, HttpStatus.CONFLICT);
+      }
+
+      const { userId } =
+        result && typeof result.unwrap === 'function'
+          ? result.unwrap()
+          : result;
+      return {
+        userId,
+        message: 'Usuario sincronizado exitosamente con Keycloak',
+      };
+    } catch (error) {
+      this.logger.error('Error syncing user with Keycloak', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('verify-role-mapping')
+  @ApiOperation({
+    summary: 'Verificar mapeo de roles de Keycloak',
+    description:
+      'Verifica cómo se mapearían los roles de Keycloak a roles del backend sin crear usuario',
+  })
+  @ApiBody({ type: VerifyRoleMappingDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Resultado de la verificación del mapeo de roles',
+    type: VerifyRoleMappingResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  async verifyRoleMapping(
+    @Body() dto: VerifyRoleMappingDto,
+  ): Promise<VerifyRoleMappingResponseDto> {
+    try {
+      const result = await this.queryBus.execute(
+        new VerifyRoleMappingQuery(dto.keycloakRoles),
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error('Error verifying role mapping', error);
+      throw new HttpException(
+        'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

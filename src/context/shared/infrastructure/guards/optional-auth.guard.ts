@@ -8,11 +8,13 @@ import { TokenVerifyService } from '../token-verify.service';
 import { AuthenticatedRequest } from './auth.guard';
 import { resolveVisitorSessionId } from '../../../visitors-v2/infrastructure/http/visitor-session-cookie.util';
 import { VisitorSessionAuthService } from '../services/visitor-session-auth.service';
+import { BffSessionAuthService } from '../services/bff-session-auth.service';
 
 /**
  * Guard de autenticación opcional que soporta múltiples métodos:
  * 1. JWT Bearer token (misma lógica que AuthGuard)
  * 2. Cookie de sesión de visitante V2 ('sid')
+ * 3. Cookies de sesión BFF conectado con Keycloak ('console_session', 'bff_sess', etc.)
  *
  * Este guard NO falla si no hay autenticación, pero pobla request.user
  * si encuentra credenciales válidas. Es responsabilidad del endpoint
@@ -25,6 +27,7 @@ export class OptionalAuthGuard implements CanActivate {
   constructor(
     private readonly tokenVerifyService: TokenVerifyService,
     private readonly visitorSessionAuthService: VisitorSessionAuthService,
+    private readonly bffSessionAuthService: BffSessionAuthService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -36,6 +39,14 @@ export class OptionalAuthGuard implements CanActivate {
       // Intentar autenticación por JWT Bearer token primero
       if (await this.tryJwtAuth(request)) {
         this.logger.debug('✅ Autenticación exitosa por JWT Bearer token');
+        return true;
+      }
+
+      // Intentar autenticación por cookies BFF de Keycloak
+      if (await this.tryBffSessionAuth(request)) {
+        this.logger.debug(
+          '✅ Autenticación exitosa por sesión BFF de Keycloak',
+        );
         return true;
       }
 
@@ -92,6 +103,63 @@ export class OptionalAuthGuard implements CanActivate {
       return true;
     } catch (error) {
       this.logger.debug(`JWT auth falló: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Intenta autenticar usando cookies de sesión BFF de Keycloak
+   */
+  private async tryBffSessionAuth(
+    request: AuthenticatedRequest,
+  ): Promise<boolean> {
+    try {
+      const cookieHeader = request.headers.cookie as string | undefined;
+
+      this.logger.debug(
+        `BFF session auth: cookie header presente: ${cookieHeader ? 'sí' : 'no'}`,
+      );
+
+      if (!cookieHeader) {
+        return false;
+      }
+
+      // Extraer posibles tokens BFF de las cookies
+      const bffTokens =
+        this.bffSessionAuthService.extractBffSessionTokens(cookieHeader);
+
+      this.logger.debug(`BFF tokens encontrados: ${bffTokens.length}`);
+
+      if (bffTokens.length === 0) {
+        return false;
+      }
+
+      // Intentar validar cada token hasta que uno funcione
+      for (const token of bffTokens) {
+        const bffUserInfo =
+          await this.bffSessionAuthService.validateBffSession(token);
+
+        if (bffUserInfo) {
+          // Poblar request.user con información del BFF
+          request.user = {
+            id: bffUserInfo.sub,
+            roles: bffUserInfo.roles,
+            username: bffUserInfo.email?.split('@')[0] || 'Usuario BFF',
+            email: bffUserInfo.email || '',
+            companyId: undefined, // BFF no tiene companyId directo
+          };
+
+          this.logger.debug(
+            `BFF auth exitosa: sub=${bffUserInfo.sub}, roles=[${bffUserInfo.roles.join(', ')}]`,
+          );
+
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      this.logger.debug(`BFF session auth falló: ${error}`);
       return false;
     }
   }

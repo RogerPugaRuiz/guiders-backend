@@ -9,6 +9,7 @@ import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { TokenVerifyService } from '../src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from '../src/context/shared/infrastructure/services/visitor-session-auth.service';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
 import { VISITOR_V2_REPOSITORY } from '../src/context/visitors-v2/domain/visitor-v2.repository';
 
@@ -62,6 +63,11 @@ const mockVisitorSessionAuthService = {
   validateSession: jest.fn(),
 };
 
+// Mock BffSessionAuthService
+const mockBffSessionAuthService = {
+  validateBffSession: jest.fn(),
+};
+
 describe('ChatV2Controller - Dual Authentication E2E', () => {
   let app: INestApplication;
 
@@ -79,6 +85,10 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
         {
           provide: VisitorSessionAuthService,
           useValue: mockVisitorSessionAuthService,
+        },
+        {
+          provide: BffSessionAuthService,
+          useValue: mockBffSessionAuthService,
         },
         {
           provide: VISITOR_V2_REPOSITORY,

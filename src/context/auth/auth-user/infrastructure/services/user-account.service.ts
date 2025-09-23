@@ -6,6 +6,7 @@ import { EntityManager } from 'typeorm';
 import { UserAccountEntity } from '../user-account.entity';
 import { UserAccountMapper } from '../user-account-mapper';
 import { UserAccountCompanyId } from '../../domain/value-objects/user-account-company-id';
+import { UserAccountKeycloakId } from '../../domain/value-objects/user-account-keycloak-id';
 
 @Injectable()
 export class UserAccountService implements UserAccountRepository {
@@ -32,6 +33,19 @@ export class UserAccountService implements UserAccountRepository {
     }
     const user = await this.entityManager.findOne(UserAccountEntity, {
       where: { email },
+    });
+    return this.userAccountMapper.fromEntity(user);
+  }
+
+  async findByKeycloakId(
+    keycloakId: UserAccountKeycloakId,
+  ): Promise<UserAccount | null> {
+    if (!keycloakId) {
+      this.logger.error('Keycloak ID is required');
+      return null;
+    }
+    const user = await this.entityManager.findOne(UserAccountEntity, {
+      where: { keycloakId: keycloakId.value },
     });
     return this.userAccountMapper.fromEntity(user);
   }

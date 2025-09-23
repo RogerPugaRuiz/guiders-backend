@@ -29,6 +29,11 @@ import { FindUsersByCompanyIdQueryHandler } from '../application/queries/find-us
 import { CreateInviteOnUserAccountCreatedEventHandler } from '../application/events/create-invite-on-user-account-created-event.handler';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { LinkUserWithKeycloakCommandHandler } from '../application/commands/link-user-with-keycloak-command.handler';
+import { FindUserByKeycloakIdQueryHandler } from '../application/queries/find-user-by-keycloak-id.query-handler';
+import { SyncUserWithKeycloakCommandHandler } from '../application/commands/sync-user-with-keycloak-command.handler';
+import { KeycloakRoleMapperService } from '../application/services/keycloak-role-mapper.service';
+import { VerifyRoleMappingQueryHandler } from '../application/queries/verify-role-mapping.query-handler';
 
 @Module({
   imports: [
@@ -58,6 +63,11 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     CreateInviteOnUserAccountCreatedEventHandler,
     AcceptInviteCommandHandler,
     FindUsersByCompanyIdQueryHandler,
+    LinkUserWithKeycloakCommandHandler,
+    FindUserByKeycloakIdQueryHandler,
+    SyncUserWithKeycloakCommandHandler,
+    KeycloakRoleMapperService,
+    VerifyRoleMappingQueryHandler,
   ],
   exports: [USER_ACCOUNT_REPOSITORY, PassportModule],
 })
