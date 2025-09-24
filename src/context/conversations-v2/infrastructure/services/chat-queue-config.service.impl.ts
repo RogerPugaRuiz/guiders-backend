@@ -22,7 +22,7 @@ export class ChatQueueConfigServiceImpl implements ChatQueueConfigService {
       10,
     ),
     notifyCommercialsOnNewChats:
-      process.env.CHAT_QUEUE_NOTIFY_COMMERCIALS === 'true' || true,
+      process.env.CHAT_QUEUE_NOTIFY_COMMERCIALS === 'false' ? false : true,
   };
 
   /**

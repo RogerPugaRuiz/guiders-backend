@@ -10,6 +10,7 @@ import {
   MESSAGE_V2_REPOSITORY,
   IMessageRepository,
 } from '../../../domain/message.repository';
+import { CHAT_QUEUE_CONFIG_SERVICE } from '../../../domain/services/chat-queue-config.service';
 import { ok, okVoid, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 
@@ -54,6 +55,18 @@ describe('CreateChatWithMessageCommandHandler', () => {
       mergeObjectContext: jest.fn(),
     };
 
+    const queueConfigServiceMock = {
+      shouldUseQueue: jest.fn().mockReturnValue(false),
+      getConfig: jest.fn().mockReturnValue({
+        queueModeEnabled: false,
+        maxQueueWaitTimeSeconds: 300,
+        maxQueueSizePerDepartment: 50,
+        notifyCommercialsOnNewChats: true,
+      }),
+      isQueueModeEnabled: jest.fn().mockReturnValue(false),
+      getMaxQueueWaitTime: jest.fn().mockReturnValue(300),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreateChatWithMessageCommandHandler,
@@ -64,6 +77,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
         {
           provide: MESSAGE_V2_REPOSITORY,
           useValue: messageRepositoryMock,
+        },
+        {
+          provide: CHAT_QUEUE_CONFIG_SERVICE,
+          useValue: queueConfigServiceMock,
         },
         {
           provide: EventPublisher,

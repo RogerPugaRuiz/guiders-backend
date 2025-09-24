@@ -5,6 +5,12 @@ describe('ChatQueueConfigServiceImpl', () => {
   let service: ChatQueueConfigServiceImpl;
 
   beforeEach(async () => {
+    // Limpiar variables de entorno antes de cada test
+    delete process.env.CHAT_QUEUE_MODE_ENABLED;
+    delete process.env.CHAT_QUEUE_MAX_WAIT_SECONDS;
+    delete process.env.CHAT_QUEUE_MAX_SIZE_PER_DEPARTMENT;
+    delete process.env.CHAT_QUEUE_NOTIFY_COMMERCIALS;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [ChatQueueConfigServiceImpl],
     }).compile();
@@ -23,8 +29,8 @@ describe('ChatQueueConfigServiceImpl', () => {
       const config = service.getConfig();
 
       expect(config.queueModeEnabled).toBe(false);
-      expect(config.maxQueueWaitTimeSeconds).toBe(300); // 5 minutos
-      expect(config.maxQueueSizePerDepartment).toBe(50);
+      expect(config.maxQueueWaitTimeSeconds).toBe(300); // 5 minutos por defecto según implementación
+      expect(config.maxQueueSizePerDepartment).toBe(50); // Valor por defecto según implementación
       expect(config.notifyCommercialsOnNewChats).toBe(true);
     });
   });
