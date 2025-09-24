@@ -30,9 +30,9 @@ if (isCIEnvironment) {
     console.log('🔧 Descargando binario MongoDB para CI');
   }
 
-  // Variables de MongoDB para tests E2E en CI - usar Memory Server
+  // Variables de MongoDB para tests E2E en CI - usar servicio real
   process.env.TEST_MONGODB_HOST = 'localhost';
-  process.env.TEST_MONGODB_PORT = '0'; // Puerto dinámico para Memory Server
+  process.env.TEST_MONGODB_PORT = '27017'; // Puerto estándar del servicio MongoDB
   process.env.TEST_MONGODB_DATABASE = 'guiders-test-e2e';
   process.env.TEST_MONGODB_ROOT_USERNAME = 'admin_test';
   process.env.TEST_MONGODB_ROOT_PASSWORD = 'admin123';

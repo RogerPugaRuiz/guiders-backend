@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     
     services:
-      # PostgreSQL para tests de integración
+      # PostgreSQL para tests de integración y E2E
       postgres:
         image: postgres:15
         env:
@@ -29,6 +29,21 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      
+      # MongoDB para tests E2E
+      mongodb:
+        image: mongo:5.0.13
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin_test
+          MONGO_INITDB_ROOT_PASSWORD: admin123
+          MONGO_INITDB_DATABASE: guiders-test-e2e
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 5
+        ports:
+          - 27017:27017
     
     steps:
       - name: Checkout code
@@ -122,11 +137,12 @@ jobs:
           TEST_DATABASE_USERNAME: postgres
           TEST_DATABASE_PASSWORD: postgres
           TEST_DATABASE: test
-          # MongoDB Memory Server configuración para E2E
-          MONGOMS_VERSION: '5.0.13'
-          MONGOMS_DISABLE_POSTINSTALL: '1'
-          MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
-          MONGOMS_SKIP_MD5: 'true'
+          # MongoDB para E2E (servicio real)
+          TEST_MONGODB_HOST: localhost
+          TEST_MONGODB_PORT: 27017
+          TEST_MONGODB_DATABASE: guiders-test-e2e
+          TEST_MONGODB_ROOT_USERNAME: admin_test
+          TEST_MONGODB_ROOT_PASSWORD: admin123
           # Variables de aplicación requeridas
           ENCRYPTION_KEY: 'test-encryption-key-32-chars-long!!'
           GLOBAL_TOKEN_SECRET: 'test-secret-key'

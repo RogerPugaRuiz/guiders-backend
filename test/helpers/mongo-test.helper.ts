@@ -9,39 +9,39 @@ export class MongoTestHelper {
   private static mongoServer: MongoMemoryServer | null = null;
 
   /**
-   * Inicia MongoDB Memory Server si estamos en CI, o usa configuración regular si es local
+   * Configura MongoDB para tests E2E - usa servicio real tanto en CI como localmente
    */
-  static async getMongooseModule(): Promise<any> {
+  static getMongooseModule(): any {
     const isCI =
       process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
     if (isCI) {
-      console.log('🔧 Configurando MongoDB Memory Server para CI...');
+      console.log('🔧 Configurando MongoDB para CI (servicio real)...');
 
-      // Configuración específica para CI
-      const mongoServer = await MongoMemoryServer.create({
-        binary: {
-          version: '5.0.13',
-          checkMD5: false,
-        },
-        instance: {
-          dbName: 'guiders-test-e2e',
-          port: undefined, // Puerto automático
-        },
-      });
+      // En CI usamos el servicio MongoDB real configurado en GitHub Actions
+      const mongoHost = process.env.TEST_MONGODB_HOST || 'localhost';
+      const mongoPort = process.env.TEST_MONGODB_PORT || '27017';
+      const mongoDatabase =
+        process.env.TEST_MONGODB_DATABASE || 'guiders-test-e2e';
+      const mongoUser = process.env.TEST_MONGODB_ROOT_USERNAME || 'admin_test';
+      const mongoPassword =
+        process.env.TEST_MONGODB_ROOT_PASSWORD || 'admin123';
 
-      this.mongoServer = mongoServer;
-      const uri = mongoServer.getUri();
+      const uri = `mongodb://${encodeURIComponent(mongoUser)}:${encodeURIComponent(mongoPassword)}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
 
-      console.log(`✅ MongoDB Memory Server iniciado en CI: ${uri}`);
+      console.log(
+        `✅ Conectando a MongoDB en CI: ${mongoHost}:${mongoPort}/${mongoDatabase}`,
+      );
 
       const options: MongooseModuleOptions = {
         uri,
         connectTimeoutMS: 30000,
         serverSelectionTimeoutMS: 30000,
         socketTimeoutMS: 30000,
-        maxPoolSize: 5,
-        minPoolSize: 1,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        retryWrites: true,
+        retryReads: true,
       };
 
       return MongooseModule.forRoot(uri, options);
@@ -76,7 +76,7 @@ export class MongoTestHelper {
   }
 
   /**
-   * Detiene MongoDB Memory Server si está corriendo
+   * Cleanup - solo relevante si se usa Memory Server en desarrollo local
    */
   static async cleanup(): Promise<void> {
     if (this.mongoServer) {
@@ -84,6 +84,8 @@ export class MongoTestHelper {
       await this.mongoServer.stop();
       this.mongoServer = null;
       console.log('✅ MongoDB Memory Server detenido');
+    } else {
+      console.log('✅ No hay MongoDB Memory Server para limpiar');
     }
   }
 
