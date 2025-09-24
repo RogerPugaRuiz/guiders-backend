@@ -50,7 +50,7 @@ export class MongoTestHelper {
       console.log('🔧 Usando configuración MongoDB local para E2E...');
 
       const mongoHost = process.env.TEST_MONGODB_HOST || 'localhost';
-      const mongoPort = process.env.TEST_MONGODB_PORT || '27018';
+      const mongoPort = process.env.TEST_MONGODB_PORT || '27017';
       const mongoDatabase = process.env.TEST_MONGODB_DATABASE || 'guiders-test';
       const mongoUser = process.env.TEST_MONGODB_ROOT_USERNAME || 'admin_test';
       const mongoPassword =

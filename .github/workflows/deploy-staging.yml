@@ -32,7 +32,7 @@ jobs:
       
       # MongoDB para tests E2E
       mongodb:
-        image: mongo:5.0.13
+        image: mongo:7.0
         env:
           MONGO_INITDB_ROOT_USERNAME: admin_test
           MONGO_INITDB_ROOT_PASSWORD: admin123
@@ -344,7 +344,7 @@ jobs:
           REDIS_URL=${{ secrets.STAGING_REDIS_URL }}
           MONGODB_HOST=localhost
           MONGODB_DATABASE=${{ secrets.STAGING_MONGODB_DATABASE }}
-          MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT }}
+          MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT || '27017' }}
           MONGODB_ROOT_USERNAME=${{ secrets.STAGING_MONGODB_ROOT_USERNAME }}
           MONGODB_ROOT_PASSWORD=${{ secrets.STAGING_MONGODB_ROOT_PASSWORD }}
           MONGODB_USERNAME=${{ secrets.STAGING_MONGODB_USERNAME || 'staging_user' }}

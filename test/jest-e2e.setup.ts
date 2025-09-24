@@ -20,7 +20,7 @@ if (!process.env.TEST_MONGODB_HOST) {
 }
 
 if (!process.env.TEST_MONGODB_PORT) {
-  process.env.TEST_MONGODB_PORT = '27018';
+  process.env.TEST_MONGODB_PORT = '27017';
 }
 
 if (!process.env.TEST_MONGODB_DATABASE) {
