@@ -13,6 +13,10 @@ import { Chat } from '../../domain/entities/chat.aggregate';
 import { Message } from '../../domain/entities/message.aggregate';
 import { ChatMetadata } from '../../domain/value-objects/chat-metadata';
 import { Result } from 'src/context/shared/domain/result';
+import {
+  ChatQueueConfigService,
+  CHAT_QUEUE_CONFIG_SERVICE,
+} from '../../domain/services/chat-queue-config.service';
 
 @CommandHandler(CreateChatWithMessageCommand)
 export class CreateChatWithMessageCommandHandler
@@ -27,19 +31,37 @@ export class CreateChatWithMessageCommandHandler
     private readonly chatRepository: IChatRepository,
     @Inject(MESSAGE_V2_REPOSITORY)
     private readonly messageRepository: IMessageRepository,
+    @Inject(CHAT_QUEUE_CONFIG_SERVICE)
+    private readonly queueConfigService: ChatQueueConfigService,
     private readonly publisher: EventPublisher,
   ) {}
 
   async execute(
     command: CreateChatWithMessageCommand,
   ): Promise<{ chatId: string; messageId: string; position: number }> {
-    // Crear el chat primero
+    // Determinar si usar cola o asignación directa
+    const defaultPriority = 'NORMAL'; // Prioridad por defecto
+    const shouldUseQueue = this.queueConfigService.shouldUseQueue(
+      'new-chat', // chatId temporal para la evaluación
+      defaultPriority,
+    );
+
+    // Crear el chat con configuración apropiada
     const chat = Chat.createPendingChat({
       visitorId: command.visitorId,
       visitorInfo: command.visitorInfo || {},
       availableCommercialIds: [], // Se asignarán comerciales disponibles según la lógica de negocio
+      priority: defaultPriority,
       metadata: command.metadata
         ? ChatMetadata.fromPrimitives(command.metadata).toPrimitives()
+        : undefined,
+      // Solo auto-asignar si el modo cola está desactivado
+      autoAssign: !shouldUseQueue,
+      autoAssignOptions: !shouldUseQueue
+        ? {
+            strategy: 'WORKLOAD_BALANCED',
+            maxWaitTimeSeconds: this.queueConfigService.getMaxQueueWaitTime(),
+          }
         : undefined,
     });
 

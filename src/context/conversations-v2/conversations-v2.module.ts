@@ -53,6 +53,7 @@ import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats
 import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.query-handler';
 import { GetChatMessagesQueryHandler } from './application/queries/get-chat-messages.query-handler';
 import { GetApplicableAssignmentRulesQueryHandler } from './application/queries/get-applicable-assignment-rules.query-handler';
+import { GetPendingQueueQueryHandler } from './application/queries/get-pending-queue.query-handler';
 
 // Event Handlers
 import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
@@ -60,6 +61,8 @@ import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from '
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
 import { ChatAutoAssignmentDomainServiceImpl } from './infrastructure/services/chat-auto-assignment.domain-service.impl';
+import { CHAT_QUEUE_CONFIG_SERVICE } from './domain/services/chat-queue-config.service';
+import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue-config.service.impl';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -115,6 +118,10 @@ import { ChatAutoAssignmentDomainServiceImpl } from './infrastructure/services/c
       provide: CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE,
       useClass: ChatAutoAssignmentDomainServiceImpl,
     },
+    {
+      provide: CHAT_QUEUE_CONFIG_SERVICE,
+      useClass: ChatQueueConfigServiceImpl,
+    },
 
     // Command Handlers
     JoinWaitingRoomCommandHandler,
@@ -132,6 +139,7 @@ import { ChatAutoAssignmentDomainServiceImpl } from './infrastructure/services/c
     GetChatByIdQueryHandler,
     GetChatMessagesQueryHandler,
     GetApplicableAssignmentRulesQueryHandler,
+    GetPendingQueueQueryHandler,
 
     // Event Handlers
     ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,

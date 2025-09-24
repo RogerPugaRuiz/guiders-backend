@@ -1258,15 +1258,62 @@ export class ChatV2Controller {
     status: 500,
     description: 'Error interno del servidor',
   })
-  getPendingQueue(): ChatResponseDto[] {
+  async getPendingQueue(
+    @Query('department') department?: string,
+    @Query('limit') limit?: number,
+  ): Promise<ChatResponseDto[]> {
     try {
-      this.logger.log('Obteniendo cola de chats pendientes');
+      this.logger.log(
+        `Obteniendo cola de chats pendientes. Departamento: ${department}, Límite: ${limit}`,
+      );
 
-      // TODO: Implementar query handler
-      // const query = new GetPendingQueueQuery({ department, limit });
+      // Importar dinámicamente la query para evitar dependencias circulares
+      const { GetPendingQueueQuery } = await import(
+        '../../application/queries/get-pending-queue.query'
+      );
 
-      // Respuesta temporal
-      return [];
+      const query = new GetPendingQueueQuery(department, limit);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const result: any = await this.queryBus.execute(query);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+      if (result && result.isErr && result.isErr()) {
+        this.logger.error(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          `Error al obtener cola pendiente: ${result.error?.message || 'Error desconocido'}`,
+        );
+        throw new HttpException(
+          'Error al obtener cola de chats pendientes',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      // Convertir chats de dominio a DTOs
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const chats = result?.value || [];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      return chats.map((chat: any) => ({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        id: chat.id.getValue(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        status: chat.status.value,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        priority: chat.priority.value,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        visitorId: chat.visitorId.getValue(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        assignedCommercialId: chat.assignedCommercialId?.getValue(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        totalMessages: chat.totalMessages,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        createdAt: chat.createdAt,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        updatedAt: chat.updatedAt,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        visitorInfo: chat.visitorInfo.toPrimitives(),
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+        metadata: chat.metadata?.toPrimitives(),
+      }));
     } catch (error) {
       this.logger.error('Error al obtener cola de chats pendientes:', error);
       throw new HttpException(
