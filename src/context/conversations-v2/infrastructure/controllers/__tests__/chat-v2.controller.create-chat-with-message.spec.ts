@@ -103,7 +103,7 @@ describe('ChatV2Controller - createChatWithMessage', () => {
     );
 
     // Mock del user en el request
-    app.use((req: any, res, next) => {
+    app.use((req: any, _res, next) => {
       req.user = mockUser;
       next();
     });

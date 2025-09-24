@@ -93,7 +93,7 @@ describe('ChatV2Controller - createChat', () => {
     app = module.createNestApplication();
 
     // Mock del user en el request
-    app.use((req: any, res, next) => {
+    app.use((req: any, _res, next) => {
       req.user = mockUser;
       next();
     });

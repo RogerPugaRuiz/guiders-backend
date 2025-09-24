@@ -45,7 +45,6 @@ class CreateChatWithMessageCommandHandler
   implements ICommandHandler<CreateChatWithMessageCommand>
 {
   execute(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _command: CreateChatWithMessageCommand,
   ): Promise<{ chatId: string; messageId: string; position: number }> {
     // Mock response basado en los datos del command

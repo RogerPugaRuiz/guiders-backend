@@ -9,6 +9,7 @@ import { ChatMetadata, ChatMetadataData } from '../value-objects/chat-metadata';
 import { ChatCreatedEvent } from '../events/chat-created.event';
 import { CommercialAssignedEvent } from '../events/commercial-assigned.event';
 import { ChatClosedEvent } from '../events/chat-closed.event';
+import { ChatAutoAssignmentRequestedEvent } from '../events/chat-auto-assignment-requested.event';
 import { Optional } from 'src/context/shared/domain/optional';
 
 /**
@@ -167,10 +168,16 @@ export class Chat extends AggregateRoot {
     availableCommercialIds: string[];
     priority?: string;
     metadata?: ChatMetadataData;
+    autoAssign?: boolean;
+    autoAssignOptions?: {
+      requiredSkills?: string[];
+      strategy?: string;
+      maxWaitTimeSeconds?: number;
+    };
   }): Chat {
     const now = new Date();
 
-    return Chat.create({
+    const chat = Chat.create({
       id: ChatId.generate(),
       status: ChatStatus.PENDING,
       priority: new ChatPriority(params.priority || 'NORMAL'),
@@ -186,6 +193,16 @@ export class Chat extends AggregateRoot {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Si se solicita auto-asignación, emitir el evento
+    if (params.autoAssign && params.availableCommercialIds.length > 0) {
+      chat.requestAutoAssignment({
+        ...params.autoAssignOptions,
+        reason: 'chat_created_with_auto_assign',
+      });
+    }
+
+    return chat;
   }
 
   /**
@@ -235,6 +252,48 @@ export class Chat extends AggregateRoot {
     );
 
     return updatedChat;
+  }
+
+  /**
+   * Solicita asignación automática del chat
+   * Emite un evento que será procesado por el domain service
+   */
+  public requestAutoAssignment(options?: {
+    requiredSkills?: string[];
+    strategy?: string;
+    maxWaitTimeSeconds?: number;
+    reason?: string;
+  }): Chat {
+    if (!this._status.canBeAssigned()) {
+      throw new Error('El chat no puede ser auto-asignado en su estado actual');
+    }
+
+    if (this._availableCommercialIds.length === 0) {
+      throw new Error('No hay comerciales disponibles para auto-asignación');
+    }
+
+    const now = new Date();
+
+    // Emitir evento de solicitud de auto-asignación
+    this.apply(
+      new ChatAutoAssignmentRequestedEvent({
+        autoAssignment: {
+          chatId: this._id.getValue(),
+          visitorId: this._visitorId.getValue(),
+          availableCommercialIds: this._availableCommercialIds.map((id) =>
+            id.getValue(),
+          ),
+          priority: this._priority.value,
+          requiredSkills: options?.requiredSkills,
+          strategy: options?.strategy,
+          maxWaitTimeSeconds: options?.maxWaitTimeSeconds,
+          requestedAt: now,
+          reason: options?.reason || 'auto_assignment_requested',
+        },
+      }),
+    );
+
+    return this;
   }
 
   /**

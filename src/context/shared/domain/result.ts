@@ -26,7 +26,7 @@ export class Ok<T, E extends DomainError> {
   }
 
   // En Ok, mapError no hace nada y cambia el tipo del error.
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+
   mapError<F extends DomainError>(_fn: (error: E) => F): Result<T, F> {
     return new Ok<T, F>(this.value);
   }
@@ -37,7 +37,7 @@ export class Ok<T, E extends DomainError> {
   }
 
   // Devuelve el valor o un valor por defecto (en Ok, siempre devuelve el valor).
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+
   unwrapOr(_default: T): T {
     return this.value;
   }
@@ -65,7 +65,7 @@ export class Err<T, E extends DomainError> {
   }
 
   // En caso de error, map no transforma el valor.
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+
   map<U>(_fn: (value: T) => U): Result<U, E> {
     return new Err<U, E>(this.error);
   }
@@ -86,7 +86,7 @@ export class Err<T, E extends DomainError> {
   }
 
   // Ejecuta onErr si es Err, onOk en caso contrario.
-  /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+
   fold<U>(onErr: (error: E) => U, _onOk: (value: T) => U): U {
     return onErr(this.error);
   }

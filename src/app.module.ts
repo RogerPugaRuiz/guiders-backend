@@ -19,6 +19,7 @@ import { VisitorsModule } from './context/visitors/infrastructure/visitors.modul
 import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
+import { CommercialModule } from './context/commercial/commercial.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -34,6 +35,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     TrackingModule,
     CompanyModule,
     ConversationsV2Module,
+    CommercialModule,
     WebSocketModule,
     ScheduleModule.forRoot(),
     // OpenSearchModule,

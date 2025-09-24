@@ -19,7 +19,6 @@ import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/applic
 class MockGetChatsWithFiltersQueryHandler
   implements IQueryHandler<GetChatsWithFiltersQuery>
 {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   execute(_query: GetChatsWithFiltersQuery): Promise<any> {
     return Promise.resolve({
       chats: [],

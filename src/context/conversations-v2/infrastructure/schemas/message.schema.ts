@@ -34,7 +34,7 @@ export const MessageContentSchemaDefinition =
   collection: 'messages_v2',
   timestamps: true,
   toJSON: {
-    transform: (doc: any, ret: any) => {
+    transform: (_doc: any, ret: any) => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
       ret.id = ret._id?.toString();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

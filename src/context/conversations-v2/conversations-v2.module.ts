@@ -5,10 +5,12 @@ import { HttpModule } from '@nestjs/axios';
 
 // Import dependencies from other modules
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
+import { CommercialModule } from '../commercial/commercial.module';
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
 import { MessageV2Controller } from './infrastructure/controllers/message-v2.controller';
+import { AssignmentRulesController } from './infrastructure/controllers/assignment-rules.controller';
 
 // Infrastructure
 import {
@@ -23,10 +25,12 @@ import { ChatMapper } from './infrastructure/mappers/chat.mapper';
 import { MessageMapper } from './infrastructure/mappers/message.mapper';
 import { MongoChatRepositoryImpl } from './infrastructure/persistence/impl/mongo-chat.repository.impl';
 import { MongoMessageRepositoryImpl } from './infrastructure/persistence/impl/mongo-message.repository.impl';
+import { InMemoryAssignmentRulesRepository } from './infrastructure/persistence/impl/in-memory-assignment-rules.repository.impl';
 
 // Domain
 import { CHAT_V2_REPOSITORY } from './domain/chat.repository';
 import { MESSAGE_V2_REPOSITORY } from './domain/message.repository';
+import { ASSIGNMENT_RULES_REPOSITORY } from './domain/assignment-rules.repository';
 
 // Guards
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
@@ -41,11 +45,21 @@ import { JoinWaitingRoomCommandHandler } from './application/commands/join-waiti
 import { ClearVisitorChatsCommandHandler } from './application/commands/clear-visitor-chats.command-handler';
 import { CreateChatWithMessageCommandHandler } from './application/commands/create-chat-with-message.command-handler';
 import { SendMessageCommandHandler } from './application/commands/send-message.command-handler';
+import { AutoAssignChatCommandHandler } from './application/commands/auto-assign-chat.command-handler';
+import { CreateAssignmentRulesCommandHandler } from './application/commands/create-assignment-rules.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
 import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.query-handler';
 import { GetChatMessagesQueryHandler } from './application/queries/get-chat-messages.query-handler';
+import { GetApplicableAssignmentRulesQueryHandler } from './application/queries/get-applicable-assignment-rules.query-handler';
+
+// Event Handlers
+import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
+
+// Domain Services
+import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
+import { ChatAutoAssignmentDomainServiceImpl } from './infrastructure/services/chat-auto-assignment.domain-service.impl';
 
 /**
  * Módulo principal para el contexto Conversations V2
@@ -56,12 +70,17 @@ import { GetChatMessagesQueryHandler } from './application/queries/get-chat-mess
     CqrsModule, // Para Command/Query handlers
     HttpModule, // Para TokenVerifyService
     VisitorsV2Module, // Para acceso al VisitorV2Repository
+    CommercialModule, // Para acceso al Commercial heartbeat service
     MongooseModule.forFeature([
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
       { name: MessageSchema.name, schema: MessageSchemaDefinition },
     ]),
   ],
-  controllers: [ChatV2Controller, MessageV2Controller],
+  controllers: [
+    ChatV2Controller,
+    MessageV2Controller,
+    AssignmentRulesController,
+  ],
   providers: [
     // Guards
     AuthGuard,
@@ -86,12 +105,24 @@ import { GetChatMessagesQueryHandler } from './application/queries/get-chat-mess
       provide: MESSAGE_V2_REPOSITORY,
       useClass: MongoMessageRepositoryImpl,
     },
+    {
+      provide: ASSIGNMENT_RULES_REPOSITORY,
+      useClass: InMemoryAssignmentRulesRepository,
+    },
+
+    // Domain Services
+    {
+      provide: CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE,
+      useClass: ChatAutoAssignmentDomainServiceImpl,
+    },
 
     // Command Handlers
     JoinWaitingRoomCommandHandler,
     ClearVisitorChatsCommandHandler,
     CreateChatWithMessageCommandHandler,
     SendMessageCommandHandler,
+    AutoAssignChatCommandHandler,
+    CreateAssignmentRulesCommandHandler,
     // AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
@@ -100,6 +131,10 @@ import { GetChatMessagesQueryHandler } from './application/queries/get-chat-mess
     GetChatsWithFiltersQueryHandler,
     GetChatByIdQueryHandler,
     GetChatMessagesQueryHandler,
+    GetApplicableAssignmentRulesQueryHandler,
+
+    // Event Handlers
+    ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

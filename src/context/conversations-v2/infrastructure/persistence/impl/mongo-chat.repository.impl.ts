@@ -660,8 +660,8 @@ export class MongoChatRepositoryImpl implements IChatRepository {
    * Implementación simplificada para evitar errores de TypeScript
    */
   async getResponseTimeStats(
-    dateFrom: Date,
-    dateTo: Date,
+    _dateFrom: Date,
+    _dateTo: Date,
     groupBy: 'hour' | 'day' | 'week',
   ): Promise<
     Result<
