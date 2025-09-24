@@ -109,6 +109,32 @@ jobs:
           # Configuración de timeout extendido para CI
           JEST_TIMEOUT: 120000
 
+      - name: Run E2E tests
+        run: npm run test:e2e:ci
+        env:
+          # Variables para tests E2E
+          NODE_ENV: test
+          CI: true
+          GITHUB_ACTIONS: true
+          # PostgreSQL para E2E
+          TEST_DATABASE_HOST: localhost
+          TEST_DATABASE_PORT: 5432
+          TEST_DATABASE_USERNAME: postgres
+          TEST_DATABASE_PASSWORD: postgres
+          TEST_DATABASE: test
+          # MongoDB Memory Server configuración para E2E
+          MONGOMS_VERSION: '5.0.13'
+          MONGOMS_DISABLE_POSTINSTALL: '1'
+          MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
+          MONGOMS_SKIP_MD5: 'true'
+          # Variables de aplicación requeridas
+          ENCRYPTION_KEY: 'test-encryption-key-32-chars-long!!'
+          GLOBAL_TOKEN_SECRET: 'test-secret-key'
+          ACCESS_TOKEN_EXPIRATION: '15m'
+          REFRESH_TOKEN_EXPIRATION: '7d'
+          # Configuración de timeout extendido para CI
+          JEST_TIMEOUT: 180000
+
   # Deploy real a staging (estructura similar a producción)
   deploy-staging:
     name: Deploy to Staging

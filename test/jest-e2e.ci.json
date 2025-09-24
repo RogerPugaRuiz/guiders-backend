@@ -1,0 +1,22 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.ts$": "ts-jest"
+  },
+  "moduleNameMapping": {
+    "^src/(.*)$": "<rootDir>/../src/$1",
+    "^jose$": "<rootDir>/../__mocks__/jose.js",
+    "^openid-client$": "<rootDir>/../__mocks__/openid-client.js"
+  },
+  "transformIgnorePatterns": [
+    "node_modules/(?!(jose|@nestjs/websockets|socket.io|openid-client|oauth4webapi)/)"
+  ],
+  "testTimeout": 120000,
+  "setupFilesAfterEnv": ["<rootDir>/jest-e2e.ci.setup.ts"],
+  "maxWorkers": 1,
+  "detectOpenHandles": true,
+  "forceExit": true
+}
