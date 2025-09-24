@@ -14,6 +14,15 @@ import {
 } from '../../domain/services/chat-queue-config.service';
 
 /**
+ * Error específico para el GetPendingQueueQueryHandler
+ */
+export class GetPendingQueueError extends DomainError {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+/**
  * Query Handler para obtener la cola de chats pendientes
  * Respeta la configuración del modo cola
  */
@@ -67,7 +76,7 @@ export class GetPendingQueueQueryHandler
     } catch (error) {
       this.logger.error('Error inesperado al obtener cola pendiente:', error);
       return err(
-        new DomainError(
+        new GetPendingQueueError(
           `Error inesperado al obtener cola pendiente: ${
             error instanceof Error ? error.message : String(error)
           }`,
