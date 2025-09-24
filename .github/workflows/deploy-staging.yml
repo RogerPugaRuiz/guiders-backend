@@ -31,6 +31,20 @@ jobs:
         ports:
           - 5432:5432
       
+      # Redis para sesiones y cache
+      redis:
+        image: redis:6
+        env:
+          REDIS_PASSWORD: ""
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+          --health-start-period 10s
+        ports:
+          - 6379:6379
+      
       # MongoDB para tests E2E
       mongodb:
         image: mongo:7.0
@@ -93,6 +107,52 @@ jobs:
           # Verificar instalación
           echo "✅ MongoDB instalado (si procede):"
           (command -v mongod && mongod --version | head -2) || echo "❌ mongod no disponible"
+      
+      - name: Install Redis tools and configure system
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools
+          
+          # Configurar sistema para Redis
+          sudo sysctl -w vm.overcommit_memory=1
+          sudo sysctl -w net.core.somaxconn=1024
+          echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
+      
+      - name: Wait for services to be ready
+        run: |
+          echo "🔄 Esperando a que los servicios estén listos..."
+          
+          # Esperar PostgreSQL
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
+              echo "✅ PostgreSQL listo"
+              break
+            fi
+            echo "⏳ Esperando PostgreSQL... ($i/30)"
+            sleep 2
+          done
+          
+          # Esperar Redis
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+              echo "✅ Redis listo"
+              break
+            fi
+            echo "⏳ Esperando Redis... ($i/30)"
+            sleep 2
+          done
+          
+          # Esperar MongoDB
+          for i in {1..30}; do
+            if mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+              echo "✅ MongoDB listo"
+              break
+            fi
+            echo "⏳ Esperando MongoDB... ($i/30)"
+            sleep 2
+          done
+          
+          echo "✅ Todos los servicios están listos"
       
       - name: Install dependencies with retry
         uses: nick-fields/retry@v3
