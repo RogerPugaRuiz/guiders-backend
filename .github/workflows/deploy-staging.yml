@@ -20,8 +20,9 @@ jobs:
       postgres:
         image: postgres:15
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
+          POSTGRES_DB: guiders_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -107,6 +108,12 @@ jobs:
         
   # Eliminado: verificación con MongoDB Memory Server, se verificará conectividad con mongosh posteriormente
         
+      - name: Clean dist folder to avoid Jest conflicts
+        run: rm -rf dist/
+      
+      - name: Ensure coverage directory exists
+        run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
+        
       - name: Run integration tests
         run: npm run test:int
         env:
@@ -116,13 +123,19 @@ jobs:
           DATABASE_PORT: 5432
           DATABASE_USERNAME: postgres
           DATABASE_PASSWORD: postgres
-          DATABASE: test
+          DATABASE: guiders_test
           # MongoDB Memory Server configuración
           MONGOMS_VERSION: '5.0.13'
           MONGOMS_DISABLE_POSTINSTALL: '1'
           MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
           # Configuración de timeout extendido para CI
           JEST_TIMEOUT: 120000
+
+      - name: Clean dist folder before E2E tests
+        run: rm -rf dist/
+
+      - name: Ensure coverage directory exists for E2E
+        run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
 
       - name: Run E2E tests
         run: npm run test:e2e:ci
@@ -136,7 +149,7 @@ jobs:
           TEST_DATABASE_PORT: 5432
           TEST_DATABASE_USERNAME: postgres
           TEST_DATABASE_PASSWORD: postgres
-          TEST_DATABASE: test
+          TEST_DATABASE: guiders_test
           # MongoDB para E2E (servicio real)
           TEST_MONGODB_HOST: localhost
           TEST_MONGODB_PORT: 27017
