@@ -1,7 +1,10 @@
-import { EventsHandler, IEventHandler, CommandBus } from '@nestjs/cqrs';
+import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+import { Result } from '../../../shared/domain/result';
 import { ChatAutoAssignmentRequestedEvent } from '../../domain/events/chat-auto-assignment-requested.event';
 import { AutoAssignChatCommand } from '../commands/auto-assign-chat.command';
+import { AutoAssignChatError } from '../commands/auto-assign-chat.command-handler';
 import { AssignmentStrategy } from '../../domain/services/chat-auto-assignment.domain-service';
 
 /**
@@ -45,17 +48,19 @@ export class ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler
         reason: autoAssignment.reason,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const result = await this.commandBus.execute(command);
+      const result: Result<
+        { assignedCommercialId: string },
+        AutoAssignChatError
+      > = await this.commandBus.execute(command);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      if (result && result.isOk && result.isOk()) {
+      if (result.isOk()) {
         this.logger.log(
           `✅ Auto-asignación exitosa para chat ${autoAssignment.chatId} → comercial ${result.value.assignedCommercialId}`,
         );
       } else {
+        const errorMessage = result.error.message || 'Error desconocido';
         this.logger.error(
-          `❌ Error en auto-asignación para chat ${autoAssignment.chatId}: ${result.error.message}`,
+          `❌ Error en auto-asignación para chat ${autoAssignment.chatId}: ${errorMessage}`,
         );
 
         // En caso de error, podrías implementar fallbacks como:
@@ -63,10 +68,7 @@ export class ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler
         // - Notificar a administradores
         // - Asignar manualmente a comercial por defecto
 
-        this.handleAssignmentFailure(
-          autoAssignment.chatId,
-          result.error.message,
-        );
+        this.handleAssignmentFailure(autoAssignment.chatId, errorMessage);
       }
     } catch (error) {
       const errorMessage = `Error inesperado procesando auto-asignación: ${
@@ -101,17 +103,20 @@ export class ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler
             reason: 'fallback_after_failure',
           });
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const fallbackResult = await this.commandBus.execute(fallbackCommand);
+          const fallbackResult: Result<
+            { assignedCommercialId: string },
+            AutoAssignChatError
+          > = await this.commandBus.execute(fallbackCommand);
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          if (fallbackResult && fallbackResult.isOk && fallbackResult.isOk()) {
+          if (fallbackResult.isOk()) {
             this.logger.log(
               `✅ Fallback exitoso para chat ${chatId} → comercial ${fallbackResult.value.assignedCommercialId}`,
             );
           } else {
+            const errorMessage =
+              fallbackResult.error.message || 'Error desconocido';
             this.logger.error(
-              `❌ Fallback también falló para chat ${chatId}: ${fallbackResult.error.message}`,
+              `❌ Fallback también falló para chat ${chatId}: ${errorMessage}`,
             );
           }
         } catch (fallbackError) {

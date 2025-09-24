@@ -6,6 +6,7 @@ import {
   IAssignmentRulesRepository,
   AssignmentRulesFilters,
 } from '../../../domain/assignment-rules.repository';
+import { AssignmentStrategy } from '../../../domain/services/chat-auto-assignment.domain-service';
 
 /**
  * Implementación en memoria del repositorio de reglas de asignamiento
@@ -38,13 +39,13 @@ export class InMemoryAssignmentRulesRepository
         }`,
       );
 
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     } catch (error) {
       const errorMessage = `Error al guardar reglas: ${
         error instanceof Error ? error.message : String(error)
       }`;
       this.logger.error(errorMessage);
-      return err(new AssignmentRulesError(errorMessage));
+      return Promise.resolve(err(new AssignmentRulesError(errorMessage)));
     }
   }
 
@@ -62,13 +63,13 @@ export class InMemoryAssignmentRulesRepository
         } - ${rules ? 'Encontradas' : 'No encontradas'}`,
       );
 
-      return ok(rules);
+      return Promise.resolve(ok(rules));
     } catch (error) {
       const errorMessage = `Error al buscar reglas: ${
         error instanceof Error ? error.message : String(error)
       }`;
       this.logger.error(errorMessage);
-      return err(new AssignmentRulesError(errorMessage));
+      return Promise.resolve(err(new AssignmentRulesError(errorMessage)));
     }
   }
 
@@ -93,7 +94,10 @@ export class InMemoryAssignmentRulesRepository
           return false;
         }
 
-        if (filters.strategy && rules.defaultStrategy !== filters.strategy) {
+        if (
+          filters.strategy &&
+          rules.defaultStrategy !== (filters.strategy as AssignmentStrategy)
+        ) {
           return false;
         }
 
@@ -104,13 +108,13 @@ export class InMemoryAssignmentRulesRepository
         `Filtrado de reglas: ${filteredRules.length}/${allRules.length} coincidencias`,
       );
 
-      return ok(filteredRules);
+      return Promise.resolve(ok(filteredRules));
     } catch (error) {
       const errorMessage = `Error al filtrar reglas: ${
         error instanceof Error ? error.message : String(error)
       }`;
       this.logger.error(errorMessage);
-      return err(new AssignmentRulesError(errorMessage));
+      return Promise.resolve(err(new AssignmentRulesError(errorMessage)));
     }
   }
 
@@ -121,11 +125,13 @@ export class InMemoryAssignmentRulesRepository
       const key = this.getKey(rules.companyId, rules.siteId);
 
       if (!this.rules.has(key)) {
-        return err(
-          new AssignmentRulesError(
-            `No se encontraron reglas para actualizar: ${rules.companyId}${
-              rules.siteId ? `:${rules.siteId}` : ''
-            }`,
+        return Promise.resolve(
+          err(
+            new AssignmentRulesError(
+              `No se encontraron reglas para actualizar: ${rules.companyId}${
+                rules.siteId ? `:${rules.siteId}` : ''
+              }`,
+            ),
           ),
         );
       }
@@ -138,13 +144,13 @@ export class InMemoryAssignmentRulesRepository
         }`,
       );
 
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     } catch (error) {
       const errorMessage = `Error al actualizar reglas: ${
         error instanceof Error ? error.message : String(error)
       }`;
       this.logger.error(errorMessage);
-      return err(new AssignmentRulesError(errorMessage));
+      return Promise.resolve(err(new AssignmentRulesError(errorMessage)));
     }
   }
 
@@ -157,11 +163,13 @@ export class InMemoryAssignmentRulesRepository
       const deleted = this.rules.delete(key);
 
       if (!deleted) {
-        return err(
-          new AssignmentRulesError(
-            `No se encontraron reglas para eliminar: ${companyId}${
-              siteId ? `:${siteId}` : ''
-            }`,
+        return Promise.resolve(
+          err(
+            new AssignmentRulesError(
+              `No se encontraron reglas para eliminar: ${companyId}${
+                siteId ? `:${siteId}` : ''
+              }`,
+            ),
           ),
         );
       }
@@ -170,13 +178,13 @@ export class InMemoryAssignmentRulesRepository
         `Reglas eliminadas para ${companyId}${siteId ? `:${siteId}` : ''}`,
       );
 
-      return ok(undefined);
+      return Promise.resolve(ok(undefined));
     } catch (error) {
       const errorMessage = `Error al eliminar reglas: ${
         error instanceof Error ? error.message : String(error)
       }`;
       this.logger.error(errorMessage);
-      return err(new AssignmentRulesError(errorMessage));
+      return Promise.resolve(err(new AssignmentRulesError(errorMessage)));
     }
   }
 

@@ -102,6 +102,9 @@ describe('Visitors E2E', () => {
       findByTenantId: jest.fn(),
       update: jest.fn(),
       findWithActiveSessions: jest.fn(),
+      findBySiteIdWithDetails: jest.fn(),
+      findWithUnassignedChatsBySiteId: jest.fn(),
+      findWithQueuedChatsBySiteId: jest.fn(),
     };
 
     mockCompanyRepository = {

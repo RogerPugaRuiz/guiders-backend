@@ -21,6 +21,9 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 
+// Shared types
+import { Result } from 'src/context/shared/domain/result';
+
 // Guards y decoradores
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
@@ -32,6 +35,7 @@ import {
 // Commands y Queries
 import { CreateAssignmentRulesCommand } from '../../application/commands/create-assignment-rules.command';
 import { GetApplicableAssignmentRulesQuery } from '../../application/queries/get-applicable-assignment-rules.query';
+import { GetApplicableAssignmentRulesError } from '../../application/queries/get-applicable-assignment-rules.query-handler';
 
 // DTOs
 import {
@@ -148,7 +152,10 @@ export class AssignmentRulesController {
       );
 
       const query = new GetApplicableAssignmentRulesQuery(companyId, siteId);
-      const result = await this.queryBus.execute(query);
+      const result: Result<
+        AssignmentRules | null,
+        GetApplicableAssignmentRulesError
+      > = await this.queryBus.execute(query);
 
       if (result.isOk()) {
         const rules = result.value;
@@ -161,6 +168,10 @@ export class AssignmentRulesController {
 
         return this.mapToResponseDto(rules);
       } else {
+        const errorMessage = result.error.message || 'Error desconocido';
+        this.logger.error(
+          `Error en query de reglas aplicables: ${errorMessage}`,
+        );
         throw new HttpException('Error del sistema', HttpStatus.BAD_REQUEST);
       }
     } catch (error) {

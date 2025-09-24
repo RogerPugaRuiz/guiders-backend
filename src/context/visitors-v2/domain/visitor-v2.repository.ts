@@ -71,4 +71,40 @@ export interface VisitorV2Repository {
     tenantId?: TenantId;
     limit?: number;
   }): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un sitio con información extendida para reportes
+   */
+  findBySiteIdWithDetails(
+    siteId: SiteId,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un sitio que tienen chats no asignados
+   */
+  findWithUnassignedChatsBySiteId(
+    siteId: SiteId,
+    options?: {
+      maxWaitTimeMinutes?: number;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un sitio que tienen chats en cola (PENDING)
+   */
+  findWithQueuedChatsBySiteId(
+    siteId: SiteId,
+    options?: {
+      priorityFilter?: string[];
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
 }
