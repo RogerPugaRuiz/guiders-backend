@@ -15,7 +15,7 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-import { AuthGuard } from '../../../shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
 import { GetVisitorsBySiteQuery } from '../../application/queries/get-visitors-by-site.query';
@@ -34,7 +34,7 @@ import {
 
 @ApiTags('Site Visitors Management')
 @Controller('site-visitors')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class SiteVisitorsController {
   private readonly logger = new Logger(SiteVisitorsController.name);

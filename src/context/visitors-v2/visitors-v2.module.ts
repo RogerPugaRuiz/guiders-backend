@@ -35,6 +35,8 @@ import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection
 import { SessionCleanupScheduler } from './application/services/session-cleanup.scheduler';
 import { SESSION_MANAGEMENT_SERVICE_PROVIDER } from './infrastructure/providers/session-management.provider';
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
+import { BffSessionAuthService } from '../shared/infrastructure/services/bff-session-auth.service';
+import { VisitorSessionAuthService } from '../shared/infrastructure/services/visitor-session-auth.service';
 
 @Module({
   imports: [
@@ -73,6 +75,8 @@ import { TokenVerifyService } from '../shared/infrastructure/token-verify.servic
     SESSION_MANAGEMENT_SERVICE_PROVIDER,
     SessionCleanupScheduler,
     TokenVerifyService,
+    BffSessionAuthService,
+    VisitorSessionAuthService,
   ],
   exports: [VISITOR_V2_REPOSITORY, VISITOR_CONNECTION_DOMAIN_SERVICE],
 })
