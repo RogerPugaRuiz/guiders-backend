@@ -35,8 +35,8 @@ jobs:
         image: mongo:7.0
         env:
           MONGO_INITDB_ROOT_USERNAME: admin_test
-          MONGO_INITDB_ROOT_PASSWORD: admin123
-          MONGO_INITDB_DATABASE: guiders-test-e2e
+          MONGO_INITDB_ROOT_PASSWORD: test_password
+          MONGO_INITDB_DATABASE: guiders_test
         options: >-
           --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
           --health-interval 10s
@@ -140,9 +140,9 @@ jobs:
           # MongoDB para E2E (servicio real)
           TEST_MONGODB_HOST: localhost
           TEST_MONGODB_PORT: 27017
-          TEST_MONGODB_DATABASE: guiders-test-e2e
+          TEST_MONGODB_DATABASE: guiders_test
           TEST_MONGODB_ROOT_USERNAME: admin_test
-          TEST_MONGODB_ROOT_PASSWORD: admin123
+          TEST_MONGODB_ROOT_PASSWORD: test_password
           # Variables de aplicación requeridas
           ENCRYPTION_KEY: 'test-encryption-key-32-chars-long!!'
           GLOBAL_TOKEN_SECRET: 'test-secret-key'

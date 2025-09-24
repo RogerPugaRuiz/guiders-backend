@@ -21,11 +21,10 @@ export class MongoTestHelper {
       // En CI usamos el servicio MongoDB real configurado en GitHub Actions
       const mongoHost = process.env.TEST_MONGODB_HOST || 'localhost';
       const mongoPort = process.env.TEST_MONGODB_PORT || '27017';
-      const mongoDatabase =
-        process.env.TEST_MONGODB_DATABASE || 'guiders-test-e2e';
+      const mongoDatabase = process.env.TEST_MONGODB_DATABASE || 'guiders_test';
       const mongoUser = process.env.TEST_MONGODB_ROOT_USERNAME || 'admin_test';
       const mongoPassword =
-        process.env.TEST_MONGODB_ROOT_PASSWORD || 'admin123';
+        process.env.TEST_MONGODB_ROOT_PASSWORD || 'test_password';
 
       const uri = `mongodb://${encodeURIComponent(mongoUser)}:${encodeURIComponent(mongoPassword)}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
 
@@ -51,10 +50,10 @@ export class MongoTestHelper {
 
       const mongoHost = process.env.TEST_MONGODB_HOST || 'localhost';
       const mongoPort = process.env.TEST_MONGODB_PORT || '27017';
-      const mongoDatabase = process.env.TEST_MONGODB_DATABASE || 'guiders-test';
+      const mongoDatabase = process.env.TEST_MONGODB_DATABASE || 'guiders_test';
       const mongoUser = process.env.TEST_MONGODB_ROOT_USERNAME || 'admin_test';
       const mongoPassword =
-        process.env.TEST_MONGODB_ROOT_PASSWORD || 'admin123';
+        process.env.TEST_MONGODB_ROOT_PASSWORD || 'test_password';
 
       const uri = `mongodb://${encodeURIComponent(mongoUser)}:${encodeURIComponent(mongoPassword)}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
 

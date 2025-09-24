@@ -12,7 +12,7 @@ if (!process.env.TEST_MONGODB_ROOT_USERNAME) {
 }
 
 if (!process.env.TEST_MONGODB_ROOT_PASSWORD) {
-  process.env.TEST_MONGODB_ROOT_PASSWORD = 'admin123';
+  process.env.TEST_MONGODB_ROOT_PASSWORD = 'test_password';
 }
 
 if (!process.env.TEST_MONGODB_HOST) {
@@ -24,7 +24,7 @@ if (!process.env.TEST_MONGODB_PORT) {
 }
 
 if (!process.env.TEST_MONGODB_DATABASE) {
-  process.env.TEST_MONGODB_DATABASE = 'guiders-test';
+  process.env.TEST_MONGODB_DATABASE = 'guiders_test';
 }
 
 // Configurar variables de PostgreSQL para tests

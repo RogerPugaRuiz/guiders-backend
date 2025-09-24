@@ -33,9 +33,9 @@ if (isCIEnvironment) {
   // Variables de MongoDB para tests E2E en CI - usar servicio real
   process.env.TEST_MONGODB_HOST = 'localhost';
   process.env.TEST_MONGODB_PORT = '27017'; // Puerto estándar del servicio MongoDB
-  process.env.TEST_MONGODB_DATABASE = 'guiders-test-e2e';
+  process.env.TEST_MONGODB_DATABASE = 'guiders_test';
   process.env.TEST_MONGODB_ROOT_USERNAME = 'admin_test';
-  process.env.TEST_MONGODB_ROOT_PASSWORD = 'admin123';
+  process.env.TEST_MONGODB_ROOT_PASSWORD = 'test_password';
 
   // Variables de PostgreSQL para tests E2E en CI
   process.env.TEST_DATABASE_HOST = 'localhost';
@@ -52,7 +52,7 @@ if (isCIEnvironment) {
   }
 
   if (!process.env.TEST_MONGODB_ROOT_PASSWORD) {
-    process.env.TEST_MONGODB_ROOT_PASSWORD = 'admin123';
+    process.env.TEST_MONGODB_ROOT_PASSWORD = 'test_password';
   }
 
   if (!process.env.TEST_MONGODB_HOST) {
@@ -64,7 +64,7 @@ if (isCIEnvironment) {
   }
 
   if (!process.env.TEST_MONGODB_DATABASE) {
-    process.env.TEST_MONGODB_DATABASE = 'guiders-test';
+    process.env.TEST_MONGODB_DATABASE = 'guiders_test';
   }
 
   // Configurar variables de PostgreSQL para tests
