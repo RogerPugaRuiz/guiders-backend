@@ -418,6 +418,8 @@ jobs:
           echo "MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
           echo "MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "TEST_MONGODB_HOST=localhost" >> $GITHUB_ENV
+          echo "TEST_MONGODB_PORT=27017" >> $GITHUB_ENV
           echo "TEST_MONGODB_ROOT_USERNAME=admin_test" >> $GITHUB_ENV
           echo "TEST_MONGODB_ROOT_PASSWORD=test_password" >> $GITHUB_ENV
           echo "TEST_MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
@@ -710,6 +712,8 @@ jobs:
           echo "MONGODB_USERNAME=admin_test" >> $GITHUB_ENV
           echo "MONGODB_PASSWORD=test_password" >> $GITHUB_ENV
           echo "MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
+          echo "TEST_MONGODB_HOST=localhost" >> $GITHUB_ENV
+          echo "TEST_MONGODB_PORT=27017" >> $GITHUB_ENV
           echo "TEST_MONGODB_ROOT_USERNAME=admin_test" >> $GITHUB_ENV
           echo "TEST_MONGODB_ROOT_PASSWORD=test_password" >> $GITHUB_ENV
           echo "TEST_MONGODB_DATABASE=guiders_test" >> $GITHUB_ENV
