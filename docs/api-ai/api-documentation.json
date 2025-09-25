@@ -283,7 +283,7 @@
               "method": "POST",
               "path": "/visitors/identify",
               "summary": "Identificar visitante",
-              "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key. Este endpoint utiliza el patrón de resolución automática domain→tenant/site para identificar y gestionar visitantes.",
+              "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key. El sistema valida automáticamente la API Key contra el dominio proporcionado, resuelve el tenantId y siteId internamente, y procede a identificar al visitante. Si el fingerprint ya existe en el sitio, actualiza al visitante existente. Si no existe, crea un nuevo Visitor en estado inicial (anónimo). Inicia una nueva Session asociada al visitante y devuelve un identificador de sesión en cookie HttpOnly.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -297,124 +297,91 @@
                   "schema": {
                     "type": "object",
                     "properties": {
+                      "fingerprint": {
+                        "type": "string",
+                        "description": "Huella digital única del visitante (browser fingerprint)",
+                        "example": "fp_abc123def456"
+                      },
                       "domain": {
                         "type": "string",
-                        "description": "Dominio del sitio web",
-                        "example": "mytech.com"
+                        "description": "Dominio donde está el visitante",
+                        "example": "landing.mytech.com"
                       },
                       "apiKey": {
                         "type": "string",
-                        "description": "API Key del sitio",
-                        "example": "gd_live_sk_abc123def456"
+                        "description": "API Key para autenticación",
+                        "example": "ak_live_1234567890abcdef"
                       },
-                      "visitorId": {
+                      "currentUrl": {
                         "type": "string",
-                        "description": "ID único del visitante (opcional, se genera si no se proporciona)",
-                        "example": "visitor_550e8400e29b41d4a716446655440000"
-                      },
-                      "email": {
-                        "type": "string",
-                        "description": "Email del visitante (opcional)",
-                        "example": "visitante@ejemplo.com"
-                      },
-                      "name": {
-                        "type": "string",
-                        "description": "Nombre del visitante (opcional)",
-                        "example": "Juan Pérez"
-                      },
-                      "userAgent": {
-                        "type": "string",
-                        "description": "User agent del navegador",
-                        "example": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-                      },
-                      "ip": {
-                        "type": "string",
-                        "description": "Dirección IP del visitante",
-                        "example": "192.168.1.100"
+                        "description": "URL de la página actual (opcional)",
+                        "example": "https://landing.mytech.com/home"
                       }
                     },
-                    "required": ["domain", "apiKey"]
+                    "required": ["fingerprint", "domain", "apiKey"]
                   }
                 }
               },
               "responses": [
                 {
-                  "status": 201,
-                  "description": "Visitante identificado/creado exitosamente",
+                  "status": 200,
+                  "description": "Visitante identificado exitosamente",
                   "schema": {
                     "type": "object",
                     "properties": {
                       "visitorId": {
                         "type": "string",
-                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                        "description": "ID único del visitante",
+                        "example": "550e8400-e29b-41d4-a716-446655440002"
                       },
                       "sessionId": {
                         "type": "string",
-                        "example": "session_650e8400e29b41d4a716446655440001"
+                        "description": "ID de la sesión activa",
+                        "example": "550e8400-e29b-41d4-a716-446655440003"
                       },
-                      "siteId": {
+                      "lifecycle": {
                         "type": "string",
-                        "example": "550e8400-e29b-41d4-a716-446655440000"
-                      },
-                      "tenantId": {
-                        "type": "string",
-                        "example": "550e8400-e29b-41d4-a716-446655440001"
+                        "description": "Estado del ciclo de vida del visitante",
+                        "example": "ANON",
+                        "enum": ["ANON", "ENGAGED", "LEAD", "CONVERTED"]
                       },
                       "isNewVisitor": {
                         "type": "boolean",
-                        "example": true
-                      },
-                      "lastActivityAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "example": "2025-09-20T10:30:00Z"
+                        "description": "Indica si es un visitante nuevo o existente",
+                        "example": false
                       }
                     }
                   }
                 },
                 {
                   "status": 400,
-                  "description": "Datos de entrada inválidos",
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "error": {
-                        "type": "string",
-                        "example": "Domain y apiKey son requeridos"
-                      }
-                    }
-                  }
+                  "description": "Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)"
                 },
                 {
                   "status": 401,
-                  "description": "API Key inválida",
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "error": {
-                        "type": "string",
-                        "example": "API Key inválida para el dominio especificado"
-                      }
-                    }
-                  }
+                  "description": "API Key no válida para el dominio proporcionado"
+                },
+                {
+                  "status": 404,
+                  "description": "Dominio no encontrado en el sistema"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
                 }
               ],
               "examples": {
                 "request": {
-                  "domain": "mytech.com",
-                  "apiKey": "gd_live_sk_abc123def456",
-                  "email": "visitante@ejemplo.com",
-                  "name": "Juan Pérez",
-                  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
-                  "ip": "192.168.1.100"
+                  "fingerprint": "fp_abc123def456",
+                  "domain": "landing.mytech.com",
+                  "apiKey": "ak_live_1234567890abcdef",
+                  "currentUrl": "https://landing.mytech.com/home"
                 },
                 "response": {
-                  "visitorId": "visitor_550e8400e29b41d4a716446655440000",
-                  "sessionId": "session_650e8400e29b41d4a716446655440001",
-                  "siteId": "550e8400-e29b-41d4-a716-446655440000",
-                  "tenantId": "550e8400-e29b-41d4-a716-446655440001",
-                  "isNewVisitor": true,
-                  "lastActivityAt": "2025-09-20T10:30:00Z"
+                  "visitorId": "550e8400-e29b-41d4-a716-446655440002",
+                  "sessionId": "550e8400-e29b-41d4-a716-446655440003",
+                  "lifecycle": "ANON",
+                  "isNewVisitor": false
                 }
               }
             },
@@ -438,16 +405,16 @@
                     "properties": {
                       "sessionId": {
                         "type": "string",
-                        "description": "ID de la sesión activa",
-                        "example": "session_650e8400e29b41d4a716446655440001"
+                        "description": "ID de la sesión activa (puede venir de cookie o body)",
+                        "example": "550e8400-e29b-41d4-a716-446655440003"
                       },
                       "visitorId": {
                         "type": "string",
-                        "description": "ID del visitante",
-                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                        "description": "ID del visitante (opcional para validación adicional)",
+                        "example": "550e8400-e29b-41d4-a716-446655440002"
                       }
                     },
-                    "required": ["sessionId", "visitorId"]
+                    "required": []
                   }
                 }
               },
@@ -462,14 +429,9 @@
                         "type": "boolean",
                         "example": true
                       },
-                      "lastActivityAt": {
+                      "message": {
                         "type": "string",
-                        "format": "date-time",
-                        "example": "2025-09-20T10:35:00Z"
-                      },
-                      "sessionStatus": {
-                        "type": "string",
-                        "example": "ACTIVE"
+                        "example": "Heartbeat actualizado exitosamente"
                       }
                     }
                   }
@@ -520,21 +482,21 @@
                     "properties": {
                       "sessionId": {
                         "type": "string",
-                        "description": "ID de la sesión a cerrar",
-                        "example": "session_650e8400e29b41d4a716446655440001"
+                        "description": "ID de la sesión a cerrar (puede venir de cookie o body)",
+                        "example": "550e8400-e29b-41d4-a716-446655440003"
                       },
                       "visitorId": {
                         "type": "string",
-                        "description": "ID del visitante",
-                        "example": "visitor_550e8400e29b41d4a716446655440000"
+                        "description": "ID del visitante (opcional para validación adicional)",
+                        "example": "550e8400-e29b-41d4-a716-446655440002"
                       },
                       "reason": {
                         "type": "string",
-                        "description": "Motivo del cierre (opcional)",
-                        "example": "EXPLICIT_LOGOUT"
+                        "description": "Razón del cierre de sesión (opcional)",
+                        "example": "Usuario cerró la ventana"
                       }
                     },
-                    "required": ["sessionId", "visitorId"]
+                    "required": []
                   }
                 }
               },
@@ -549,19 +511,9 @@
                         "type": "boolean",
                         "example": true
                       },
-                      "sessionId": {
+                      "message": {
                         "type": "string",
-                        "example": "session_650e8400e29b41d4a716446655440001"
-                      },
-                      "endedAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "example": "2025-09-20T11:00:00Z"
-                      },
-                      "duration": {
-                        "type": "number",
-                        "description": "Duración de la sesión en segundos",
-                        "example": 1800
+                        "example": "Sesión cerrada exitosamente"
                       }
                     }
                   }

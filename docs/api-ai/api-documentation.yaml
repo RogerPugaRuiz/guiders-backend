@@ -193,7 +193,7 @@ contexts:
           - method: "POST"
             path: "/visitors/identify"
             summary: "Identificar visitante"
-            description: "Registra o actualiza un visitante en el sistema usando dominio y API Key"
+            description: "Registra o actualiza un visitante en el sistema usando dominio y API Key. El sistema valida automáticamente la API Key contra el dominio proporcionado, resuelve el tenantId y siteId internamente, y procede a identificar al visitante. Si el fingerprint ya existe en el sitio, actualiza al visitante existente. Si no existe, crea un nuevo Visitor en estado inicial (anónimo). Inicia una nueva Session asociada al visitante y devuelve un identificador de sesión en cookie HttpOnly."
             tags: []
             auth:
               required: false
@@ -206,78 +206,169 @@ contexts:
                 schema:
                   type: "object"
                   properties:
+                    fingerprint:
+                      type: "string"
+                      description: "Huella digital única del visitante (browser fingerprint)"
+                      example: "fp_abc123def456"
                     domain:
                       type: "string"
-                      description: "Dominio del sitio web"
-                      example: "mytech.com"
+                      description: "Dominio donde está el visitante"
+                      example: "landing.mytech.com"
                     apiKey:
                       type: "string"
-                      description: "API Key del sitio"
-                      example: "gd_live_sk_abc123def456"
-                    visitorId:
+                      description: "API Key para autenticación"
+                      example: "ak_live_1234567890abcdef"
+                    currentUrl:
                       type: "string"
-                      description: "ID único del visitante (opcional)"
-                      example: "visitor_550e8400e29b41d4a716446655440000"
-                    email:
-                      type: "string"
-                      description: "Email del visitante (opcional)"
-                      example: "visitante@ejemplo.com"
-                    name:
-                      type: "string"
-                      description: "Nombre del visitante (opcional)"
-                      example: "Juan Pérez"
+                      description: "URL de la página actual (opcional)"
+                      example: "https://landing.mytech.com/home"
                   required:
+                    - "fingerprint"
                     - "domain"
                     - "apiKey"
             responses:
-              - status: 201
+              - status: 200
                 description: "Visitante identificado exitosamente"
                 schema:
                   type: "object"
                   properties:
                     visitorId:
                       type: "string"
-                      example: "visitor_550e8400e29b41d4a716446655440000"
+                      description: "ID único del visitante"
+                      example: "550e8400-e29b-41d4-a716-446655440002"
                     sessionId:
                       type: "string"
-                      example: "session_650e8400e29b41d4a716446655440001"
-                    siteId:
+                      description: "ID de la sesión activa"
+                      example: "550e8400-e29b-41d4-a716-446655440003"
+                    lifecycle:
                       type: "string"
-                      example: "550e8400-e29b-41d4-a716-446655440000"
-                    tenantId:
-                      type: "string"
-                      example: "550e8400-e29b-41d4-a716-446655440001"
+                      description: "Estado del ciclo de vida del visitante"
+                      example: "ANON"
+                      enum: ["ANON", "ENGAGED", "LEAD", "CONVERTED"]
                     isNewVisitor:
                       type: "boolean"
-                      example: true
+                      description: "Indica si es un visitante nuevo o existente"
+                      example: false
               - status: 400
-                description: "Datos inválidos"
-                schema:
-                  type: "object"
-                  properties:
-                    error:
-                      type: "string"
-                      example: "Domain y apiKey son requeridos"
+                description: "Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)"
               - status: 401
-                description: "API Key inválida"
-                schema:
-                  type: "object"
-                  properties:
-                    error:
-                      type: "string"
-                      example: "API Key inválida para el dominio especificado"
+                description: "API Key no válida para el dominio proporcionado"
+              - status: 404
+                description: "Dominio no encontrado en el sistema"
+              - status: 500
+                description: "Error interno del servidor"
             examples:
               request:
-                domain: "mytech.com"
-                apiKey: "gd_live_sk_abc123def456"
-                email: "visitante@ejemplo.com"
-                name: "Juan Pérez"
+                fingerprint: "fp_abc123def456"
+                domain: "landing.mytech.com"
+                apiKey: "ak_live_1234567890abcdef"
+                currentUrl: "https://landing.mytech.com/home"
               response:
-                visitorId: "visitor_550e8400e29b41d4a716446655440000"
-                sessionId: "session_650e8400e29b41d4a716446655440001"
-                siteId: "550e8400-e29b-41d4-a716-446655440000"
-                tenantId: "550e8400-e29b-41d4-a716-446655440001"
-                isNewVisitor: true
+                visitorId: "550e8400-e29b-41d4-a716-446655440002"
+                sessionId: "550e8400-e29b-41d4-a716-446655440003"
+                lifecycle: "ANON"
+                isNewVisitor: false
+          - method: "POST"
+            path: "/visitors/session/heartbeat"
+            summary: "Actualizar heartbeat de sesión"
+            description: "Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). Mientras se reciban heartbeats, el visitante se considera online."
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos para el heartbeat de la sesión"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    sessionId:
+                      type: "string"
+                      description: "ID de la sesión activa (puede venir de cookie o body)"
+                      example: "550e8400-e29b-41d4-a716-446655440003"
+                    visitorId:
+                      type: "string"
+                      description: "ID del visitante (opcional para validación adicional)"
+                      example: "550e8400-e29b-41d4-a716-446655440002"
+                  required: []
+            responses:
+              - status: 200
+                description: "Heartbeat actualizado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    success:
+                      type: "boolean"
+                      example: true
+                    message:
+                      type: "string"
+                      example: "Heartbeat actualizado exitosamente"
+              - status: 400
+                description: "Datos inválidos o sesión no encontrada"
+              - status: 404
+                description: "Sesión no encontrada"
+            examples:
+              request:
+                sessionId: "550e8400-e29b-41d4-a716-446655440003"
+                visitorId: "550e8400-e29b-41d4-a716-446655440002"
+              response:
+                success: true
+                message: "Heartbeat actualizado exitosamente"
+          - method: "POST"
+            path: "/visitors/session/end"
+            summary: "Cerrar sesión de visitante"
+            description: "Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de activos."
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos para cerrar la sesión"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    sessionId:
+                      type: "string"
+                      description: "ID de la sesión a cerrar (puede venir de cookie o body)"
+                      example: "550e8400-e29b-41d4-a716-446655440003"
+                    visitorId:
+                      type: "string"
+                      description: "ID del visitante (opcional para validación adicional)"
+                      example: "550e8400-e29b-41d4-a716-446655440002"
+                    reason:
+                      type: "string"
+                      description: "Razón del cierre de sesión (opcional)"
+                      example: "Usuario cerró la ventana"
+                  required: []
+            responses:
+              - status: 200
+                description: "Sesión cerrada exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    success:
+                      type: "boolean"
+                      example: true
+                    message:
+                      type: "string"
+                      example: "Sesión cerrada exitosamente"
+              - status: 400
+                description: "Datos inválidos o sesión no encontrada"
+              - status: 404
+                description: "Sesión no encontrada"
+            examples:
+              request:
+                sessionId: "550e8400-e29b-41d4-a716-446655440003"
+                visitorId: "550e8400-e29b-41d4-a716-446655440002"
+                reason: "Usuario cerró la ventana"
+              response:
+                success: true
+                message: "Sesión cerrada exitosamente"
         filePath: "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
 
   - name: "conversations-v2"
