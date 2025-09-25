@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T08:32:27.680Z",
+  "generated": "2025-09-25T18:31:26.433Z",
   "baseUrl": "http://localhost:3000",
   "info": {
     "description": "API completa para sistema de chat Guiders - Documentación autoexplicativa para IA",
@@ -825,7 +825,8 @@
           "POST": {
             "summary": "Resolver sitio por host",
             "auth": {
-              "required": false
+              "required": true,
+              "type": "Bearer"
             },
             "responses": []
           }

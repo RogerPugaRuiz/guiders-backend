@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T08:32:27.679Z",
+  "generated": "2025-09-25T18:31:26.427Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -1458,9 +1458,9 @@
               "description": "Resuelve el host actual del navegador (ejemplo: landing.mytech.com) y determina a qué site y tenant pertenece. El host es solo un alias que se mapea al modelo interno (siteId, tenantId) para trabajar con identidades estables.",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [],
-                "bearer": false
+                "bearer": true
               },
               "parameters": {
                 "path": [],

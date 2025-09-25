@@ -10,6 +10,10 @@ import {
   VisitorV2Repository,
 } from '../../domain/visitor-v2.repository';
 import { SiteId } from '../../domain/value-objects/site-id';
+import {
+  COMPANY_REPOSITORY,
+  CompanyRepository,
+} from '../../../company/domain/company.repository';
 
 @QueryHandler(GetVisitorsBySiteQuery)
 export class GetVisitorsBySiteQueryHandler
@@ -20,6 +24,8 @@ export class GetVisitorsBySiteQueryHandler
   constructor(
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
+    @Inject(COMPANY_REPOSITORY)
+    private readonly companyRepository: CompanyRepository,
   ) {}
 
   async execute(
@@ -46,7 +52,12 @@ export class GetVisitorsBySiteQueryHandler
         throw new Error(visitorsResult.error.message);
       }
 
-      const visitors = visitorsResult.value;
+  const visitors = visitorsResult.value;
+
+  // Resolver nombre real del sitio desde el contexto de company.
+  // Estrategia: buscar el site en las compañías y utilizar su canonicalDomain como nombre preferente.
+  // Fallback: mantener placeholder si no se encuentra.
+  const siteName = await resolveSiteName(this.companyRepository, siteId);
 
       const visitorDtos: SiteVisitorInfoDto[] = visitors.map((visitor) => {
         const sessions = visitor.getSessions();
@@ -74,7 +85,7 @@ export class GetVisitorsBySiteQueryHandler
 
       return {
         siteId: query.siteId,
-        siteName: `Sitio ${query.siteId}`, // TODO: Obtener nombre real del sitio
+        siteName,
         visitors: visitorDtos,
         totalCount: visitorDtos.length,
         timestamp: new Date(),
@@ -86,5 +97,39 @@ export class GetVisitorsBySiteQueryHandler
       );
       throw error;
     }
+  }
+
+}
+
+// Métodos privados auxiliares
+export interface HasToPrimitives<T> {
+  toPrimitives(): T;
+}
+// Nota: preferimos el dominio canónico como nombre visible; si no, usamos el nombre del site (que puede ser genérico en el mapper actual).
+// Si no se encuentra el site, devolvemos un placeholder explícito.
+async function resolveSiteName(
+  companyRepository: CompanyRepository,
+  siteId: SiteId,
+): Promise<string> {
+  try {
+    const companiesResult = await companyRepository.findAll();
+    if (companiesResult.isErr()) return `Sitio ${siteId.value}`;
+    for (const company of companiesResult.value) {
+      const site = company.getSites().findSiteById(siteId.value);
+      if (site) {
+        const primitives = site.toPrimitives() as {
+          name: string;
+          canonicalDomain: string;
+        };
+        return (
+          primitives.canonicalDomain ||
+          primitives.name ||
+          `Sitio ${siteId.value}`
+        );
+      }
+    }
+    return `Sitio ${siteId.value}`;
+  } catch {
+    return `Sitio ${siteId.value}`;
   }
 }

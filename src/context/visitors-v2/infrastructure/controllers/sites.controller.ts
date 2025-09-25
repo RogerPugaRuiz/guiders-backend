@@ -7,6 +7,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import {
@@ -15,12 +16,16 @@ import {
   ApiQuery,
   ApiOkResponse,
   ApiResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { ResolveSiteCommand } from '../../application/commands/resolve-site.command';
 import { ResolveSiteResponseDto } from '../../application/dtos/resolve-site-response.dto';
 
 @ApiTags('sites')
 @Controller('sites')
+@UseGuards(DualAuthGuard)
+@ApiBearerAuth()
 export class SitesController {
   private readonly logger = new Logger(SitesController.name);
 

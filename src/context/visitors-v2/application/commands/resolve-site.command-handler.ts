@@ -43,10 +43,13 @@ export class ResolveSiteCommandHandler
       );
     }
 
+    // Preferimos el dominio canónico como nombre visible del site.
+    const resolvedSiteName = targetSite.canonicalDomain || targetSite.name;
+
     return new ResolveSiteResponseDto(
       company.getId().getValue(),
       targetSite.id,
-      targetSite.name,
+      resolvedSiteName,
       company.getCompanyName().getValue(),
     );
   }
