@@ -22,7 +22,6 @@ import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guar
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
-import { GetPendingQueueQuery } from '../src/context/conversations-v2/application/queries/get-pending-queue.query';
 import { GetPendingQueueQueryHandler } from '../src/context/conversations-v2/application/queries/get-pending-queue.query-handler';
 import { CHAT_V2_REPOSITORY } from '../src/context/conversations-v2/domain/chat.repository';
 import { CHAT_QUEUE_CONFIG_SERVICE } from '../src/context/conversations-v2/domain/services/chat-queue-config.service';
@@ -254,7 +253,7 @@ class GetVisitorChatsQueryHandler
 class MockChatRepository {
   async getPendingQueue(department?: string, limit?: number) {
     const { ok } = await import('../src/context/shared/domain/result');
-    
+
     // Simular objetos con la estructura que espera el controlador
     const mockChats = [
       {

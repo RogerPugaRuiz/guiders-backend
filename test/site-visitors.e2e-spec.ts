@@ -105,7 +105,7 @@ describe('SiteVisitorsController (e2e)', () => {
                 chatId: 'chat-123',
                 waitTime: 120,
               };
-              
+
               return Promise.resolve({
                 siteId: '123e4567-e89b-12d3-a456-426614174000',
                 siteName: 'Test Site',
