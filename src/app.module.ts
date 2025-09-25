@@ -204,6 +204,12 @@ export class AppModule {
       const encodedUser = encodeURIComponent(mongoUser);
       const encodedPassword = encodeURIComponent(mongoPassword);
       uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+    } else if (isTest) {
+      // En entorno de test, permitir conexión sin autenticación
+      logger.log(
+        'Test environment detected. Using MongoDB connection without authentication.',
+      );
+      uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     } else {
       logger.warn(
         'MongoDB credentials are not set. Using default connection without authentication.',

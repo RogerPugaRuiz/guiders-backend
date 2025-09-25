@@ -6,12 +6,12 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
-import { CqrsModule } from '@nestjs/cqrs';
+import { CqrsModule, QueryBus } from '@nestjs/cqrs';
 import * as request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { VisitorsV2Module } from '../src/context/visitors-v2/visitors-v2.module';
+import { SiteVisitorsController } from '../src/context/visitors-v2/infrastructure/controllers/site-visitors.controller';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 
 // Tipos mock para evitar importar tipos reales
 interface MockRequest {
@@ -87,12 +87,44 @@ describe('SiteVisitorsController (e2e)', () => {
 
   beforeAll(async () => {
     moduleFixture = await Test.createTestingModule({
-      imports: [AppModule, CqrsModule, VisitorsV2Module],
+      controllers: [SiteVisitorsController],
+      imports: [CqrsModule],
+      providers: [
+        // Mock query bus usando el símbolo correcto
+        {
+          provide: QueryBus,
+          useValue: {
+            execute: jest.fn().mockImplementation(() => {
+              // Mock visitor data
+              const mockVisitor = {
+                id: 'visitor-1',
+                fingerprint: 'fp-123',
+                connectionStatus: 'ONLINE',
+                createdAt: new Date().toISOString(),
+                chatStatus: 'WAITING',
+                chatId: 'chat-123',
+                waitTime: 120,
+              };
+              
+              return Promise.resolve({
+                siteId: '123e4567-e89b-12d3-a456-426614174000',
+                siteName: 'Test Site',
+                visitors: [mockVisitor],
+                totalCount: 1,
+                averageWaitingTime: 150,
+                timestamp: new Date().toISOString(),
+              });
+            }),
+          },
+        },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
+      .overrideGuard(DualAuthGuard)
+      .useClass(MockAuthGuard)
       .compile();
 
     app = moduleFixture.createNestApplication();

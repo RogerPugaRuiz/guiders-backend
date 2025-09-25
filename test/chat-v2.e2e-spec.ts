@@ -22,6 +22,10 @@ import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guar
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
+import { GetPendingQueueQuery } from '../src/context/conversations-v2/application/queries/get-pending-queue.query';
+import { GetPendingQueueQueryHandler } from '../src/context/conversations-v2/application/queries/get-pending-queue.query-handler';
+import { CHAT_V2_REPOSITORY } from '../src/context/conversations-v2/domain/chat.repository';
+import { CHAT_QUEUE_CONFIG_SERVICE } from '../src/context/conversations-v2/domain/services/chat-queue-config.service';
 
 // Tipos para evitar problemas de importación
 interface ChatListResponse {
@@ -100,13 +104,6 @@ class GetVisitorChatsQuery {
     public visitorId: string,
     public cursor: string | null,
     public limit: number,
-  ) {}
-}
-
-class GetPendingQueueQuery {
-  constructor(
-    public department?: string,
-    public limit?: number,
   ) {}
 }
 
@@ -253,26 +250,99 @@ class GetVisitorChatsQueryHandler
   }
 }
 
-@Injectable()
-@QueryHandler(GetPendingQueueQuery)
-class GetPendingQueueQueryHandler
-  implements IQueryHandler<GetPendingQueueQuery>
-{
-  execute(query: GetPendingQueueQuery): Promise<ChatResponse[]> {
-    const limit = query.limit || 10;
-
-    return Promise.resolve(
-      Array(Math.min(limit, 2))
-        .fill(0)
-        .map((_, index) => ({
-          id: `pending-chat-${index + 1}`,
+// Mock para el repositorio de chats
+class MockChatRepository {
+  async getPendingQueue(department?: string, limit?: number) {
+    const { ok } = await import('../src/context/shared/domain/result');
+    
+    // Simular objetos con la estructura que espera el controlador
+    const mockChats = [
+      {
+        id: { getValue: () => 'pending-chat-1' },
+        status: { value: 'PENDING' },
+        priority: { value: 'NORMAL' },
+        visitorId: { getValue: () => 'visitor-1' },
+        assignedCommercialId: null,
+        totalMessages: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+        department: department || 'general',
+        visitorInfo: {
+          toPrimitives: () => ({
+            id: 'visitor-1',
+            name: 'Visitante Test 1',
+            email: 'visitor1@test.com',
+          }),
+        },
+        metadata: {
+          toPrimitives: () => ({
+            department: department || 'general',
+            source: 'test',
+          }),
+        },
+        toPrimitives: () => ({
+          id: 'pending-chat-1',
           status: 'PENDING',
-          visitorInfo: {
-            id: `visitor-${index + 1}`,
-            name: `Visitante Pendiente ${index + 1}`,
-          },
-        })),
-    );
+          priority: 'NORMAL',
+          visitorId: 'visitor-1',
+          assignedCommercialId: null,
+          totalMessages: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastMessageAt: new Date(),
+          department: department || 'general',
+        }),
+      },
+      {
+        id: { getValue: () => 'pending-chat-2' },
+        status: { value: 'PENDING' },
+        priority: { value: 'HIGH' },
+        visitorId: { getValue: () => 'visitor-2' },
+        assignedCommercialId: null,
+        totalMessages: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+        department: department || 'general',
+        visitorInfo: {
+          toPrimitives: () => ({
+            id: 'visitor-2',
+            name: 'Visitante Test 2',
+            email: 'visitor2@test.com',
+          }),
+        },
+        metadata: {
+          toPrimitives: () => ({
+            department: department || 'general',
+            source: 'test',
+          }),
+        },
+        toPrimitives: () => ({
+          id: 'pending-chat-2',
+          status: 'PENDING',
+          priority: 'HIGH',
+          visitorId: 'visitor-2',
+          assignedCommercialId: null,
+          totalMessages: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastMessageAt: new Date(),
+          department: department || 'general',
+        }),
+      },
+    ];
+
+    // Aplicar límite si se especifica
+    const results = limit ? mockChats.slice(0, limit) : mockChats;
+    return ok(results);
+  }
+}
+
+// Mock para el servicio de configuración de cola
+class MockChatQueueConfigService {
+  isQueueModeEnabled(): boolean {
+    return true; // Simular que el modo cola está activado
   }
 }
 
@@ -463,6 +533,15 @@ describe('ChatV2Controller (e2e)', () => {
         // Command handlers
         AssignChatToCommercialCommandHandler,
         CloseChatCommandHandler,
+        // Mock repositories and services
+        {
+          provide: CHAT_V2_REPOSITORY,
+          useClass: MockChatRepository,
+        },
+        {
+          provide: CHAT_QUEUE_CONFIG_SERVICE,
+          useClass: MockChatQueueConfigService,
+        },
       ],
     })
       .overrideGuard(AuthGuard)

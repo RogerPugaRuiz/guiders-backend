@@ -146,7 +146,6 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,
-    // GetPendingQueueQueryHandler,
     // GetCommercialMetricsQueryHandler,
     // GetResponseTimeStatsQueryHandler,
 

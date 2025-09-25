@@ -3,29 +3,35 @@
  * Configuración global para los tests E2E
  */
 
+// Cargar variables de entorno específicas para tests
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Cargar .env.test si existe, sino usar .env
+const envPath = path.resolve(process.cwd(), '.env.test');
+dotenv.config({ path: envPath });
+
 // Configurar timeout extendido para tests E2E
 jest.setTimeout(120000);
 
 // Configurar variables de entorno de test si no están definidas
-if (!process.env.TEST_MONGODB_ROOT_USERNAME) {
-  process.env.TEST_MONGODB_ROOT_USERNAME = 'admin_test';
-}
-
-if (!process.env.TEST_MONGODB_ROOT_PASSWORD) {
-  process.env.TEST_MONGODB_ROOT_PASSWORD = 'test_password';
-}
-
+// MongoDB para tests - SIN autenticación
 if (!process.env.TEST_MONGODB_HOST) {
   process.env.TEST_MONGODB_HOST = 'localhost';
 }
 
 if (!process.env.TEST_MONGODB_PORT) {
-  process.env.TEST_MONGODB_PORT = '27017';
+  process.env.TEST_MONGODB_PORT = '27018';
 }
 
 if (!process.env.TEST_MONGODB_DATABASE) {
   process.env.TEST_MONGODB_DATABASE = 'guiders_test';
 }
+
+// NO configurar username/password para MongoDB test (sin autenticación)
+// Solo configurar las variables que NO existen para evitar errores
+process.env.TEST_MONGODB_ROOT_USERNAME = '';
+process.env.TEST_MONGODB_ROOT_PASSWORD = '';
 
 // Configurar variables de PostgreSQL para tests
 if (!process.env.TEST_DATABASE_HOST) {
@@ -33,7 +39,7 @@ if (!process.env.TEST_DATABASE_HOST) {
 }
 
 if (!process.env.TEST_DATABASE_PORT) {
-  process.env.TEST_DATABASE_PORT = '5432';
+  process.env.TEST_DATABASE_PORT = '5433';
 }
 
 if (!process.env.TEST_DATABASE_USERNAME) {
@@ -46,15 +52,6 @@ if (!process.env.TEST_DATABASE_PASSWORD) {
 
 if (!process.env.TEST_DATABASE) {
   process.env.TEST_DATABASE = 'guiders_test';
-}
-
-// Configurar variables adicionales que requiere el módulo principal
-if (!process.env.MONGODB_USERNAME) {
-  process.env.MONGODB_USERNAME = process.env.TEST_MONGODB_ROOT_USERNAME;
-}
-
-if (!process.env.MONGODB_PASSWORD) {
-  process.env.MONGODB_PASSWORD = process.env.TEST_MONGODB_ROOT_PASSWORD;
 }
 
 console.log('🔧 E2E Test Setup configurado');
