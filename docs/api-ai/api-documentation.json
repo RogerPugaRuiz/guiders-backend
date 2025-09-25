@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T08:13:56.470Z",
+  "generated": "2025-09-25T08:32:27.679Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -12,141 +12,324 @@
           "context": "auth",
           "baseUrl": "bff/auth",
           "description": "Controller sin descripción",
-          "tags": [],
+          "tags": [
+            "BFF Auth"
+          ],
           "endpoints": [
             {
               "method": "GET",
               "path": "/bff/auth/login",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Iniciar login OIDC (console)",
+              "description": "Inicia el flujo OIDC con PKCE. Guarda returnTo en sesión y redirige al proveedor OIDC. Uso por defecto para la app console.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "redirect",
+                    "required": false,
+                    "description": ""
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/login/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Iniciar login OIDC para app",
+              "description": "Inicia el flujo OIDC para una app específica (console|admin). Guarda returnTo y redirige al proveedor OIDC.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": ""
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "redirect",
+                    "required": false,
+                    "description": ""
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/callback/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Callback OIDC",
+              "description": "Procesa el callback OIDC, emite cookies HttpOnly (session/refresh) y redirige a returnTo. Si hay error de sesión, reintenta login.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": ""
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/me",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener claims del usuario (console)",
+              "description": "Devuelve claims básicos del usuario autenticado a partir de la cookie de sesión HttpOnly. Requiere cookie válida.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": ""
+                },
+                {
+                  "status": 401,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/me/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener claims del usuario (app)",
+              "description": "Devuelve claims básicos del usuario autenticado para la app indicada (console|admin). Requiere cookie válida.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": ""
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": ""
+                },
+                {
+                  "status": 200,
+                  "description": ""
+                },
+                {
+                  "status": 401,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/refresh",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Refrescar sesión (console)",
+              "description": "Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 204,
+                  "description": ""
+                },
+                {
+                  "status": 401,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/refresh/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Refrescar sesión (app)",
+              "description": "Renueva la cookie de sesión para la app indicada (console|admin) usando el refresh token HttpOnly. Responde 204 si OK.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": ""
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": ""
+                },
+                {
+                  "status": 204,
+                  "description": ""
+                },
+                {
+                  "status": 401,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/logout",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Cerrar sesión (console)",
+              "description": "Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/logout/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Cerrar sesión (app)",
+              "description": "Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/:app.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": ""
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                },
+                {
+                  "status": 302,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],
@@ -172,7 +355,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -187,7 +373,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -202,7 +391,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -229,7 +421,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -244,7 +439,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -259,7 +457,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -274,8 +475,16 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
@@ -289,8 +498,20 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 401,
+                  "description": ""
+                },
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
@@ -304,7 +525,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -319,7 +543,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -334,7 +561,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -349,7 +579,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -364,7 +597,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -376,21 +612,35 @@
           "context": "auth",
           "baseUrl": "jwks",
           "description": "Controller sin descripción",
-          "tags": [],
+          "tags": [
+            "JWKS"
+          ],
           "endpoints": [
             {
               "method": "GET",
               "path": "/jwks",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener JWKS público",
+              "description": "Devuelve el conjunto de claves públicas (JWKS) expuestas por el sistema para verificación de firmas JWT.",
               "tags": [],
               "auth": {
                 "required": false,
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": ""
+                },
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],
@@ -416,7 +666,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -433,8 +686,24 @@
                 ],
                 "bearer": true
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": ""
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                },
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],
@@ -462,11 +731,14 @@
               "description": "Registra un comercial como conectado en el sistema",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [],
-                "bearer": false
+                "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -481,7 +753,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -496,7 +771,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -511,7 +789,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -526,7 +807,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -541,8 +825,16 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
@@ -556,8 +848,16 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],
@@ -589,7 +889,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -604,8 +907,16 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
@@ -619,8 +930,26 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "host",
+                    "required": false,
+                    "description": ""
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": ""
+                },
+                {
+                  "status": 404,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],
@@ -653,14 +982,17 @@
               "description": "Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [
                   "visitor",
                   "admin"
                 ],
-                "bearer": false
+                "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -678,7 +1010,10 @@
                 ],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -696,7 +1031,10 @@
                 ],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -711,7 +1049,10 @@
                 "roles": [],
                 "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -729,7 +1070,10 @@
                 ],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -752,11 +1096,14 @@
               "description": "Crea nuevas reglas de auto-asignación para una empresa o sitio específico",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [],
-                "bearer": false
+                "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -771,7 +1118,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -802,7 +1152,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -817,7 +1170,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -848,7 +1204,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -873,7 +1232,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -908,7 +1270,10 @@
                 ],
                 "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -925,7 +1290,10 @@
                 ],
                 "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -942,7 +1310,10 @@
                 ],
                 "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -959,8 +1330,16 @@
                 ],
                 "bearer": true
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 404,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
@@ -976,8 +1355,16 @@
                 ],
                 "bearer": true
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 404,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],
@@ -1009,7 +1396,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -1024,7 +1414,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -1039,7 +1432,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -1066,7 +1462,10 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             }
@@ -1089,11 +1488,14 @@
               "description": "Retorna una lista de visitantes conectados o todos los visitantes del sitio especificado",
               "tags": [],
               "auth": {
-                "required": false,
+                "required": true,
                 "roles": [],
-                "bearer": false
+                "bearer": true
               },
-              "parameters": {},
+              "parameters": {
+                "path": [],
+                "query": []
+              },
               "responses": [],
               "examples": {}
             },
@@ -1108,8 +1510,20 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": ""
+                },
+                {
+                  "status": 404,
+                  "description": ""
+                }
+              ],
               "examples": {}
             },
             {
@@ -1123,8 +1537,20 @@
                 "roles": [],
                 "bearer": false
               },
-              "parameters": {},
-              "responses": [],
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": ""
+                },
+                {
+                  "status": 404,
+                  "description": ""
+                }
+              ],
               "examples": {}
             }
           ],

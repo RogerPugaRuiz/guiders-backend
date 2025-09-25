@@ -1,5 +1,12 @@
 // src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts
 import { Controller, Get, Post, Req, Res, Logger, Param } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
@@ -106,6 +113,7 @@ function sanitizeReturnTo(input?: string) {
   }
 }
 
+@ApiTags('BFF Auth')
 @Controller('bff/auth')
 export class BffController {
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
@@ -132,6 +140,19 @@ export class BffController {
     throw new Error('OIDC_ISSUER u OIDC_JWKS_URI no configurados');
   }
 
+  @ApiOperation({
+    summary: 'Iniciar login OIDC (console)',
+    description:
+      'Inicia el flujo OIDC con PKCE. Guarda returnTo en sesión y redirige al proveedor OIDC. Uso por defecto para la app console.',
+  })
+  @ApiQuery({
+    name: 'redirect',
+    required: false,
+    description:
+      'URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
+  @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
   @Get('login')
   async login(
     @Req()
@@ -161,6 +182,20 @@ export class BffController {
     return res.redirect(authUrl);
   }
 
+  @ApiOperation({
+    summary: 'Iniciar login OIDC para app',
+    description:
+      'Inicia el flujo OIDC para una app específica (console|admin). Guarda returnTo y redirige al proveedor OIDC.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiQuery({
+    name: 'redirect',
+    required: false,
+    description:
+      'URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
+  @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
   @Get('login/:app')
   async loginForApp(
     @Param('app') app: string,
@@ -190,6 +225,21 @@ export class BffController {
     return res.redirect(authUrl);
   }
 
+  @ApiOperation({
+    summary: 'Callback OIDC',
+    description:
+      'Procesa el callback OIDC, emite cookies HttpOnly (session/refresh) y redirige a returnTo. Si hay error de sesión, reintenta login.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirección a returnTo tras login',
+  })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirección a login en caso de error',
+  })
+  @ApiResponse({ status: 400, description: 'Callback inválido' })
   @Get('callback/:app')
   async callback(
     @Param('app') app: string,
@@ -289,6 +339,14 @@ export class BffController {
   }
 
   // Devuelve claims mínimas
+  @ApiOperation({
+    summary: 'Obtener claims del usuario (console)',
+    description:
+      'Devuelve claims básicos del usuario autenticado a partir de la cookie de sesión HttpOnly. Requiere cookie válida.',
+  })
+  @ApiResponse({ status: 200, description: 'Claims del usuario' })
+  @ApiResponse({ status: 401, description: 'No autenticado o JWT inválido' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me')
   async me(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -297,6 +355,15 @@ export class BffController {
     return this.getMeForApp(req, res, 'console'); // Por defecto console
   }
 
+  @ApiOperation({
+    summary: 'Obtener claims del usuario (app)',
+    description:
+      'Devuelve claims básicos del usuario autenticado para la app indicada (console|admin). Requiere cookie válida.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({ status: 200, description: 'Claims del usuario' })
+  @ApiResponse({ status: 401, description: 'No autenticado o JWT inválido' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me/:app')
   async meForApp(
     @Param('app') app: string,
@@ -379,6 +446,14 @@ export class BffController {
     });
   }
 
+  @ApiOperation({
+    summary: 'Refrescar sesión (console)',
+    description:
+      'Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.',
+  })
+  @ApiResponse({ status: 204, description: 'Sesión renovada' })
+  @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('refresh')
   async refresh(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -387,6 +462,15 @@ export class BffController {
     return this.doRefresh(req, res, 'console'); // Por defecto console
   }
 
+  @ApiOperation({
+    summary: 'Refrescar sesión (app)',
+    description:
+      'Renueva la cookie de sesión para la app indicada (console|admin) usando el refresh token HttpOnly. Responde 204 si OK.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({ status: 204, description: 'Sesión renovada' })
+  @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('refresh/:app')
   async refreshForApp(
     @Param('app') app: string,
@@ -428,6 +512,13 @@ export class BffController {
     return res.sendStatus(204);
   }
 
+  @ApiOperation({
+    summary: 'Cerrar sesión (console)',
+    description:
+      'Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirige a /login/console' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('logout')
   async logout(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -436,6 +527,14 @@ export class BffController {
     return this.doLogout(req, res, 'console'); // Por defecto console
   }
 
+  @ApiOperation({
+    summary: 'Cerrar sesión (app)',
+    description:
+      'Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/:app.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({ status: 302, description: 'Redirige a /login/:app' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('logout/:app')
   async logoutForApp(
     @Param('app') app: string,

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T08:13:56.471Z",
+  "generated": "2025-09-25T08:32:27.680Z",
   "baseUrl": "http://localhost:3000",
   "info": {
     "description": "API completa para sistema de chat Guiders - Documentación autoexplicativa para IA",
@@ -24,83 +24,244 @@
       "endpoints": {
         "/bff/auth/login": {
           "GET": {
-            "summary": "Sin resumen",
+            "summary": "Iniciar login OIDC (console)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "query": [
+              {
+                "name": "redirect",
+                "required": false,
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/login/:app": {
           "GET": {
-            "summary": "Sin resumen",
+            "summary": "Iniciar login OIDC para app",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "path": [
+              {
+                "name": "app",
+                "description": ""
+              }
+            ],
+            "query": [
+              {
+                "name": "redirect",
+                "required": false,
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/callback/:app": {
           "GET": {
-            "summary": "Sin resumen",
+            "summary": "Callback OIDC",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "path": [
+              {
+                "name": "app",
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/me": {
           "GET": {
-            "summary": "Sin resumen",
+            "summary": "Obtener claims del usuario (console)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 200,
+                "description": ""
+              },
+              {
+                "status": 401,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/me/:app": {
           "GET": {
-            "summary": "Sin resumen",
+            "summary": "Obtener claims del usuario (app)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "path": [
+              {
+                "name": "app",
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 400,
+                "description": ""
+              },
+              {
+                "status": 200,
+                "description": ""
+              },
+              {
+                "status": 401,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/refresh": {
           "POST": {
-            "summary": "Sin resumen",
+            "summary": "Refrescar sesión (console)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 204,
+                "description": ""
+              },
+              {
+                "status": 401,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/refresh/:app": {
           "POST": {
-            "summary": "Sin resumen",
+            "summary": "Refrescar sesión (app)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "path": [
+              {
+                "name": "app",
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 400,
+                "description": ""
+              },
+              {
+                "status": 204,
+                "description": ""
+              },
+              {
+                "status": 401,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/logout": {
           "POST": {
-            "summary": "Sin resumen",
+            "summary": "Cerrar sesión (console)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/bff/auth/logout/:app": {
           "POST": {
-            "summary": "Sin resumen",
+            "summary": "Cerrar sesión (app)",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "path": [
+              {
+                "name": "app",
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              },
+              {
+                "status": 302,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/pixel/token": {
@@ -109,7 +270,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/pixel/register": {
@@ -118,7 +279,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/pixel/token/refresh": {
@@ -127,7 +288,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/login": {
@@ -136,7 +297,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/register": {
@@ -145,7 +306,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/refresh": {
@@ -154,7 +315,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/logout": {
@@ -163,7 +324,12 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 500,
+                "description": ""
+              }
+            ]
           }
         },
         "/user/auth/validate": {
@@ -172,7 +338,16 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 401,
+                "description": ""
+              },
+              {
+                "status": 500,
+                "description": ""
+              }
+            ]
           }
         },
         "/user/auth/accept-invite": {
@@ -181,7 +356,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/company-users": {
@@ -190,7 +365,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/me": {
@@ -199,7 +374,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/sync-with-keycloak": {
@@ -208,7 +383,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/user/auth/verify-role-mapping": {
@@ -217,16 +392,25 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/jwks": {
           "GET": {
-            "summary": "Sin resumen",
+            "summary": "Obtener JWKS público",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 200,
+                "description": ""
+              },
+              {
+                "status": 500,
+                "description": ""
+              }
+            ]
           }
         },
         "/api-keys/create": {
@@ -235,7 +419,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/api-keys/company": {
@@ -248,7 +432,20 @@
               ],
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 201,
+                "description": ""
+              },
+              {
+                "status": 400,
+                "description": ""
+              },
+              {
+                "status": 500,
+                "description": ""
+              }
+            ]
           }
         }
       }
@@ -260,9 +457,10 @@
           "POST": {
             "summary": "Conectar comercial",
             "auth": {
-              "required": false
+              "required": true,
+              "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/commercials/disconnect": {
@@ -271,7 +469,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/commercials/heartbeat": {
@@ -280,7 +478,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/commercials/:id/status": {
@@ -289,7 +487,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/commercials/active": {
@@ -298,7 +496,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/commercials/available": {
@@ -307,7 +505,12 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 500,
+                "description": ""
+              }
+            ]
           }
         },
         "/v2/commercials/:id": {
@@ -316,7 +519,12 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 500,
+                "description": ""
+              }
+            ]
           }
         }
       }
@@ -330,7 +538,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/sites/resolve": {
@@ -339,7 +547,12 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 400,
+                "description": ""
+              }
+            ]
           }
         },
         "/company/by-domain/:domain": {
@@ -348,7 +561,23 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "query": [
+              {
+                "name": "host",
+                "required": false,
+                "description": ""
+              }
+            ],
+            "responses": [
+              {
+                "status": 200,
+                "description": ""
+              },
+              {
+                "status": 404,
+                "description": ""
+              }
+            ]
           }
         }
       }
@@ -360,13 +589,14 @@
           "POST": {
             "summary": "Crear nuevo chat",
             "auth": {
-              "required": false,
+              "required": true,
               "roles": [
                 "visitor",
                 "admin"
-              ]
+              ],
+              "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           },
           "GET": {
             "summary": "Obtener lista de chats con filtros y paginación con cursor",
@@ -377,7 +607,7 @@
                 "supervisor"
               ]
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/chats/with-message": {
@@ -390,7 +620,7 @@
                 "admin"
               ]
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/chats/visitor/:visitorId": {
@@ -400,7 +630,7 @@
               "required": true,
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/chats/queue/pending": {
@@ -413,16 +643,17 @@
                 "supervisor"
               ]
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/assignment-rules": {
           "POST": {
             "summary": "Crear reglas de auto-asignamiento",
             "auth": {
-              "required": false
+              "required": true,
+              "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/v2/assignment-rules/companies/:companyId/applicable": {
@@ -431,7 +662,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         }
       }
@@ -445,14 +676,14 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           },
           "GET": {
             "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         }
       }
@@ -466,7 +697,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/tracking/intent-tags/:visitorId": {
@@ -475,7 +706,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         }
       }
@@ -493,7 +724,7 @@
               ],
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/visitor/:visitorId": {
@@ -506,7 +737,7 @@
               ],
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/visitor/:visitorId/email": {
@@ -519,7 +750,7 @@
               ],
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/visitor/:visitorId/name": {
@@ -532,7 +763,12 @@
               ],
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 404,
+                "description": ""
+              }
+            ]
           }
         },
         "/visitor/:visitorId/tel": {
@@ -545,7 +781,12 @@
               ],
               "type": "Bearer"
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 404,
+                "description": ""
+              }
+            ]
           }
         }
       }
@@ -559,7 +800,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/visitors/session/heartbeat": {
@@ -568,7 +809,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/visitors/session/end": {
@@ -577,7 +818,7 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/sites/resolve": {
@@ -586,16 +827,17 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/site-visitors/:siteId/visitors": {
           "GET": {
             "summary": "Obtener visitantes del sitio",
             "auth": {
-              "required": false
+              "required": true,
+              "type": "Bearer"
             },
-            "responses": {}
+            "responses": []
           }
         },
         "/site-visitors/:siteId/visitors/unassigned-chats": {
@@ -604,7 +846,16 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 400,
+                "description": ""
+              },
+              {
+                "status": 404,
+                "description": ""
+              }
+            ]
           }
         },
         "/site-visitors/:siteId/visitors/queued-chats": {
@@ -613,7 +864,16 @@
             "auth": {
               "required": false
             },
-            "responses": {}
+            "responses": [
+              {
+                "status": 400,
+                "description": ""
+              },
+              {
+                "status": 404,
+                "description": ""
+              }
+            ]
           }
         }
       }

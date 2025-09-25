@@ -190,9 +190,11 @@ class ApiDocumentationGenerator {
    * Extrae el contenido de un método específico
    */
   extractMethodContent(content, startIndex) {
-    // Buscar desde el decorador hasta el final del método
+    // Incluir algo de contexto previo para capturar decoradores Swagger antes de @Get/@Post
+    const lookbehind = 800; // caracteres hacia atrás
+    const start = Math.max(0, startIndex - lookbehind);
     const methodEnd = content.indexOf('\n  }', startIndex);
-    return content.substring(startIndex, methodEnd !== -1 ? methodEnd : startIndex + 1000);
+    return content.substring(start, methodEnd !== -1 ? methodEnd : startIndex + 1000);
   }
 
   /**
@@ -486,12 +488,54 @@ class ApiDocumentationGenerator {
   }
   
   // Más métodos auxiliares...
-  extractParameters(methodContent) { return {}; }
-  extractResponses(methodContent) { return []; }
+  extractParameters(methodContent) {
+    const params = { path: [], query: [] };
+    // @ApiParam({ name: 'app', description: '...' })
+    const apiParamRegex = /@ApiParam\(\s*{[^}]*name:\s*['"]([^'"]+)['"][^}]*?(?:description:\s*['"]([^'"]+)['"])?[^}]*}\s*\)/g;
+    let m;
+    while ((m = apiParamRegex.exec(methodContent)) !== null) {
+      const name = m[1];
+      const description = m[2] || '';
+      params.path.push({ name, description });
+    }
+
+    // @ApiQuery({ name: 'redirect', required: false, description: '...' })
+    const apiQueryRegex = /@ApiQuery\(\s*{[^}]*name:\s*['"]([^'"]+)['"][^}]*?(?:required:\s*(true|false))?[^}]*?(?:description:\s*['"]([^'"]+)['"])?[^}]*}\s*\)/g;
+    while ((m = apiQueryRegex.exec(methodContent)) !== null) {
+      const name = m[1];
+      const required = m[2] ? m[2] === 'true' : false;
+      const description = m[3] || '';
+      params.query.push({ name, required, description });
+    }
+
+    return params;
+  }
+
+  extractResponses(methodContent) {
+    const responses = [];
+    // @ApiResponse({ status: 302, description: '...' })
+    const apiResponseRegex = /@ApiResponse\(\s*{[^}]*status:\s*(\d+)[^}]*?(?:description:\s*['"]([^'"]+)['"])?[^}]*}\s*\)/g;
+    let m;
+    while ((m = apiResponseRegex.exec(methodContent)) !== null) {
+      responses.push({ status: Number(m[1]), description: m[2] || '' });
+    }
+    return responses;
+  }
+
   extractExamples(methodContent) { return {}; }
   extractMethodTags(methodContent) { return []; }
-  extractCompactParameters(endpoint) { return {}; }
-  simplifyResponses(responses) { return {}; }
+
+  extractCompactParameters(endpoint) {
+    const out = {};
+    if (endpoint.parameters?.path?.length) out.path = endpoint.parameters.path;
+    if (endpoint.parameters?.query?.length) out.query = endpoint.parameters.query;
+    return out;
+  }
+
+  simplifyResponses(responses) {
+    if (!responses || !responses.length) return [];
+    return responses.map((r) => ({ status: r.status, description: r.description }));
+  }
   
   async validateDocumentation() {
     console.log('✅ Validación completada');
