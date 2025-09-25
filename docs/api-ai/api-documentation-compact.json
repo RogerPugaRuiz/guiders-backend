@@ -1,293 +1,254 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T16:30:00.000Z",
+  "generated": "2025-09-25T08:13:56.471Z",
   "baseUrl": "http://localhost:3000",
   "info": {
     "description": "API completa para sistema de chat Guiders - Documentación autoexplicativa para IA",
-    "totalEndpoints": 63,
-    "authMethods": ["Bearer JWT", "Cookie Session"],
-    "roles": ["admin", "commercial", "visitor", "supervisor"]
+    "totalEndpoints": 58,
+    "authMethods": [
+      "Bearer JWT",
+      "Cookie Session",
+      "BFF HttpOnly Cookies",
+      "API Key"
+    ],
+    "roles": [
+      "admin",
+      "commercial",
+      "visitor",
+      "supervisor"
+    ]
   },
   "contexts": {
-    "visitors-v2": {
-      "description": "Gestión de visitantes V2 optimizada",
+    "auth": {
+      "description": "Autenticación y autorización avanzada",
       "endpoints": {
-        "/sites/resolve": {
-          "POST": {
-            "summary": "Resolver sitio por host",
-            "auth": { "required": false },
-            "body": {
-              "host": { "type": "string", "required": true, "example": "landing.mytech.com" }
-            },
-            "responses": {
-              "200": { "siteId": "string", "tenantId": "string", "siteName": "string", "companyName": "string" },
-              "404": { "error": "Host no encontrado" }
-            }
-          }
-        },
-        "/visitors/identify": {
-          "POST": {
-            "summary": "Identificar visitante - Crea/actualiza visitante y sesión",
-            "auth": { "required": false },
-            "body": {
-              "fingerprint": { "type": "string", "required": true, "example": "fp_abc123def456", "description": "Browser fingerprint único" },
-              "domain": { "type": "string", "required": true, "example": "landing.mytech.com", "description": "Dominio del sitio" },
-              "apiKey": { "type": "string", "required": true, "example": "ak_live_1234567890abcdef", "description": "API Key del sitio" },
-              "currentUrl": { "type": "string", "required": false, "example": "https://landing.mytech.com/home", "description": "URL actual (opcional)" }
-            },
-            "responses": {
-              "200": {
-                "visitorId": "string",
-                "sessionId": "string", 
-                "lifecycle": "enum:ANON,ENGAGED,LEAD,CONVERTED",
-                "isNewVisitor": "boolean"
-              },
-              "400": { "error": "Datos inválidos" },
-              "401": { "error": "API Key inválida" },
-              "404": { "error": "Dominio no encontrado" }
-            },
-            "cookies": "Establece cookie HttpOnly con sessionId"
-          }
-        },
-        "/visitors/session/heartbeat": {
-          "POST": {
-            "summary": "Mantener sesión activa - Actualiza última actividad",
-            "auth": { "required": false },
-            "body": {
-              "sessionId": { "type": "string", "required": false, "example": "550e8400-e29b-41d4-a716-446655440003", "description": "ID sesión (cookie o body)" },
-              "visitorId": { "type": "string", "required": false, "example": "550e8400-e29b-41d4-a716-446655440002", "description": "ID visitante (validación)" }
-            },
-            "responses": {
-              "200": { "success": true, "message": "Heartbeat actualizado exitosamente" },
-              "400": { "error": "Datos inválidos" },
-              "404": { "error": "Sesión no encontrada" }
-            }
-          }
-        },
-        "/visitors/session/end": {
-          "POST": {
-            "summary": "Cerrar sesión - Termina sesión activa",
-            "auth": { "required": false },
-            "body": {
-              "sessionId": { "type": "string", "required": false, "example": "550e8400-e29b-41d4-a716-446655440003", "description": "ID sesión (cookie o body)" },
-              "visitorId": { "type": "string", "required": false, "example": "550e8400-e29b-41d4-a716-446655440002", "description": "ID visitante (validación)" },
-              "reason": { "type": "string", "required": false, "example": "Usuario cerró la ventana", "description": "Motivo del cierre" }
-            },
-            "responses": {
-              "200": { "success": true, "message": "Sesión cerrada exitosamente" },
-              "400": { "error": "Datos inválidos" },
-              "404": { "error": "Sesión no encontrada" }
-            },
-            "cookies": "Limpia cookie de sesión"
-          }
-        },
-        "/site-visitors/:siteId/visitors": {
+        "/bff/auth/login": {
           "GET": {
-            "summary": "Obtener visitantes del sitio",
-            "auth": { "required": true, "roles": ["commercial", "admin"], "type": "Bearer" },
-            "params": {
-              "siteId": { "type": "string", "required": true, "in": "path", "example": "site-uuid-123" }
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
             },
-            "query": {
-              "includeOffline": { "type": "boolean", "required": false, "example": false },
-              "limit": { "type": "number", "required": false, "example": 20 },
-              "offset": { "type": "number", "required": false, "example": 0 }
-            },
-            "responses": {
-              "200": { "visitors": "array", "total": "number", "hasMore": "boolean" },
-              "400": { "error": "Parámetros inválidos" },
-              "404": { "error": "Sitio no encontrado" }
-            }
+            "responses": {}
           }
-        }
-      }
-    },
-    "conversations-v2": {
-      "description": "Sistema de chat V2 optimizado (MongoDB)",
-      "endpoints": {
-        "/v2/chats": {
-          "POST": {
-            "summary": "Crear nuevo chat - Coloca visitante en cola",
-            "auth": { "required": true, "roles": ["visitor", "commercial", "admin"] },
-            "body": {
-              "visitorInfo": { 
-                "type": "object", 
-                "required": false,
-                "properties": {
-                  "name": { "type": "string", "example": "Juan Pérez" },
-                  "email": { "type": "string", "example": "juan@example.com" },
-                  "phone": { "type": "string", "example": "+1234567890" }
-                }
-              },
-              "metadata": { 
-                "type": "object", 
-                "required": false,
-                "properties": {
-                  "department": { "type": "string", "example": "ventas" },
-                  "source": { "type": "string", "example": "website" },
-                  "priority": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "URGENT"] }
-                }
-              }
-            },
-            "responses": {
-              "201": { "chatId": "string", "position": "number" },
-              "400": { "error": "Datos inválidos" },
-              "401": { "error": "No autenticado" }
-            }
-          },
+        },
+        "/bff/auth/login/:app": {
           "GET": {
-            "summary": "Listar chats con filtros - Paginación cursor",
-            "auth": { "required": true, "roles": ["commercial", "admin", "supervisor"] },
-            "query": {
-              "status": { "type": "string", "required": false, "enum": ["PENDING", "ACTIVE", "CLOSED"] },
-              "assignedTo": { "type": "string", "required": false, "description": "ID comercial" },
-              "limit": { "type": "number", "required": false, "default": 20 },
-              "cursor": { "type": "string", "required": false, "description": "Cursor paginación" }
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "chats": "array", "nextCursor": "string|null", "hasMore": "boolean" }
-            }
+            "responses": {}
           }
         },
-        "/v2/chats/with-message": {
-          "POST": {
-            "summary": "Crear chat con mensaje inicial - Operación atómica",
-            "auth": { "required": true, "roles": ["visitor", "commercial", "admin"] },
-            "body": {
-              "firstMessage": {
-                "type": "object",
-                "required": true,
-                "properties": {
-                  "content": { "type": "string", "required": true, "example": "Hola, necesito ayuda" },
-                  "type": { "type": "string", "required": false, "enum": ["TEXT", "IMAGE", "FILE"], "default": "TEXT" }
-                }
-              },
-              "visitorInfo": { "type": "object", "required": false, "description": "Igual que /v2/chats" },
-              "metadata": { "type": "object", "required": false, "description": "Igual que /v2/chats" }
-            },
-            "responses": {
-              "201": { "chatId": "string", "messageId": "string", "position": "number" },
-              "400": { "error": "Datos inválidos" }
-            }
-          }
-        },
-        "/v2/chats/:chatId": {
+        "/bff/auth/callback/:app": {
           "GET": {
-            "summary": "Obtener chat por ID",
-            "auth": { "required": true, "roles": ["commercial", "admin", "visitor"] },
-            "params": {
-              "chatId": { "type": "string", "required": true, "in": "path" }
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "chat": "object", "messages": "array", "participants": "array" },
-              "404": { "error": "Chat no encontrado" }
-            }
+            "responses": {}
           }
         },
-        "/v2/chats/:chatId/assign/:commercialId": {
-          "PUT": {
-            "summary": "Asignar chat a comercial",
-            "auth": { "required": true, "roles": ["commercial", "admin"] },
-            "params": {
-              "chatId": { "type": "string", "required": true, "in": "path" },
-              "commercialId": { "type": "string", "required": true, "in": "path" }
-            },
-            "responses": {
-              "200": { "success": true, "assignedAt": "datetime" },
-              "404": { "error": "Chat o comercial no encontrado" }
-            }
-          }
-        },
-        "/v2/chats/:chatId/close": {
-          "PUT": {
-            "summary": "Cerrar chat",
-            "auth": { "required": true, "roles": ["commercial", "admin"] },
-            "params": {
-              "chatId": { "type": "string", "required": true, "in": "path" }
-            },
-            "body": {
-              "reason": { "type": "string", "required": false, "example": "Consulta resuelta" }
-            },
-            "responses": {
-              "200": { "success": true, "closedAt": "datetime" },
-              "404": { "error": "Chat no encontrado" }
-            }
-          }
-        },
-        "/v2/messages": {
-          "POST": {
-            "summary": "Enviar mensaje a chat",
-            "auth": { "required": true, "roles": ["commercial", "visitor"] },
-            "body": {
-              "chatId": { "type": "string", "required": true, "example": "550e8400-e29b-41d4-a716-446655440000" },
-              "content": { "type": "string", "required": true, "example": "Hola, ¿en qué puedo ayudarte?" },
-              "type": { "type": "string", "required": false, "enum": ["TEXT", "IMAGE", "FILE", "SYSTEM"], "default": "TEXT" },
-              "attachment": {
-                "type": "object",
-                "required": false,
-                "properties": {
-                  "url": { "type": "string", "example": "https://storage.example.com/file.pdf" },
-                  "fileName": { "type": "string", "example": "documento.pdf" },
-                  "fileSize": { "type": "number", "example": 245760 },
-                  "mimeType": { "type": "string", "example": "application/pdf" }
-                }
-              }
-            },
-            "responses": {
-              "201": { 
-                "messageId": "string", 
-                "chatId": "string", 
-                "senderId": "string",
-                "senderType": "enum:COMMERCIAL,VISITOR,SYSTEM",
-                "sentAt": "datetime",
-                "status": "enum:SENT,DELIVERED,READ"
-              },
-              "400": { "error": "Datos inválidos" },
-              "404": { "error": "Chat no encontrado" }
-            }
-          }
-        },
-        "/v2/messages/chat/:chatId": {
+        "/bff/auth/me": {
           "GET": {
-            "summary": "Obtener mensajes de chat - Paginación cursor",
-            "auth": { "required": true, "roles": ["commercial", "visitor", "admin"] },
-            "params": {
-              "chatId": { "type": "string", "required": true, "in": "path" }
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
             },
-            "query": {
-              "limit": { "type": "number", "required": false, "default": 50 },
-              "cursor": { "type": "string", "required": false },
-              "before": { "type": "string", "required": false, "description": "Mensajes antes de esta fecha" }
-            },
-            "responses": {
-              "200": { "messages": "array", "nextCursor": "string|null", "hasMore": "boolean" }
-            }
+            "responses": {}
           }
         },
-        "/v2/assignment-rules": {
-          "POST": {
-            "summary": "Crear reglas de auto-asignamiento",
-            "auth": { "required": true, "roles": ["admin", "supervisor"] },
-            "body": {
-              "companyId": { "type": "string", "required": true },
-              "siteId": { "type": "string", "required": false },
-              "isActive": { "type": "boolean", "required": true },
-              "defaultStrategy": { "type": "string", "required": true, "enum": ["ROUND_ROBIN", "LEAST_BUSY", "SKILL_BASED"] },
-              "maxChatsPerCommercial": { "type": "number", "required": false, "default": 5 },
-              "workingHours": {
-                "type": "object",
-                "required": false,
-                "properties": {
-                  "timezone": { "type": "string", "example": "Europe/Madrid" },
-                  "schedule": { "type": "object", "description": "Horarios por día de semana" }
-                }
-              }
+        "/bff/auth/me/:app": {
+          "GET": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "201": { "success": true, "message": "Reglas creadas exitosamente" },
-              "400": { "error": "Datos inválidos" },
-              "403": { "error": "Sin permisos suficientes" }
-            }
+            "responses": {}
+          }
+        },
+        "/bff/auth/refresh": {
+          "POST": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/bff/auth/refresh/:app": {
+          "POST": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/bff/auth/logout": {
+          "POST": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/bff/auth/logout/:app": {
+          "POST": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/pixel/token": {
+          "POST": {
+            "summary": "Obtener par de tokens para visitante existente",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/pixel/register": {
+          "POST": {
+            "summary": "Registrar visitante + emitir tokens",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/pixel/token/refresh": {
+          "POST": {
+            "summary": "Refrescar access token",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/login": {
+          "POST": {
+            "summary": "Iniciar sesión de usuario",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/register": {
+          "POST": {
+            "summary": "Registrar un nuevo usuario",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/refresh": {
+          "POST": {
+            "summary": "Renovar token de acceso",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/logout": {
+          "POST": {
+            "summary": "Cerrar sesión",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/validate": {
+          "GET": {
+            "summary": "Validar token de acceso",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/accept-invite": {
+          "POST": {
+            "summary": "Aceptar invitación",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/company-users": {
+          "GET": {
+            "summary": "Listar usuarios de la compañía",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/me": {
+          "GET": {
+            "summary": "Obtener usuario autenticado",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/sync-with-keycloak": {
+          "POST": {
+            "summary": "Sincronizar usuario con Keycloak",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/user/auth/verify-role-mapping": {
+          "POST": {
+            "summary": "Verificar mapeo de roles de Keycloak",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/jwks": {
+          "GET": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/api-keys/create": {
+          "POST": {
+            "summary": "Crear (o reutilizar) API Key para un dominio",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/api-keys/company": {
+          "GET": {
+            "summary": "Listar API Keys de la compañía",
+            "auth": {
+              "required": true,
+              "roles": [
+                "admin"
+              ],
+              "type": "Bearer"
+            },
+            "responses": {}
           }
         }
       }
@@ -297,105 +258,65 @@
       "endpoints": {
         "/v2/commercials/connect": {
           "POST": {
-            "summary": "Conectar comercial al sistema",
-            "auth": { "required": true, "roles": ["commercial", "admin"] },
-            "body": {
-              "id": { "type": "string", "required": true },
-              "name": { "type": "string", "required": true }
+            "summary": "Conectar comercial",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "success": true, "message": "Comercial conectado exitosamente", "commercial": "object" }
-            }
+            "responses": {}
           }
         },
         "/v2/commercials/disconnect": {
           "POST": {
-            "summary": "Desconectar comercial del sistema",
-            "auth": { "required": true, "roles": ["commercial", "admin"] },
-            "body": {
-              "id": { "type": "string", "required": true }
+            "summary": "Desconectar comercial",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "success": true, "message": "Comercial desconectado exitosamente" }
-            }
+            "responses": {}
           }
         },
         "/v2/commercials/heartbeat": {
           "PUT": {
-            "summary": "Mantener comercial activo - Heartbeat",
-            "auth": { "required": true, "roles": ["commercial", "admin"] },
-            "body": {
-              "id": { "type": "string", "required": true }
+            "summary": "Actualizar heartbeat comercial",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "success": true, "message": "Actividad actualizada exitosamente" },
-              "404": { "error": "Comercial no encontrado" }
-            }
+            "responses": {}
           }
         },
         "/v2/commercials/:id/status": {
           "GET": {
             "summary": "Obtener estado de comercial",
-            "auth": { "required": true, "roles": ["commercial", "admin"] },
-            "params": {
-              "id": { "type": "string", "required": true, "in": "path" }
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "status": "enum:ONLINE,OFFLINE,BUSY", "lastActivity": "datetime", "activeChats": "number" },
-              "404": { "error": "Comercial no encontrado" }
-            }
+            "responses": {}
           }
         },
         "/v2/commercials/active": {
           "GET": {
-            "summary": "Listar comerciales activos",
-            "auth": { "required": true, "roles": ["admin"] },
-            "responses": {
-              "200": { "commercials": "array", "total": "number" }
-            }
+            "summary": "Obtener comerciales activos",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
           }
         },
         "/v2/commercials/available": {
           "GET": {
-            "summary": "Listar comerciales disponibles para asignación",
-            "auth": { "required": true, "roles": ["admin"] },
-            "responses": {
-              "200": { "commercials": "array", "total": "number" }
-            }
-          }
-        }
-      }
-    },
-    "auth": {
-      "description": "Autenticación y autorización",
-      "endpoints": {
-        "/user/auth/login": {
-          "POST": {
-            "summary": "Iniciar sesión de usuario",
-            "auth": { "required": false },
-            "body": {
-              "email": { "type": "string", "required": true, "format": "email", "example": "admin@mytech.com" },
-              "password": { "type": "string", "required": true, "example": "SecurePassword123!" }
+            "summary": "Obtener comerciales disponibles",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { 
-                "accessToken": "string", 
-                "refreshToken": "string", 
-                "user": "object",
-                "expiresIn": "number"
-              },
-              "401": { "error": "Email o contraseña incorrectos" }
-            }
+            "responses": {}
           }
         },
-        "/user/auth/me": {
-          "GET": {
-            "summary": "Obtener usuario autenticado",
-            "auth": { "required": true, "roles": ["admin", "commercial"], "type": "Bearer" },
-            "responses": {
-              "200": { "user": "object", "permissions": "array", "company": "object" },
-              "401": { "error": "Token inválido" }
-            }
+        "/v2/commercials/:id": {
+          "DELETE": {
+            "summary": "Eliminar comercial",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
           }
         }
       }
@@ -405,46 +326,133 @@
       "endpoints": {
         "/company": {
           "POST": {
-            "summary": "Crear empresa con administrador",
-            "auth": { "required": false },
-            "body": {
-              "company": {
-                "type": "object",
-                "required": true,
-                "properties": {
-                  "name": { "type": "string", "required": true },
-                  "domain": { "type": "string", "required": true },
-                  "industry": { "type": "string", "required": false },
-                  "size": { "type": "string", "enum": ["SMALL", "MEDIUM", "LARGE"] }
-                }
-              },
-              "admin": {
-                "type": "object",
-                "required": true,
-                "properties": {
-                  "name": { "type": "string", "required": true },
-                  "email": { "type": "string", "required": true, "format": "email" },
-                  "password": { "type": "string", "required": true }
-                }
-              }
+            "summary": "Crear nueva empresa con administrador",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "201": { "company": "object", "admin": "object", "apiKey": "string" },
-              "400": { "error": "El dominio ya está en uso" }
-            }
+            "responses": {}
+          }
+        },
+        "/sites/resolve": {
+          "POST": {
+            "summary": "Resolver sitio por host",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
           }
         },
         "/company/by-domain/:domain": {
           "GET": {
             "summary": "Buscar empresa por dominio",
-            "auth": { "required": false },
-            "params": {
-              "domain": { "type": "string", "required": true, "in": "path" }
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { "company": "object", "sites": "array" },
-              "404": { "error": "Empresa no encontrada" }
-            }
+            "responses": {}
+          }
+        }
+      }
+    },
+    "conversations-v2": {
+      "description": "Sistema de chat V2 optimizado (MongoDB)",
+      "endpoints": {
+        "/v2/chats": {
+          "POST": {
+            "summary": "Crear nuevo chat",
+            "auth": {
+              "required": false,
+              "roles": [
+                "visitor",
+                "admin"
+              ]
+            },
+            "responses": {}
+          },
+          "GET": {
+            "summary": "Obtener lista de chats con filtros y paginación con cursor",
+            "auth": {
+              "required": true,
+              "roles": [
+                "commercial",
+                "supervisor"
+              ]
+            },
+            "responses": {}
+          }
+        },
+        "/v2/chats/with-message": {
+          "POST": {
+            "summary": "Crear nuevo chat con primer mensaje",
+            "auth": {
+              "required": true,
+              "roles": [
+                "visitor",
+                "admin"
+              ]
+            },
+            "responses": {}
+          }
+        },
+        "/v2/chats/visitor/:visitorId": {
+          "GET": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": true,
+              "type": "Bearer"
+            },
+            "responses": {}
+          }
+        },
+        "/v2/chats/queue/pending": {
+          "GET": {
+            "summary": "Obtener cola de chats pendientes",
+            "auth": {
+              "required": false,
+              "roles": [
+                "commercial",
+                "supervisor"
+              ]
+            },
+            "responses": {}
+          }
+        },
+        "/v2/assignment-rules": {
+          "POST": {
+            "summary": "Crear reglas de auto-asignamiento",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/v2/assignment-rules/companies/:companyId/applicable": {
+          "GET": {
+            "summary": "Obtener reglas aplicables",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        }
+      }
+    },
+    "shared": {
+      "description": "Contexto shared",
+      "endpoints": {
+        "/open-search/:index": {
+          "POST": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          },
+          "GET": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
           }
         }
       }
@@ -454,23 +462,158 @@
       "endpoints": {
         "/tracking/intent/:visitorId": {
           "GET": {
-            "summary": "Obtener intenciones del visitante",
-            "auth": { "required": true, "roles": ["commercial", "admin"], "type": "Bearer" },
-            "params": {
-              "visitorId": { "type": "string", "required": true, "in": "path" }
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
             },
-            "responses": {
-              "200": { 
-                "visitorId": "string", 
-                "intents": "array", 
-                "summary": {
-                  "totalIntents": "number", 
-                  "highestConfidence": "number",
-                  "dominantCategory": "string"
-                }
-              },
-              "404": { "error": "Visitante no encontrado" }
-            }
+            "responses": {}
+          }
+        },
+        "/tracking/intent-tags/:visitorId": {
+          "GET": {
+            "summary": "Sin resumen",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        }
+      }
+    },
+    "visitors": {
+      "description": "Gestión de visitantes V1 (legacy)",
+      "endpoints": {
+        "/visitor/me": {
+          "GET": {
+            "summary": "Obtener información del visitante autenticado",
+            "auth": {
+              "required": true,
+              "roles": [
+                "visitor"
+              ],
+              "type": "Bearer"
+            },
+            "responses": {}
+          }
+        },
+        "/visitor/:visitorId": {
+          "GET": {
+            "summary": "Obtener datos del visitante por ID",
+            "auth": {
+              "required": true,
+              "roles": [
+                "commercial"
+              ],
+              "type": "Bearer"
+            },
+            "responses": {}
+          }
+        },
+        "/visitor/:visitorId/email": {
+          "PUT": {
+            "summary": "Actualizar email del visitante",
+            "auth": {
+              "required": true,
+              "roles": [
+                "commercial"
+              ],
+              "type": "Bearer"
+            },
+            "responses": {}
+          }
+        },
+        "/visitor/:visitorId/name": {
+          "PUT": {
+            "summary": "Actualizar nombre del visitante",
+            "auth": {
+              "required": true,
+              "roles": [
+                "commercial"
+              ],
+              "type": "Bearer"
+            },
+            "responses": {}
+          }
+        },
+        "/visitor/:visitorId/tel": {
+          "PUT": {
+            "summary": "Actualizar teléfono del visitante",
+            "auth": {
+              "required": true,
+              "roles": [
+                "commercial"
+              ],
+              "type": "Bearer"
+            },
+            "responses": {}
+          }
+        }
+      }
+    },
+    "visitors-v2": {
+      "description": "Gestión de visitantes V2 optimizada",
+      "endpoints": {
+        "/visitors/identify": {
+          "POST": {
+            "summary": "Identificar visitante",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/visitors/session/heartbeat": {
+          "POST": {
+            "summary": "Actualizar heartbeat de sesión",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/visitors/session/end": {
+          "POST": {
+            "summary": "Cerrar sesión de visitante",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/sites/resolve": {
+          "POST": {
+            "summary": "Resolver sitio por host",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/site-visitors/:siteId/visitors": {
+          "GET": {
+            "summary": "Obtener visitantes del sitio",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/site-visitors/:siteId/visitors/unassigned-chats": {
+          "GET": {
+            "summary": "Obtener visitantes con chats sin asignar",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
+          }
+        },
+        "/site-visitors/:siteId/visitors/queued-chats": {
+          "GET": {
+            "summary": "Obtener visitantes con chats en cola",
+            "auth": {
+              "required": false
+            },
+            "responses": {}
           }
         }
       }
@@ -489,7 +632,7 @@
     "errors": {
       "400": "Bad Request - Datos inválidos o faltantes",
       "401": "Unauthorized - Token inválido o faltante",
-      "403": "Forbidden - Sin permisos suficientes", 
+      "403": "Forbidden - Sin permisos suficientes",
       "404": "Not Found - Recurso no encontrado",
       "500": "Internal Server Error - Error del servidor"
     },

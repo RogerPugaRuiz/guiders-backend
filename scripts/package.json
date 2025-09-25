@@ -1,0 +1,16 @@
+{
+  "name": "generate-api-docs",
+  "version": "1.0.0",
+  "description": "Generación automática de documentación API",
+  "scripts": {
+    "generate": "node scripts/generate-api-docs.js",
+    "generate:watch": "nodemon scripts/generate-api-docs.js",
+    "generate:compact": "node scripts/generate-api-docs.js --compact-only",
+    "validate": "node scripts/validate-api-docs.js"
+  },
+  "dependencies": {
+    "typescript": "^5.0.0",
+    "glob": "^10.0.0",
+    "chokidar": "^3.5.0"
+  }
+}
