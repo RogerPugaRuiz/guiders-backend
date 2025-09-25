@@ -115,6 +115,95 @@ VS Code tasks configuradas para desarrollo eficiente (`.vscode/tasks.json`):
 - CLI usa misma arquitectura CQRS que aplicación principal
 
 ---
+### 20. Sistema de Autenticación Dual (DualAuthGuard & OptionalAuthGuard)
+Implementación avanzada que soporta múltiples métodos de autenticación:
+
+**DualAuthGuard** (autenticación obligatoria):
+- JWT Bearer tokens (Authorization: Bearer <token>)
+- Cookies de sesión BFF de Keycloak (console_session, admin_session)
+- Cookies de sesión de visitante V2 (sid) - opcional
+- Orden de prioridad: JWT → BFF cookies → Visitante V2
+- Falla con UnauthorizedException si ningún método es válido
+
+**OptionalAuthGuard** (autenticación opcional):
+- Mismos métodos que DualAuthGuard pero NO falla si no hay autenticación
+- Pobla request.user si encuentra credenciales válidas
+- Permite acceso público, endpoint decide si requiere autenticación específica
+- Usado en endpoints que pueden funcionar con/sin autenticación
+
+**Patrón de implementación**:
+```typescript
+// En controller usar @UseGuards(DualAuthGuard) o @UseGuards(OptionalAuthGuard)
+// request.user estará poblado con: { id, roles, username, email, companyId }
+```
+
+**Testing**:
+- MockAuthGuard/MockOptionalAuthGuard para E2E
+- Poblar request.user según headers de Authorization en mocks
+- OptionalAuthGuard mock debe retornar true siempre, setear usuario solo si token válido
+
+---
+### 21. Patrones de Testing E2E & Infraestructura
+Configuración robusta para testing end-to-end con servicios aislados:
+
+**Entorno de Testing**:
+- `.env.test`: Configuración específica con puertos dedicados
+- PostgreSQL test: puerto 5433 (postgres-test service)
+- MongoDB test: puerto 27018, sin autenticación (mongodb-test service)
+- Redis test: puerto 6379 (compartido, optimizado memoria)
+- Jest timeout: 120s para operaciones complejas
+
+**Mock de Handlers CQRS**:
+```typescript
+@Injectable()
+@QueryHandler(GetChatsWithFiltersQuery)
+class MockGetChatsWithFiltersQueryHandler implements IQueryHandler<GetChatsWithFiltersQuery> {
+  execute(query: GetChatsWithFiltersQuery): Promise<ResponseType> {
+    // Implementación específica según el test
+    return Promise.resolve({ chats: [], total: 0, hasMore: false, nextCursor: null });
+  }
+}
+```
+
+**Mock de Objetos de Dominio**:
+- Objetos domain requieren método `toPrimitives()` para serialización
+- Simulaciones complejas necesitan estructura anidada con getValue() en VOs
+```typescript
+const mockChat = {
+  id: { getValue: () => 'chat-1' },
+  status: { value: 'PENDING' },
+  visitorInfo: { toPrimitives: () => ({ id: 'visitor-1', name: 'Test' }) },
+  toPrimitives: () => ({ id: 'chat-1', status: 'PENDING', ... })
+};
+```
+
+**QueryBus/CommandBus Mocking**:
+- Inyectar mocks directos via providers en TestingModule
+- Implementar handlers específicos para cada Query/Command
+- Usar CqrsModule + handlers registrados vs QueryBus mock según complejidad
+
+---
+### 22. Configuración Docker & Multi-Persistencia Testing
+Servicios containerizados optimizados para desarrollo y testing:
+
+**Docker Compose Profiles**:
+- Desarrollo: `postgres`, `redis`, `mongodb` (con auth)
+- Testing: `postgres-test`, `mongodb-test` (sin auth), `redis` (compartido)
+- Tools: `adminer`, `mongo-express`, `redis-commander` para debugging
+
+**Variables de Entorno Testing**:
+- Prefijo `TEST_*` para servicios de testing dedicados
+- MongoDB test SIN autenticación (comando `--noauth`)
+- PostgreSQL test con `tmpfs` para performance
+- Redis compartido con configuración optimizada para testing
+
+**CI/CD GitHub Actions**:
+- Servicios reales (no Memory Server) para consistencia producción
+- MongoDB 7.0, PostgreSQL 15, Redis 6
+- Variables específicas por entorno (CI vs local development)
+- Timeout extendido y configuración de memoria optimizada
+
+---
 ### Context7 (cuándo leer docs externas)
 Usar solo si falta en repo y afecta decisión (APIs Angular 20, signals avanzados, DI tree-shakable, Jest timers). Proceso: buscar local → si falta `resolve-library-id` → `get-library-docs(topic)` tokens ≤6000 → resumir y aplicar citando ("Context7: signals"). No para sintaxis básica.
 
