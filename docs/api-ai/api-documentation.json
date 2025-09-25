@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-19T18:17:46.955Z",
+  "generated": "2025-09-25T16:30:00.000Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -98,6 +98,177 @@
             }
           ],
           "filePath": "src/context/visitors-v2/infrastructure/controllers/sites.controller.ts"
+        },
+        {
+          "name": "SiteVisitorsController",
+          "context": "visitors-v2",
+          "baseUrl": "site-visitors",
+          "description": "Controller para gestión de visitantes por sitio",
+          "tags": [
+            "Site Visitors Management"
+          ],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/site-visitors/:siteId/visitors",
+              "summary": "Obtener visitantes del sitio",
+              "description": "Retorna una lista de visitantes conectados o todos los visitantes del sitio especificado",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "siteId",
+                    "description": "ID único del sitio",
+                    "example": "site-uuid-123",
+                    "required": true
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "includeOffline",
+                    "description": "Incluir visitantes desconectados",
+                    "type": "boolean",
+                    "example": false
+                  },
+                  {
+                    "name": "limit",
+                    "description": "Límite de resultados",
+                    "type": "number",
+                    "example": 20
+                  },
+                  {
+                    "name": "offset", 
+                    "description": "Desplazamiento para paginación",
+                    "type": "number",
+                    "example": 0
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de visitantes obtenida exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "ID de sitio inválido o parámetros de consulta inválidos"
+                },
+                {
+                  "status": 404,
+                  "description": "Sitio no encontrado"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/site-visitors/:siteId/visitors/unassigned-chats",
+              "summary": "Obtener visitantes con chats sin asignar",
+              "description": "Retorna visitantes que tienen chats iniciados pero no asignados a ningún comercial",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "siteId",
+                    "description": "ID único del sitio",
+                    "example": "site-uuid-123",
+                    "required": true
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "limit",
+                    "description": "Límite de resultados",
+                    "type": "number",
+                    "example": 20
+                  },
+                  {
+                    "name": "offset",
+                    "description": "Desplazamiento para paginación", 
+                    "type": "number",
+                    "example": 0
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de visitantes con chats sin asignar obtenida exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "ID de sitio inválido o parámetros de consulta inválidos"
+                },
+                {
+                  "status": 404,
+                  "description": "Sitio no encontrado"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/site-visitors/:siteId/visitors/queued-chats",
+              "summary": "Obtener visitantes con chats en cola",
+              "description": "Retorna visitantes que están en cola esperando ser atendidos",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "siteId",
+                    "description": "ID único del sitio",
+                    "example": "site-uuid-123",
+                    "required": true
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "limit",
+                    "description": "Límite de resultados",
+                    "type": "number",
+                    "example": 20
+                  },
+                  {
+                    "name": "offset",
+                    "description": "Desplazamiento para paginación",
+                    "type": "number", 
+                    "example": 0
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de visitantes con chats en cola obtenida exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "ID de sitio inválido o parámetros de consulta inválidos"
+                },
+                {
+                  "status": 404,
+                  "description": "Sitio no encontrado"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/visitors-v2/infrastructure/controllers/site-visitors.controller.ts"
         },
         {
           "name": "VisitorV2Controller",
@@ -1112,6 +1283,122 @@
           "filePath": "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
         },
         {
+          "name": "AssignmentRulesController",
+          "context": "conversations-v2",
+          "baseUrl": "v2/assignment-rules",
+          "description": "Controller para gestión de reglas de auto-asignamiento",
+          "tags": [
+            "Reglas de Auto-asignamiento"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/v2/assignment-rules",
+              "summary": "Crear reglas de auto-asignamiento",
+              "description": "Crea nuevas reglas de auto-asignación para una empresa o sitio específico",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["admin", "supervisor"],
+                "bearer": true
+              },
+              "parameters": {
+                "body": {
+                  "description": "Datos de las reglas de asignamiento",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "companyId": {
+                        "type": "string",
+                        "description": "ID de la empresa"
+                      },
+                      "siteId": {
+                        "type": "string",
+                        "description": "ID del sitio (opcional)"
+                      },
+                      "isActive": {
+                        "type": "boolean",
+                        "description": "Si las reglas están activas"
+                      },
+                      "defaultStrategy": {
+                        "type": "string",
+                        "description": "Estrategia de asignación por defecto"
+                      },
+                      "workingHours": {
+                        "type": "object",
+                        "description": "Horarios de trabajo"
+                      },
+                      "maxChatsPerCommercial": {
+                        "type": "number",
+                        "description": "Máximo número de chats por comercial"
+                      }
+                    },
+                    "required": ["companyId", "defaultStrategy"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Reglas creadas exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos"
+                },
+                {
+                  "status": 403,
+                  "description": "Sin permisos suficientes"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/assignment-rules/companies/:companyId/applicable",
+              "summary": "Obtener reglas aplicables",
+              "description": "Obtiene las reglas de auto-asignamiento más específicas para una empresa/sitio",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["admin", "supervisor", "commercial"],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "companyId",
+                    "description": "ID de la empresa",
+                    "example": "550e8400-e29b-41d4-a716-446655440000",
+                    "required": true
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "siteId",
+                    "description": "ID del sitio (opcional)",
+                    "example": "550e8400-e29b-41d4-a716-446655440001"
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Reglas obtenidas exitosamente"
+                },
+                {
+                  "status": 404,
+                  "description": "No se encontraron reglas"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/conversations-v2/infrastructure/controllers/assignment-rules.controller.ts"
+        },
+        {
           "name": "MessageV2Controller",
           "context": "conversations-v2",
           "baseUrl": "v2/messages",
@@ -1598,6 +1885,282 @@
             }
           ],
           "filePath": "src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts"
+        }
+      ]
+    },
+    {
+      "name": "commercial",
+      "description": "Gestión de comerciales y su conectividad",
+      "controllers": [
+        {
+          "name": "CommercialController",
+          "context": "commercial",
+          "baseUrl": "v2/commercials",
+          "description": "Controller para gestión de comerciales",
+          "tags": [
+            "Commercials"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/v2/commercials/connect",
+              "summary": "Conectar comercial",
+              "description": "Registra un comercial como conectado en el sistema",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "body": {
+                  "description": "Datos del comercial a conectar",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "ID del comercial"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Nombre del comercial"
+                      }
+                    },
+                    "required": ["id", "name"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Comercial conectado exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/v2/commercials/disconnect",
+              "summary": "Desconectar comercial",
+              "description": "Registra un comercial como desconectado del sistema",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "body": {
+                  "description": "Datos del comercial a desconectar",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "ID del comercial"
+                      }
+                    },
+                    "required": ["id"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Comercial desconectado exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/v2/commercials/heartbeat",
+              "summary": "Actualizar heartbeat comercial",
+              "description": "Actualiza la última actividad de un comercial para mantener la sesión activa",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "body": {
+                  "description": "Datos del heartbeat del comercial",
+                  "type": "object",
+                  "required": true,
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "ID del comercial"
+                      }
+                    },
+                    "required": ["id"]
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Actividad actualizada exitosamente"
+                },
+                {
+                  "status": 404,
+                  "description": "Comercial no encontrado"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/commercials/:id/status",
+              "summary": "Obtener estado de comercial",
+              "description": "Obtiene el estado de conexión actual de un comercial específico",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["commercial", "admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "id",
+                    "description": "ID del comercial",
+                    "example": "e7f8a9b0-1234-5678-9abc-def012345678",
+                    "required": true
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Estado del comercial obtenido exitosamente"
+                },
+                {
+                  "status": 404,
+                  "description": "Comercial no encontrado"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/commercials/active",
+              "summary": "Obtener comerciales activos",
+              "description": "Obtiene la lista de todos los comerciales que están actualmente online",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["admin"],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de comerciales activos obtenida exitosamente"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/commercials/available",
+              "summary": "Obtener comerciales disponibles",
+              "description": "Obtiene la lista de comerciales que están online y disponibles para atender chats",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["admin"],
+                "bearer": true
+              },
+              "parameters": {},
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de comerciales disponibles obtenida exitosamente"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "DELETE",
+              "path": "/v2/commercials/:id",
+              "summary": "Eliminar comercial",
+              "description": "Elimina un comercial del sistema completamente (solo administradores)",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": ["admin"],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "id",
+                    "description": "ID del comercial",
+                    "example": "e7f8a9b0-1234-5678-9abc-def012345678",
+                    "required": true
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Comercial eliminado exitosamente"
+                },
+                {
+                  "status": 404,
+                  "description": "Comercial no encontrado"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/commercial/infrastructure/controllers/commercial.controller.ts"
         }
       ]
     },
@@ -2924,8 +3487,8 @@
     }
   ],
   "summary": {
-    "totalEndpoints": 52,
-    "totalControllers": 10,
+    "totalEndpoints": 63,
+    "totalControllers": 13,
     "authenticationMethods": [
       "Bearer JWT",
       "OIDC"
@@ -2933,7 +3496,8 @@
     "availableRoles": [
       "admin",
       "commercial",
-      "visitor"
+      "visitor",
+      "supervisor"
     ]
   }
 }
