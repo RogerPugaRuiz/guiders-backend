@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T18:31:26.433Z",
+  "generated": "2025-09-26T07:31:50.533Z",
   "baseUrl": "http://localhost:3000",
   "info": {
     "description": "API completa para sistema de chat Guiders - Documentación autoexplicativa para IA",
-    "totalEndpoints": 58,
+    "totalEndpoints": 14,
     "authMethods": [
       "Bearer JWT",
       "Cookie Session",
@@ -24,371 +24,79 @@
       "endpoints": {
         "/bff/auth/login": {
           "GET": {
-            "summary": "Iniciar login OIDC (console)",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "query": [
-              {
-                "name": "redirect",
-                "required": false,
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/login/:app": {
           "GET": {
-            "summary": "Iniciar login OIDC para app",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "path": [
-              {
-                "name": "app",
-                "description": ""
-              }
-            ],
-            "query": [
-              {
-                "name": "redirect",
-                "required": false,
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/callback/:app": {
           "GET": {
-            "summary": "Callback OIDC",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "path": [
-              {
-                "name": "app",
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/me": {
           "GET": {
-            "summary": "Obtener claims del usuario (console)",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "responses": [
-              {
-                "status": 200,
-                "description": ""
-              },
-              {
-                "status": 401,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/me/:app": {
           "GET": {
-            "summary": "Obtener claims del usuario (app)",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "path": [
-              {
-                "name": "app",
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 400,
-                "description": ""
-              },
-              {
-                "status": 200,
-                "description": ""
-              },
-              {
-                "status": 401,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/refresh": {
           "POST": {
-            "summary": "Refrescar sesión (console)",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "responses": [
-              {
-                "status": 204,
-                "description": ""
-              },
-              {
-                "status": 401,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/refresh/:app": {
           "POST": {
-            "summary": "Refrescar sesión (app)",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "path": [
-              {
-                "name": "app",
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 400,
-                "description": ""
-              },
-              {
-                "status": 204,
-                "description": ""
-              },
-              {
-                "status": 401,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/logout": {
           "POST": {
-            "summary": "Cerrar sesión (console)",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
-            "responses": [
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
+            "responses": []
           }
         },
         "/bff/auth/logout/:app": {
           "POST": {
-            "summary": "Cerrar sesión (app)",
-            "auth": {
-              "required": false
-            },
-            "path": [
-              {
-                "name": "app",
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              },
-              {
-                "status": 302,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/pixel/token": {
-          "POST": {
-            "summary": "Obtener par de tokens para visitante existente",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/pixel/register": {
-          "POST": {
-            "summary": "Registrar visitante + emitir tokens",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/pixel/token/refresh": {
-          "POST": {
-            "summary": "Refrescar access token",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/login": {
-          "POST": {
-            "summary": "Iniciar sesión de usuario",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/register": {
-          "POST": {
-            "summary": "Registrar un nuevo usuario",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/refresh": {
-          "POST": {
-            "summary": "Renovar token de acceso",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/logout": {
-          "POST": {
-            "summary": "Cerrar sesión",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 500,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/user/auth/validate": {
-          "GET": {
-            "summary": "Validar token de acceso",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 401,
-                "description": ""
-              },
-              {
-                "status": 500,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/user/auth/accept-invite": {
-          "POST": {
-            "summary": "Aceptar invitación",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/company-users": {
-          "GET": {
-            "summary": "Listar usuarios de la compañía",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/me": {
-          "GET": {
-            "summary": "Obtener usuario autenticado",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/sync-with-keycloak": {
-          "POST": {
-            "summary": "Sincronizar usuario con Keycloak",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/user/auth/verify-role-mapping": {
-          "POST": {
-            "summary": "Verificar mapeo de roles de Keycloak",
+            "summary": "Sin resumen",
             "auth": {
               "required": false
             },
@@ -397,268 +105,7 @@
         },
         "/jwks": {
           "GET": {
-            "summary": "Obtener JWKS público",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 200,
-                "description": ""
-              },
-              {
-                "status": 500,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/api-keys/create": {
-          "POST": {
-            "summary": "Crear (o reutilizar) API Key para un dominio",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/api-keys/company": {
-          "GET": {
-            "summary": "Listar API Keys de la compañía",
-            "auth": {
-              "required": true,
-              "roles": [
-                "admin"
-              ],
-              "type": "Bearer"
-            },
-            "responses": [
-              {
-                "status": 201,
-                "description": ""
-              },
-              {
-                "status": 400,
-                "description": ""
-              },
-              {
-                "status": 500,
-                "description": ""
-              }
-            ]
-          }
-        }
-      }
-    },
-    "commercial": {
-      "description": "Gestión de comerciales y conectividad",
-      "endpoints": {
-        "/v2/commercials/connect": {
-          "POST": {
-            "summary": "Conectar comercial",
-            "auth": {
-              "required": true,
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/v2/commercials/disconnect": {
-          "POST": {
-            "summary": "Desconectar comercial",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/v2/commercials/heartbeat": {
-          "PUT": {
-            "summary": "Actualizar heartbeat comercial",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/v2/commercials/:id/status": {
-          "GET": {
-            "summary": "Obtener estado de comercial",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/v2/commercials/active": {
-          "GET": {
-            "summary": "Obtener comerciales activos",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/v2/commercials/available": {
-          "GET": {
-            "summary": "Obtener comerciales disponibles",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 500,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/v2/commercials/:id": {
-          "DELETE": {
-            "summary": "Eliminar comercial",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 500,
-                "description": ""
-              }
-            ]
-          }
-        }
-      }
-    },
-    "company": {
-      "description": "Gestión de empresas y sitios",
-      "endpoints": {
-        "/company": {
-          "POST": {
-            "summary": "Crear nueva empresa con administrador",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/sites/resolve": {
-          "POST": {
-            "summary": "Resolver sitio por host",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 400,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/company/by-domain/:domain": {
-          "GET": {
-            "summary": "Buscar empresa por dominio",
-            "auth": {
-              "required": false
-            },
-            "query": [
-              {
-                "name": "host",
-                "required": false,
-                "description": ""
-              }
-            ],
-            "responses": [
-              {
-                "status": 200,
-                "description": ""
-              },
-              {
-                "status": 404,
-                "description": ""
-              }
-            ]
-          }
-        }
-      }
-    },
-    "conversations-v2": {
-      "description": "Sistema de chat V2 optimizado (MongoDB)",
-      "endpoints": {
-        "/v2/chats": {
-          "POST": {
-            "summary": "Crear nuevo chat",
-            "auth": {
-              "required": true,
-              "roles": [
-                "visitor",
-                "admin"
-              ],
-              "type": "Bearer"
-            },
-            "responses": []
-          },
-          "GET": {
-            "summary": "Obtener lista de chats con filtros y paginación con cursor",
-            "auth": {
-              "required": true,
-              "roles": [
-                "commercial",
-                "supervisor"
-              ]
-            },
-            "responses": []
-          }
-        },
-        "/v2/chats/with-message": {
-          "POST": {
-            "summary": "Crear nuevo chat con primer mensaje",
-            "auth": {
-              "required": true,
-              "roles": [
-                "visitor",
-                "admin"
-              ]
-            },
-            "responses": []
-          }
-        },
-        "/v2/chats/visitor/:visitorId": {
-          "GET": {
             "summary": "Sin resumen",
-            "auth": {
-              "required": true,
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/v2/chats/queue/pending": {
-          "GET": {
-            "summary": "Obtener cola de chats pendientes",
-            "auth": {
-              "required": false,
-              "roles": [
-                "commercial",
-                "supervisor"
-              ]
-            },
-            "responses": []
-          }
-        },
-        "/v2/assignment-rules": {
-          "POST": {
-            "summary": "Crear reglas de auto-asignamiento",
-            "auth": {
-              "required": true,
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/v2/assignment-rules/companies/:companyId/applicable": {
-          "GET": {
-            "summary": "Obtener reglas aplicables",
             "auth": {
               "required": false
             },
@@ -707,174 +154,6 @@
               "required": false
             },
             "responses": []
-          }
-        }
-      }
-    },
-    "visitors": {
-      "description": "Gestión de visitantes V1 (legacy)",
-      "endpoints": {
-        "/visitor/me": {
-          "GET": {
-            "summary": "Obtener información del visitante autenticado",
-            "auth": {
-              "required": true,
-              "roles": [
-                "visitor"
-              ],
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/visitor/:visitorId": {
-          "GET": {
-            "summary": "Obtener datos del visitante por ID",
-            "auth": {
-              "required": true,
-              "roles": [
-                "commercial"
-              ],
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/visitor/:visitorId/email": {
-          "PUT": {
-            "summary": "Actualizar email del visitante",
-            "auth": {
-              "required": true,
-              "roles": [
-                "commercial"
-              ],
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/visitor/:visitorId/name": {
-          "PUT": {
-            "summary": "Actualizar nombre del visitante",
-            "auth": {
-              "required": true,
-              "roles": [
-                "commercial"
-              ],
-              "type": "Bearer"
-            },
-            "responses": [
-              {
-                "status": 404,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/visitor/:visitorId/tel": {
-          "PUT": {
-            "summary": "Actualizar teléfono del visitante",
-            "auth": {
-              "required": true,
-              "roles": [
-                "commercial"
-              ],
-              "type": "Bearer"
-            },
-            "responses": [
-              {
-                "status": 404,
-                "description": ""
-              }
-            ]
-          }
-        }
-      }
-    },
-    "visitors-v2": {
-      "description": "Gestión de visitantes V2 optimizada",
-      "endpoints": {
-        "/visitors/identify": {
-          "POST": {
-            "summary": "Identificar visitante",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/visitors/session/heartbeat": {
-          "POST": {
-            "summary": "Actualizar heartbeat de sesión",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/visitors/session/end": {
-          "POST": {
-            "summary": "Cerrar sesión de visitante",
-            "auth": {
-              "required": false
-            },
-            "responses": []
-          }
-        },
-        "/sites/resolve": {
-          "POST": {
-            "summary": "Resolver sitio por host",
-            "auth": {
-              "required": true,
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/site-visitors/:siteId/visitors": {
-          "GET": {
-            "summary": "Obtener visitantes del sitio",
-            "auth": {
-              "required": true,
-              "type": "Bearer"
-            },
-            "responses": []
-          }
-        },
-        "/site-visitors/:siteId/visitors/unassigned-chats": {
-          "GET": {
-            "summary": "Obtener visitantes con chats sin asignar",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 400,
-                "description": ""
-              },
-              {
-                "status": 404,
-                "description": ""
-              }
-            ]
-          }
-        },
-        "/site-visitors/:siteId/visitors/queued-chats": {
-          "GET": {
-            "summary": "Obtener visitantes con chats en cola",
-            "auth": {
-              "required": false
-            },
-            "responses": [
-              {
-                "status": 400,
-                "description": ""
-              },
-              {
-                "status": 404,
-                "description": ""
-              }
-            ]
           }
         }
       }

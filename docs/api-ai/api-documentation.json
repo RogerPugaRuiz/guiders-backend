@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-25T18:31:26.427Z",
+  "generated": "2025-09-26T07:31:50.532Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -19,8 +19,8 @@
             {
               "method": "GET",
               "path": "/bff/auth/login",
-              "summary": "Iniciar login OIDC (console)",
-              "description": "Inicia el flujo OIDC con PKCE. Guarda returnTo en sesión y redirige al proveedor OIDC. Uso por defecto para la app console.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -29,31 +29,16 @@
               },
               "parameters": {
                 "path": [],
-                "query": [
-                  {
-                    "name": "redirect",
-                    "required": false,
-                    "description": ""
-                  }
-                ]
+                "query": []
               },
-              "responses": [
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/login/:app",
-              "summary": "Iniciar login OIDC para app",
-              "description": "Inicia el flujo OIDC para una app específica (console|admin). Guarda returnTo y redirige al proveedor OIDC.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -61,37 +46,17 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [
-                  {
-                    "name": "app",
-                    "description": ""
-                  }
-                ],
-                "query": [
-                  {
-                    "name": "redirect",
-                    "required": false,
-                    "description": ""
-                  }
-                ]
+                "path": [],
+                "query": []
               },
-              "responses": [
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/callback/:app",
-              "summary": "Callback OIDC",
-              "description": "Procesa el callback OIDC, emite cookies HttpOnly (session/refresh) y redirige a returnTo. Si hay error de sesión, reintenta login.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -99,35 +64,17 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [
-                  {
-                    "name": "app",
-                    "description": ""
-                  }
-                ],
+                "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/me",
-              "summary": "Obtener claims del usuario (console)",
-              "description": "Devuelve claims básicos del usuario autenticado a partir de la cookie de sesión HttpOnly. Requiere cookie válida.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -138,27 +85,14 @@
                 "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 200,
-                  "description": ""
-                },
-                {
-                  "status": 401,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/me/:app",
-              "summary": "Obtener claims del usuario (app)",
-              "description": "Devuelve claims básicos del usuario autenticado para la app indicada (console|admin). Requiere cookie válida.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -166,39 +100,17 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [
-                  {
-                    "name": "app",
-                    "description": ""
-                  }
-                ],
+                "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 400,
-                  "description": ""
-                },
-                {
-                  "status": 200,
-                  "description": ""
-                },
-                {
-                  "status": 401,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/refresh",
-              "summary": "Refrescar sesión (console)",
-              "description": "Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -209,27 +121,14 @@
                 "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 204,
-                  "description": ""
-                },
-                {
-                  "status": 401,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/refresh/:app",
-              "summary": "Refrescar sesión (app)",
-              "description": "Renueva la cookie de sesión para la app indicada (console|admin) usando el refresh token HttpOnly. Responde 204 si OK.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -237,39 +136,17 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [
-                  {
-                    "name": "app",
-                    "description": ""
-                  }
-                ],
+                "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 400,
-                  "description": ""
-                },
-                {
-                  "status": 204,
-                  "description": ""
-                },
-                {
-                  "status": 401,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/logout",
-              "summary": "Cerrar sesión (console)",
-              "description": "Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -280,23 +157,14 @@
                 "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/logout/:app",
-              "summary": "Cerrar sesión (app)",
-              "description": "Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/:app.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -304,308 +172,14 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [
-                  {
-                    "name": "app",
-                    "description": ""
-                  }
-                ],
+                "path": [],
                 "query": []
               },
-              "responses": [
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                },
-                {
-                  "status": 302,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
+              "responses": [],
               "examples": {}
             }
           ],
           "filePath": "src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts"
-        },
-        {
-          "name": "AuthVisitorController",
-          "context": "auth",
-          "baseUrl": "pixel",
-          "description": "Controller sin descripción",
-          "tags": [
-            "Pixel Visitor Auth"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/pixel/token",
-              "summary": "Obtener par de tokens para visitante existente",
-              "description": "Devuelve access_token y refresh_token para un visitor previamente registrado. Requiere cabeceras Origin y Referer con mismo hostname.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/pixel/register",
-              "summary": "Registrar visitante + emitir tokens",
-              "description": "Registra un visitante si no existe (por apiKey + client + dominio) y devuelve tokens. Si ya existe, re-emite tokens.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/pixel/token/refresh",
-              "summary": "Refrescar access token",
-              "description": "Devuelve un nuevo access_token válido a partir de refresh_token.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/auth/auth-visitor/infrastructure/auth-visitor.controller.ts"
-        },
-        {
-          "name": "AuthUserController",
-          "context": "auth",
-          "baseUrl": "user/auth",
-          "description": "Controller sin descripción",
-          "tags": [
-            "Autenticación de Usuarios"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/user/auth/login",
-              "summary": "Iniciar sesión de usuario",
-              "description": "Verifica las credenciales y devuelve tokens de acceso y actualización",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/user/auth/register",
-              "summary": "Registrar un nuevo usuario",
-              "description": "Crea un nuevo usuario en el sistema con el rol especificado",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/user/auth/refresh",
-              "summary": "Renovar token de acceso",
-              "description": "Utiliza un token de actualización para obtener un nuevo token de acceso",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/user/auth/logout",
-              "summary": "Cerrar sesión",
-              "description": "Cierra la sesión del usuario y revoca sus tokens",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 500,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/user/auth/validate",
-              "summary": "Validar token de acceso",
-              "description": "Verifica que el token de acceso sea válido",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 401,
-                  "description": ""
-                },
-                {
-                  "status": 500,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/user/auth/accept-invite",
-              "summary": "Aceptar invitación",
-              "description": "Acepta una invitación para unirse a una compañía y establece la contraseña",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/user/auth/company-users",
-              "summary": "Listar usuarios de la compañía",
-              "description": "Devuelve los usuarios asociados a la compañía del token JWT",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/user/auth/me",
-              "summary": "Obtener usuario autenticado",
-              "description": "Devuelve la información del usuario asociado al token de acceso. Requiere rol admin o commercial.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/user/auth/sync-with-keycloak",
-              "summary": "Sincronizar usuario con Keycloak",
-              "description": "Crea un nuevo usuario en el backend y lo vincula con un usuario existente de Keycloak",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/user/auth/verify-role-mapping",
-              "summary": "Verificar mapeo de roles de Keycloak",
-              "description": "Verifica cómo se mapearían los roles de Keycloak a roles del backend sin crear usuario",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts"
         },
         {
           "name": "JwksController",
@@ -619,47 +193,8 @@
             {
               "method": "GET",
               "path": "/jwks",
-              "summary": "Obtener JWKS público",
-              "description": "Devuelve el conjunto de claves públicas (JWKS) expuestas por el sistema para verificación de firmas JWT.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 200,
-                  "description": ""
-                },
-                {
-                  "status": 500,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/auth/api-key/infrastructure/jwks.controller.ts"
-        },
-        {
-          "name": "ApiKeyController",
-          "context": "auth",
-          "baseUrl": "api-keys",
-          "description": "Controller sin descripción",
-          "tags": [
-            "API Keys"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/api-keys/create",
-              "summary": "Crear (o reutilizar) API Key para un dominio",
-              "description": "Genera una nueva API Key asociada a un dominio y compañía. Si el dominio ya tiene una API Key se reutiliza.",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
               "tags": [],
               "auth": {
                 "required": false,
@@ -672,290 +207,21 @@
               },
               "responses": [],
               "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/api-keys/company",
-              "summary": "Listar API Keys de la compañía",
-              "description": "Devuelve las API Keys asociadas a la compañía incluida en el token JWT (requiere rol admin).",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "admin"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 201,
-                  "description": ""
-                },
-                {
-                  "status": 400,
-                  "description": ""
-                },
-                {
-                  "status": 500,
-                  "description": ""
-                }
-              ],
-              "examples": {}
             }
           ],
-          "filePath": "src/context/auth/api-key/infrastructure/api-key.controller.ts"
+          "filePath": "src/context/auth/api-key/infrastructure/jwks.controller.ts"
         }
       ]
     },
     {
       "name": "commercial",
       "description": "Gestión de comerciales y conectividad",
-      "controllers": [
-        {
-          "name": "CommercialController",
-          "context": "commercial",
-          "baseUrl": "v2/commercials",
-          "description": "Conecta un comercial al sistema",
-          "tags": [
-            "Commercials"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/v2/commercials/connect",
-              "summary": "Conectar comercial",
-              "description": "Registra un comercial como conectado en el sistema",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/v2/commercials/disconnect",
-              "summary": "Desconectar comercial",
-              "description": "Registra un comercial como desconectado del sistema",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/v2/commercials/heartbeat",
-              "summary": "Actualizar heartbeat comercial",
-              "description": "Actualiza la última actividad de un comercial para mantener la sesión activa",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/commercials/:id/status",
-              "summary": "Obtener estado de comercial",
-              "description": "Obtiene el estado de conexión actual de un comercial específico",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/commercials/active",
-              "summary": "Obtener comerciales activos",
-              "description": "Obtiene la lista de todos los comerciales que están actualmente online",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/commercials/available",
-              "summary": "Obtener comerciales disponibles",
-              "description": "Obtiene la lista de comerciales que están online y disponibles para atender chats",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 500,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            },
-            {
-              "method": "DELETE",
-              "path": "/v2/commercials/:id",
-              "summary": "Eliminar comercial",
-              "description": "Elimina un comercial del sistema completamente (solo administradores)",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 500,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/commercial/infrastructure/controllers/commercial.controller.ts"
-        }
-      ]
+      "controllers": []
     },
     {
       "name": "company",
       "description": "Gestión de empresas y sitios",
-      "controllers": [
-        {
-          "name": "CompanyController",
-          "context": "company",
-          "baseUrl": "",
-          "description": "Controller sin descripción",
-          "tags": [
-            "companies"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/company",
-              "summary": "Crear nueva empresa con administrador",
-              "description": "Crea una nueva empresa junto con su usuario administrador inicial",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/sites/resolve",
-              "summary": "Resolver sitio por host",
-              "description": "Resuelve el host actual del navegador y determina a qué site y tenant pertenece",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 400,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/company/by-domain/:domain",
-              "summary": "Buscar empresa por dominio",
-              "description": "Busca una empresa basándose en uno de sus dominios (canónico o alias)",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": [
-                  {
-                    "name": "host",
-                    "required": false,
-                    "description": ""
-                  }
-                ]
-              },
-              "responses": [
-                {
-                  "status": 200,
-                  "description": ""
-                },
-                {
-                  "status": 404,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/company/infrastructure/controllers/company.controller.ts"
-        }
-      ]
+      "controllers": []
     },
     {
       "name": "conversations",
@@ -965,170 +231,7 @@
     {
       "name": "conversations-v2",
       "description": "Sistema de chat V2 optimizado (MongoDB)",
-      "controllers": [
-        {
-          "name": "ChatV2Controller",
-          "context": "conversations-v2",
-          "baseUrl": "v2/chats",
-          "description": "Crea un nuevo chat para el visitante autenticado",
-          "tags": [
-            "Chats V2"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/v2/chats",
-              "summary": "Crear nuevo chat",
-              "description": "Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "visitor",
-                  "admin"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/v2/chats/with-message",
-              "summary": "Crear nuevo chat con primer mensaje",
-              "description": "Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica que garantiza que tanto el chat como el mensaje se crean juntos o fallan juntos.",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "visitor",
-                  "admin"
-                ],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/chats",
-              "summary": "Obtener lista de chats con filtros y paginación con cursor",
-              "description": "Retorna una lista paginada de chats con filtros avanzados para usuarios autenticados con permisos de comercial, administrador o supervisor. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados. Los filtros y ordenamiento se aplican según los permisos del usuario autenticado.",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial",
-                  "supervisor"
-                ],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/chats/visitor/:visitorId",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/chats/queue/pending",
-              "summary": "Obtener cola de chats pendientes",
-              "description": "Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [
-                  "commercial",
-                  "supervisor"
-                ],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
-        },
-        {
-          "name": "AssignmentRulesController",
-          "context": "conversations-v2",
-          "baseUrl": "v2/assignment-rules",
-          "description": "Controlador para gestión de reglas de auto-asignamiento",
-          "tags": [
-            "Reglas de Auto-asignamiento"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/v2/assignment-rules",
-              "summary": "Crear reglas de auto-asignamiento",
-              "description": "Crea nuevas reglas de auto-asignación para una empresa o sitio específico",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/v2/assignment-rules/companies/:companyId/applicable",
-              "summary": "Obtener reglas aplicables",
-              "description": "Obtiene las reglas de auto-asignamiento más específicas para una empresa/sitio",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/conversations-v2/infrastructure/controllers/assignment-rules.controller.ts"
-        }
-      ]
+      "controllers": []
     },
     {
       "name": "shared",
@@ -1247,321 +350,17 @@
     {
       "name": "visitors",
       "description": "Gestión de visitantes V1 (legacy)",
-      "controllers": [
-        {
-          "name": "VisitorController",
-          "context": "visitors",
-          "baseUrl": "visitor",
-          "description": "Obtiene la información del visitante autenticado (perfil propio)",
-          "tags": [
-            "Visitantes"
-          ],
-          "endpoints": [
-            {
-              "method": "GET",
-              "path": "/visitor/me",
-              "summary": "Obtener información del visitante autenticado",
-              "description": "Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio perfil sin necesidad de conocer su ID.",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "visitor"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/visitor/:visitorId",
-              "summary": "Obtener datos del visitante por ID",
-              "description": "Obtiene los datos del visitante a partir del ID en la URL",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/visitor/:visitorId/email",
-              "summary": "Actualizar email del visitante",
-              "description": "Actualiza el correo electrónico del visitante",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/visitor/:visitorId/name",
-              "summary": "Actualizar nombre del visitante",
-              "description": "Actualiza el nombre del visitante",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 404,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            },
-            {
-              "method": "PUT",
-              "path": "/visitor/:visitorId/tel",
-              "summary": "Actualizar teléfono del visitante",
-              "description": "Actualiza el número de teléfono del visitante",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [
-                  "commercial"
-                ],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 404,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/visitors/infrastructure/controllers/visitor.controller.ts"
-        }
-      ]
+      "controllers": []
     },
     {
       "name": "visitors-v2",
       "description": "Gestión de visitantes V2 optimizada",
-      "controllers": [
-        {
-          "name": "VisitorV2Controller",
-          "context": "visitors-v2",
-          "baseUrl": "visitors",
-          "description": "Controller sin descripción",
-          "tags": [
-            "visitors"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/visitors/identify",
-              "summary": "Identificar visitante",
-              "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key. ",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/visitors/session/heartbeat",
-              "summary": "Actualizar heartbeat de sesión",
-              "description": "Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). Mientras se reciban heartbeats, el visitante se considera online.",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "POST",
-              "path": "/visitors/session/end",
-              "summary": "Cerrar sesión de visitante",
-              "description": "Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de ",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
-        },
-        {
-          "name": "SitesController",
-          "context": "visitors-v2",
-          "baseUrl": "sites",
-          "description": "Controller sin descripción",
-          "tags": [
-            "sites"
-          ],
-          "endpoints": [
-            {
-              "method": "POST",
-              "path": "/sites/resolve",
-              "summary": "Resolver sitio por host",
-              "description": "Resuelve el host actual del navegador (ejemplo: landing.mytech.com) y determina a qué site y tenant pertenece. El host es solo un alias que se mapea al modelo interno (siteId, tenantId) para trabajar con identidades estables.",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/visitors-v2/infrastructure/controllers/sites.controller.ts"
-        },
-        {
-          "name": "SiteVisitorsController",
-          "context": "visitors-v2",
-          "baseUrl": "site-visitors",
-          "description": "Controller sin descripción",
-          "tags": [
-            "Site Visitors Management"
-          ],
-          "endpoints": [
-            {
-              "method": "GET",
-              "path": "/site-visitors/:siteId/visitors",
-              "summary": "Obtener visitantes del sitio",
-              "description": "Retorna una lista de visitantes conectados o todos los visitantes del sitio especificado",
-              "tags": [],
-              "auth": {
-                "required": true,
-                "roles": [],
-                "bearer": true
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/site-visitors/:siteId/visitors/unassigned-chats",
-              "summary": "Obtener visitantes con chats sin asignar",
-              "description": "Retorna visitantes que tienen chats iniciados pero no asignados a ningún comercial",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 400,
-                  "description": ""
-                },
-                {
-                  "status": 404,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            },
-            {
-              "method": "GET",
-              "path": "/site-visitors/:siteId/visitors/queued-chats",
-              "summary": "Obtener visitantes con chats en cola",
-              "description": "Retorna visitantes que están en cola esperando ser atendidos",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [
-                {
-                  "status": 400,
-                  "description": ""
-                },
-                {
-                  "status": 404,
-                  "description": ""
-                }
-              ],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/visitors-v2/infrastructure/controllers/site-visitors.controller.ts"
-        }
-      ]
+      "controllers": []
     }
   ],
   "summary": {
-    "totalEndpoints": 58,
-    "totalControllers": 16,
+    "totalEndpoints": 14,
+    "totalControllers": 5,
     "authenticationMethods": [
       "Bearer JWT",
       "OIDC"

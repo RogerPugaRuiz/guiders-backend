@@ -143,35 +143,41 @@ class ApiDocumentationGenerator {
   }
 
   /**
-   * Extrae endpoints de un controller usando regex
+   * Extrae endpoints de un controller usando enfoque simplificado y rápido
    */
   extractEndpoints(content, baseUrl) {
     const endpoints = [];
+    const lines = content.split('\n');
     
-    // Patrón para encontrar métodos HTTP con decoradores
-    const methodPattern = /@(Post|Get|Put|Delete|Patch)\(['"]?([^'")\n]*)?['"]?\)\s*\n(?:.*\n)*?\s*async?\s+(\w+)\s*\(/gm;
+    // Patrón para encontrar métodos HTTP
+    const methodPattern = /@(Post|Get|Put|Delete|Patch)\(['"]?([^'")\n]*)?['"]?\)/;
     
-    let match;
-    while ((match = methodPattern.exec(content)) !== null) {
-      const [, httpMethod, routePath, methodName] = match;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const match = line.match(methodPattern);
       
-      // Extraer información adicional del método
-      const methodStart = match.index;
-      const methodContent = this.extractMethodContent(content, methodStart);
-      
-      const endpoint = {
-        method: httpMethod.toUpperCase(),
-        path: this.buildFullPath(baseUrl, routePath),
-        summary: this.extractSummary(methodContent),
-        description: this.extractDescription(methodContent),
-        tags: this.extractMethodTags(methodContent),
-        auth: this.extractAuthInfo(methodContent),
-        parameters: this.extractParameters(methodContent),
-        responses: this.extractResponses(methodContent),
-        examples: this.extractExamples(methodContent)
-      };
-      
-      endpoints.push(endpoint);
+      if (match) {
+        const [, httpMethod, routePath] = match;
+        
+        // Extraer contexto limitado (20 líneas antes y 10 después)
+        const contextStart = Math.max(0, i - 20);
+        const contextEnd = Math.min(lines.length, i + 10);
+        const methodContext = lines.slice(contextStart, contextEnd).join('\n');
+        
+        const endpoint = {
+          method: httpMethod.toUpperCase(),
+          path: this.buildFullPath(baseUrl, routePath || ''),
+          summary: this.extractSummary(methodContext),
+          description: this.extractDescription(methodContext),
+          tags: this.extractMethodTags(methodContext),
+          auth: this.extractAuthInfo(methodContext),
+          parameters: this.extractParameters(methodContext),
+          responses: this.extractResponses(methodContext),
+          examples: this.extractExamples(methodContext)
+        };
+        
+        endpoints.push(endpoint);
+      }
     }
     
     return endpoints;
@@ -186,16 +192,7 @@ class ApiDocumentationGenerator {
     return `${base}/${route}`.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
   }
 
-  /**
-   * Extrae el contenido de un método específico
-   */
-  extractMethodContent(content, startIndex) {
-    // Incluir algo de contexto previo para capturar decoradores Swagger antes de @Get/@Post
-    const lookbehind = 800; // caracteres hacia atrás
-    const start = Math.max(0, startIndex - lookbehind);
-    const methodEnd = content.indexOf('\n  }', startIndex);
-    return content.substring(start, methodEnd !== -1 ? methodEnd : startIndex + 1000);
-  }
+
 
   /**
    * Extrae información de autenticación
@@ -465,13 +462,57 @@ class ApiDocumentationGenerator {
   }
   
   extractSummary(methodContent) {
-    const match = methodContent.match(/@ApiOperation\(\s*{\s*summary:\s*['"]([^'"]+)['"]/);
-    return match ? match[1] : 'Sin resumen';
+    // Buscar línea por línea para evitar contaminación cruzada
+    const lines = methodContent.split('\n');
+    
+    for (const line of lines) {
+      // Patrón más estricto que solo busca en la línea actual
+      const match = line.match(/@ApiOperation\(\s*{\s*summary:\s*['"]([^'"]+)['"]/);
+      if (match) {
+        return match[1];
+      }
+      
+      // También buscar formato multilinea
+      if (line.includes('@ApiOperation({')) {
+        const nextLine = lines[lines.indexOf(line) + 1];
+        if (nextLine) {
+          const summaryMatch = nextLine.match(/\s*summary:\s*['"]([^'"]+)['"]/);
+          if (summaryMatch) {
+            return summaryMatch[1];
+          }
+        }
+      }
+    }
+    
+    return 'Sin resumen';
   }
   
   extractDescription(methodContent) {
-    const match = methodContent.match(/@ApiOperation\(\s*{[^}]*description:\s*['"]([^'"]+)['"]/);
-    return match ? match[1] : 'Sin descripción';
+    // Buscar línea por línea para evitar contaminación cruzada
+    const lines = methodContent.split('\n');
+    
+    for (const line of lines) {
+      // Buscar description en línea única
+      const match = line.match(/description:\s*['"]([^'"]+)['"]/);
+      if (match && line.includes('@ApiOperation')) {
+        return match[1];
+      }
+      
+      // También buscar formato multilinea
+      if (line.includes('@ApiOperation({')) {
+        for (let i = lines.indexOf(line) + 1; i < lines.length; i++) {
+          const nextLine = lines[i];
+          if (nextLine.includes('})')) break; // Fin del decorador
+          
+          const descMatch = nextLine.match(/\s*description:\s*['"]([^'"]+)['"]/);
+          if (descMatch) {
+            return descMatch[1];
+          }
+        }
+      }
+    }
+    
+    return 'Sin descripción';
   }
   
   extractContextDescription(contextName) {
@@ -490,22 +531,63 @@ class ApiDocumentationGenerator {
   // Más métodos auxiliares...
   extractParameters(methodContent) {
     const params = { path: [], query: [] };
-    // @ApiParam({ name: 'app', description: '...' })
-    const apiParamRegex = /@ApiParam\(\s*{[^}]*name:\s*['"]([^'"]+)['"][^}]*?(?:description:\s*['"]([^'"]+)['"])?[^}]*}\s*\)/g;
-    let m;
-    while ((m = apiParamRegex.exec(methodContent)) !== null) {
-      const name = m[1];
-      const description = m[2] || '';
-      params.path.push({ name, description });
-    }
-
-    // @ApiQuery({ name: 'redirect', required: false, description: '...' })
-    const apiQueryRegex = /@ApiQuery\(\s*{[^}]*name:\s*['"]([^'"]+)['"][^}]*?(?:required:\s*(true|false))?[^}]*?(?:description:\s*['"]([^'"]+)['"])?[^}]*}\s*\)/g;
-    while ((m = apiQueryRegex.exec(methodContent)) !== null) {
-      const name = m[1];
-      const required = m[2] ? m[2] === 'true' : false;
-      const description = m[3] || '';
-      params.query.push({ name, required, description });
+    const lines = methodContent.split('\n');
+    
+    // Procesar línea por línea para evitar contaminación cruzada
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Buscar @ApiParam (puede estar en múltiples líneas)
+      if (line.includes('@ApiParam({')) {
+        let paramBlock = line;
+        let j = i + 1;
+        
+        // Si no está cerrado en la misma línea, buscar las siguientes
+        while (j < lines.length && !paramBlock.includes('})')) {
+          paramBlock += '\n' + lines[j];
+          j++;
+        }
+        
+        const nameMatch = paramBlock.match(/name:\s*['"]([^'"]+)['"]/);
+        const descMatch = paramBlock.match(/description:\s*['"]([^'"]+)['"]/);
+        
+        if (nameMatch) {
+          params.path.push({
+            name: nameMatch[1],
+            description: descMatch ? descMatch[1] : 'Parámetro sin descripción'
+          });
+        }
+        
+        i = j - 1; // Saltar las líneas procesadas
+        continue;
+      }
+      
+      // Buscar @ApiQuery (puede estar en múltiples líneas)
+      if (line.includes('@ApiQuery({')) {
+        let queryBlock = line;
+        let j = i + 1;
+        
+        // Si no está cerrado en la misma línea, buscar las siguientes
+        while (j < lines.length && !queryBlock.includes('})')) {
+          queryBlock += '\n' + lines[j];
+          j++;
+        }
+        
+        const nameMatch = queryBlock.match(/name:\s*['"]([^'"]+)['"]/);
+        const requiredMatch = queryBlock.match(/required:\s*(true|false)/);
+        const descMatch = queryBlock.match(/description:\s*['"]([^'"]+)['"]/);
+        
+        if (nameMatch) {
+          params.query.push({
+            name: nameMatch[1],
+            required: requiredMatch ? requiredMatch[1] === 'true' : false,
+            description: descMatch ? descMatch[1] : 'Parámetro sin descripción'
+          });
+        }
+        
+        i = j - 1; // Saltar las líneas procesadas
+        continue;
+      }
     }
 
     return params;

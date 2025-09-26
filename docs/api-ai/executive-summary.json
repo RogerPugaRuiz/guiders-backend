@@ -1,28 +1,28 @@
 {
   "overview": {
-    "totalEndpoints": 58,
-    "totalControllers": 16,
+    "totalEndpoints": 14,
+    "totalControllers": 5,
     "contexts": 9,
-    "generated": "2025-09-25T18:31:26.436Z"
+    "generated": "2025-09-26T07:31:50.534Z"
   },
   "contexts": [
     {
       "name": "auth",
       "description": "Autenticación y autorización avanzada",
-      "controllers": 5,
-      "endpoints": 25
+      "controllers": 2,
+      "endpoints": 10
     },
     {
       "name": "commercial",
       "description": "Gestión de comerciales y conectividad",
-      "controllers": 1,
-      "endpoints": 7
+      "controllers": 0,
+      "endpoints": 0
     },
     {
       "name": "company",
       "description": "Gestión de empresas y sitios",
-      "controllers": 1,
-      "endpoints": 3
+      "controllers": 0,
+      "endpoints": 0
     },
     {
       "name": "conversations",
@@ -33,8 +33,8 @@
     {
       "name": "conversations-v2",
       "description": "Sistema de chat V2 optimizado (MongoDB)",
-      "controllers": 2,
-      "endpoints": 7
+      "controllers": 0,
+      "endpoints": 0
     },
     {
       "name": "shared",
@@ -51,35 +51,33 @@
     {
       "name": "visitors",
       "description": "Gestión de visitantes V1 (legacy)",
-      "controllers": 1,
-      "endpoints": 5
+      "controllers": 0,
+      "endpoints": 0
     },
     {
       "name": "visitors-v2",
       "description": "Gestión de visitantes V2 optimizada",
-      "controllers": 3,
-      "endpoints": 7
+      "controllers": 0,
+      "endpoints": 0
     }
   ],
   "endpoints": {
     "byMethod": {
-      "GET": 26,
-      "POST": 27,
-      "PUT": 4,
-      "DELETE": 1
+      "GET": 9,
+      "POST": 5
     },
     "byContext": [
       {
         "context": "auth",
-        "count": 25
+        "count": 10
       },
       {
         "context": "commercial",
-        "count": 7
+        "count": 0
       },
       {
         "context": "company",
-        "count": 3
+        "count": 0
       },
       {
         "context": "conversations",
@@ -87,7 +85,7 @@
       },
       {
         "context": "conversations-v2",
-        "count": 7
+        "count": 0
       },
       {
         "context": "shared",
@@ -99,11 +97,11 @@
       },
       {
         "context": "visitors",
-        "count": 5
+        "count": 0
       },
       {
         "context": "visitors-v2",
-        "count": 7
+        "count": 0
       }
     ]
   },
