@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   Logger,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { TokenVerifyService } from '../token-verify.service';
@@ -27,6 +28,7 @@ export class DualAuthGuard implements CanActivate {
   constructor(
     private readonly tokenVerifyService: TokenVerifyService,
     private readonly bffSessionAuthService: BffSessionAuthService,
+    @Optional()
     private readonly visitorSessionAuthService?: VisitorSessionAuthService,
   ) {}
 

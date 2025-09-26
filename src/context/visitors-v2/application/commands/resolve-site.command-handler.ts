@@ -43,8 +43,8 @@ export class ResolveSiteCommandHandler
       );
     }
 
-    // Preferimos el dominio canónico como nombre visible del site.
-    const resolvedSiteName = targetSite.canonicalDomain || targetSite.name;
+    // Preferimos el nombre del site como etiqueta visible (tests esperan el name)
+    const resolvedSiteName = targetSite.name || targetSite.canonicalDomain;
 
     return new ResolveSiteResponseDto(
       company.getId().getValue(),

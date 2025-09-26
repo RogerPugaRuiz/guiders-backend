@@ -6,6 +6,7 @@ import {
   Param,
   Query,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -14,6 +15,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CreateCompanyDto } from '../../application/dtos/create-company.dto';
 import { CreateCompanyWithAdminCommand } from '../../application/commands/create-company-with-admin.command';
@@ -21,6 +23,9 @@ import { FindCompanyByDomainQuery } from '../../application/queries/find-company
 import { FindCompanyByDomainResponseDto } from '../../application/dtos/find-company-by-domain-response.dto';
 import { ResolveSiteByHostQuery } from '../../application/queries/resolve-site-by-host.query';
 import { ResolveSiteByHostResponseDto } from '../../application/dtos/resolve-site-by-host-response.dto';
+import { GetCompanySitesQuery } from '../../application/queries/get-company-sites.query';
+import { GetCompanySitesResponseDto } from '../../application/dtos/get-company-sites-response.dto';
+import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 
 @ApiTags('companies')
 @Controller()
@@ -127,5 +132,40 @@ export class CompanyController {
       FindCompanyByDomainQuery,
       FindCompanyByDomainResponseDto
     >(query);
+  }
+
+  @Get('companies/:companyId/sites')
+  @UseGuards(DualAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Listar sitios de una empresa',
+    description:
+      'Devuelve la lista de sites asociados a la empresa indicada por su companyId (UUID).',
+  })
+  @ApiParam({
+    name: 'companyId',
+    description: 'UUID de la empresa',
+    example: '2f5f2d9a-5f84-4c06-9b68-5a9b8f7a9c1d',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de sites',
+    type: GetCompanySitesResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
+  async getCompanySites(
+    @Param('companyId') companyId: string,
+  ): Promise<GetCompanySitesResponseDto> {
+    const result = await this.queryBus.execute<
+      GetCompanySitesQuery,
+      GetCompanySitesResponseDto | null
+    >(new GetCompanySitesQuery(companyId));
+
+    if (!result) {
+      throw new NotFoundException('Empresa no encontrada');
+    }
+
+    return result;
   }
 }

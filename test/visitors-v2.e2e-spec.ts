@@ -4,6 +4,14 @@ import * as request from 'supertest';
 import { CqrsModule } from '@nestjs/cqrs';
 import { VisitorV2Controller } from '../src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller';
 import { SitesController } from '../src/context/visitors-v2/infrastructure/controllers/sites.controller';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
+
+// Mock Guard for E2E tests
+class MockDualAuthGuard {
+  canActivate(): boolean {
+    return true;
+  }
+}
 import { IdentifyVisitorCommandHandler } from '../src/context/visitors-v2/application/commands/identify-visitor.command-handler';
 import { UpdateSessionHeartbeatCommandHandler } from '../src/context/visitors-v2/application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from '../src/context/visitors-v2/application/commands/end-session.command-handler';
@@ -149,7 +157,10 @@ describe('Visitors E2E', () => {
           useValue: mockEventPublisher,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(DualAuthGuard)
+      .useClass(MockDualAuthGuard)
+      .compile();
 
     app = module.createNestApplication();
     app.useGlobalPipes(new ValidationPipe());

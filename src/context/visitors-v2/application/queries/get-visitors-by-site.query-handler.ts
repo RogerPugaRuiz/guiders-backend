@@ -52,12 +52,12 @@ export class GetVisitorsBySiteQueryHandler
         throw new Error(visitorsResult.error.message);
       }
 
-  const visitors = visitorsResult.value;
+      const visitors = visitorsResult.value;
 
-  // Resolver nombre real del sitio desde el contexto de company.
-  // Estrategia: buscar el site en las compañías y utilizar su canonicalDomain como nombre preferente.
-  // Fallback: mantener placeholder si no se encuentra.
-  const siteName = await resolveSiteName(this.companyRepository, siteId);
+      // Resolver nombre real del sitio desde el contexto de company.
+      // Estrategia: buscar el site en las compañías y utilizar su canonicalDomain como nombre preferente.
+      // Fallback: mantener placeholder si no se encuentra.
+      const siteName = await resolveSiteName(this.companyRepository, siteId);
 
       const visitorDtos: SiteVisitorInfoDto[] = visitors.map((visitor) => {
         const sessions = visitor.getSessions();
@@ -98,7 +98,6 @@ export class GetVisitorsBySiteQueryHandler
       throw error;
     }
   }
-
 }
 
 // Métodos privados auxiliares
