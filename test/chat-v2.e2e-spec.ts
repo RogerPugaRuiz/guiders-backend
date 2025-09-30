@@ -19,12 +19,15 @@ import {
   ICommandHandler,
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
 import { GetPendingQueueQueryHandler } from '../src/context/conversations-v2/application/queries/get-pending-queue.query-handler';
 import { CHAT_V2_REPOSITORY } from '../src/context/conversations-v2/domain/chat.repository';
 import { CHAT_QUEUE_CONFIG_SERVICE } from '../src/context/conversations-v2/domain/services/chat-queue-config.service';
+import { AssignChatToCommercialCommand } from '../src/context/conversations-v2/application/commands/assign-chat-to-commercial.command';
+import { GetChatByIdQuery as RealGetChatByIdQuery } from '../src/context/conversations-v2/application/queries/get-chat-by-id.query';
 
 // Tipos para evitar problemas de importación
 interface ChatListResponse {
@@ -122,14 +125,6 @@ class GetResponseTimeStatsQuery {
   ) {}
 }
 
-class AssignChatToCommercialCommand {
-  constructor(
-    public chatId: string,
-    public commercialId: string,
-    public assignedBy: string,
-  ) {}
-}
-
 class CloseChatCommand {
   constructor(
     public chatId: string,
@@ -178,24 +173,54 @@ class GetChatsWithFiltersQueryHandler
   }
 }
 
+// Estado compartido para simular persistencia entre commands y queries
+const mockChatAssignments = new Map<string, string>();
+
 @Injectable()
-@QueryHandler(GetChatByIdQuery)
-class GetChatByIdQueryHandler implements IQueryHandler<GetChatByIdQuery> {
-  execute(query: GetChatByIdQuery): Promise<ChatResponse | null> {
+@QueryHandler(RealGetChatByIdQuery)
+class GetChatByIdQueryHandler implements IQueryHandler<RealGetChatByIdQuery> {
+  execute(query: RealGetChatByIdQuery): Promise<any> {
     if (query.chatId === 'nonexistent') {
-      return Promise.resolve(null); // Simular no encontrado
+      return Promise.resolve({
+        isOk: () => false,
+        isErr: () => true,
+        error: { message: 'Chat no encontrado' },
+      });
     }
+    // Usar assignedCommercialId del Map o valor por defecto
+    const assignedCommercialId = mockChatAssignments.get(query.chatId) || 'commercial-1';
+
+    // Mock retorna Result.ok(chat) con método toPrimitives
     return Promise.resolve({
-      id: query.chatId,
-      status: 'ACTIVE',
-      visitorInfo: {
-        id: 'visitor-1',
-        name: 'Visitante Test',
-        email: 'visitor@test.com',
-      },
-      lastMessage: {
-        content: 'Mensaje de prueba',
-        timestamp: new Date().toISOString(),
+      isOk: () => true,
+      isErr: () => false,
+      value: {
+        toPrimitives: () => ({
+          id: query.chatId,
+          status: 'ASSIGNED',
+          priority: 'NORMAL',
+          visitorId: 'visitor-1',
+          assignedCommercialId,
+          availableCommercialIds: [],
+          createdAt: new Date().toISOString(),
+          firstResponseTime: new Date().toISOString(),
+          closedAt: null,
+          lastMessageDate: new Date().toISOString(),
+          totalMessages: 1,
+          updatedAt: new Date().toISOString(),
+          metadata: { department: 'ventas', source: 'website', customFields: {} },
+          visitorInfo: {
+            name: 'Visitante Test',
+            email: 'visitor@test.com',
+            phone: '+1234567890',
+            location: { city: 'Madrid', country: 'España' },
+            company: 'Acme Corp',
+            ipAddress: '192.168.1.1',
+            referrer: 'https://google.com',
+            userAgent: 'Mozilla/5.0',
+          },
+          tags: ['urgent'],
+        }),
       },
     });
   }
@@ -400,36 +425,20 @@ class AssignChatToCommercialCommandHandler
 {
   execute(command: AssignChatToCommercialCommand): Promise<any> {
     if (command.chatId === 'nonexistent') {
-      throw new Error('Chat no encontrado');
+      return Promise.resolve({
+        isOk: () => false,
+        isErr: () => true,
+        error: { message: 'Chat no encontrado' },
+      });
     }
-    // Mock con método toPrimitives para compatibilidad con ChatResponseDto
+    // Guardar la asignación en el estado compartido
+    mockChatAssignments.set(command.chatId, command.commercialId);
+
+    // Mock retorna Result.ok({ assignedCommercialId })
     return Promise.resolve({
-      toPrimitives: () => ({
-        id: command.chatId,
-        status: 'ASSIGNED',
-        priority: 'NORMAL',
-        visitorId: 'visitor-1',
-        assignedCommercialId: command.commercialId,
-        availableCommercialIds: [],
-        createdAt: new Date(),
-        firstResponseTime: new Date(),
-        closedAt: null,
-        lastMessageDate: new Date(),
-        totalMessages: 1,
-        updatedAt: new Date(),
-        metadata: { department: 'ventas', source: 'website', customFields: {} },
-        visitorInfo: {
-          name: 'Visitante Test',
-          email: 'visitor@test.com',
-          phone: '+1234567890',
-          location: { city: 'Madrid' },
-          company: 'Acme Corp',
-          ipAddress: '192.168.1.1',
-          referrer: 'https://google.com',
-          userAgent: 'Mozilla/5.0',
-        },
-        tags: ['urgent'],
-      }),
+      isOk: () => true,
+      isErr: () => false,
+      value: { assignedCommercialId: command.commercialId },
     });
   }
 }
@@ -564,6 +573,8 @@ describe('ChatV2Controller (e2e)', () => {
       ],
     })
       .overrideGuard(AuthGuard)
+      .useClass(MockAuthGuard)
+      .overrideGuard(DualAuthGuard)
       .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
@@ -805,31 +816,33 @@ describe('ChatV2Controller (e2e)', () => {
     });
 
     it('debe ejecutar GetChatByIdQuery correctamente', async () => {
-      const query = new GetChatByIdQuery('chat-123', 'user-id', 'commercial');
+      const query = new RealGetChatByIdQuery('chat-123');
 
       const result = await queryBus.execute(query);
 
       expect(result).toBeDefined();
-      expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('status');
-      expect(result).toHaveProperty('visitorInfo');
+      expect(result.isOk()).toBe(true);
+      const chat = result.value;
+      expect(chat.toPrimitives).toBeDefined();
+      const primitives = chat.toPrimitives();
+      expect(primitives).toHaveProperty('id');
+      expect(primitives).toHaveProperty('status');
+      expect(primitives).toHaveProperty('visitorInfo');
     });
 
     it('debe ejecutar AssignChatToCommercialCommand correctamente', async () => {
-      const command = new AssignChatToCommercialCommand(
-        'chat-123',
-        'commercial-456',
-        'admin-user',
-      );
+      const command = new AssignChatToCommercialCommand({
+        chatId: 'chat-123',
+        commercialId: 'commercial-456',
+        assignedBy: 'admin-user',
+        reason: 'manual',
+      });
 
       const result = await commandBus.execute(command);
 
       expect(result).toBeDefined();
-      expect(typeof result.toPrimitives).toBe('function');
-      const p = result.toPrimitives();
-      expect(p).toHaveProperty('id', 'chat-123');
-      expect(p).toHaveProperty('assignedCommercialId', 'commercial-456');
-      expect(p).toHaveProperty('status', 'ASSIGNED');
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toHaveProperty('assignedCommercialId', 'commercial-456');
     });
 
     it('debe ejecutar CloseChatCommand correctamente', async () => {

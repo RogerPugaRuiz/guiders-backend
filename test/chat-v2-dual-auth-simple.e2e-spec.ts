@@ -9,6 +9,7 @@ import * as request from 'supertest';
 import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure/controllers/chat-v2.controller';
 import { CqrsModule, IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
@@ -79,6 +80,8 @@ describe('ChatV2Controller - Dual Authentication Simple E2E', () => {
       .useClass(MockRolesGuard)
       .overrideGuard(OptionalAuthGuard)
       .useClass(MockOptionalAuthGuard)
+      .overrideGuard(DualAuthGuard)
+      .useClass(MockAuthGuard)
       .compile();
 
     app = moduleFixture.createNestApplication();

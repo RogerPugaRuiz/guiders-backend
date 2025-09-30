@@ -17,6 +17,7 @@ import {
   CommandHandler,
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { CreateChatWithMessageCommand } from '../src/context/conversations-v2/application/commands/create-chat-with-message.command';
@@ -199,6 +200,8 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
       ],
     })
       .overrideGuard(AuthGuard)
+      .useClass(MockAuthGuard)
+      .overrideGuard(DualAuthGuard)
       .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
