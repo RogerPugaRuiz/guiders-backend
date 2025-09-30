@@ -30,6 +30,7 @@ import {
   AuthenticatedRequest,
   AuthGuard,
 } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import {
   RolesGuard,
@@ -914,11 +915,11 @@ export class ChatV2Controller {
     status: 500,
     description: 'Error interno del servidor',
   })
-  getCommercialChats(
+  async getCommercialChats(
     @Param('commercialId') commercialId: string,
     @Query() queryParams: GetChatsQueryDto,
     @Req() req: AuthenticatedRequest,
-  ): ChatListResponseDto {
+  ): Promise<ChatListResponseDto> {
     try {
       // Validar autenticación (Bearer token o cookie de sesión BFF)
       if (!req.user || !req.user.id) {
@@ -952,24 +953,36 @@ export class ChatV2Controller {
       this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
       this.logger.debug(`User roles: ${JSON.stringify(userRoles)}`);
 
-      // TODO: Implementar query handler
-      // const query = new GetCommercialChatsQuery({
-      //   commercialId,
-      //   requesterId: req.user.id,
-      //   requesterRole: req.user.roles[0],
-      //   filters: queryParams.filters,
-      //   sort: queryParams.sort,
-      //   cursor: queryParams.cursor,
-      //   limit: queryParams.limit || 20,
-      // });
+      // Parsear sort si viene como string JSON
+      let sortOptions = queryParams.sort;
+      if (typeof queryParams.sort === 'string') {
+        try {
+          sortOptions = JSON.parse(queryParams.sort);
+        } catch (error) {
+          this.logger.warn(
+            `Error al parsear sort: ${error}. Usando valor por defecto.`,
+          );
+          sortOptions = undefined;
+        }
+      }
 
-      // Respuesta temporal con metadatos BFF-friendly
-      return {
-        chats: [],
-        total: 0,
-        hasMore: false,
-        nextCursor: null,
+      // Construir filtros con assignedCommercialId
+      const filters = {
+        ...queryParams.filters,
+        assignedCommercialId: commercialId,
       };
+
+      // Crear y ejecutar query
+      const query = GetChatsWithFiltersQuery.create({
+        userId: commercialId,
+        userRole: 'admin', // Usar admin para evitar que filtre por userId automáticamente
+        filters,
+        sort: sortOptions,
+        cursor: queryParams.cursor,
+        limit: queryParams.limit || 50,
+      });
+
+      return await this.queryBus.execute(query);
     } catch (error) {
       // Preservar HttpExceptions específicas
       if (error instanceof HttpException) {
@@ -1417,7 +1430,10 @@ export class ChatV2Controller {
    * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Put(':chatId/assign/:commercialId')
+  @UseGuards(DualAuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
+  @ApiBearerAuth()
+  @ApiCookieAuth()
   @ApiOperation({
     summary: 'Asignar chat a comercial',
     description:
@@ -1472,17 +1488,29 @@ export class ChatV2Controller {
       });
 
       // Ejecutar el command
-      const chat: {
-        toPrimitives: () => import('../dto/chat-response.dto').ChatPrimitives;
-      } = await this.commandBus.execute(command);
+      const result: Result<
+        { assignedCommercialId: string },
+        DomainError
+      > = await this.commandBus.execute(command);
 
-      // Si el resultado es nulo, lanzar 404
-      if (!chat) {
+      // Manejar el resultado del command
+      if (result.isErr()) {
+        const error = result.error;
+        this.logger.error(`Error al asignar chat: ${error.message}`);
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+
+      // Obtener el chat actualizado con una query
+      const chatQuery = new GetChatByIdQuery(chatId);
+      const chatResult: Result<Chat, DomainError> =
+        await this.queryBus.execute(chatQuery);
+
+      if (chatResult.isErr()) {
         throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
       }
 
       // Retornar el DTO
-      return ChatResponseDto.fromDomain(chat);
+      return ChatResponseDto.fromDomain(chatResult.value);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

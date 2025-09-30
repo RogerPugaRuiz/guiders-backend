@@ -61,6 +61,14 @@ export class TenantVisitorInfoDto {
     nullable: true,
   })
   lastActivity?: Date;
+
+  @ApiProperty({
+    description: 'IDs de chats pendientes asociados al visitante',
+    example: ['db9f4882-a0d4-41f4-9915-4cffb88874dd'],
+    type: [String],
+    nullable: true,
+  })
+  pendingChatIds?: string[];
 }
 
 /**
@@ -153,12 +161,7 @@ export class TenantVisitorsResponseDto {
   })
   activeSitesCount: number;
 
-  @ApiProperty({
-    description: 'Lista de IDs de chats pendientes en el tenant',
-    example: ['chat-uuid-123', 'chat-uuid-456', 'chat-uuid-789'],
-    type: [String],
-  })
-  pendingChatIds: string[];
+  // Se elimina pendingChatIds global, ahora va por visitante
 
   @ApiProperty({
     description: 'Fecha de consulta',

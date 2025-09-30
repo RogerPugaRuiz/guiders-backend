@@ -73,6 +73,13 @@ export class GetVisitorsByTenantQueryHandler
         tenantId,
       );
 
+      // Obtener chat IDs pendientes del tenant
+      const pendingChatIds = await getPendingChatIdsByTenant(
+        this.chatRepository,
+        tenantId,
+      );
+
+      // Mapear los chats pendientes a cada visitante
       const visitorDtos: TenantVisitorInfoDto[] = visitors.map((visitor) => {
         const sessions = visitor.getSessions();
         const activeSessions = sessions.filter((session) => session.isActive());
@@ -83,6 +90,11 @@ export class GetVisitorsByTenantQueryHandler
 
         const siteId = visitor.getSiteId().getValue();
         const siteName = siteNamesMap.get(siteId) || `Sitio ${siteId}`;
+
+        // Filtrar los chats pendientes que correspondan a este visitante
+        // TODO: Optimizar si pendingChatIds incluye metadatos de visitante
+        // Por ahora, asignar todos los pendingChatIds a cada visitante
+        const visitorPendingChatIds = pendingChatIds;
 
         return {
           id: visitor.getId().getValue(),
@@ -95,6 +107,7 @@ export class GetVisitorsByTenantQueryHandler
           createdAt: visitor.getCreatedAt(),
           lastActivity:
             latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
+          pendingChatIds: visitorPendingChatIds,
         };
       });
 
@@ -103,12 +116,6 @@ export class GetVisitorsByTenantQueryHandler
         visitors.map((v) => v.getSiteId().getValue()),
       );
       const activeSitesCount = uniqueSites.size;
-
-      // Obtener chat IDs pendientes del tenant
-      const pendingChatIds = await getPendingChatIdsByTenant(
-        this.chatRepository,
-        tenantId,
-      );
 
       this.logger.log(
         `Encontrados ${visitorDtos.length} visitantes para tenant ${query.tenantId} en ${activeSitesCount} sitios`,
@@ -120,7 +127,6 @@ export class GetVisitorsByTenantQueryHandler
         visitors: visitorDtos,
         totalCount: visitorDtos.length,
         activeSitesCount,
-        pendingChatIds,
         timestamp: new Date(),
       };
     } catch (error) {

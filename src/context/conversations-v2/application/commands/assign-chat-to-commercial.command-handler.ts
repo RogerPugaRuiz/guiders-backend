@@ -110,11 +110,11 @@ export class AssignChatToCommercialCommandHandler
       const assignedChat = chat.assignCommercial(commercialId.getValue());
 
       // 8. Persistir el chat actualizado
-      const saveResult = await this.chatRepository.save(assignedChat);
-      if (saveResult.isErr()) {
+      const updateResult = await this.chatRepository.update(assignedChat);
+      if (updateResult.isErr()) {
         return err(
           new AssignChatToCommercialError(
-            `Error al guardar chat: ${saveResult.error.message}`,
+            `Error al actualizar chat: ${updateResult.error.message}`,
           ),
         );
       }
