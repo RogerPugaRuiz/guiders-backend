@@ -18,7 +18,6 @@ import {
   CHAT_V2_REPOSITORY,
   IChatRepository,
 } from '../../../conversations-v2/domain/chat.repository';
-import { ChatStatus } from '../../../conversations-v2/domain/value-objects/chat-status';
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
 
 @QueryHandler(GetVisitorsWithUnassignedChatsByTenantQuery)
@@ -196,7 +195,7 @@ async function resolveSiteNames(
     }
 
     return siteNamesMap;
-  } catch (error) {
+  } catch {
     // En caso de error, retornar mapa vacío para usar fallbacks
     return siteNamesMap;
   }
@@ -205,7 +204,7 @@ async function resolveSiteNames(
 // Función auxiliar para obtener chat IDs sin asignar de un tenant
 async function getUnassignedChatIdsByTenant(
   chatRepository: IChatRepository,
-  tenantId: TenantId,
+  _tenantId: TenantId,
 ): Promise<string[]> {
   try {
     // Obtener chats sin asignar (pendientes) usando filtros específicos
@@ -217,12 +216,12 @@ async function getUnassignedChatIdsByTenant(
 
     if (unassignedChatsResult.isOk()) {
       const unassignedChats = unassignedChatsResult.value;
-      
+
       // Filtrar chats que pertenecen al tenant específico
-      // TODO: Esta lógica debería optimizarse cuando se agregue 
+      // TODO: Esta lógica debería optimizarse cuando se agregue
       // el campo tenantId a la entidad Chat
       const tenantChatIds = unassignedChats
-        .filter((chat) => {
+        .filter((_chat) => {
           // Por ahora retornamos todos los chats sin asignar
           // En el futuro, filtrar por: chat.getTenantId().getValue() === tenantId.getValue()
           return true;
@@ -233,7 +232,7 @@ async function getUnassignedChatIdsByTenant(
     }
 
     return [];
-  } catch (error) {
+  } catch {
     // En caso de error, retornar array vacío
     return [];
   }

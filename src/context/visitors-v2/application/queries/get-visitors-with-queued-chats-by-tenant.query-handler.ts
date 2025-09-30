@@ -15,8 +15,10 @@ import {
   CompanyRepository,
 } from '../../../company/domain/company.repository';
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
-import { IChatRepository, CHAT_V2_REPOSITORY } from '../../../conversations-v2/domain/chat.repository';
-import { ChatStatus } from '../../../conversations-v2/domain/value-objects/chat-status';
+import {
+  IChatRepository,
+  CHAT_V2_REPOSITORY,
+} from '../../../conversations-v2/domain/chat.repository';
 
 @QueryHandler(GetVisitorsWithQueuedChatsByTenantQuery)
 export class GetVisitorsWithQueuedChatsByTenantQueryHandler
@@ -194,7 +196,7 @@ async function resolveSiteNames(
     }
 
     return siteNamesMap;
-  } catch (error) {
+  } catch {
     // En caso de error, retornar mapa vacío para usar fallbacks
     return siteNamesMap;
   }
@@ -214,7 +216,7 @@ async function getQueuedChatIdsByTenant(
 
     if (queuedChatsResult.isOk()) {
       const queuedChats = queuedChatsResult.value;
-      
+
       // Extraer IDs de los chats en cola
       const queuedChatIds = queuedChats.map((chat) => chat.id.getValue());
 
@@ -222,7 +224,7 @@ async function getQueuedChatIdsByTenant(
     }
 
     return [];
-  } catch (error) {
+  } catch {
     // En caso de error, retornar array vacío
     return [];
   }

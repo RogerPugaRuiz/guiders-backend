@@ -18,7 +18,6 @@ import {
   CHAT_V2_REPOSITORY,
   IChatRepository,
 } from '../../../conversations-v2/domain/chat.repository';
-import { ChatStatus } from '../../../conversations-v2/domain/value-objects/chat-status';
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
 
 @QueryHandler(GetVisitorsByTenantQuery)
@@ -156,13 +155,13 @@ async function resolveCompanyName(
 // Función auxiliar para resolver nombres de sitios de un tenant
 async function resolveSiteNames(
   companyRepository: CompanyRepository,
-  tenantId: TenantId,
+  _tenantId: TenantId,
 ): Promise<Map<string, string>> {
   const siteNamesMap = new Map<string, string>();
 
   try {
     const companyResult = await companyRepository.findById(
-      new Uuid(tenantId.getValue()),
+      new Uuid(_tenantId.getValue()),
     );
 
     if (companyResult.isOk()) {
@@ -177,7 +176,7 @@ async function resolveSiteNames(
     }
 
     return siteNamesMap;
-  } catch (error) {
+  } catch {
     // En caso de error, retornar mapa vacío para usar fallbacks
     return siteNamesMap;
   }
@@ -186,11 +185,11 @@ async function resolveSiteNames(
 // Función auxiliar para obtener chat IDs pendientes de un tenant
 async function getPendingChatIdsByTenant(
   chatRepository: IChatRepository,
-  tenantId: TenantId,
+  _tenantId: TenantId,
 ): Promise<string[]> {
   try {
     // Obtener chats pendientes usando el método getPendingQueue
-    // TODO: Cuando se integre completamente con conversations-v2, 
+    // TODO: Cuando se integre completamente con conversations-v2,
     // este método debería filtrar por tenantId
     const pendingChatsResult = await chatRepository.getPendingQueue(
       undefined, // department (no filtrar por departamento)
@@ -199,12 +198,12 @@ async function getPendingChatIdsByTenant(
 
     if (pendingChatsResult.isOk()) {
       const pendingChats = pendingChatsResult.value;
-      
+
       // Filtrar chats que pertenecen al tenant específico
-      // TODO: Esta lógica debería optimizarse cuando se agregue 
+      // TODO: Esta lógica debería optimizarse cuando se agregue
       // el campo tenantId a la entidad Chat
       const tenantChatIds = pendingChats
-        .filter((chat) => {
+        .filter((_chat) => {
           // Por ahora retornamos todos los chats pendientes
           // En el futuro, filtrar por: chat.getTenantId().getValue() === tenantId.getValue()
           return true;
@@ -215,7 +214,7 @@ async function getPendingChatIdsByTenant(
     }
 
     return [];
-  } catch (error) {
+  } catch {
     // En caso de error, retornar array vacío
     return [];
   }
