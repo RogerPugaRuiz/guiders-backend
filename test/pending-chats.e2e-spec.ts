@@ -8,8 +8,11 @@ import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure/controllers/chat-v2.controller';
 import {
+  CqrsModule,
   QueryBus,
   CommandBus,
+  IQueryHandler,
+  QueryHandler,
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
@@ -66,7 +69,9 @@ class MockRolesGuard {
 }
 
 // Mock Query Handler para GetVisitorPendingChatsQuery
-class MockGetVisitorPendingChatsQueryHandler {
+@Injectable()
+@QueryHandler(GetVisitorPendingChatsQuery)
+class MockGetVisitorPendingChatsQueryHandler implements IQueryHandler<GetVisitorPendingChatsQuery> {
   execute(query: GetVisitorPendingChatsQuery): Promise<PendingChatsResponseDto> {
     const response: PendingChatsResponseDto = {
       visitor: {
@@ -141,29 +146,13 @@ class MockGetVisitorPendingChatsQueryHandler {
 
 describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)', () => {
   let app: INestApplication<App>;
-  let queryBus: { execute: jest.Mock };
 
   beforeAll(async () => {
-    queryBus = {
-      execute: jest.fn((query: GetVisitorPendingChatsQuery) => {
-        const handler = new MockGetVisitorPendingChatsQueryHandler();
-        return handler.execute(query);
-      }),
-    };
-
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
+      imports: [CqrsModule],
       providers: [
-        {
-          provide: QueryBus,
-          useValue: queryBus,
-        },
-        {
-          provide: CommandBus,
-          useValue: {
-            execute: jest.fn(),
-          },
-        },
+        MockGetVisitorPendingChatsQueryHandler,
       ],
     })
       .overrideGuard(AuthGuard)
