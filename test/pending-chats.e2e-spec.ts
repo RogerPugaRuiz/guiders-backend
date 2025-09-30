@@ -8,6 +8,10 @@ import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guar
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { GetVisitorPendingChatsQuery } from '../src/context/conversations-v2/application/queries/get-visitor-pending-chats.query';
 import { PendingChatsResponseDto } from '../src/context/conversations-v2/application/dtos/pending-chats-response.dto';
+import { TokenVerifyService } from '../src/context/shared/infrastructure/token-verify.service';
+import { VisitorSessionAuthService } from '../src/context/shared/infrastructure/services/visitor-session-auth.service';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
+import { VISITOR_V2_REPOSITORY } from '../src/context/visitors-v2/domain/visitor-v2.repository';
 
 // Mock para simular usuario autenticado
 interface MockUser {
@@ -57,6 +61,23 @@ class MockRolesGuard {
     return request.user?.roles?.includes('commercial') ?? false;
   }
 }
+
+// Mock Services
+const mockTokenVerifyService = {
+  verifyToken: jest.fn(),
+};
+
+const mockVisitorV2Repository = {
+  findBySessionId: jest.fn(),
+};
+
+const mockVisitorSessionAuthService = {
+  validateSession: jest.fn(),
+};
+
+const mockBffSessionAuthService = {
+  validateBffSession: jest.fn(),
+};
 
 // Mock Query Handler para GetVisitorPendingChatsQuery
 @Injectable()
@@ -145,7 +166,25 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
       imports: [CqrsModule],
-      providers: [MockGetVisitorPendingChatsQueryHandler],
+      providers: [
+        MockGetVisitorPendingChatsQueryHandler,
+        {
+          provide: TokenVerifyService,
+          useValue: mockTokenVerifyService,
+        },
+        {
+          provide: VisitorSessionAuthService,
+          useValue: mockVisitorSessionAuthService,
+        },
+        {
+          provide: BffSessionAuthService,
+          useValue: mockBffSessionAuthService,
+        },
+        {
+          provide: VISITOR_V2_REPOSITORY,
+          useValue: mockVisitorV2Repository,
+        },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useClass(MockAuthGuard)
@@ -169,7 +208,9 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(`/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`)
+        .get(
+          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
+        )
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
@@ -213,7 +254,7 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
 
       return request(app.getHttpServer())
         .get(
-          `/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats?chatIds=chat-456`,
+          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats?chatIds=chat-456`,
         )
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
@@ -229,7 +270,7 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
 
       return request(app.getHttpServer())
         .get(
-          `/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats?chatIds=chat-456,chat-789`,
+          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats?chatIds=chat-456,chat-789`,
         )
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
@@ -243,13 +284,15 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(`/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`)
+        .get(
+          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
+        )
         .expect(403); // Sin autenticación, el guard rechaza la petición
     });
 
     it('debe validar los parámetros de ruta', async () => {
       return request(app.getHttpServer())
-        .get('/api/v1/tenants//visitors//pending-chats')
+        .get('/v2/chats/api/v1/tenants//visitors//pending-chats')
         .set('Authorization', 'Bearer mock-token')
         .expect(404); // Ruta inválida
     });
@@ -259,7 +302,9 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(`/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`)
+        .get(
+          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
+        )
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
@@ -277,7 +322,9 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(`/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`)
+        .get(
+          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
+        )
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
