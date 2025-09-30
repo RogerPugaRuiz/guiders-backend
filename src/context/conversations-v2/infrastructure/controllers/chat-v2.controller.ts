@@ -41,7 +41,9 @@ import {
   ChatResponseDto,
   ChatListResponseDto,
 } from '../../application/dtos/chat-response.dto';
+import { PendingChatsResponseDto } from '../../application/dtos/pending-chats-response.dto';
 import { GetChatByIdQuery } from '../../application/queries/get-chat-by-id.query';
+import { GetVisitorPendingChatsQuery } from '../../application/queries/get-visitor-pending-chats.query';
 import { Result } from 'src/context/shared/domain/result';
 import { Chat } from '../../domain/entities/chat.aggregate';
 import { DomainError } from 'src/context/shared/domain/domain.error';
@@ -1653,5 +1655,86 @@ export class ChatV2Controller {
         );
       }
     })();
+  }
+
+  /**
+   * Obtiene chats pendientes de un visitante específico con detalles
+   * Requiere autenticación y devuelve información del visitante, chats pendientes,
+   * historial de mensajes y actividades
+   */
+  @Get('/api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats')
+  @UseGuards(AuthGuard, RolesGuard)
+  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @ApiOperation({
+    summary: 'Obtener chats pendientes de un visitante',
+    description:
+      'Retorna información detallada del visitante, sus chats pendientes, historial de mensajes y actividades. Requiere autenticación y rol de comercial, admin o supervisor.',
+  })
+  @ApiParam({
+    name: 'tenantId',
+    description: 'ID del tenant',
+    example: 'tenant-123',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID del visitante',
+    example: 'visitor-456',
+  })
+  @ApiQuery({
+    name: 'chatIds',
+    description: 'IDs de chats específicos a filtrar (separados por coma)',
+    required: false,
+    type: String,
+    example: 'chat1,chat2',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Chats pendientes obtenidos exitosamente',
+    type: PendingChatsResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async getVisitorPendingChats(
+    @Param('tenantId') tenantId: string,
+    @Param('visitorId') visitorId: string,
+    @Query('chatIds') chatIds?: string,
+  ): Promise<PendingChatsResponseDto> {
+    try {
+      this.logger.log(
+        `Obteniendo chats pendientes para visitante: ${visitorId} en tenant: ${tenantId}`,
+      );
+
+      // Parsear chatIds si están presentes
+      const chatIdsArray = chatIds
+        ? chatIds.split(',').map((id) => id.trim())
+        : undefined;
+
+      const query = new GetVisitorPendingChatsQuery(
+        tenantId,
+        visitorId,
+        chatIdsArray,
+      );
+
+      return await this.queryBus.execute(query);
+    } catch (error) {
+      this.logger.error(
+        `Error al obtener chats pendientes del visitante ${visitorId}:`,
+        error,
+      );
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }
