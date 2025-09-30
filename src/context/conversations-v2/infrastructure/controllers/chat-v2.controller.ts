@@ -1662,7 +1662,7 @@ export class ChatV2Controller {
    * Requiere autenticación y devuelve información del visitante, chats pendientes,
    * historial de mensajes y actividades
    */
-  @Get('/api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats')
+  @Get('/v1/tenants/:tenantId/visitors/:visitorId/pending-chats')
   @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({

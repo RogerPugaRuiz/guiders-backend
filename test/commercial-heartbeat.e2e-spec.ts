@@ -20,7 +20,9 @@ describe('Commercial Heartbeat E2E', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('/v2/commercials/connect (POST) - Connect Commercial', () => {
