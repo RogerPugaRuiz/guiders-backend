@@ -202,15 +202,12 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     }
   });
 
-  describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats', () => {
+  describe('GET /v2/chats/visitor/:visitorId/pending', () => {
     it('debe retornar chats pendientes con información completa', async () => {
-      const tenantId = 'tenant-123';
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(
-          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
-        )
+        .get(`/v2/chats/visitor/${visitorId}/pending`)
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
@@ -249,13 +246,10 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     });
 
     it('debe filtrar chats por chatIds cuando se proporciona el query param', async () => {
-      const tenantId = 'tenant-123';
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(
-          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats?chatIds=chat-456`,
-        )
+        .get(`/v2/chats/visitor/${visitorId}/pending?chatIds=chat-456`)
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
@@ -265,13 +259,10 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     });
 
     it('debe filtrar múltiples chats por chatIds separados por coma', async () => {
-      const tenantId = 'tenant-123';
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(
-          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats?chatIds=chat-456,chat-789`,
-        )
+        .get(`/v2/chats/visitor/${visitorId}/pending?chatIds=chat-456,chat-789`)
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
@@ -280,31 +271,25 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     });
 
     it('debe retornar 401 cuando no hay token de autenticación', async () => {
-      const tenantId = 'tenant-123';
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(
-          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
-        )
+        .get(`/v2/chats/visitor/${visitorId}/pending`)
         .expect(403); // Sin autenticación, el guard rechaza la petición
     });
 
     it('debe validar los parámetros de ruta', async () => {
       return request(app.getHttpServer())
-        .get('/v2/chats/api/v1/tenants//visitors//pending-chats')
+        .get('/v2/chats/visitor//pending')
         .set('Authorization', 'Bearer mock-token')
         .expect(404); // Ruta inválida
     });
 
     it('debe incluir lastMessage en los chats pendientes', async () => {
-      const tenantId = 'tenant-123';
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(
-          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
-        )
+        .get(`/v2/chats/visitor/${visitorId}/pending`)
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {
@@ -318,13 +303,10 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     });
 
     it('debe incluir unreadCount en los chats pendientes', async () => {
-      const tenantId = 'tenant-123';
       const visitorId = 'visitor-456';
 
       return request(app.getHttpServer())
-        .get(
-          `/v2/chats/api/v1/tenants/${tenantId}/visitors/${visitorId}/pending-chats`,
-        )
+        .get(`/v2/chats/visitor/${visitorId}/pending`)
         .set('Authorization', 'Bearer mock-token')
         .expect(200)
         .expect((res) => {

@@ -398,18 +398,38 @@ class GetResponseTimeStatsQueryHandler
 class AssignChatToCommercialCommandHandler
   implements ICommandHandler<AssignChatToCommercialCommand>
 {
-  execute(command: AssignChatToCommercialCommand): Promise<ChatResponse> {
+  execute(command: AssignChatToCommercialCommand): Promise<any> {
     if (command.chatId === 'nonexistent') {
       throw new Error('Chat no encontrado');
     }
-
+    // Mock con método toPrimitives para compatibilidad con ChatResponseDto
     return Promise.resolve({
-      id: command.chatId,
-      status: 'ACTIVE',
-      visitorInfo: {
-        id: 'visitor-1',
-        name: 'Visitante Test',
-      },
+      toPrimitives: () => ({
+        id: command.chatId,
+        status: 'ASSIGNED',
+        priority: 'NORMAL',
+        visitorId: 'visitor-1',
+        assignedCommercialId: command.commercialId,
+        availableCommercialIds: [],
+        createdAt: new Date(),
+        firstResponseTime: new Date(),
+        closedAt: null,
+        lastMessageDate: new Date(),
+        totalMessages: 1,
+        updatedAt: new Date(),
+        metadata: { department: 'ventas', source: 'website', customFields: {} },
+        visitorInfo: {
+          name: 'Visitante Test',
+          email: 'visitor@test.com',
+          phone: '+1234567890',
+          location: { city: 'Madrid' },
+          company: 'Acme Corp',
+          ipAddress: '192.168.1.1',
+          referrer: 'https://google.com',
+          userAgent: 'Mozilla/5.0',
+        },
+        tags: ['urgent'],
+      }),
     });
   }
 }
@@ -740,7 +760,11 @@ describe('ChatV2Controller (e2e)', () => {
       return request(app.getHttpServer())
         .put(`/v2/chats/${chatId}/assign/${commercialId}`)
         .set('Authorization', `Bearer ${mockToken}`)
-        .expect(501); // NOT_IMPLEMENTED según el controller actual
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id', chatId);
+          expect(res.body).toHaveProperty('assignedCommercialId', commercialId);
+        });
     });
   });
 
@@ -801,8 +825,11 @@ describe('ChatV2Controller (e2e)', () => {
       const result = await commandBus.execute(command);
 
       expect(result).toBeDefined();
-      expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('status');
+      expect(typeof result.toPrimitives).toBe('function');
+      const p = result.toPrimitives();
+      expect(p).toHaveProperty('id', 'chat-123');
+      expect(p).toHaveProperty('assignedCommercialId', 'commercial-456');
+      expect(p).toHaveProperty('status', 'ASSIGNED');
     });
 
     it('debe ejecutar CloseChatCommand correctamente', async () => {

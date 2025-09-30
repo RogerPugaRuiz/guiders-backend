@@ -48,6 +48,7 @@ import { CreateChatWithMessageCommandHandler } from './application/commands/crea
 import { SendMessageCommandHandler } from './application/commands/send-message.command-handler';
 import { AutoAssignChatCommandHandler } from './application/commands/auto-assign-chat.command-handler';
 import { CreateAssignmentRulesCommandHandler } from './application/commands/create-assignment-rules.command-handler';
+import { AssignChatToCommercialCommandHandler } from './application/commands/assign-chat-to-commercial.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
@@ -133,7 +134,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     SendMessageCommandHandler,
     AutoAssignChatCommandHandler,
     CreateAssignmentRulesCommandHandler,
-    // AssignChatToCommercialCommandHandler,
+    AssignChatToCommercialCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
 

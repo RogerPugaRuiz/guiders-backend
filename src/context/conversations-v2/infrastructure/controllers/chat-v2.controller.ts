@@ -37,10 +37,8 @@ import {
 } from 'src/context/shared/infrastructure/guards/role.guard';
 
 // DTOs
-import {
-  ChatResponseDto,
-  ChatListResponseDto,
-} from '../../application/dtos/chat-response.dto';
+import { ChatResponseDto } from '../dto/chat-response.dto';
+import { ChatListResponseDto } from '../../application/dtos/chat-response.dto';
 import { PendingChatsResponseDto } from '../../application/dtos/pending-chats-response.dto';
 import { GetChatByIdQuery } from '../../application/queries/get-chat-by-id.query';
 import { GetVisitorPendingChatsQuery } from '../../application/queries/get-visitor-pending-chats.query';
@@ -58,6 +56,7 @@ import { CreateChatWithMessageRequestDto } from '../../application/dtos/create-c
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
 import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
 import { CreateChatWithMessageCommand } from '../../application/commands/create-chat-with-message.command';
+import { AssignChatToCommercialCommand } from '../../application/commands/assign-chat-to-commercial.command';
 
 // Interfaces para respuestas de comandos
 interface CreateChatWithMessageResult {
@@ -1456,27 +1455,34 @@ export class ChatV2Controller {
     status: 500,
     description: 'Error interno del servidor',
   })
-  assignChat(
+  async assignChat(
     @Param('chatId') chatId: string,
     @Param('commercialId') commercialId: string,
-  ): ChatResponseDto {
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatResponseDto> {
     try {
       this.logger.log(`Asignando chat ${chatId} al comercial ${commercialId}`);
 
-      // TODO: Implementar command handler
-      // const command = new AssignChatToCommercialCommand({
-      //   chatId,
-      //   commercialId,
-      //   assignedBy: req.user.sub,
-      // });
+      // Crear el command con información del usuario autenticado
+      const command = new AssignChatToCommercialCommand({
+        chatId,
+        commercialId,
+        assignedBy: req.user.id,
+        reason: 'manual',
+      });
 
-      // const result = await this.commandBus.execute(command);
+      // Ejecutar el command
+      const chat: {
+        toPrimitives: () => import('../dto/chat-response.dto').ChatPrimitives;
+      } = await this.commandBus.execute(command);
 
-      // Respuesta temporal
-      throw new HttpException(
-        'Funcionalidad no implementada',
-        HttpStatus.NOT_IMPLEMENTED,
-      );
+      // Si el resultado es nulo, lanzar 404
+      if (!chat) {
+        throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
+      }
+
+      // Retornar el DTO
+      return ChatResponseDto.fromDomain(chat);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
@@ -1662,18 +1668,13 @@ export class ChatV2Controller {
    * Requiere autenticación y devuelve información del visitante, chats pendientes,
    * historial de mensajes y actividades
    */
-  @Get('/v1/tenants/:tenantId/visitors/:visitorId/pending-chats')
+  @Get('visitor/:visitorId/pending')
   @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener chats pendientes de un visitante',
     description:
-      'Retorna información detallada del visitante, sus chats pendientes, historial de mensajes y actividades. Requiere autenticación y rol de comercial, admin o supervisor.',
-  })
-  @ApiParam({
-    name: 'tenantId',
-    description: 'ID del tenant',
-    example: 'tenant-123',
+      'Retorna información detallada del visitante, sus chats pendientes, historial de mensajes y actividades. Requiere autenticación y rol de comercial, admin o supervisor. Path actualizado a versión V2.',
   })
   @ApiParam({
     name: 'visitorId',
@@ -1705,13 +1706,12 @@ export class ChatV2Controller {
     description: 'Error interno del servidor',
   })
   async getVisitorPendingChats(
-    @Param('tenantId') tenantId: string,
     @Param('visitorId') visitorId: string,
     @Query('chatIds') chatIds?: string,
   ): Promise<PendingChatsResponseDto> {
     try {
       this.logger.log(
-        `Obteniendo chats pendientes para visitante: ${visitorId} en tenant: ${tenantId}`,
+        `Obteniendo chats pendientes para visitante: ${visitorId}`,
       );
 
       // Parsear chatIds si están presentes
@@ -1719,8 +1719,9 @@ export class ChatV2Controller {
         ? chatIds.split(',').map((id) => id.trim())
         : undefined;
 
+      // El parámetro tenantId se elimina, se pasa string vacío para cumplir con la firma
       const query = new GetVisitorPendingChatsQuery(
-        tenantId,
+        '',
         visitorId,
         chatIdsArray,
       );
