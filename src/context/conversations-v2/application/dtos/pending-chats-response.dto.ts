@@ -68,7 +68,14 @@ export class PendingChatDto {
 
   @ApiProperty({
     description: 'Estado del chat',
-    enum: ['PENDING', 'ASSIGNED', 'ACTIVE', 'CLOSED', 'TRANSFERRED', 'ABANDONED'],
+    enum: [
+      'PENDING',
+      'ASSIGNED',
+      'ACTIVE',
+      'CLOSED',
+      'TRANSFERRED',
+      'ABANDONED',
+    ],
     example: 'PENDING',
   })
   status: string;

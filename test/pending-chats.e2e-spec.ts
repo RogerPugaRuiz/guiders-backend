@@ -1,9 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  INestApplication,
-  ExecutionContext,
-  Injectable,
-} from '@nestjs/common';
+import { INestApplication, ExecutionContext, Injectable } from '@nestjs/common';
 import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure/controllers/chat-v2.controller';
@@ -71,8 +67,12 @@ class MockRolesGuard {
 // Mock Query Handler para GetVisitorPendingChatsQuery
 @Injectable()
 @QueryHandler(GetVisitorPendingChatsQuery)
-class MockGetVisitorPendingChatsQueryHandler implements IQueryHandler<GetVisitorPendingChatsQuery> {
-  execute(query: GetVisitorPendingChatsQuery): Promise<PendingChatsResponseDto> {
+class MockGetVisitorPendingChatsQueryHandler
+  implements IQueryHandler<GetVisitorPendingChatsQuery>
+{
+  execute(
+    query: GetVisitorPendingChatsQuery,
+  ): Promise<PendingChatsResponseDto> {
     const response: PendingChatsResponseDto = {
       visitor: {
         id: query.visitorId,
@@ -127,7 +127,7 @@ class MockGetVisitorPendingChatsQueryHandler implements IQueryHandler<GetVisitor
       response.pendingChats = response.pendingChats.filter((chat) =>
         query.chatIds!.includes(chat.chatId),
       );
-      
+
       // Filtrar historial de chat
       if (response.chatHistory) {
         const filteredHistory: Record<string, any[]> = {};
@@ -151,9 +151,7 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
       imports: [CqrsModule],
-      providers: [
-        MockGetVisitorPendingChatsQueryHandler,
-      ],
+      providers: [MockGetVisitorPendingChatsQueryHandler],
     })
       .overrideGuard(AuthGuard)
       .useClass(MockAuthGuard)

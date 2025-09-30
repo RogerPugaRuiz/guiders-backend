@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GetVisitorPendingChatsQueryHandler } from '../get-visitor-pending-chats.query-handler';
 import { GetVisitorPendingChatsQuery } from '../get-visitor-pending-chats.query';
-import { CHAT_V2_REPOSITORY, IChatRepository } from '../../../domain/chat.repository';
+import {
+  CHAT_V2_REPOSITORY,
+  IChatRepository,
+} from '../../../domain/chat.repository';
 import {
   MESSAGE_V2_REPOSITORY,
   IMessageRepository,
@@ -142,7 +145,9 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       // Assert
       expect(result).toBeDefined();
       expect(result.pendingChats).toHaveLength(1);
-      expect(result.pendingChats[0].chatId).toBe('ecb67b15-6c62-454e-acf5-7fd498c5f97a');
+      expect(result.pendingChats[0].chatId).toBe(
+        'ecb67b15-6c62-454e-acf5-7fd498c5f97a',
+      );
       expect(result.pendingChats[0].status).toBe('PENDING');
       expect(result.pendingChats[0].priority).toBe('HIGH');
     });
@@ -201,7 +206,9 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       // Assert
       expect(result).toBeDefined();
       expect(result.pendingChats).toHaveLength(1);
-      expect(result.pendingChats[0].chatId).toBe('ecb67b15-6c62-454e-acf5-7fd498c5f97a');
+      expect(result.pendingChats[0].chatId).toBe(
+        'ecb67b15-6c62-454e-acf5-7fd498c5f97a',
+      );
     });
 
     it('debe excluir chats que no están en estado PENDING', async () => {
@@ -257,7 +264,9 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       // Assert
       expect(result).toBeDefined();
       expect(result.pendingChats).toHaveLength(1);
-      expect(result.pendingChats[0].chatId).toBe('80f2c20b-f1b3-417b-8b7d-8cf296d14133');
+      expect(result.pendingChats[0].chatId).toBe(
+        '80f2c20b-f1b3-417b-8b7d-8cf296d14133',
+      );
     });
 
     it('debe manejar errores del repositorio correctamente', async () => {

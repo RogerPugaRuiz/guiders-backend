@@ -2,7 +2,10 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { GetVisitorPendingChatsQuery } from './get-visitor-pending-chats.query';
 import { PendingChatsResponseDto } from '../dtos/pending-chats-response.dto';
-import { CHAT_V2_REPOSITORY, IChatRepository } from '../../domain/chat.repository';
+import {
+  CHAT_V2_REPOSITORY,
+  IChatRepository,
+} from '../../domain/chat.repository';
 import {
   MESSAGE_V2_REPOSITORY,
   IMessageRepository,
@@ -29,9 +32,7 @@ import { TrackingEvent } from 'src/context/tracking/domain/tracking-event.aggreg
 export class GetVisitorPendingChatsQueryHandler
   implements IQueryHandler<GetVisitorPendingChatsQuery>
 {
-  private readonly logger = new Logger(
-    GetVisitorPendingChatsQueryHandler.name,
-  );
+  private readonly logger = new Logger(GetVisitorPendingChatsQueryHandler.name);
 
   constructor(
     @Inject(CHAT_V2_REPOSITORY)
@@ -124,17 +125,19 @@ export class GetVisitorPendingChatsQueryHandler
           ChatId.create(chatId),
         );
 
-        let lastMessage: {
-          content: string;
-          sentAt: string;
-          senderType: string;
-        } | undefined = undefined;
+        let lastMessage:
+          | {
+              content: string;
+              sentAt: string;
+              senderType: string;
+            }
+          | undefined = undefined;
         let unreadCount = 0;
 
         if (messagesResult.isOk()) {
           const messageSearchResult = messagesResult.unwrap();
           const messages = messageSearchResult.messages;
-          
+
           chatHistory[chatId] = messages.map((msg) => {
             const msgPrimitives = msg.toPrimitives();
             return {
