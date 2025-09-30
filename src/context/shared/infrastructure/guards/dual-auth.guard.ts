@@ -6,11 +6,16 @@ import {
   Optional,
   UnauthorizedException,
 } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 import { TokenVerifyService } from '../token-verify.service';
 import { AuthenticatedRequest } from './auth.guard';
 import { resolveVisitorSessionId } from '../../../visitors-v2/infrastructure/http/visitor-session-cookie.util';
 import { VisitorSessionAuthService } from '../services/visitor-session-auth.service';
 import { BffSessionAuthService } from '../services/bff-session-auth.service';
+import { FindUserByKeycloakIdQuery } from '../../../auth/auth-user/application/queries/find-user-by-keycloak-id.query';
+import { UserResponseDto } from '../../../auth/auth-user/application/dtos/user-list-response.dto';
+import { Result } from '../../domain/result';
+import { DomainError } from '../../domain/domain.error';
 
 /**
  * Guard de autenticación dual que soporta múltiples métodos pero es OBLIGATORIO:
@@ -28,6 +33,7 @@ export class DualAuthGuard implements CanActivate {
   constructor(
     private readonly tokenVerifyService: TokenVerifyService,
     private readonly bffSessionAuthService: BffSessionAuthService,
+    private readonly queryBus: QueryBus,
     @Optional()
     private readonly visitorSessionAuthService?: VisitorSessionAuthService,
   ) {}
@@ -158,17 +164,42 @@ export class DualAuthGuard implements CanActivate {
           await this.bffSessionAuthService.validateBffSession(token);
 
         if (bffUserInfo) {
+          // Intentar resolver companyId desde base de datos usando el sub (keycloakId)
+          let companyId: string | undefined;
+
+          try {
+            const userResult: Result<UserResponseDto, DomainError> =
+              await this.queryBus.execute(
+                new FindUserByKeycloakIdQuery(bffUserInfo.sub),
+              );
+
+            if (userResult.isOk()) {
+              companyId = userResult.value.companyId;
+              this.logger.debug(
+                `CompanyId resuelto para usuario BFF ${bffUserInfo.sub}: ${companyId}`,
+              );
+            } else {
+              this.logger.warn(
+                `No se pudo resolver companyId para usuario BFF ${bffUserInfo.sub}: ${userResult.error.message}`,
+              );
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Error resolviendo companyId para usuario BFF ${bffUserInfo.sub}: ${error}`,
+            );
+          }
+
           // Poblar request.user con información del BFF
           request.user = {
             id: bffUserInfo.sub,
             roles: bffUserInfo.roles,
             username: bffUserInfo.email?.split('@')[0] || 'Usuario BFF',
             email: bffUserInfo.email || '',
-            companyId: undefined, // BFF no tiene companyId directo
+            companyId: companyId, // Ahora se resuelve desde la base de datos
           };
 
           this.logger.debug(
-            `BFF auth exitosa: sub=${bffUserInfo.sub}, roles=[${bffUserInfo.roles.join(', ')}]`,
+            `BFF auth exitosa: sub=${bffUserInfo.sub}, roles=[${bffUserInfo.roles.join(', ')}], companyId=${companyId}`,
           );
 
           return true;

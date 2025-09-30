@@ -40,6 +40,7 @@ export class GetCompanySitesQueryHandler
     const primitives = company.toPrimitives();
     return GetCompanySitesResponseDto.fromPrimitives({
       id: primitives.id,
+      companyName: primitives.companyName,
       sites: primitives.sites,
     });
   }

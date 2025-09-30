@@ -436,14 +436,40 @@ export class BffController {
     this.logger.debug(
       `[BFF /me/${app}] JWT OK: sub=${payload.sub ?? 'n/a'}, exp=${payload.exp ?? 'n/a'}`,
     );
-    return res.send({
+
+    // Log detallado de todos los claims del payload
+    this.logger.log(
+      `🔍 [BFF /me/${app}] Claims completos del JWT: ${JSON.stringify(payload, null, 2)}`,
+    );
+
+    // Log específico de organization claims
+    const orgClaims = {
+      organization: payload.organization,
+      organization_id: payload.organization_id,
+      organization_name: payload.organization_name,
+    };
+    this.logger.log(
+      `🏢 [BFF /me/${app}] Organization Claims extraídos: ${JSON.stringify(orgClaims)}`,
+    );
+
+    const response = {
       sub: payload.sub,
       email: pl.email,
       roles: pl.realm_access?.roles ?? [],
       app: app, // Incluir información de la app
+      // Incluir información de organization si está disponible
+      organization: payload.organization || null,
+      organization_id: payload.organization_id || null,
+      organization_name: payload.organization_name || null,
       // Opcional: informa al cliente del TTL que queda
       session: { exp: payload.exp, iat: payload.iat },
-    });
+    };
+
+    this.logger.log(
+      `📤 [BFF /me/${app}] Respuesta final: ${JSON.stringify(response)}`,
+    );
+
+    return res.send(response);
   }
 
   @ApiOperation({

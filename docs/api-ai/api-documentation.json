@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generated": "2025-09-26T07:31:50.532Z",
+  "generated": "2025-09-26T07:50:22.736Z",
   "baseUrl": "http://localhost:3000",
   "contexts": [
     {
@@ -19,8 +19,8 @@
             {
               "method": "GET",
               "path": "/bff/auth/login",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Iniciar login OIDC (console)",
+              "description": "Inicia el flujo OIDC con PKCE. Guarda returnTo en sesión y redirige al proveedor OIDC. Uso por defecto para la app console.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -29,16 +29,31 @@
               },
               "parameters": {
                 "path": [],
-                "query": []
+                "query": [
+                  {
+                    "name": "redirect",
+                    "required": false,
+                    "description": "URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO."
+                  }
+                ]
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 302,
+                  "description": "Redirección a proveedor OIDC"
+                },
+                {
+                  "status": 400,
+                  "description": "Parámetros inválidos"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/login/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Iniciar login OIDC para app",
+              "description": "Inicia el flujo OIDC para una app específica (console|admin). Guarda returnTo y redirige al proveedor OIDC.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -46,17 +61,37 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [],
-                "query": []
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "redirect",
+                    "required": false,
+                    "description": "URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO."
+                  }
+                ]
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 302,
+                  "description": "Redirección a proveedor OIDC"
+                },
+                {
+                  "status": 400,
+                  "description": "Parámetros inválidos"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/callback/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Callback OIDC",
+              "description": "Procesa el callback OIDC, emite cookies HttpOnly (session/refresh) y redirige a returnTo. Si hay error de sesión, reintenta login.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -64,17 +99,35 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [],
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
                 "query": []
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 302,
+                  "description": "Redirección a returnTo tras login"
+                },
+                {
+                  "status": 302,
+                  "description": "Redirección a login en caso de error"
+                },
+                {
+                  "status": 400,
+                  "description": "Callback inválido"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/me",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener claims del usuario (console)",
+              "description": "Devuelve claims básicos del usuario autenticado a partir de la cookie de sesión HttpOnly. Requiere cookie válida.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -82,17 +135,39 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [],
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
                 "query": []
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Claims del usuario"
+                },
+                {
+                  "status": 401,
+                  "description": "No autenticado o JWT inválido"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                },
+                {
+                  "status": 200,
+                  "description": "Claims del usuario"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "GET",
               "path": "/bff/auth/me/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener claims del usuario (console)",
+              "description": "Devuelve claims básicos del usuario autenticado a partir de la cookie de sesión HttpOnly. Requiere cookie válida.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -100,17 +175,47 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [],
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
                 "query": []
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Claims del usuario"
+                },
+                {
+                  "status": 401,
+                  "description": "No autenticado o JWT inválido"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                },
+                {
+                  "status": 200,
+                  "description": "Claims del usuario"
+                },
+                {
+                  "status": 401,
+                  "description": "No autenticado o JWT inválido"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/refresh",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Refrescar sesión (console)",
+              "description": "Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -118,17 +223,39 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [],
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
                 "query": []
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 204,
+                  "description": "Sesión renovada"
+                },
+                {
+                  "status": 401,
+                  "description": "Refresh token ausente o inválido"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                },
+                {
+                  "status": 204,
+                  "description": "Sesión renovada"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/refresh/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Refrescar sesión (console)",
+              "description": "Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -136,17 +263,135 @@
                 "bearer": false
               },
               "parameters": {
-                "path": [],
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
                 "query": []
               },
-              "responses": [],
+              "responses": [
+                {
+                  "status": 204,
+                  "description": "Sesión renovada"
+                },
+                {
+                  "status": 401,
+                  "description": "Refresh token ausente o inválido"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                },
+                {
+                  "status": 204,
+                  "description": "Sesión renovada"
+                },
+                {
+                  "status": 401,
+                  "description": "Refresh token ausente o inválido"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                }
+              ],
               "examples": {}
             },
             {
               "method": "POST",
               "path": "/bff/auth/logout",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Cerrar sesión (console)",
+              "description": "Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": "Redirige a /login/console"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                },
+                {
+                  "status": 302,
+                  "description": "Redirige a /login/:app"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/bff/auth/logout/:app",
+              "summary": "Cerrar sesión (console)",
+              "description": "Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "app",
+                    "description": "Parámetro sin descripción"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 302,
+                  "description": "Redirige a /login/console"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                },
+                {
+                  "status": 302,
+                  "description": "Redirige a /login/:app"
+                },
+                {
+                  "status": 400,
+                  "description": "Solicitud inválida"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts"
+        },
+        {
+          "name": "AuthVisitorController",
+          "context": "auth",
+          "baseUrl": "pixel",
+          "description": "Controller sin descripción",
+          "tags": [
+            "Pixel Visitor Auth"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/pixel/token",
+              "summary": "Obtener par de tokens para visitante existente",
+              "description": "Devuelve access_token y refresh_token para un visitor previamente registrado. Requiere cabeceras Origin y Referer con mismo hostname.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -162,9 +407,27 @@
             },
             {
               "method": "POST",
-              "path": "/bff/auth/logout/:app",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "path": "/pixel/register",
+              "summary": "Registrar visitante + emitir tokens",
+              "description": "Registra un visitante si no existe (por apiKey + client + dominio) y devuelve tokens. Si ya existe, re-emite tokens.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/pixel/token/refresh",
+              "summary": "Refrescar access token",
+              "description": "Devuelve un nuevo access_token válido a partir de refresh_token.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -179,7 +442,321 @@
               "examples": {}
             }
           ],
-          "filePath": "src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts"
+          "filePath": "src/context/auth/auth-visitor/infrastructure/auth-visitor.controller.ts"
+        },
+        {
+          "name": "AuthUserController",
+          "context": "auth",
+          "baseUrl": "user/auth",
+          "description": "Controller sin descripción",
+          "tags": [
+            "Autenticación de Usuarios"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/user/auth/login",
+              "summary": "Iniciar sesión de usuario",
+              "description": "Verifica las credenciales y devuelve tokens de acceso y actualización",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Usuario autenticado correctamente"
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/user/auth/register",
+              "summary": "Registrar un nuevo usuario",
+              "description": "Crea un nuevo usuario en el sistema con el rol especificado",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Usuario registrado correctamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Error de validación (formato de email incorrecto, contraseña no cumple requisitos)"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/user/auth/refresh",
+              "summary": "Renovar token de acceso",
+              "description": "Utiliza un token de actualización para obtener un nuevo token de acceso",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Token renovado correctamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Error de validación (token mal formado)"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/user/auth/logout",
+              "summary": "Cerrar sesión",
+              "description": "Cierra la sesión del usuario y revoca sus tokens",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 401,
+                  "description": "Token de actualización inválido o expirado"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 200,
+                  "description": "Sesión cerrada correctamente"
+                },
+                {
+                  "status": 401,
+                  "description": "No autorizado"
+                },
+                {
+                  "status": 500,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/user/auth/validate",
+              "summary": "Validar token de acceso",
+              "description": "Verifica que el token de acceso sea válido",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 401,
+                  "description": "No autorizado"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 204,
+                  "description": "Token válido"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/user/auth/accept-invite",
+              "summary": "Aceptar invitación",
+              "description": "Acepta una invitación para unirse a una compañía y establece la contraseña",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 200,
+                  "description": "Invitación aceptada correctamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/user/auth/company-users",
+              "summary": "Listar usuarios de la compañía",
+              "description": "Devuelve los usuarios asociados a la compañía del token JWT",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "admin"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Listado de usuarios"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/user/auth/me",
+              "summary": "Obtener usuario autenticado",
+              "description": "Devuelve la información del usuario asociado al token de acceso. Requiere rol admin o commercial.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "admin"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Usuario encontrado"
+                },
+                {
+                  "status": 401,
+                  "description": "No autorizado"
+                },
+                {
+                  "status": 404,
+                  "description": "Usuario no encontrado"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/user/auth/sync-with-keycloak",
+              "summary": "Sincronizar usuario con Keycloak",
+              "description": "Crea un nuevo usuario en el backend y lo vincula con un usuario existente de Keycloak",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Usuario sincronizado exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos"
+                },
+                {
+                  "status": 409,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/user/auth/verify-role-mapping",
+              "summary": "Verificar mapeo de roles de Keycloak",
+              "description": "Verifica cómo se mapearían los roles de Keycloak a roles del backend sin crear usuario",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Resultado de la verificación del mapeo de roles"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts"
         },
         {
           "name": "JwksController",
@@ -193,8 +770,47 @@
             {
               "method": "GET",
               "path": "/jwks",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
+              "summary": "Obtener JWKS público",
+              "description": "Devuelve el conjunto de claves públicas (JWKS) expuestas por el sistema para verificación de firmas JWT.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "JWKS actual"
+                },
+                {
+                  "status": 500,
+                  "description": "Error al recuperar JWKS"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/auth/api-key/infrastructure/jwks.controller.ts"
+        },
+        {
+          "name": "ApiKeyController",
+          "context": "auth",
+          "baseUrl": "api-keys",
+          "description": "Controller sin descripción",
+          "tags": [
+            "API Keys"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/api-keys/create",
+              "summary": "Crear (o reutilizar) API Key para un dominio",
+              "description": "Genera una nueva API Key asociada a un dominio y compañía. Si el dominio ya tiene una API Key se reutiliza.",
               "tags": [],
               "auth": {
                 "required": false,
@@ -207,31 +823,1083 @@
               },
               "responses": [],
               "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/api-keys/company",
+              "summary": "Crear (o reutilizar) API Key para un dominio",
+              "description": "Genera una nueva API Key asociada a un dominio y compañía. Si el dominio ya tiene una API Key se reutiliza.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "admin"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "API Key creada o reutilizada"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 200,
+                  "description": "Listado obtenido correctamente"
+                },
+                {
+                  "status": 401,
+                  "description": "Token inválido o sin companyId"
+                },
+                {
+                  "status": 403,
+                  "description": "Rol insuficiente (no admin)"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
             }
           ],
-          "filePath": "src/context/auth/api-key/infrastructure/jwks.controller.ts"
+          "filePath": "src/context/auth/api-key/infrastructure/api-key.controller.ts"
         }
       ]
     },
     {
       "name": "commercial",
       "description": "Gestión de comerciales y conectividad",
-      "controllers": []
+      "controllers": [
+        {
+          "name": "CommercialController",
+          "context": "commercial",
+          "baseUrl": "v2/commercials",
+          "description": "Conecta un comercial al sistema",
+          "tags": [
+            "Commercials"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/v2/commercials/connect",
+              "summary": "Conectar comercial",
+              "description": "Registra un comercial como conectado en el sistema",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Comercial conectado exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/v2/commercials/disconnect",
+              "summary": "Desconectar comercial",
+              "description": "Registra un comercial como desconectado del sistema",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Comercial desconectado exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/v2/commercials/heartbeat",
+              "summary": "Actualizar heartbeat comercial",
+              "description": "Actualiza la última actividad de un comercial para mantener la sesión activa",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 200,
+                  "description": "Actividad actualizada exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/commercials/:id/status",
+              "summary": "Obtener estado de comercial",
+              "description": "Obtiene el estado de conexión actual de un comercial específico",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "id",
+                    "description": "ID del comercial"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Estado del comercial obtenido exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/commercials/active",
+              "summary": "Obtener comerciales activos",
+              "description": "Obtiene la lista de todos los comerciales que están actualmente online",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de comerciales activos obtenida exitosamente"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/commercials/available",
+              "summary": "Obtener comerciales disponibles",
+              "description": "Obtiene la lista de comerciales que están online y disponibles para atender chats",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 200,
+                  "description": "Lista de comerciales disponibles obtenida exitosamente"
+                },
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "DELETE",
+              "path": "/v2/commercials/:id",
+              "summary": "Eliminar comercial",
+              "description": "Elimina un comercial del sistema completamente (solo administradores)",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "id",
+                    "description": "ID del comercial"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 500,
+                  "description": "Error interno del servidor"
+                },
+                {
+                  "status": 200,
+                  "description": "Comercial eliminado exitosamente"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/commercial/infrastructure/controllers/commercial.controller.ts"
+        }
+      ]
     },
     {
       "name": "company",
       "description": "Gestión de empresas y sitios",
-      "controllers": []
+      "controllers": [
+        {
+          "name": "CompanyController",
+          "context": "company",
+          "baseUrl": "",
+          "description": "Controller sin descripción",
+          "tags": [
+            "companies"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/company",
+              "summary": "Crear nueva empresa con administrador",
+              "description": "Crea una nueva empresa junto con su usuario administrador inicial",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Empresa creada exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos proporcionados"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/sites/resolve",
+              "summary": "Resolver sitio por host",
+              "description": "Resuelve el host actual del navegador y determina a qué site y tenant pertenece",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "host",
+                    "required": false,
+                    "description": "Host/dominio a resolver"
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Empresa creada exitosamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos inválidos proporcionados"
+                },
+                {
+                  "status": 200,
+                  "description": "Sitio resuelto exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/company/by-domain/:domain",
+              "summary": "Buscar empresa por dominio",
+              "description": "Busca una empresa basándose en uno de sus dominios (canónico o alias)",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "domain",
+                    "description": "Dominio de la empresa a buscar"
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "host",
+                    "required": false,
+                    "description": "Host/dominio a resolver"
+                  }
+                ]
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Sitio resuelto exitosamente"
+                },
+                {
+                  "status": 404,
+                  "description": "Sitio no encontrado para el host especificado"
+                },
+                {
+                  "status": 200,
+                  "description": "Empresa encontrada"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/companies/:companyId/sites",
+              "summary": "Buscar empresa por dominio",
+              "description": "Busca una empresa basándose en uno de sus dominios (canónico o alias)",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "domain",
+                    "description": "Dominio de la empresa a buscar"
+                  },
+                  {
+                    "name": "companyId",
+                    "description": "UUID de la empresa"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Empresa encontrada"
+                },
+                {
+                  "status": 404,
+                  "description": "Empresa no encontrada"
+                },
+                {
+                  "status": 200,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/company/infrastructure/controllers/company.controller.ts"
+        }
+      ]
     },
     {
       "name": "conversations",
       "description": "Contexto conversations",
-      "controllers": []
+      "controllers": [
+        {
+          "name": "UnknownController",
+          "context": "conversations",
+          "baseUrl": "",
+          "description": "Controller sin descripción",
+          "tags": [],
+          "endpoints": [],
+          "filePath": "src/context/conversations/chat/infrastructure/chat.controller.ts"
+        }
+      ]
     },
     {
       "name": "conversations-v2",
       "description": "Sistema de chat V2 optimizado (MongoDB)",
-      "controllers": []
+      "controllers": [
+        {
+          "name": "AssignmentRulesController",
+          "context": "conversations-v2",
+          "baseUrl": "v2/assignment-rules",
+          "description": "Controlador para gestión de reglas de auto-asignamiento",
+          "tags": [
+            "Reglas de Auto-asignamiento"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/v2/assignment-rules",
+              "summary": "Crear reglas de auto-asignamiento",
+              "description": "Crea nuevas reglas de auto-asignación para una empresa o sitio específico",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Reglas creadas exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/assignment-rules/companies/:companyId/applicable",
+              "summary": "Obtener reglas aplicables",
+              "description": "Obtiene las reglas de auto-asignamiento más específicas para una empresa/sitio",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "companyId",
+                    "description": "ID de la empresa"
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "siteId",
+                    "required": false,
+                    "description": "Parámetro sin descripción"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/conversations-v2/infrastructure/controllers/assignment-rules.controller.ts"
+        },
+        {
+          "name": "ChatV2Controller",
+          "context": "conversations-v2",
+          "baseUrl": "v2/chats",
+          "description": "Crea un nuevo chat para el visitante autenticado",
+          "tags": [
+            "Chats V2"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/v2/chats",
+              "summary": "Crear nuevo chat",
+              "description": "Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "visitor",
+                  "admin"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 201,
+                  "description": "Chat creado exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/v2/chats/with-message",
+              "summary": "Crear nuevo chat con primer mensaje",
+              "description": "Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica que garantiza que tanto el chat como el mensaje se crean juntos o fallan juntos.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "visitor",
+                  "admin"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats",
+              "summary": "Obtener lista de chats con filtros y paginación con cursor",
+              "description": "Retorna una lista paginada de chats con filtros avanzados para usuarios autenticados con permisos de comercial, administrador o supervisor. Utiliza paginación basada en cursor para mayor eficiencia y consistencia en resultados. Los filtros y ordenamiento se aplican según los permisos del usuario autenticado.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "cursor",
+                    "required": false,
+                    "description": "Cursor para paginación (obtenido del campo nextCursor de la respuesta anterior). Permite navegar a través de páginas sin duplicados ni omisiones. Este valor es un base64 que contiene información de posición."
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats/response-time-stats",
+              "summary": "Obtener estadísticas de tiempo de respuesta",
+              "description": "Retorna estadísticas agregadas de tiempo de respuesta para comerciales y administradores autenticados",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "admin"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "dateFrom",
+                    "required": false,
+                    "description": "Fecha de inicio del período (ISO 8601)"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats/commercial/:commercialId",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats/:chatId",
+              "summary": "Obtener chat por ID",
+              "description": "Retorna los detalles completos de un chat específico para usuarios autenticados",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "chatId",
+                    "description": "ID único del chat"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats/visitor/:visitorId",
+              "summary": "Obtener chats de un visitante con paginación cursor",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats/queue/pending",
+              "summary": "Obtener cola de chats pendientes",
+              "description": "Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "department",
+                    "required": false,
+                    "description": "Filtrar por departamento"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/chats/metrics/commercial/:commercialId",
+              "summary": "Obtener métricas de comercial",
+              "description": "Retorna métricas agregadas de rendimiento de un comercial. Requiere autenticación.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "commercialId",
+                    "description": "ID del comercial"
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "dateFrom",
+                    "required": false,
+                    "description": "Fecha de inicio del período (ISO 8601)"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/v2/chats/:chatId/assign/:commercialId",
+              "summary": "Asignar chat a comercial",
+              "description": "Asigna un chat específico a un comercial. Requiere autenticación y permisos apropiados.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "chatId",
+                    "description": "ID del chat"
+                  },
+                  {
+                    "name": "commercialId",
+                    "description": "ID del comercial"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/v2/chats/:chatId/close",
+              "summary": "Cerrar chat",
+              "description": "Marca un chat como cerrado. Requiere autenticación y permisos apropiados.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "chatId",
+                    "description": "ID del chat"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Chat cerrado exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "DELETE",
+              "path": "/v2/chats/visitor/:visitorId/clear",
+              "summary": "Eliminar todos los chats de un visitante",
+              "description": "Elimina permanentemente todos los chats asociados a un visitante específico. Esta operación es irreversible y requiere permisos de administrador.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [
+                  "admin"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "visitorId",
+                    "description": "ID del visitante"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Chats eliminados exitosamente"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
+        },
+        {
+          "name": "MessageV2Controller",
+          "context": "conversations-v2",
+          "baseUrl": "v2/messages",
+          "description": "Controller sin descripción",
+          "tags": [
+            "Messages V2"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/v2/messages",
+              "summary": "Enviar un nuevo mensaje",
+              "description": "Envía un mensaje de texto, imagen o archivo a un chat específico.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/chat/:chatId",
+              "summary": "Obtener mensajes de un chat",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/:messageId",
+              "summary": "Obtener mensaje por ID",
+              "description": "Retorna los detalles de un mensaje específico.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/v2/messages/mark-as-read",
+              "summary": "Marcar mensajes como leídos",
+              "description": "Marca una lista de mensajes como leídos por el usuario actual.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/chat/:chatId/unread",
+              "summary": "Obtener mensajes no leídos de un chat",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/search",
+              "summary": "Buscar mensajes por contenido",
+              "description": "Busca mensajes que contengan palabras clave específicas",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "keyword",
+                    "required": false,
+                    "description": "Palabra clave a buscar en el contenido"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/chat/:chatId/stats",
+              "summary": "Obtener estadísticas de conversación",
+              "description": "Retorna estadísticas detalladas de un chat específico",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "chatId",
+                    "description": "ID único del chat"
+                  }
+                ],
+                "query": [
+                  {
+                    "name": "dateFrom",
+                    "required": false,
+                    "description": "Fecha de inicio del período (ISO 8601)"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/metrics",
+              "summary": "Obtener métricas de mensajería",
+              "description": "Retorna métricas agregadas de mensajería por período de tiempo",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "supervisor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "dateFrom",
+                    "required": false,
+                    "description": "Fecha de inicio del período (ISO 8601)"
+                  },
+                  {
+                    "name": "dateTo",
+                    "required": false,
+                    "description": "Parámetro sin descripción"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/v2/messages/attachments",
+              "summary": "Obtener mensajes con archivos adjuntos",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial",
+                  "visitor"
+                ],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts"
+        }
+      ]
     },
     {
       "name": "shared",
@@ -290,34 +1958,6 @@
       "description": "Seguimiento de intenciones y métricas",
       "controllers": [
         {
-          "name": "VisitorIntentController",
-          "context": "tracking",
-          "baseUrl": "tracking/intent",
-          "description": "Controller sin descripción",
-          "tags": [],
-          "endpoints": [
-            {
-              "method": "GET",
-              "path": "/tracking/intent/:visitorId",
-              "summary": "Sin resumen",
-              "description": "Sin descripción",
-              "tags": [],
-              "auth": {
-                "required": false,
-                "roles": [],
-                "bearer": false
-              },
-              "parameters": {
-                "path": [],
-                "query": []
-              },
-              "responses": [],
-              "examples": {}
-            }
-          ],
-          "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
-        },
-        {
           "name": "VisitorIntentTagsController",
           "context": "tracking",
           "baseUrl": "tracking/intent-tags",
@@ -344,23 +1984,438 @@
             }
           ],
           "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent-tags.controller.ts"
+        },
+        {
+          "name": "VisitorIntentController",
+          "context": "tracking",
+          "baseUrl": "tracking/intent",
+          "description": "Controller sin descripción",
+          "tags": [],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/tracking/intent/:visitorId",
+              "summary": "Sin resumen",
+              "description": "Sin descripción",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
         }
       ]
     },
     {
       "name": "visitors",
       "description": "Gestión de visitantes V1 (legacy)",
-      "controllers": []
+      "controllers": [
+        {
+          "name": "VisitorController",
+          "context": "visitors",
+          "baseUrl": "visitor",
+          "description": "Obtiene la información del visitante autenticado (perfil propio)",
+          "tags": [
+            "Visitantes"
+          ],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/visitor/me",
+              "summary": "Obtener información del visitante autenticado",
+              "description": "Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio perfil sin necesidad de conocer su ID.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "visitor"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Información del visitante obtenida exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/visitor/:visitorId",
+              "summary": "Obtener datos del visitante por ID",
+              "description": "Obtiene los datos del visitante a partir del ID en la URL",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Datos del visitante obtenidos correctamente"
+                },
+                {
+                  "status": 401,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/visitor/:visitorId/email",
+              "summary": "Actualizar email del visitante",
+              "description": "Actualiza el correo electrónico del visitante",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Email actualizado correctamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/visitor/:visitorId/name",
+              "summary": "Actualizar nombre del visitante",
+              "description": "Actualiza el nombre del visitante",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 404,
+                  "description": "Visitante no encontrado"
+                },
+                {
+                  "status": 200,
+                  "description": "Nombre actualizado correctamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "PUT",
+              "path": "/visitor/:visitorId/tel",
+              "summary": "Actualizar teléfono del visitante",
+              "description": "Actualiza el número de teléfono del visitante",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [
+                  "commercial"
+                ],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 404,
+                  "description": "Visitante no encontrado"
+                },
+                {
+                  "status": 200,
+                  "description": "Teléfono actualizado correctamente"
+                },
+                {
+                  "status": 400,
+                  "description": "Datos de entrada inválidos"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/visitors/infrastructure/controllers/visitor.controller.ts"
+        }
+      ]
     },
     {
       "name": "visitors-v2",
       "description": "Gestión de visitantes V2 optimizada",
-      "controllers": []
+      "controllers": [
+        {
+          "name": "SiteVisitorsController",
+          "context": "visitors-v2",
+          "baseUrl": "site-visitors",
+          "description": "Controller sin descripción",
+          "tags": [
+            "Site Visitors Management"
+          ],
+          "endpoints": [
+            {
+              "method": "GET",
+              "path": "/site-visitors/:siteId/visitors",
+              "summary": "Obtener visitantes del sitio",
+              "description": "Retorna una lista de visitantes conectados o todos los visitantes del sitio especificado",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "siteId",
+                    "description": "ID único del sitio"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 200,
+                  "description": "Lista de visitantes obtenida exitosamente"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/site-visitors/:siteId/visitors/unassigned-chats",
+              "summary": "Obtener visitantes con chats sin asignar",
+              "description": "Retorna visitantes que tienen chats iniciados pero no asignados a ningún comercial",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "siteId",
+                    "description": "ID único del sitio"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": "ID de sitio inválido o parámetros de consulta inválidos"
+                },
+                {
+                  "status": 404,
+                  "description": "Sitio no encontrado"
+                },
+                {
+                  "status": 200,
+                  "description": ""
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "GET",
+              "path": "/site-visitors/:siteId/visitors/queued-chats",
+              "summary": "Obtener visitantes con chats en cola",
+              "description": "Retorna visitantes que están en cola esperando ser atendidos",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [
+                  {
+                    "name": "siteId",
+                    "description": "ID único del sitio"
+                  }
+                ],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": "ID de sitio inválido o parámetros de consulta inválidos"
+                },
+                {
+                  "status": 404,
+                  "description": "Sitio no encontrado"
+                },
+                {
+                  "status": 200,
+                  "description": "Lista de visitantes con chats en cola obtenida exitosamente"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/visitors-v2/infrastructure/controllers/site-visitors.controller.ts"
+        },
+        {
+          "name": "SitesController",
+          "context": "visitors-v2",
+          "baseUrl": "sites",
+          "description": "Controller sin descripción",
+          "tags": [
+            "sites"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/sites/resolve",
+              "summary": "Resolver sitio por host",
+              "description": "Resuelve el host actual del navegador (ejemplo: landing.mytech.com) y determina a qué site y tenant pertenece. El host es solo un alias que se mapea al modelo interno (siteId, tenantId) para trabajar con identidades estables.",
+              "tags": [],
+              "auth": {
+                "required": true,
+                "roles": [],
+                "bearer": true
+              },
+              "parameters": {
+                "path": [],
+                "query": [
+                  {
+                    "name": "host",
+                    "required": true,
+                    "description": "Host del navegador a resolver"
+                  }
+                ]
+              },
+              "responses": [],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/visitors-v2/infrastructure/controllers/sites.controller.ts"
+        },
+        {
+          "name": "VisitorV2Controller",
+          "context": "visitors-v2",
+          "baseUrl": "visitors",
+          "description": "Controller sin descripción",
+          "tags": [
+            "visitors"
+          ],
+          "endpoints": [
+            {
+              "method": "POST",
+              "path": "/visitors/identify",
+              "summary": "Identificar visitante",
+              "description": "Registra o actualiza un visitante en el sistema usando dominio y API Key.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/visitors/session/heartbeat",
+              "summary": "Actualizar heartbeat de sesión",
+              "description": "Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). Mientras se reciban heartbeats, el visitante se considera online.",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": "Datos inválidos o sesión no encontrada"
+                }
+              ],
+              "examples": {}
+            },
+            {
+              "method": "POST",
+              "path": "/visitors/session/end",
+              "summary": "Cerrar sesión de visitante",
+              "description": "Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de",
+              "tags": [],
+              "auth": {
+                "required": false,
+                "roles": [],
+                "bearer": false
+              },
+              "parameters": {
+                "path": [],
+                "query": []
+              },
+              "responses": [
+                {
+                  "status": 400,
+                  "description": "Datos inválidos o sesión no encontrada"
+                }
+              ],
+              "examples": {}
+            }
+          ],
+          "filePath": "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
+        }
+      ]
     }
   ],
   "summary": {
-    "totalEndpoints": 14,
-    "totalControllers": 5,
+    "totalEndpoints": 75,
+    "totalControllers": 18,
     "authenticationMethods": [
       "Bearer JWT",
       "OIDC"

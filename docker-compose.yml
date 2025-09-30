@@ -87,7 +87,7 @@ services:
       - keycloak-net
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak
     restart: always
     environment:
@@ -110,9 +110,12 @@ services:
       
       # Configuración adicional
       KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
+      
+      # Habilitar funcionalidades preview (incluyendo Organizations)
+      KC_FEATURES: organization
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
-    command: ["start-dev"]
+    command: ["start-dev", "--features=organization"]
     depends_on:
       - keycloak-postgres
     networks:

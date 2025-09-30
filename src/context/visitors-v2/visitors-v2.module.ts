@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CqrsModule } from '@nestjs/cqrs';
 import { HttpModule } from '@nestjs/axios';
@@ -11,6 +11,7 @@ import {
 import { VisitorV2Controller } from './infrastructure/controllers/visitor-v2.controller';
 import { SitesController } from './infrastructure/controllers/sites.controller';
 import { SiteVisitorsController } from './infrastructure/controllers/site-visitors.controller';
+import { TenantVisitorsController } from './infrastructure/controllers/tenant-visitors.controller';
 import { IdentifyVisitorCommandHandler } from './application/commands/identify-visitor.command-handler';
 import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
@@ -20,6 +21,7 @@ import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 import { CompanyModule } from '../company/company.module';
 import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
+import { ConversationsV2Module } from '../conversations-v2/conversations-v2.module';
 import { GoOnlineVisitorCommandHandler } from './application/commands/go-online-visitor.command-handler';
 import { StartChattingVisitorCommandHandler } from './application/commands/start-chatting-visitor.command-handler';
 import { GoOfflineVisitorCommandHandler } from './application/commands/go-offline-visitor.command-handler';
@@ -29,6 +31,9 @@ import { GetVisitorConnectionStatusQueryHandler } from './application/queries/ge
 import { GetVisitorsBySiteQueryHandler } from './application/queries/get-visitors-by-site.query-handler';
 import { GetVisitorsWithUnassignedChatsBySiteQueryHandler } from './application/queries/get-visitors-with-unassigned-chats-by-site.query-handler';
 import { GetVisitorsWithQueuedChatsBySiteQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-site.query-handler';
+import { GetVisitorsByTenantQueryHandler } from './application/queries/get-visitors-by-tenant.query-handler';
+import { GetVisitorsWithUnassignedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-unassigned-chats-by-tenant.query-handler';
+import { GetVisitorsWithQueuedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-tenant.query-handler';
 import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
 import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
 import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
@@ -49,8 +54,14 @@ import { VisitorSessionAuthService } from '../shared/infrastructure/services/vis
     ConfigModule, // Para TokenVerifyService
     CompanyModule,
     AuthVisitorModule,
+    forwardRef(() => ConversationsV2Module),
   ],
-  controllers: [VisitorV2Controller, SitesController, SiteVisitorsController],
+  controllers: [
+    VisitorV2Controller,
+    SitesController,
+    SiteVisitorsController,
+    TenantVisitorsController,
+  ],
   providers: [
     {
       provide: VISITOR_V2_REPOSITORY,
@@ -70,6 +81,9 @@ import { VisitorSessionAuthService } from '../shared/infrastructure/services/vis
     GetVisitorsBySiteQueryHandler,
     GetVisitorsWithUnassignedChatsBySiteQueryHandler,
     GetVisitorsWithQueuedChatsBySiteQueryHandler,
+    GetVisitorsByTenantQueryHandler,
+    GetVisitorsWithUnassignedChatsByTenantQueryHandler,
+    GetVisitorsWithQueuedChatsByTenantQueryHandler,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
     VISITOR_CONNECTION_SERVICE_PROVIDER,
     SESSION_MANAGEMENT_SERVICE_PROVIDER,

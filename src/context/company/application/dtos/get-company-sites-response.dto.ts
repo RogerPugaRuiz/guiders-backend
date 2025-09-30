@@ -9,11 +9,13 @@ export class CompanySiteDto {
 export class GetCompanySitesResponseDto {
   constructor(
     public readonly companyId: string,
+    public readonly companyName: string,
     public readonly sites: CompanySiteDto[],
   ) {}
 
   static fromPrimitives(primitives: {
     id: string;
+    companyName: string;
     sites: Array<{
       id: string;
       name: string;
@@ -21,6 +23,10 @@ export class GetCompanySitesResponseDto {
       domainAliases: string[];
     }>;
   }): GetCompanySitesResponseDto {
-    return new GetCompanySitesResponseDto(primitives.id, primitives.sites);
+    return new GetCompanySitesResponseDto(
+      primitives.id,
+      primitives.companyName,
+      primitives.sites,
+    );
   }
 }

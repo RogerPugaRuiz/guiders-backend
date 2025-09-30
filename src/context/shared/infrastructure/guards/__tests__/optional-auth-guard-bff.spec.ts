@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExecutionContext } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 import { OptionalAuthGuard } from '../optional-auth.guard';
 import { TokenVerifyService, TokenPayload } from '../../token-verify.service';
 import { VisitorSessionAuthService } from '../../services/visitor-session-auth.service';
@@ -20,6 +21,7 @@ describe('OptionalAuthGuard - BFF Authentication Integration', () => {
   let mockTokenVerifyService: jest.Mocked<TokenVerifyService>;
   let mockVisitorSessionAuthService: jest.Mocked<VisitorSessionAuthService>;
   let mockBffSessionAuthService: jest.Mocked<BffSessionAuthService>;
+  let mockQueryBus: jest.Mocked<QueryBus>;
   let mockResolveVisitorSessionId: jest.MockedFunction<
     typeof resolveVisitorSessionId
   >;
@@ -56,6 +58,10 @@ describe('OptionalAuthGuard - BFF Authentication Integration', () => {
       extractBffSessionTokens: jest.fn(),
     } as unknown as jest.Mocked<BffSessionAuthService>;
 
+    mockQueryBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<QueryBus>;
+
     // Configurar mock de resolveVisitorSessionId
     mockResolveVisitorSessionId =
       resolveVisitorSessionId as jest.MockedFunction<
@@ -76,6 +82,10 @@ describe('OptionalAuthGuard - BFF Authentication Integration', () => {
         {
           provide: BffSessionAuthService,
           useValue: mockBffSessionAuthService,
+        },
+        {
+          provide: QueryBus,
+          useValue: mockQueryBus,
         },
       ],
     }).compile();

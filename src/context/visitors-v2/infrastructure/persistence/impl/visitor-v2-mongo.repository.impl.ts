@@ -501,4 +501,120 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
     }
   }
+
+  async findByTenantIdWithDetails(
+    tenantId: TenantId,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      const filter: Record<string, unknown> = {
+        tenantId: tenantId.value,
+      };
+
+      // Si no incluir offline, solo visitantes con sesiones activas
+      if (!options?.includeOffline) {
+        filter.sessions = {
+          $elemMatch: {
+            endedAt: { $exists: false }, // Al menos una sesión activa
+          },
+        };
+      }
+
+      this.logger.debug(
+        `🔍 Buscando visitantes para tenant ${tenantId.value}, includeOffline: ${options?.includeOffline}, filtro: ${JSON.stringify(filter)}`,
+      );
+
+      const query = this.visitorModel.find(filter);
+
+      if (options?.offset) {
+        query.skip(options.offset);
+      }
+
+      if (options?.limit) {
+        query.limit(options.limit);
+      }
+
+      const entities = await query.exec();
+
+      this.logger.debug(
+        `📊 Encontrados ${entities.length} visitantes para tenant ${tenantId.value}`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok(visitors);
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes del tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  findWithUnassignedChatsByTenantId(
+    tenantId: TenantId,
+    _options?: {
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      // TODO: Este es un placeholder para cuando se integre con conversations-v2
+      // Por ahora retornamos una lista vacía ya que no tenemos la relación con chats
+      this.logger.debug(
+        `🔍 Buscando visitantes con chats sin asignar para tenant ${tenantId.value}`,
+      );
+
+      // Cuando se implemente la relación con chats, este filtro debería buscar:
+      // - Visitantes del tenant especificado
+      // - Que tengan chats con status 'UNASSIGNED'
+      // - Opcional: joinear con la colección de chats
+
+      const emptyResult: VisitorV2[] = [];
+      return Promise.resolve(ok(emptyResult));
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con chats sin asignar del tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
+    }
+  }
+
+  findWithQueuedChatsByTenantId(
+    tenantId: TenantId,
+    _options?: {
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      // TODO: Este es un placeholder para cuando se integre con conversations-v2
+      // Por ahora retornamos una lista vacía ya que no tenemos la relación con chats
+      this.logger.debug(
+        `🔍 Buscando visitantes con chats en cola para tenant ${tenantId.value}`,
+      );
+
+      // Cuando se implemente la relación con chats, este filtro debería buscar:
+      // - Visitantes del tenant especificado
+      // - Que tengan chats con status 'QUEUED' o 'WAITING'
+      // - Opcional: joinear con la colección de chats
+
+      const emptyResult: VisitorV2[] = [];
+      return Promise.resolve(ok(emptyResult));
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con chats en cola del tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
+    }
+  }
 }

@@ -93,6 +93,9 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       findBySiteIdWithDetails: jest.fn(),
       findWithUnassignedChatsBySiteId: jest.fn(),
       findWithQueuedChatsBySiteId: jest.fn(),
+      findByTenantIdWithDetails: jest.fn(),
+      findWithUnassignedChatsByTenantId: jest.fn(),
+      findWithQueuedChatsByTenantId: jest.fn(),
     };
 
     mockCompanyRepository = {

@@ -10,6 +10,7 @@ import { CreateCompanyWithAdminCommandHandler } from './application/commands/cre
 import { FindCompanyByDomainQueryHandler } from './application/queries/find-company-by-domain.query-handler';
 import { ResolveSiteByHostQueryHandler } from './application/queries/resolve-site-by-host.query-handler';
 import { GetCompanySitesQueryHandler } from './application/queries/get-company-sites.query-handler';
+import { GetCompanyByIdQueryHandler } from './application/queries/get-company-by-id.query-handler';
 import { CompanyController } from './infrastructure/controllers/company.controller';
 import { CqrsModule } from '@nestjs/cqrs';
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
@@ -31,6 +32,7 @@ import { BffSessionAuthService } from '../shared/infrastructure/services/bff-ses
     FindCompanyByDomainQueryHandler,
     ResolveSiteByHostQueryHandler,
     GetCompanySitesQueryHandler,
+    GetCompanyByIdQueryHandler,
     // Servicios necesarios para DualAuthGuard (sin VisitorSessionAuthService para evitar dependencias complejas)
     TokenVerifyService,
     BffSessionAuthService,

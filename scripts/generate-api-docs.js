@@ -72,12 +72,27 @@ class ApiDocumentationGenerator {
       const hasControllerFiles = glob.sync(`${contextPath}/**/*.controller.ts`).length > 0;
       
       if (hasStandardControllers || hasControllerFiles) {
+        // Buscar archivos de controller
+        const controllerFiles = [];
+        
+        if (hasStandardControllers) {
+          // Buscar en la carpeta estándar de controllers
+          const files = fs.readdirSync(controllersPath)
+            .filter(file => file.endsWith('.controller.ts'))
+            .map(file => path.join(controllersPath, file));
+          controllerFiles.push(...files);
+        }
+        
+        // Buscar archivos .controller.ts en todo el contexto
+        const allControllerFiles = glob.sync(`${contextPath}/**/*.controller.ts`);
+        controllerFiles.push(...allControllerFiles.filter(file => !controllerFiles.includes(file)));
+        
         this.contexts.push({
           name: contextName,
           path: contextPath,
           controllersPath,
           description: this.extractContextDescription(contextName),
-          controllers: []
+          controllers: controllerFiles
         });
       }
     }
@@ -86,28 +101,29 @@ class ApiDocumentationGenerator {
   }
 
   /**
-   * Procesa todos los controllers de todos los contextos
+   * Procesa todos los controllers encontrados
    */
   async processControllers() {
     console.log('🎯 Procesando controllers...');
     
     for (const context of this.contexts) {
-      // Buscar todos los archivos controller en cada contexto (incluyendo subdirectorios)
-      const contextPath = path.join(this.srcDir, context.name);
-      const controllerFiles = glob.sync(`${contextPath}/**/infrastructure/**/*.controller.ts`);
+      console.log(`📁 Procesando contexto: ${context.name}`);
+      const originalControllers = [...context.controllers];
+      context.controllers = []; // Reset para almacenar objetos controller procesados
       
-      for (const controllerFile of controllerFiles) {
+      for (const controllerFile of originalControllers) {
         const controller = await this.parseController(controllerFile, context.name);
-        
-        if (controller && controller.endpoints.length > 0) {
+        if (controller) {
+          console.log(`  ✅ ${controller.name}: ${controller.endpoints.length} endpoints`);
           context.controllers.push(controller);
           this.endpoints.push(...controller.endpoints);
+        } else {
+          console.log(`  ❌ Error procesando: ${controllerFile}`);
         }
       }
     }
     
-    const totalEndpoints = this.endpoints.length;
-    console.log(`🔗 ${totalEndpoints} endpoints encontrados`);
+    console.log(`🔗 ${this.endpoints.length} endpoints encontrados`);
   }
 
   /**
@@ -115,16 +131,18 @@ class ApiDocumentationGenerator {
    */
   async parseController(filePath, contextName) {
     try {
+      console.log(`    📄 Procesando archivo: ${path.basename(filePath)}`);
       const content = fs.readFileSync(filePath, 'utf8');
       
       // Extraer información básica del controller
       const controllerName = this.extractControllerName(content);
-      const baseUrl = this.extractBaseUrl(content);
+      const baseUrl = this.extractBaseUrl(content, contextName);
       const description = this.extractControllerDescription(content);
       const tags = this.extractTags(content);
       
       // Extraer endpoints
       const endpoints = this.extractEndpoints(content, baseUrl);
+      console.log(`      🔍 Encontrados ${endpoints.length} endpoints`);
       
       return {
         name: controllerName,
@@ -159,9 +177,9 @@ class ApiDocumentationGenerator {
       if (match) {
         const [, httpMethod, routePath] = match;
         
-        // Extraer contexto limitado (20 líneas antes y 10 después)
-        const contextStart = Math.max(0, i - 20);
-        const contextEnd = Math.min(lines.length, i + 10);
+        // Extraer contexto limitado (30 líneas antes y 15 después)
+        const contextStart = Math.max(0, i - 30);
+        const contextEnd = Math.min(lines.length, i + 15);
         const methodContext = lines.slice(contextStart, contextEnd).join('\n');
         
         const endpoint = {
@@ -491,24 +509,27 @@ class ApiDocumentationGenerator {
     // Buscar línea por línea para evitar contaminación cruzada
     const lines = methodContent.split('\n');
     
-    for (const line of lines) {
-      // Buscar description en línea única
-      const match = line.match(/description:\s*['"]([^'"]+)['"]/);
-      if (match && line.includes('@ApiOperation')) {
-        return match[1];
-      }
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       
-      // También buscar formato multilinea
+      // Buscar @ApiOperation
       if (line.includes('@ApiOperation({')) {
-        for (let i = lines.indexOf(line) + 1; i < lines.length; i++) {
-          const nextLine = lines[i];
-          if (nextLine.includes('})')) break; // Fin del decorador
-          
-          const descMatch = nextLine.match(/\s*description:\s*['"]([^'"]+)['"]/);
-          if (descMatch) {
-            return descMatch[1];
-          }
+        let operationBlock = line;
+        let j = i + 1;
+        
+        // Si no está cerrado en la misma línea, buscar las siguientes
+        while (j < lines.length && !operationBlock.includes('})')) {
+          operationBlock += '\n' + lines[j];
+          j++;
         }
+        
+        // Buscar description en el bloque completo
+        const descMatch = operationBlock.match(/description:\s*['"]([^'"]*(?:\n[^'"]*)*)['"]/);
+        if (descMatch) {
+          return descMatch[1].replace(/\n\s*/g, ' ').trim();
+        }
+        
+        break; // Solo procesar el primer @ApiOperation encontrado
       }
     }
     
@@ -549,12 +570,12 @@ class ApiDocumentationGenerator {
         }
         
         const nameMatch = paramBlock.match(/name:\s*['"]([^'"]+)['"]/);
-        const descMatch = paramBlock.match(/description:\s*['"]([^'"]+)['"]/);
+        const descMatch = paramBlock.match(/description:\s*['"]([^'"]*(?:\n[^'"]*)*)['"]/);
         
         if (nameMatch) {
           params.path.push({
             name: nameMatch[1],
-            description: descMatch ? descMatch[1] : 'Parámetro sin descripción'
+            description: descMatch ? descMatch[1].replace(/\n\s*/g, ' ').trim() : 'Parámetro sin descripción'
           });
         }
         
@@ -575,13 +596,13 @@ class ApiDocumentationGenerator {
         
         const nameMatch = queryBlock.match(/name:\s*['"]([^'"]+)['"]/);
         const requiredMatch = queryBlock.match(/required:\s*(true|false)/);
-        const descMatch = queryBlock.match(/description:\s*['"]([^'"]+)['"]/);
+        const descMatch = queryBlock.match(/description:\s*['"]([^'"]*(?:\n[^'"]*)*)['"]/);
         
         if (nameMatch) {
           params.query.push({
             name: nameMatch[1],
             required: requiredMatch ? requiredMatch[1] === 'true' : false,
-            description: descMatch ? descMatch[1] : 'Parámetro sin descripción'
+            description: descMatch ? descMatch[1].replace(/\n\s*/g, ' ').trim() : 'Parámetro sin descripción'
           });
         }
         
@@ -595,12 +616,37 @@ class ApiDocumentationGenerator {
 
   extractResponses(methodContent) {
     const responses = [];
-    // @ApiResponse({ status: 302, description: '...' })
-    const apiResponseRegex = /@ApiResponse\(\s*{[^}]*status:\s*(\d+)[^}]*?(?:description:\s*['"]([^'"]+)['"])?[^}]*}\s*\)/g;
-    let m;
-    while ((m = apiResponseRegex.exec(methodContent)) !== null) {
-      responses.push({ status: Number(m[1]), description: m[2] || '' });
+    const lines = methodContent.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Buscar @ApiResponse (puede estar en múltiples líneas)
+      if (line.includes('@ApiResponse({')) {
+        let responseBlock = line;
+        let j = i + 1;
+        
+        // Si no está cerrado en la misma línea, buscar las siguientes
+        while (j < lines.length && !responseBlock.includes('})')) {
+          responseBlock += '\n' + lines[j];
+          j++;
+        }
+        
+        const statusMatch = responseBlock.match(/status:\s*(\d+)/);
+        const descMatch = responseBlock.match(/description:\s*['"]([^'"]*(?:\n[^'"]*)*)['"]/);
+        
+        if (statusMatch) {
+          responses.push({
+            status: Number(statusMatch[1]),
+            description: descMatch ? descMatch[1].replace(/\n\s*/g, ' ').trim() : ''
+          });
+        }
+        
+        i = j - 1; // Saltar las líneas procesadas
+        continue;
+      }
     }
+    
     return responses;
   }
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
@@ -72,7 +72,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
   imports: [
     CqrsModule, // Para Command/Query handlers
     HttpModule, // Para TokenVerifyService
-    VisitorsV2Module, // Para acceso al VisitorV2Repository
+    forwardRef(() => VisitorsV2Module), // Para acceso al VisitorV2Repository
     CommercialModule, // Para acceso al Commercial heartbeat service
     MongooseModule.forFeature([
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
@@ -154,8 +154,9 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     // MetricsService,
   ],
   exports: [
+    CHAT_V2_REPOSITORY,
+    MESSAGE_V2_REPOSITORY,
     // TODO: Exportar cuando se implementen
-    // CHAT_V2_REPOSITORY,
     // ChatV2Service,
   ],
 })
