@@ -58,6 +58,14 @@ services:
       - mongodb-data:/data/db
     networks:
       - mongodb-net
+    # Configuraciones adicionales para prevenir corrupción
+    command: ["mongod", "--storageEngine", "wiredTiger", "--wiredTigerCacheSizeGB", "1", "--oplogSize", "128"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   mongodb-test:
     image: mongo:7.0
@@ -70,6 +78,12 @@ services:
     command: ["mongod", "--storageEngine", "wiredTiger", "--wiredTigerCacheSizeGB", "0.25", "--noauth"]
     networks:
       - mongodb-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   keycloak-postgres:
     image: postgres:14-alpine
