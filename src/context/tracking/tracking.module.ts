@@ -27,6 +27,6 @@ export const visitorIntentRepositoryProvider = {
     visitorIntentRepositoryProvider,
     VisitorIntentRepositoryImpl,
   ],
-  exports: [visitorIntentRepositoryProvider],
+  exports: [TRACKING_EVENT_REPOSITORY, visitorIntentRepositoryProvider],
 })
 export class TrackingModule {}

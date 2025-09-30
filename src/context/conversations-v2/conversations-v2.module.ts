@@ -6,6 +6,7 @@ import { HttpModule } from '@nestjs/axios';
 // Import dependencies from other modules
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
 import { CommercialModule } from '../commercial/commercial.module';
+import { TrackingModule } from '../tracking/tracking.module';
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
@@ -54,6 +55,7 @@ import { GetChatByIdQueryHandler } from './application/queries/get-chat-by-id.qu
 import { GetChatMessagesQueryHandler } from './application/queries/get-chat-messages.query-handler';
 import { GetApplicableAssignmentRulesQueryHandler } from './application/queries/get-applicable-assignment-rules.query-handler';
 import { GetPendingQueueQueryHandler } from './application/queries/get-pending-queue.query-handler';
+import { GetVisitorPendingChatsQueryHandler } from './application/queries/get-visitor-pending-chats.query-handler';
 
 // Event Handlers
 import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
@@ -73,6 +75,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     CqrsModule, // Para Command/Query handlers
     HttpModule, // Para TokenVerifyService
     forwardRef(() => VisitorsV2Module), // Para acceso al VisitorV2Repository
+    forwardRef(() => TrackingModule), // Para acceso al TrackingEventRepository
     CommercialModule, // Para acceso al Commercial heartbeat service
     MongooseModule.forFeature([
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
@@ -140,6 +143,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     GetChatMessagesQueryHandler,
     GetApplicableAssignmentRulesQueryHandler,
     GetPendingQueueQueryHandler,
+    GetVisitorPendingChatsQueryHandler,
 
     // Event Handlers
     ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,
