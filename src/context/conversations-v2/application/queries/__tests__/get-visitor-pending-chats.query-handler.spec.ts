@@ -19,13 +19,8 @@ import {
 } from 'src/context/tracking/domain/tracking-event.repository';
 import { ok, err } from 'src/context/shared/domain/result';
 import { Chat } from '../../../domain/entities/chat.aggregate';
-import { ChatId } from '../../../domain/value-objects/chat-id';
-import { ChatStatus } from '../../../domain/value-objects/chat-status';
-import { ChatPriority } from '../../../domain/value-objects/chat-priority';
 import { VisitorId as ChatVisitorId } from '../../../domain/value-objects/visitor-id';
-import { VisitorInfo } from '../../../domain/value-objects/visitor-info';
 import { VisitorNotFoundError } from 'src/context/visitors-v2/domain/errors/visitor.error';
-import { ChatPersistenceError } from '../../../infrastructure/persistence/impl/mongo-chat.repository.impl';
 
 describe('GetVisitorPendingChatsQueryHandler', () => {
   let handler: GetVisitorPendingChatsQueryHandler;

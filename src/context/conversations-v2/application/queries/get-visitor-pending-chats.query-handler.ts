@@ -83,7 +83,7 @@ export class GetVisitorPendingChatsQueryHandler
         return response;
       }
 
-      let chats = chatsResult.unwrap();
+      const chats = chatsResult.unwrap();
 
       // Filtrar solo chats pendientes
       let pendingChats = chats.filter(

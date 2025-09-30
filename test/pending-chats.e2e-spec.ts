@@ -3,13 +3,7 @@ import { INestApplication, ExecutionContext, Injectable } from '@nestjs/common';
 import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { ChatV2Controller } from '../src/context/conversations-v2/infrastructure/controllers/chat-v2.controller';
-import {
-  CqrsModule,
-  QueryBus,
-  CommandBus,
-  IQueryHandler,
-  QueryHandler,
-} from '@nestjs/cqrs';
+import { CqrsModule, IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
 import { GetVisitorPendingChatsQuery } from '../src/context/conversations-v2/application/queries/get-visitor-pending-chats.query';
