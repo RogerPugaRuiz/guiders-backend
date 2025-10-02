@@ -73,8 +73,8 @@ export class GetVisitorsByTenantQueryHandler
         tenantId,
       );
 
-      // Obtener chat IDs pendientes del tenant
-      const pendingChatIds = await getPendingChatIdsByTenant(
+      // Obtener chats pendientes del tenant con información del visitante
+      const pendingChatsMap = await getPendingChatsByTenant(
         this.chatRepository,
         tenantId,
       );
@@ -92,9 +92,8 @@ export class GetVisitorsByTenantQueryHandler
         const siteName = siteNamesMap.get(siteId) || `Sitio ${siteId}`;
 
         // Filtrar los chats pendientes que correspondan a este visitante
-        // TODO: Optimizar si pendingChatIds incluye metadatos de visitante
-        // Por ahora, asignar todos los pendingChatIds a cada visitante
-        const visitorPendingChatIds = pendingChatIds;
+        const visitorId = visitor.getId().getValue();
+        const visitorPendingChatIds = pendingChatsMap.get(visitorId) || [];
 
         return {
           id: visitor.getId().getValue(),
@@ -188,11 +187,11 @@ async function resolveSiteNames(
   }
 }
 
-// Función auxiliar para obtener chat IDs pendientes de un tenant
-async function getPendingChatIdsByTenant(
+// Función auxiliar para obtener chats pendientes agrupados por visitorId
+async function getPendingChatsByTenant(
   chatRepository: IChatRepository,
   _tenantId: TenantId,
-): Promise<string[]> {
+): Promise<Map<string, string[]>> {
   try {
     // Obtener chats pendientes usando el método getPendingQueue
     // TODO: Cuando se integre completamente con conversations-v2,
@@ -205,23 +204,25 @@ async function getPendingChatIdsByTenant(
     if (pendingChatsResult.isOk()) {
       const pendingChats = pendingChatsResult.value;
 
-      // Filtrar chats que pertenecen al tenant específico
-      // TODO: Esta lógica debería optimizarse cuando se agregue
-      // el campo tenantId a la entidad Chat
-      const tenantChatIds = pendingChats
-        .filter((_chat) => {
-          // Por ahora retornamos todos los chats pendientes
-          // En el futuro, filtrar por: chat.getTenantId().getValue() === tenantId.getValue()
-          return true;
-        })
-        .map((chat) => chat.id.getValue());
+      // Agrupar chats pendientes por visitorId
+      const chatsByVisitor = new Map<string, string[]>();
 
-      return tenantChatIds;
+      pendingChats.forEach((chat) => {
+        const visitorId = chat.visitorId.getValue();
+        const chatId = chat.id.getValue();
+
+        if (!chatsByVisitor.has(visitorId)) {
+          chatsByVisitor.set(visitorId, []);
+        }
+        chatsByVisitor.get(visitorId)!.push(chatId);
+      });
+
+      return chatsByVisitor;
     }
 
-    return [];
+    return new Map();
   } catch {
-    // En caso de error, retornar array vacío
-    return [];
+    // En caso de error, retornar mapa vacío
+    return new Map();
   }
 }
