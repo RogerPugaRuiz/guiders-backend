@@ -7,6 +7,8 @@ import { HttpModule } from '@nestjs/axios';
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
 import { CommercialModule } from '../commercial/commercial.module';
 import { TrackingModule } from '../tracking/tracking.module';
+import { WebSocketModule } from 'src/websocket/websocket.module';
+import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
@@ -60,6 +62,7 @@ import { GetVisitorPendingChatsQueryHandler } from './application/queries/get-vi
 
 // Event Handlers
 import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
+import { NotifyMessageSentOnMessageSentEventHandler } from './application/events/notify-message-sent-on-message-sent.event-handler';
 
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
@@ -75,6 +78,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
   imports: [
     CqrsModule, // Para Command/Query handlers
     HttpModule, // Para TokenVerifyService
+    WebSocketModule, // Para notificaciones en tiempo real
     forwardRef(() => VisitorsV2Module), // Para acceso al VisitorV2Repository
     forwardRef(() => TrackingModule), // Para acceso al TrackingEventRepository
     CommercialModule, // Para acceso al Commercial heartbeat service
@@ -98,6 +102,12 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     // Services
     VisitorSessionAuthService,
     BffSessionAuthService,
+
+    // WebSocket Gateway Provider
+    {
+      provide: 'WEBSOCKET_GATEWAY',
+      useExisting: WebSocketGatewayBasic,
+    },
 
     // Mappers
     ChatMapper,
@@ -148,6 +158,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
 
     // Event Handlers
     ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,
+    NotifyMessageSentOnMessageSentEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

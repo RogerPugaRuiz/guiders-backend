@@ -1488,10 +1488,8 @@ export class ChatV2Controller {
       });
 
       // Ejecutar el command
-      const result: Result<
-        { assignedCommercialId: string },
-        DomainError
-      > = await this.commandBus.execute(command);
+      const result: Result<{ assignedCommercialId: string }, DomainError> =
+        await this.commandBus.execute(command);
 
       // Manejar el resultado del command
       if (result.isErr()) {

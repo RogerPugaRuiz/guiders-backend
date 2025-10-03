@@ -188,7 +188,8 @@ class GetChatByIdQueryHandler implements IQueryHandler<RealGetChatByIdQuery> {
       });
     }
     // Usar assignedCommercialId del Map o valor por defecto
-    const assignedCommercialId = mockChatAssignments.get(query.chatId) || 'commercial-1';
+    const assignedCommercialId =
+      mockChatAssignments.get(query.chatId) || 'commercial-1';
 
     // Mock retorna Result.ok(chat) con método toPrimitives
     return Promise.resolve({
@@ -208,7 +209,11 @@ class GetChatByIdQueryHandler implements IQueryHandler<RealGetChatByIdQuery> {
           lastMessageDate: new Date().toISOString(),
           totalMessages: 1,
           updatedAt: new Date().toISOString(),
-          metadata: { department: 'ventas', source: 'website', customFields: {} },
+          metadata: {
+            department: 'ventas',
+            source: 'website',
+            customFields: {},
+          },
           visitorInfo: {
             name: 'Visitante Test',
             email: 'visitor@test.com',
@@ -842,7 +847,10 @@ describe('ChatV2Controller (e2e)', () => {
 
       expect(result).toBeDefined();
       expect(result.isOk()).toBe(true);
-      expect(result.value).toHaveProperty('assignedCommercialId', 'commercial-456');
+      expect(result.value).toHaveProperty(
+        'assignedCommercialId',
+        'commercial-456',
+      );
     });
 
     it('debe ejecutar CloseChatCommand correctamente', async () => {
