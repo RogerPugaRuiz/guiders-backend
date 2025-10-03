@@ -140,14 +140,13 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       // Assert
       expect(result.totalCount).toBe(totalRealCount); // ✅ Debe ser 100, NO 10
       expect(result.visitors.length).toBe(pageSize); // ✅ Pero solo 10 visitantes en la página
-      expect(mockVisitorRepository.findByTenantIdWithDetails).toHaveBeenCalledWith(
-        expect.any(TenantId),
-        {
-          includeOffline: true,
-          limit: pageSize,
-          offset,
-        },
-      );
+      expect(
+        mockVisitorRepository.findByTenantIdWithDetails,
+      ).toHaveBeenCalledWith(expect.any(TenantId), {
+        includeOffline: true,
+        limit: pageSize,
+        offset,
+      });
     });
 
     it('debe devolver el totalCount correcto en la segunda página', async () => {
