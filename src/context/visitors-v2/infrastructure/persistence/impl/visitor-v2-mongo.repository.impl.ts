@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { VisitorV2Repository } from '../../../domain/visitor-v2.repository';
+import {
+  VisitorV2Repository,
+  PaginatedVisitorsResult,
+} from '../../../domain/visitor-v2.repository';
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { SiteId } from '../../../domain/value-objects/site-id';
@@ -393,7 +396,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       limit?: number;
       offset?: number;
     },
-  ): Promise<Result<VisitorV2[], DomainError>> {
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
     try {
       const filter: Record<string, unknown> = {
         siteId: siteId.value,
@@ -412,6 +415,14 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         `🔍 Buscando visitantes para sitio ${siteId.value}, includeOffline: ${options?.includeOffline}, filtro: ${JSON.stringify(filter)}`,
       );
 
+      // Obtener el count total SIN paginación
+      const totalCount = await this.visitorModel.countDocuments(filter).exec();
+
+      this.logger.debug(
+        `📊 Total de visitantes encontrados para sitio ${siteId.value}: ${totalCount}`,
+      );
+
+      // Aplicar paginación para obtener los datos
       const query = this.visitorModel.find(filter);
 
       if (options?.offset) {
@@ -425,14 +436,14 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       const entities = await query.exec();
 
       this.logger.debug(
-        `📊 Encontrados ${entities.length} visitantes para sitio ${siteId.value}`,
+        `� Devolviendo ${entities.length} visitantes de ${totalCount} totales para sitio ${siteId.value}`,
       );
 
       const visitors = entities.map((entity) =>
         VisitorV2Mapper.fromPersistence(entity),
       );
 
-      return ok(visitors);
+      return ok({ visitors, totalCount });
     } catch (error) {
       const errorMessage = `Error al buscar visitantes del sitio ${siteId.value}: ${
         error instanceof Error ? error.message : String(error)
@@ -509,7 +520,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       limit?: number;
       offset?: number;
     },
-  ): Promise<Result<VisitorV2[], DomainError>> {
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
     try {
       const filter: Record<string, unknown> = {
         tenantId: tenantId.value,
@@ -528,6 +539,14 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         `🔍 Buscando visitantes para tenant ${tenantId.value}, includeOffline: ${options?.includeOffline}, filtro: ${JSON.stringify(filter)}`,
       );
 
+      // Obtener el count total SIN paginación
+      const totalCount = await this.visitorModel.countDocuments(filter).exec();
+
+      this.logger.debug(
+        `📊 Total de visitantes encontrados para tenant ${tenantId.value}: ${totalCount}`,
+      );
+
+      // Aplicar paginación para obtener los datos
       const query = this.visitorModel.find(filter);
 
       if (options?.offset) {
@@ -541,14 +560,14 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       const entities = await query.exec();
 
       this.logger.debug(
-        `📊 Encontrados ${entities.length} visitantes para tenant ${tenantId.value}`,
+        `� Devolviendo ${entities.length} visitantes de ${totalCount} totales para tenant ${tenantId.value}`,
       );
 
       const visitors = entities.map((entity) =>
         VisitorV2Mapper.fromPersistence(entity),
       );
 
-      return ok(visitors);
+      return ok({ visitors, totalCount });
     } catch (error) {
       const errorMessage = `Error al buscar visitantes del tenant ${tenantId.value}: ${
         error instanceof Error ? error.message : String(error)

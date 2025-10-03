@@ -52,7 +52,7 @@ export class GetVisitorsBySiteQueryHandler
         throw new Error(visitorsResult.error.message);
       }
 
-      const visitors = visitorsResult.value;
+      const { visitors, totalCount } = visitorsResult.value;
 
       // Resolver nombre real del sitio desde el contexto de company.
       // Estrategia: buscar el site en las compañías y utilizar su canonicalDomain como nombre preferente.
@@ -80,14 +80,14 @@ export class GetVisitorsBySiteQueryHandler
       });
 
       this.logger.log(
-        `Encontrados ${visitorDtos.length} visitantes para sitio ${query.siteId}`,
+        `Encontrados ${visitorDtos.length} visitantes en esta página (${totalCount} totales) para sitio ${query.siteId}`,
       );
 
       return {
         siteId: query.siteId,
         siteName,
         visitors: visitorDtos,
-        totalCount: visitorDtos.length,
+        totalCount, // ✅ Ahora usa el count real del repositorio
         timestamp: new Date(),
       };
     } catch (error) {

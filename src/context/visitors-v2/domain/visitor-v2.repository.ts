@@ -10,6 +10,14 @@ import { DomainError } from '../../shared/domain/domain.error';
 export const VISITOR_V2_REPOSITORY = Symbol('VisitorV2Repository');
 
 /**
+ * Resultado paginado con count total para queries con paginación
+ */
+export interface PaginatedVisitorsResult {
+  visitors: VisitorV2[];
+  totalCount: number;
+}
+
+/**
  * Repositorio de dominio para VisitorV2
  * Define los métodos principales del repositorio de visitantes V2
  */
@@ -74,6 +82,7 @@ export interface VisitorV2Repository {
 
   /**
    * Busca visitantes de un sitio con información extendida para reportes
+   * Retorna los visitantes paginados y el count total de registros
    */
   findBySiteIdWithDetails(
     siteId: SiteId,
@@ -82,7 +91,7 @@ export interface VisitorV2Repository {
       limit?: number;
       offset?: number;
     },
-  ): Promise<Result<VisitorV2[], DomainError>>;
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>>;
 
   /**
    * Busca visitantes de un sitio que tienen chats no asignados
@@ -110,6 +119,7 @@ export interface VisitorV2Repository {
 
   /**
    * Busca visitantes de un tenant con información extendida para reportes
+   * Retorna los visitantes paginados y el count total de registros
    */
   findByTenantIdWithDetails(
     tenantId: TenantId,
@@ -118,7 +128,7 @@ export interface VisitorV2Repository {
       limit?: number;
       offset?: number;
     },
-  ): Promise<Result<VisitorV2[], DomainError>>;
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>>;
 
   /**
    * Busca visitantes de un tenant que tienen chats no asignados

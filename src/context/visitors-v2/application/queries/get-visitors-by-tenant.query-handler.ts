@@ -59,7 +59,7 @@ export class GetVisitorsByTenantQueryHandler
         throw new Error(visitorsResult.error.message);
       }
 
-      const visitors = visitorsResult.value;
+      const { visitors, totalCount } = visitorsResult.value;
 
       // Resolver nombre de la empresa desde el contexto de company
       const companyName = await resolveCompanyName(
@@ -117,14 +117,14 @@ export class GetVisitorsByTenantQueryHandler
       const activeSitesCount = uniqueSites.size;
 
       this.logger.log(
-        `Encontrados ${visitorDtos.length} visitantes para tenant ${query.tenantId} en ${activeSitesCount} sitios`,
+        `Encontrados ${visitorDtos.length} visitantes en esta página (${totalCount} totales) para tenant ${query.tenantId} en ${activeSitesCount} sitios`,
       );
 
       return {
         tenantId: query.tenantId,
         companyName,
         visitors: visitorDtos,
-        totalCount: visitorDtos.length,
+        totalCount, // ✅ Ahora usa el count real del repositorio
         activeSitesCount,
         timestamp: new Date(),
       };
