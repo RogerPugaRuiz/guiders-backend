@@ -83,13 +83,7 @@ interface MockRequest {
 }
 
 // Queries y Commands mock para testing
-class GetChatByIdQuery {
-  constructor(
-    public chatId: string,
-    public userId: string,
-    public userRole: string,
-  ) {}
-}
+// GetChatByIdQuery no usado - se usa RealGetChatByIdQuery directamente
 
 class GetCommercialChatsQuery {
   constructor(

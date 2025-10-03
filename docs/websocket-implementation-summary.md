@@ -390,18 +390,21 @@ function App() {
 Antes de ir a producción, verifica:
 
 ### Conexión WebSocket
+
 - [ ] Socket se conecta correctamente
 - [ ] Socket se reconecta automáticamente después de desconexión
 - [ ] Se une a la sala del chat (`chat:join` emitido)
 - [ ] Indicador visual muestra estado de conexión
 
 ### Recepción de Mensajes
+
 - [ ] Mensajes nuevos aparecen instantáneamente
 - [ ] Mensajes se ordenan por timestamp
 - [ ] Mensajes propios y ajenos se distinguen visualmente
 - [ ] Attachments (imágenes/archivos) se muestran correctamente
 
 ### Envío de Mensajes
+
 - [ ] Mensajes se envían correctamente via HTTP POST
 - [ ] Aparecen en la UI después de enviarse (via WebSocket)
 - [ ] Manejo de errores muestra feedback al usuario
@@ -409,16 +412,19 @@ Antes de ir a producción, verifica:
 - [ ] Botón enviar se deshabilita mientras envía
 
 ### Autenticación
+
 - [ ] Token JWT se incluye si está disponible (comerciales)
 - [ ] Cookies se envían con `credentials: 'include'`
 - [ ] Manejo de errores 401/403 redirige a login
 
 ### Performance
+
 - [ ] No hay memory leaks (listeners limpiados en unmount)
 - [ ] Lista de mensajes tiene scroll suave
 - [ ] UI no se congela con muchos mensajes
 
 ### Producción
+
 - [ ] Variables de entorno configuradas correctamente
 - [ ] URLs apuntan a staging/producción según ambiente
 - [ ] CORS configurado en backend
@@ -433,7 +439,9 @@ Antes de ir a producción, verifica:
 **Síntoma**: WebSocket conecta, pero no llegan eventos `message:new`
 
 **Soluciones**:
+
 1. Verificar que emitiste `chat:join`:
+
    ```javascript
    socket.emit('chat:join', { chatId: 'tu-chat-id' });
    ```
@@ -447,6 +455,7 @@ Antes de ir a producción, verifica:
 **Síntoma**: `Cross-Origin Request Blocked` en consola
 
 **Solución**:
+
 ```javascript
 // Asegúrate de incluir withCredentials
 const socket = io(apiUrl, {
@@ -462,6 +471,7 @@ const socket = io(apiUrl, {
 **Síntoma**: Conecta y desconecta en loop
 
 **Solución**:
+
 1. Verificar que el token JWT es válido
 2. Verificar que las cookies no han expirado
 3. Revisar logs del backend para ver errores de autenticación
@@ -471,6 +481,7 @@ const socket = io(apiUrl, {
 **Síntoma**: Cada mensaje aparece 2 o más veces
 
 **Solución**:
+
 ```javascript
 // Asegúrate de limpiar listeners en useEffect
 useEffect(() => {
@@ -487,6 +498,7 @@ useEffect(() => {
 **Síntoma**: POST a `/v2/messages` falla con 401/403
 
 **Solución**:
+
 1. Para **visitantes**: Asegúrate de enviar cookie `sid`
 2. Para **comerciales**: Incluir header `Authorization: Bearer <token>`
 3. Verificar `credentials: 'include'` en fetch
@@ -620,10 +632,12 @@ Tests:       5 passed
 El sistema soporta múltiples métodos de autenticación:
 
 ### Para Comerciales
+
 - ✅ JWT Bearer token: `Authorization: Bearer <token>`
 - ✅ Cookies BFF: `console_session`, `admin_session`
 
 ### Para Visitantes
+
 - ✅ Cookie de sesión: `sid`
 - ✅ Header alternativo: `X-Guiders-Sid`
 
@@ -695,6 +709,7 @@ curl -X POST http://localhost:3000/v2/messages \
 ## 📞 Soporte
 
 Para más información, revisar:
+
 - Documentación completa: `docs/websocket-real-time-chat.md`
 - Código fuente gateway: `src/websocket/websocket.gateway.ts`
 - Event handler: `src/context/conversations-v2/application/events/notify-message-sent-on-message-sent.event-handler.ts`

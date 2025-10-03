@@ -51,6 +51,7 @@ import {
   PaginationDto,
   CommercialMetricsResponseDto,
   ResponseTimeStatsDto,
+  ChatSortDto,
 } from '../../application/dtos/chat-query.dto';
 import { CreateChatRequestDto } from '../../application/dtos/create-chat-request.dto';
 import { CreateChatWithMessageRequestDto } from '../../application/dtos/create-chat-with-message-request.dto';
@@ -957,7 +958,7 @@ export class ChatV2Controller {
       let sortOptions = queryParams.sort;
       if (typeof queryParams.sort === 'string') {
         try {
-          sortOptions = JSON.parse(queryParams.sort);
+          sortOptions = JSON.parse(queryParams.sort) as ChatSortDto;
         } catch (error) {
           this.logger.warn(
             `Error al parsear sort: ${error}. Usando valor por defecto.`,

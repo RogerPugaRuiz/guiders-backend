@@ -9,7 +9,8 @@ import { COMMERCIAL_CONNECTION_DOMAIN_SERVICE } from '../../../../commercial/dom
 // import { ChatId } from '../../../domain/value-objects/chat-id';
 // import { ChatStatus } from '../../../domain/value-objects/chat-status';
 import { ok, err } from '../../../../shared/domain/result';
-import { AssignChatToCommercialError } from './assign-chat-to-commercial.error';
+import { AssignChatToCommercialError } from '../assign-chat-to-commercial.command-handler';
+import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 
 describe('AssignChatToCommercialCommandHandler', () => {
   let handler: AssignChatToCommercialCommandHandler;
@@ -21,6 +22,7 @@ describe('AssignChatToCommercialCommandHandler', () => {
     mockChatRepository = {
       findById: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
       findByCommercialId: jest.fn(),
     };
 
@@ -58,10 +60,15 @@ describe('AssignChatToCommercialCommandHandler', () => {
   });
 
   describe('execute', () => {
+    // Usar UUIDs válidos para evitar errores de formato
+    const chatId = Uuid.random().value;
+    const commercialId = Uuid.random().value;
+    const adminId = Uuid.random().value;
+
     const validCommand = new AssignChatToCommercialCommand({
-      chatId: 'chat-123',
-      commercialId: 'commercial-456',
-      assignedBy: 'admin-789',
+      chatId,
+      commercialId,
+      assignedBy: adminId,
       reason: 'manual',
     });
 
@@ -73,7 +80,7 @@ describe('AssignChatToCommercialCommandHandler', () => {
       };
 
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
-      mockChatRepository.save.mockResolvedValue(ok(undefined));
+      mockChatRepository.update.mockResolvedValue(ok(undefined));
       mockCommercialConnectionService.isCommercialOnline.mockResolvedValue(
         true,
       );
@@ -85,10 +92,10 @@ describe('AssignChatToCommercialCommandHandler', () => {
       // Then
       expect(result.isOk()).toBe(true);
       expect(result.unwrap()).toEqual({
-        assignedCommercialId: 'commercial-456',
+        assignedCommercialId: commercialId,
       });
       expect(mockChat.assignCommercial).toHaveBeenCalled();
-      expect(mockChatRepository.save).toHaveBeenCalledWith('assigned-chat');
+      expect(mockChatRepository.update).toHaveBeenCalledWith('assigned-chat');
       expect(mockEventPublisher.mergeObjectContext).toHaveBeenCalledWith(
         'assigned-chat',
       );
@@ -148,7 +155,7 @@ describe('AssignChatToCommercialCommandHandler', () => {
       };
 
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
-      mockChatRepository.save.mockResolvedValue(ok(undefined));
+      mockChatRepository.update.mockResolvedValue(ok(undefined));
       mockCommercialConnectionService.isCommercialOnline.mockResolvedValue(
         false,
       );
@@ -172,7 +179,7 @@ describe('AssignChatToCommercialCommandHandler', () => {
       };
 
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
-      mockChatRepository.save.mockResolvedValue(ok(undefined));
+      mockChatRepository.update.mockResolvedValue(ok(undefined));
       mockCommercialConnectionService.isCommercialOnline.mockResolvedValue(
         true,
       );
@@ -194,7 +201,7 @@ describe('AssignChatToCommercialCommandHandler', () => {
       };
 
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
-      mockChatRepository.save.mockResolvedValue(
+      mockChatRepository.update.mockResolvedValue(
         err(new AssignChatToCommercialError('Error de persistencia')),
       );
       mockCommercialConnectionService.isCommercialOnline.mockResolvedValue(
@@ -208,7 +215,7 @@ describe('AssignChatToCommercialCommandHandler', () => {
       // Then
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error.message).toContain('Error de persistencia');
+        expect(result.error.message).toContain('Error al actualizar chat');
       }
     });
 
