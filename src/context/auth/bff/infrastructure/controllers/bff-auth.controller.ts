@@ -254,6 +254,7 @@ export class BffController {
     let tokens: {
       access_token: string;
       refresh_token?: string;
+      id_token?: string;
       expires_in?: number;
     };
     try {
@@ -279,7 +280,7 @@ export class BffController {
     // Cookies HttpOnly - usando configuración específica por app
     const cenv = readCookieEnv(app);
     this.logger.debug(
-      `[BFF /callback/${app}] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
+      `[BFF /callback/${app}] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} id_token=${tokens.id_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
     );
 
     // Log detallado de la configuración de cookies antes de establecerlas
@@ -332,6 +333,26 @@ export class BffController {
 
       res.cookie(cenv.refreshName, tokens.refresh_token, refreshCookieOptions);
     }
+
+    // Guardar id_token para usarlo en el logout (requerido por Keycloak)
+    if (tokens.id_token) {
+      const idTokenCookieName = `${cenv.sessionName}_id`;
+      const idTokenCookieOptions = {
+        httpOnly: true,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+        domain: cenv.domain,
+        path: cenv.path,
+        maxAge: (tokens.expires_in ? tokens.expires_in : 600) * 1000,
+      };
+
+      this.logger.debug(
+        `[BFF /callback/${app}] Setting id_token cookie with options: ${JSON.stringify(idTokenCookieOptions)}`,
+      );
+
+      res.cookie(idTokenCookieName, tokens.id_token, idTokenCookieOptions);
+    }
+
     const ret = req.session.returnTo || '/';
     req.session.returnTo = undefined;
     this.logger.debug(`[BFF /callback/${app}] redirect to returnTo=${ret}`);
@@ -535,6 +556,18 @@ export class BffController {
         maxAge: 30 * 24 * 3600 * 1000,
       });
     }
+    // Renovar id_token si viene en el refresh (también requerido para logout futuro)
+    if (t.id_token) {
+      const idTokenCookieName = `${cenv.sessionName}_id`;
+      res.cookie(idTokenCookieName, t.id_token, {
+        httpOnly: true,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+        domain: cenv.domain,
+        path: cenv.path,
+        maxAge: (t.expires_in ? t.expires_in : 600) * 1000,
+      });
+    }
     return res.sendStatus(204);
   }
 
@@ -545,7 +578,7 @@ export class BffController {
   })
   @ApiResponse({ status: 302, description: 'Redirige a /login/console' })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
-  @Post('logout')
+  @Get('logout')
   async logout(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
@@ -561,7 +594,7 @@ export class BffController {
   @ApiParam({ name: 'app', enum: ['console', 'admin'] })
   @ApiResponse({ status: 302, description: 'Redirige a /login/:app' })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
-  @Post('logout/:app')
+  @Get('logout/:app')
   async logoutForApp(
     @Param('app') app: string,
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -577,18 +610,57 @@ export class BffController {
   ) {
     const cenv = readCookieEnv(app);
     const rt = req.cookies?.[cenv.refreshName] as string | undefined;
+    const idTokenCookieName = `${cenv.sessionName}_id`;
+    const idToken = req.cookies?.[idTokenCookieName] as string | undefined;
+
+    // Revocar refresh token si existe
     if (rt) {
       await this.oidc.revoke(rt);
     }
 
+    // Limpiar cookies de la aplicación (incluyendo id_token)
     res.clearCookie(cenv.sessionName, {
       path: cenv.path,
       domain: cenv.domain,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
     });
     res.clearCookie(cenv.refreshName, {
       path: cenv.refreshPath,
       domain: cenv.domain,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
     });
-    return res.redirect(`/api/bff/auth/login/${app}`);
+    res.clearCookie(idTokenCookieName, {
+      path: cenv.path,
+      domain: cenv.domain,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
+    });
+
+    // Construir URL de logout de Keycloak con id_token_hint
+    // Después del logout, redirigir al frontend (no al backend /login)
+    // Usa la primera URL de ALLOW_RETURN_TO como destino post-logout
+    const allowedOrigins = getAllowedReturnTo();
+    const postLogoutRedirectUri = allowedOrigins[0] || 'http://localhost:4200';
+
+    try {
+      const keycloakLogoutUrl = this.oidc.buildLogoutUrl({
+        postLogoutRedirectUri,
+        idTokenHint: idToken, // Keycloak requiere id_token_hint para logout
+      });
+
+      this.logger.debug(
+        `[BFF /logout/${app}] Redirigiendo a logout de Keycloak con id_token_hint=${idToken ? 'present' : 'missing'}, post_logout_redirect=${postLogoutRedirectUri}`,
+      );
+
+      return res.redirect(keycloakLogoutUrl);
+    } catch (error) {
+      // Fallback: si falla construir URL de Keycloak, ir directo al frontend
+      this.logger.warn(
+        `[BFF /logout/${app}] No se pudo construir URL de logout de Keycloak: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return res.redirect(postLogoutRedirectUri);
+    }
   }
 }

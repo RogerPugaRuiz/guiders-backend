@@ -363,4 +363,58 @@ export class OidcService implements OnModuleInit {
       })
       .catch(() => void 0);
   }
+
+  // Construye la URL de logout de Keycloak (end_session_endpoint)
+  buildLogoutUrl(opts?: {
+    postLogoutRedirectUri?: string;
+    idTokenHint?: string;
+  }): string {
+    if (!this.config) {
+      throw new Error('OIDC config no inicializada');
+    }
+
+    const as = this.config.serverMetadata();
+    const endSessionEndpoint = as.end_session_endpoint;
+
+    if (!endSessionEndpoint) {
+      this.logger.warn(
+        'end_session_endpoint no disponible en el servidor OIDC. Usando logout local únicamente.',
+      );
+      // Fallback: si Keycloak no expone end_session_endpoint, construir manualmente
+      const issuerUrl = new URL(this.issuerUrl);
+      const logoutUrl = new URL(
+        `${issuerUrl.pathname}/protocol/openid-connect/logout`,
+        issuerUrl.origin,
+      );
+      if (opts?.postLogoutRedirectUri) {
+        logoutUrl.searchParams.set(
+          'post_logout_redirect_uri',
+          opts.postLogoutRedirectUri,
+        );
+      }
+      if (opts?.idTokenHint) {
+        logoutUrl.searchParams.set('id_token_hint', opts.idTokenHint);
+      }
+      return logoutUrl.href;
+    }
+
+    const logoutUrl = new URL(endSessionEndpoint);
+
+    if (opts?.postLogoutRedirectUri) {
+      logoutUrl.searchParams.set(
+        'post_logout_redirect_uri',
+        opts.postLogoutRedirectUri,
+      );
+    }
+
+    if (opts?.idTokenHint) {
+      logoutUrl.searchParams.set('id_token_hint', opts.idTokenHint);
+    }
+
+    this.logger.debug(
+      `🚪 Logout URL construida: ${logoutUrl.href} (redirect=${opts?.postLogoutRedirectUri || 'none'})`,
+    );
+
+    return logoutUrl.href;
+  }
 }
