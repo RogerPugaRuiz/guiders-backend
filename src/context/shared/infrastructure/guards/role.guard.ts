@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthenticatedRequest } from './auth.guard';
+import { Roles } from '../roles.decorator';
 
 export const RequiredRoles = (...roles: string[]) =>
   SetMetadata('roles', roles);
@@ -19,24 +20,24 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // Extraer los roles requeridos desde la metadata del handler
-    // Intentar primero con el nuevo decorator @Roles(), luego con @RequiredRoles()
-    let requiredRoles = this.reflector.get<string[]>(
-      'roles',
-      context.getHandler(),
-    );
+    // Información del endpoint
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const endpoint = `${request.method} ${request.url}`;
 
-    // Si no se encuentra con 'roles', intentar con el decorator viejo
+    // Extraer los roles requeridos desde la metadata del handler
+    // Intentar primero con el nuevo decorator @Roles() (usando Reflector.createDecorator)
+    let requiredRoles = this.reflector.getAllAndOverride<string[]>(Roles, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    // Si no se encuentra con @Roles, intentar con @RequiredRoles() (legacy)
     if (!requiredRoles || requiredRoles.length === 0) {
       requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
         context.getHandler(),
         context.getClass(),
       ]);
     }
-
-    // Información del endpoint
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const endpoint = `${request.method} ${request.url}`;
 
     if (!requiredRoles || requiredRoles.length === 0) {
       // Si no se especifica ningún rol, se permite el acceso
@@ -96,7 +97,7 @@ export class RolesGuard implements CanActivate {
       this.logger.error(
         `[${endpoint}] Usuario completo: ${JSON.stringify(user)}`,
       );
-      throw new ForbiddenException('Acceso denegado: roles insuficientes');
+      throw new ForbiddenException('Acceso denegado. Permisos insuficientes.');
     }
 
     this.logger.log(
