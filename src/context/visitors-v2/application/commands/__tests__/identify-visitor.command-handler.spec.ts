@@ -101,5 +101,56 @@ describe('IdentifyVisitorCommandHandler', () => {
       expect(validateDomainApiKey.validate).toHaveBeenCalled();
       expect(visitorRepository.findByFingerprintAndSite).not.toHaveBeenCalled();
     });
+
+    it('debe normalizar el dominio eliminando el prefijo www.', async () => {
+      const commandWithWww = new IdentifyVisitorCommand(
+        'fp_abc123def456',
+        'www.landing.mytech.com', // ← Con www.
+        'ak_live_1234567890',
+        'https://www.landing.mytech.com/home',
+      );
+
+      jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
+      jest
+        .spyOn(companyRepository, 'findByDomain')
+        .mockResolvedValue(err(new CompanyNotFoundError()));
+
+      await expect(handler.execute(commandWithWww)).rejects.toThrow(
+        'No se encontró una empresa para el dominio: landing.mytech.com', // ← Sin www.
+      );
+
+      // Verificar que se llamó con el dominio normalizado (sin www.)
+      expect(validateDomainApiKey.validate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          domain: 'landing.mytech.com', // ← Sin www.
+        }),
+      );
+
+      expect(companyRepository.findByDomain).toHaveBeenCalledWith(
+        'landing.mytech.com', // ← Sin www.
+      );
+    });
+
+    it('debe funcionar correctamente con dominios que ya no tienen www.', async () => {
+      jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
+      jest
+        .spyOn(companyRepository, 'findByDomain')
+        .mockResolvedValue(err(new CompanyNotFoundError()));
+
+      await expect(handler.execute(validCommand)).rejects.toThrow(
+        'No se encontró una empresa para el dominio: landing.mytech.com',
+      );
+
+      // Verificar que el dominio sin www. se mantiene igual
+      expect(validateDomainApiKey.validate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          domain: 'landing.mytech.com',
+        }),
+      );
+
+      expect(companyRepository.findByDomain).toHaveBeenCalledWith(
+        'landing.mytech.com',
+      );
+    });
   });
 });
