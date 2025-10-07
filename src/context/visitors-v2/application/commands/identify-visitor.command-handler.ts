@@ -45,28 +45,31 @@ export class IdentifyVisitorCommandHandler
     command: IdentifyVisitorCommand,
   ): Promise<IdentifyVisitorResponseDto> {
     try {
+      // Normalizar dominio: eliminar prefijo 'www.' si existe
+      const normalizedDomain = command.domain.replace(/^www\./i, '');
+
       this.logger.log(
-        `Identificando visitante: fingerprint=${command.fingerprint}, domain=${command.domain}`,
+        `Identificando visitante: fingerprint=${command.fingerprint}, domain=${command.domain}${command.domain !== normalizedDomain ? ` (normalizado a: ${normalizedDomain})` : ''}`,
       );
 
-      // Validar API Key
+      // Validar API Key con dominio normalizado
       const apiKeyValid = await this.apiKeyValidator.validate({
         apiKey: new VisitorAccountApiKey(command.apiKey),
-        domain: command.domain,
+        domain: normalizedDomain,
       });
 
       if (!apiKeyValid) {
         throw new Error('API Key inválida para el dominio proporcionado');
       }
 
-      // Resolver dominio a tenantId y siteId
+      // Resolver dominio normalizado a tenantId y siteId
       const companyResult = await this.companyRepository.findByDomain(
-        command.domain,
+        normalizedDomain,
       );
 
       if (companyResult.isErr()) {
         throw new Error(
-          `No se encontró una empresa para el dominio: ${command.domain}`,
+          `No se encontró una empresa para el dominio: ${normalizedDomain}`,
         );
       }
 
@@ -84,13 +87,13 @@ export class IdentifyVisitorCommandHandler
 
       const targetSite = sitePrimitives.find(
         (site) =>
-          site.canonicalDomain === command.domain ||
-          site.domainAliases.includes(command.domain),
+          site.canonicalDomain === normalizedDomain ||
+          site.domainAliases.includes(normalizedDomain),
       );
 
       if (!targetSite) {
         throw new Error(
-          `No se encontró un sitio específico para el dominio: ${command.domain}`,
+          `No se encontró un sitio específico para el dominio: ${normalizedDomain}`,
         );
       }
 
