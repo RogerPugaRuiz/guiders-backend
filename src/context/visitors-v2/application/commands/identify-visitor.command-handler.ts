@@ -63,9 +63,8 @@ export class IdentifyVisitorCommandHandler
       }
 
       // Resolver dominio normalizado a tenantId y siteId
-      const companyResult = await this.companyRepository.findByDomain(
-        normalizedDomain,
-      );
+      const companyResult =
+        await this.companyRepository.findByDomain(normalizedDomain);
 
       if (companyResult.isErr()) {
         throw new Error(
