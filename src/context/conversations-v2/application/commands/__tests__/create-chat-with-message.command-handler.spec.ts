@@ -101,7 +101,8 @@ describe('CreateChatWithMessageCommandHandler', () => {
     it('debe crear un chat con mensaje de texto exitosamente', async () => {
       // Arrange
       const command = new CreateChatWithMessageCommand(
-        '123e4567-e89b-12d3-a456-426614174000',
+        '123e4567-e89b-12d3-a456-426614174000', // visitorId
+        '123e4567-e89b-12d3-a456-426614174000', // senderId (mismo que visitor en este caso)
         {
           content: 'Hola, necesito ayuda',
           type: 'text',
@@ -149,7 +150,8 @@ describe('CreateChatWithMessageCommandHandler', () => {
     it('debe crear un chat con mensaje de archivo exitosamente', async () => {
       // Arrange
       const command = new CreateChatWithMessageCommand(
-        '123e4567-e89b-12d3-a456-426614174001',
+        '123e4567-e89b-12d3-a456-426614174001', // visitorId
+        '123e4567-e89b-12d3-a456-426614174001', // senderId
         {
           content: 'Archivo adjunto',
           type: 'file',
@@ -203,7 +205,8 @@ describe('CreateChatWithMessageCommandHandler', () => {
     it('debe usar valores por defecto cuando no se proporcionan datos opcionales', async () => {
       // Arrange
       const command = new CreateChatWithMessageCommand(
-        '123e4567-e89b-12d3-a456-426614174002',
+        '123e4567-e89b-12d3-a456-426614174002', // visitorId
+        '123e4567-e89b-12d3-a456-426614174002', // senderId
         {
           content: 'Solo mensaje básico',
         },
@@ -245,7 +248,8 @@ describe('CreateChatWithMessageCommandHandler', () => {
     it('debe lanzar error cuando falla el guardado del chat', async () => {
       // Arrange
       const command = new CreateChatWithMessageCommand(
-        '123e4567-e89b-12d3-a456-426614174003',
+        '123e4567-e89b-12d3-a456-426614174003', // visitorId
+        '123e4567-e89b-12d3-a456-426614174003', // senderId
         {
           content: 'Test message',
         },
@@ -277,7 +281,8 @@ describe('CreateChatWithMessageCommandHandler', () => {
     it('debe lanzar error cuando falla el guardado del mensaje', async () => {
       // Arrange
       const command = new CreateChatWithMessageCommand(
-        '123e4567-e89b-12d3-a456-426614174004',
+        '123e4567-e89b-12d3-a456-426614174004', // visitorId
+        '123e4567-e89b-12d3-a456-426614174004', // senderId
         {
           content: 'Test message',
         },
@@ -318,7 +323,8 @@ describe('CreateChatWithMessageCommandHandler', () => {
     it('debe calcular correctamente la posición en la cola cuando hay error en countPending', async () => {
       // Arrange
       const command = new CreateChatWithMessageCommand(
-        '123e4567-e89b-12d3-a456-426614174005',
+        '123e4567-e89b-12d3-a456-426614174005', // visitorId
+        '123e4567-e89b-12d3-a456-426614174005', // senderId
         {
           content: 'Test message',
         },
