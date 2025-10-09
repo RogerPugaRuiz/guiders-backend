@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Start development server with hot-reload
 npm run start:dev
 
-# Build project 
+# Build project
 npm run build
 
 # Format code with Prettier
@@ -37,7 +37,7 @@ npm run test:e2e
 # Run single test file
 npm run test:unit -- path/to/test.spec.ts
 
-# Run tests in watch mode  
+# Run tests in watch mode
 npm run test:watch
 
 # Check coverage threshold
@@ -101,13 +101,15 @@ src/context/<context-name>/
     └── services/      # External service adapters
 ```
 
+**Dependency Rule**: `domain` ⇏ nothing, `application` → `domain`, `infrastructure` → `application` + `domain`
+
 ### Main Contexts
 
 #### Core Business Contexts
 - **`company`** - Company and site management (PostgreSQL)
 - **`auth`** - Authentication for users and visitors (PostgreSQL)
   - `auth-user` - Commercial user authentication
-  - `auth-visitor` - Website visitor authentication  
+  - `auth-visitor` - Website visitor authentication
   - `api-key` - API key validation and management
   - `bff` - Backend-for-Frontend authentication
 
@@ -118,6 +120,7 @@ src/context/<context-name>/
 - **`visitors`** - Legacy visitor tracking (PostgreSQL) - maintenance only
 - **`visitors-v2`** - New visitor management (MongoDB) - use for new features
 - **`tracking`** - User behavior and intent detection
+- **`commercial`** - Commercial user management (MongoDB)
 
 #### Shared Infrastructure
 - **`shared`** - Common value objects, utilities, and domain patterns
@@ -143,11 +146,14 @@ export class CreateChatCommandHandler {
     private publisher: EventPublisher
   ) {}
 
-  async execute(command: CreateChatCommand): Promise<void> {
+  async execute(command: CreateChatCommand): Promise<Result<string, DomainError>> {
     const chat = Chat.create(command.visitorId, command.companyId);
     const chatCtx = this.publisher.mergeObjectContext(chat);
-    await this.repository.save(chatCtx);
+    const saveResult = await this.repository.save(chatCtx);
+    if (saveResult.isErr()) return saveResult;
+
     chatCtx.commit(); // CRITICAL: Must call commit() to dispatch events
+    return ok(chat.getId().value);
   }
 }
 ```
@@ -164,7 +170,7 @@ export class CreateApiKeyOnCompanyCreatedEventHandler {
 
 ### Result Pattern for Error Handling
 ```typescript
-import { Result } from 'src/context/shared/domain/result';
+import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 
 // Instead of throwing exceptions, return Result
 const result = await this.service.validateInput(data);
@@ -174,21 +180,76 @@ if (result.isErr()) {
 const value = result.unwrap(); // Safe to unwrap
 ```
 
+**Rule**: Do not throw exceptions for expected validation flows. Use `Result` for expected errors.
+
+### Domain Modeling
+
+#### Aggregate Root
+```typescript
+export class Chat extends AggregateRoot {
+  private constructor(
+    private readonly _id: ChatId,
+    private readonly _status: ChatStatus,
+    // ... more private readonly fields
+  ) { super(); }
+
+  // Factory that emits events
+  static create(visitorId: VisitorId, companyId: CompanyId): Chat {
+    const chat = new Chat(ChatId.generate(), ChatStatus.pending(), /* ... */);
+    chat.apply(new ChatCreatedEvent(chat.toPrimitives()));
+    return chat;
+  }
+
+  // Rehydration without events
+  static fromPrimitives(data: ChatPrimitives): Chat {
+    return new Chat(
+      ChatId.create(data.id),
+      ChatStatus.create(data.status),
+      // ...
+    );
+  }
+
+  toPrimitives(): ChatPrimitives {
+    return { id: this._id.value, status: this._status.value, /* ... */ };
+  }
+}
+```
+
+#### Value Objects
+Extend `PrimitiveValueObject` or reuse from `shared/domain/value-objects`. Do not create `create()` method if it already exists in the base class.
+
 ### Repository Pattern
 ```typescript
 // Domain interface
 export interface ChatRepository {
-  save(chat: Chat): Promise<void>;
-  findById(id: ChatId): Promise<Optional<Chat>>;
-  findByCompany(companyId: CompanyId): Promise<Chat[]>;
+  save(chat: Chat): Promise<Result<void, DomainError>>;
+  findById(id: ChatId): Promise<Result<Chat, DomainError>>;
+  match(criteria: Criteria<Chat>): Promise<Result<Chat[], DomainError>>;
 }
+export const CHAT_REPOSITORY = Symbol('ChatRepository');
 
 // Infrastructure implementation
 @Injectable()
 export class MongoChatRepositoryImpl implements ChatRepository {
-  // Implementation details hidden from domain
+  constructor(
+    @InjectModel(ChatMongoEntity.name) private model: Model<ChatDocument>
+  ) {}
+
+  async match(criteria: Criteria<Chat>): Promise<Result<Chat[], DomainError>> {
+    const fieldMap = { id: '_id', status: 'status', createdAt: 'createdAt' };
+    const query = CriteriaConverter.toMongoQuery(criteria, fieldMap);
+    const docs = await this.model.find(query).exec();
+    return ok(docs.map(ChatMapper.fromPersistence));
+  }
 }
+
+// In module
+providers: [
+  { provide: CHAT_REPOSITORY, useClass: MongoChatRepositoryImpl }
+]
 ```
+
+**Mappers**: Use `toPersistence(aggregate)` / `fromPersistence(entity)`. Never expose TypeORM/Mongoose entities outside infrastructure layer.
 
 ## WebSocket Development
 
@@ -196,35 +257,105 @@ export class MongoChatRepositoryImpl implements ChatRepository {
 ```typescript
 @WebSocketGateway()
 @UseGuards(WsAuthGuard, WsRolesGuard)
-export class WebSocketGateway {
-  @SubscribeMessage('chat:message')
+export class ChatGateway {
+  @SubscribeMessage('chat:send-message')
   @Roles(['visitor', 'commercial'])
-  async handleMessage(client: Socket, payload: MessagePayload) {
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: SendMessageDto) {
     // Always delegate to CommandBus/QueryBus
-    return this.commandBus.execute(new SendMessageCommand(payload));
+    const result = await this.commandBus.execute(new SendMessageCommand(payload));
+
+    // Uniform response
+    return ResponseBuilder.create()
+      .addSuccess(result.isOk())
+      .addMessage(result.isOk() ? 'Mensaje enviado' : result.error.message)
+      .addData(result.isOk() ? result.unwrap() : null)
+      .build();
   }
 }
 ```
 
-### Response Format
+**Guards**: `WsAuthGuard` + `WsRolesGuard` are mandatory. Gateway = orchestrator, no domain logic.
+
+## Multi-Persistence Strategy
+
+### PostgreSQL (TypeORM)
+- **Contexts**: `auth`, `company`, `tracking`, `conversations` (V1), `visitors` (V1)
+- **Use for**: Transactional data, complex relationships, referential integrity
+
 ```typescript
-// Use consistent response format
-const response = ResponseBuilder.create()
-  .addSuccess(true)
-  .addMessage('Message sent successfully')
-  .addData({ messageId: '123' })
-  .build();
+// CriteriaConverter for safe queries
+const { sql, parameters } = CriteriaConverter.toPostgresSql(
+  criteria,
+  'visitors',
+  { id: 'id', name: 'name', email: 'email' }
+);
+const entities = await this.repository
+  .createQueryBuilder('visitors')
+  .where(sql.replace(/^WHERE /, ''))
+  .setParameters(parameters)
+  .getMany();
 ```
+
+### MongoDB (Mongoose)
+- **Contexts**: `conversations-v2`, `visitors-v2`, `commercial`
+- **Use for**: High volume, aggregations, metrics, complex read queries
+
+```typescript
+// Projections for performance
+const chats = await this.model
+  .find(query)
+  .select('_id status createdAt') // Only necessary fields
+  .lean() // Plain JS objects, no Mongoose overhead
+  .exec();
+```
+
+**V1→V2 Migration**: Temporary coexistence. New features only in V2.
 
 ## Testing Strategy
 
 ### Unit Tests
-- Mock external dependencies
-- Test business logic in isolation
-- Use `Test.createTestingModule()` for NestJS components
-- Override guards with `MockAuthGuard`/`MockRolesGuard`
+```typescript
+describe('AssignChatToCommercialCommandHandler', () => {
+  let handler: AssignChatToCommercialCommandHandler;
+  let mockRepo: jest.Mocked<ChatRepository>;
 
-### Integration Tests  
+  beforeEach(async () => {
+    mockRepo = { findById: jest.fn(), update: jest.fn() };
+    const module = await Test.createTestingModule({
+      providers: [
+        AssignChatToCommercialCommandHandler,
+        { provide: CHAT_REPOSITORY, useValue: mockRepo },
+        { provide: EventPublisher, useValue: { mergeObjectContext: jest.fn() } }
+      ]
+    }).compile();
+    handler = module.get(AssignChatToCommercialCommandHandler);
+  });
+
+  it('should assign successfully with valid UUIDs', async () => {
+    const chatId = Uuid.random().value; // ⚠️ Use real UUIDs
+    const commercialId = Uuid.random().value;
+
+    mockRepo.findById.mockResolvedValue(ok(mockChat));
+    mockRepo.update.mockResolvedValue(okVoid());
+
+    const result = await handler.execute(new AssignCommand({ chatId, commercialId }));
+    expect(result.isOk()).toBe(true);
+  });
+});
+```
+
+**Commands**:
+- Unit: `npm run test:unit` (SQLite in memory, fast)
+- Integration: `npm run test:int` (PostgreSQL + MongoDB real)
+- E2E: `npm run test:e2e` (complete server)
+
+**E2E Pattern**:
+- Use real services (docker-compose with `test` profile)
+- Mock guards: `MockAuthGuard`, `MockOptionalAuthGuard`
+- Mock domain objects with `toPrimitives()` and `getValue()`
+- Timeout: 120s (configured in jest)
+
+### Integration Tests
 - Test repository implementations with real databases
 - Verify CQRS command/query flow
 - Test event publishing and handling
@@ -282,7 +413,7 @@ Incluye métrica interna de intentos y evento de telemetría.
 For public-facing APIs requiring domain validation:
 ```typescript
 // 1. Frontend sends domain + apiKey (external identifiers)
-// 2. Validate API key with ValidateDomainApiKey service  
+// 2. Validate API key with ValidateDomainApiKey service
 // 3. Resolve company: companyRepository.findByDomain()
 // 4. Find target site: site.canonicalDomain === domain || site.domainAliases.includes(domain)
 // 5. Generate internal UUIDs: new TenantId(company.getId().getValue())
@@ -310,5 +441,32 @@ aggCtx.commit(); // Without this, events won't be dispatched!
 - **Error messages**: Spanish (unless external API requires English)
 
 ### Authentication Guards
-- REST endpoints: `@UseGuards(AuthGuard, RoleGuard)` + `@Roles(['admin', 'commercial'])`
-- WebSocket endpoints: `@UseGuards(WsAuthGuard, WsRolesGuard)` + `@Roles(['visitor'])`
+
+#### REST Endpoints
+- `@UseGuards(AuthGuard, RoleGuard)` + `@Roles(['admin', 'commercial'])`
+- **DualAuthGuard**: JWT Bearer || BFF cookies (Keycloak) || Visitor session → Fails if none valid
+- **OptionalAuthGuard**: Same methods but does NOT fail → Populates `request.user` if auth present
+
+#### WebSocket Endpoints
+- `@UseGuards(WsAuthGuard, WsRolesGuard)` + `@Roles(['visitor', 'commercial'])`
+
+## Anti-Patterns (Block)
+
+❌ Business logic in controllers/gateways
+❌ Exceptions for expected validation flows (use `Result`)
+❌ Manual concatenated SQL (use `CriteriaConverter` + QueryBuilder)
+❌ Exposing TypeORM/Mongoose entities outside infrastructure
+❌ Forgetting `commit()` in command handlers → events not published
+❌ Importing infrastructure from domain
+❌ Event handlers without naming pattern `<Action>On<Event>EventHandler`
+❌ Fake UUIDs in tests (use `Uuid.random().value`)
+
+## PR Checklist
+
+- [ ] Value Objects/Result applied correctly
+- [ ] Events published with `mergeObjectContext` + `commit()`
+- [ ] Repositories use mappers and hide ORM details
+- [ ] Migration/index created if new filterable field
+- [ ] Tests passing (unit + int/E2E if applicable) with coverage OK
+- [ ] `npm run lint` and `npm run format` without errors
+- [ ] Swagger + READMEs updated if contract changes

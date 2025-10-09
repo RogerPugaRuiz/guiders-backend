@@ -19,6 +19,8 @@ import {
   IChatRepository,
 } from '../../../conversations-v2/domain/chat.repository';
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
+import { VisitorV2 } from '../../domain/visitor-v2.aggregate';
+import { VisitorId } from '../../../conversations-v2/domain/value-objects/visitor-id';
 
 @QueryHandler(GetVisitorsByTenantQuery)
 export class GetVisitorsByTenantQueryHandler
@@ -79,6 +81,12 @@ export class GetVisitorsByTenantQueryHandler
         tenantId,
       );
 
+      // Obtener conteo total de chats por visitante
+      const totalChatsCountMap = await getTotalChatsByVisitors(
+        this.chatRepository,
+        visitors,
+      );
+
       // Mapear los chats pendientes a cada visitante
       const visitorDtos: TenantVisitorInfoDto[] = visitors.map((visitor) => {
         const sessions = visitor.getSessions();
@@ -94,6 +102,7 @@ export class GetVisitorsByTenantQueryHandler
         // Filtrar los chats pendientes que correspondan a este visitante
         const visitorId = visitor.getId().getValue();
         const visitorPendingChatIds = pendingChatsMap.get(visitorId) || [];
+        const totalChatsCount = totalChatsCountMap.get(visitorId) || 0;
 
         return {
           id: visitor.getId().getValue(),
@@ -107,6 +116,7 @@ export class GetVisitorsByTenantQueryHandler
           lastActivity:
             latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
           pendingChatIds: visitorPendingChatIds,
+          totalChatsCount,
         };
       });
 
@@ -224,5 +234,41 @@ async function getPendingChatsByTenant(
   } catch {
     // En caso de error, retornar mapa vacío
     return new Map();
+  }
+}
+
+// Función auxiliar para obtener el conteo total de chats por visitante
+async function getTotalChatsByVisitors(
+  chatRepository: IChatRepository,
+  visitors: VisitorV2[],
+): Promise<Map<string, number>> {
+  const totalChatsMap = new Map<string, number>();
+
+  try {
+    // Obtener el conteo de chats para cada visitante
+    await Promise.all(
+      visitors.map(async (visitor) => {
+        const visitorId = visitor.getId().getValue();
+        const visitorIdVO = VisitorId.create(visitorId);
+
+        try {
+          const chatsResult = await chatRepository.findByVisitorId(visitorIdVO);
+
+          if (chatsResult.isOk()) {
+            const chats = chatsResult.value;
+            totalChatsMap.set(visitorId, chats.length);
+          } else {
+            totalChatsMap.set(visitorId, 0);
+          }
+        } catch {
+          totalChatsMap.set(visitorId, 0);
+        }
+      }),
+    );
+
+    return totalChatsMap;
+  } catch {
+    // En caso de error, retornar mapa vacío
+    return totalChatsMap;
   }
 }

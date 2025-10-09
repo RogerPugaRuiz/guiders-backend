@@ -43,6 +43,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
     // Mock del repositorio de chats
     mockChatRepository = {
       getPendingQueue: jest.fn(),
+      findByVisitorId: jest.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -126,6 +127,8 @@ describe('GetVisitorsByTenantQueryHandler', () => {
 
       // Mock chat repository (sin chats pendientes)
       mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      // Mock findByVisitorId para retornar 0 chats por defecto
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
       const query = GetVisitorsByTenantQuery.create({
@@ -140,6 +143,9 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       // Assert
       expect(result.totalCount).toBe(totalRealCount); // ✅ Debe ser 100, NO 10
       expect(result.visitors.length).toBe(pageSize); // ✅ Pero solo 10 visitantes en la página
+      // Verificar que totalChatsCount esté presente
+      expect(result.visitors[0]).toHaveProperty('totalChatsCount');
+      expect(result.visitors[0].totalChatsCount).toBe(0);
       expect(
         mockVisitorRepository.findByTenantIdWithDetails,
       ).toHaveBeenCalledWith(expect.any(TenantId), {
@@ -204,6 +210,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       );
 
       mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
       const query = GetVisitorsByTenantQuery.create({
@@ -218,6 +225,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       // Assert
       expect(result.totalCount).toBe(totalRealCount); // ✅ Sigue siendo 100 en la segunda página
       expect(result.visitors.length).toBe(pageSize); // ✅ 10 visitantes de la segunda página
+      expect(result.visitors[0]).toHaveProperty('totalChatsCount');
     });
 
     it('debe devolver totalCount igual al tamaño de la página cuando hay menos registros que el límite', async () => {
@@ -273,6 +281,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       );
 
       mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
       const query = GetVisitorsByTenantQuery.create({
@@ -287,6 +296,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       // Assert
       expect(result.totalCount).toBe(totalRealCount); // ✅ 5 total
       expect(result.visitors.length).toBe(totalRealCount); // ✅ 5 en la página
+      expect(result.visitors[0]).toHaveProperty('totalChatsCount');
     });
 
     it('debe devolver totalCount 0 cuando no hay visitantes', async () => {
@@ -312,6 +322,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       );
 
       mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
       const query = GetVisitorsByTenantQuery.create({
@@ -326,6 +337,159 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       // Assert
       expect(result.totalCount).toBe(0);
       expect(result.visitors.length).toBe(0);
+    });
+  });
+
+  describe('totalChatsCount', () => {
+    it('debe incluir el conteo total de chats para cada visitante', async () => {
+      // Arrange
+      const totalRealCount = 2;
+      const mockVisitors: VisitorV2[] = Array.from(
+        { length: totalRealCount },
+        (_, i) =>
+          VisitorV2.fromPrimitives({
+            id: Uuid.random().value,
+            fingerprint: `fp_visitor_${i}`,
+            tenantId,
+            siteId,
+            lifecycle: VisitorLifecycle.ANON,
+            sessions: [
+              {
+                id: Uuid.random().value,
+                startedAt: new Date().toISOString(),
+                lastActivityAt: new Date().toISOString(),
+              },
+            ],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }),
+      );
+
+      const paginatedResult: PaginatedVisitorsResult = {
+        visitors: mockVisitors,
+        totalCount: totalRealCount,
+      };
+
+      mockVisitorRepository.findByTenantIdWithDetails.mockResolvedValue(
+        ok(paginatedResult),
+      );
+
+      mockCompanyRepository.findById.mockResolvedValue(
+        ok({
+          toPrimitives: () => ({
+            companyName: 'Test Company',
+          }),
+          getSites: () => ({
+            toPrimitives: () => [
+              {
+                id: siteId,
+                name: 'Test Site',
+                canonicalDomain: 'test.com',
+              },
+            ],
+          }),
+        } as any),
+      );
+
+      mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+
+      // Mock para que el primer visitante tenga 3 chats y el segundo 5
+      mockChatRepository.findByVisitorId
+        .mockResolvedValueOnce(
+          ok([
+            { id: { getValue: () => 'chat1' } },
+            { id: { getValue: () => 'chat2' } },
+            { id: { getValue: () => 'chat3' } },
+          ] as any),
+        )
+        .mockResolvedValueOnce(
+          ok([
+            { id: { getValue: () => 'chat4' } },
+            { id: { getValue: () => 'chat5' } },
+            { id: { getValue: () => 'chat6' } },
+            { id: { getValue: () => 'chat7' } },
+            { id: { getValue: () => 'chat8' } },
+          ] as any),
+        );
+
+      // Act
+      const query = GetVisitorsByTenantQuery.create({
+        tenantId,
+        includeOffline: true,
+        limit: 10,
+        offset: 0,
+      });
+
+      const result = await handler.execute(query);
+
+      // Assert
+      expect(result.visitors.length).toBe(2);
+      expect(result.visitors[0].totalChatsCount).toBe(3);
+      expect(result.visitors[1].totalChatsCount).toBe(5);
+    });
+
+    it('debe retornar totalChatsCount 0 cuando el visitante no tiene chats', async () => {
+      // Arrange
+      const mockVisitors: VisitorV2[] = [
+        VisitorV2.fromPrimitives({
+          id: Uuid.random().value,
+          fingerprint: 'fp_visitor_no_chats',
+          tenantId,
+          siteId,
+          lifecycle: VisitorLifecycle.ANON,
+          sessions: [
+            {
+              id: Uuid.random().value,
+              startedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+            },
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+      ];
+
+      const paginatedResult: PaginatedVisitorsResult = {
+        visitors: mockVisitors,
+        totalCount: 1,
+      };
+
+      mockVisitorRepository.findByTenantIdWithDetails.mockResolvedValue(
+        ok(paginatedResult),
+      );
+
+      mockCompanyRepository.findById.mockResolvedValue(
+        ok({
+          toPrimitives: () => ({
+            companyName: 'Test Company',
+          }),
+          getSites: () => ({
+            toPrimitives: () => [
+              {
+                id: siteId,
+                name: 'Test Site',
+                canonicalDomain: 'test.com',
+              },
+            ],
+          }),
+        } as any),
+      );
+
+      mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
+
+      // Act
+      const query = GetVisitorsByTenantQuery.create({
+        tenantId,
+        includeOffline: true,
+        limit: 10,
+        offset: 0,
+      });
+
+      const result = await handler.execute(query);
+
+      // Assert
+      expect(result.visitors[0].totalChatsCount).toBe(0);
     });
   });
 });

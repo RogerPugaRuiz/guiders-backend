@@ -69,6 +69,14 @@ export class TenantVisitorInfoDto {
     nullable: true,
   })
   pendingChatIds?: string[];
+
+  @ApiProperty({
+    description:
+      'Número total de chats asociados al visitante (pendientes y resto)',
+    example: 5,
+    nullable: true,
+  })
+  totalChatsCount?: number;
 }
 
 /**
