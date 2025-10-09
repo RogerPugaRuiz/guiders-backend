@@ -19,10 +19,10 @@ import {
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
-import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { CreateChatWithMessageCommand } from '../src/context/conversations-v2/application/commands/create-chat-with-message.command';
 import { TokenVerifyService } from '../src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from '../src/context/shared/infrastructure/services/visitor-session-auth.service';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
 
 interface MockUser {
   id: string;
@@ -121,44 +121,6 @@ export class MockRolesGuard {
   }
 }
 
-@Injectable()
-export class MockOptionalAuthGuard {
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<MockRequest>();
-    const authHeader = request.headers.authorization;
-
-    // Si no hay auth, permitir acceso (opcional)
-    if (!authHeader) {
-      return true;
-    }
-
-    // Si hay token inválido, rechazar
-    if (authHeader.includes('invalid-token')) {
-      throw new UnauthorizedException('Token inválido');
-    }
-
-    // Si hay auth válido, validar y asignar usuario
-    let roles = ['commercial'];
-    if (authHeader.includes('visitor-token')) {
-      roles = ['visitor'];
-    } else if (authHeader.includes('admin-token')) {
-      roles = ['admin'];
-    } else if (authHeader.includes('supervisor-token')) {
-      roles = ['supervisor'];
-    }
-
-    request.user = {
-      id: 'test-user-id',
-      sub: 'test-user-sub',
-      roles,
-      username: 'test-user',
-      email: 'test@example.com',
-    };
-
-    return true;
-  }
-}
-
 describe('ChatV2Controller E2E - createChatWithMessage', () => {
   let app: INestApplication;
   let httpServer: App;
@@ -186,6 +148,13 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
             validateVisitorSession: jest.fn().mockResolvedValue(true),
           },
         },
+        {
+          provide: BffSessionAuthService,
+          useValue: {
+            extractBffSessionTokens: jest.fn().mockResolvedValue(null),
+            validateBffSession: jest.fn().mockResolvedValue(true),
+          },
+        },
         // Mock CommandBus and EventBus
         {
           provide: CommandBus,
@@ -205,8 +174,6 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
       .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
-      .overrideGuard(OptionalAuthGuard)
-      .useClass(MockOptionalAuthGuard)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -293,46 +260,182 @@ describe('ChatV2Controller E2E - createChatWithMessage', () => {
       expect(response.body).toHaveProperty('position');
     });
 
-    it('debe permitir crear chat a comerciales', async () => {
-      // Arrange
-      const createChatWithMessageDto = {
-        firstMessage: {
-          content: 'Mensaje de prueba desde comercial',
-          type: 'text',
-        },
-      };
+    describe('Comportamiento basado en roles - Visitantes', () => {
+      it('debe permitir a visitante crear chat para sí mismo', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Hola, necesito ayuda',
+            type: 'text',
+          },
+          visitorInfo: {
+            name: 'Visitante Test',
+            email: 'visitante@test.com',
+          },
+        };
 
-      // Act & Assert
-      const response = await request(httpServer)
-        .post('/v2/chats/with-message')
-        .set('Authorization', 'Bearer commercial-token')
-        .send(createChatWithMessageDto)
-        .expect(201);
+        // Act & Assert
+        const response = await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer visitor-token')
+          .send(createChatWithMessageDto)
+          .expect(201);
 
-      expect(response.body).toHaveProperty('chatId');
-      expect(response.body).toHaveProperty('messageId');
-      expect(response.body).toHaveProperty('position');
+        expect(response.body).toHaveProperty('chatId');
+        expect(response.body).toHaveProperty('messageId');
+        expect(response.body).toHaveProperty('position');
+      });
+
+      it('debe ignorar visitorId especificado por visitante (no debe fallar)', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Intento especificar otro visitorId',
+            type: 'text',
+          },
+          visitorInfo: {
+            visitorId: 'otro-visitor-id-999', // Intenta especificar otro ID
+            name: 'Visitante Malicioso',
+            email: 'malicioso@test.com',
+          },
+        };
+
+        // Act & Assert - debe tener éxito pero usar su propio ID
+        const response = await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer visitor-token')
+          .send(createChatWithMessageDto)
+          .expect(201);
+
+        expect(response.body).toHaveProperty('chatId');
+        expect(response.body).toHaveProperty('messageId');
+        expect(response.body).toHaveProperty('position');
+        // El visitante debe crear el chat para sí mismo, no para otro-visitor-id-999
+      });
     });
 
-    it('debe permitir crear chat a administradores', async () => {
-      // Arrange
-      const createChatWithMessageDto = {
-        firstMessage: {
-          content: 'Mensaje de prueba desde admin',
-          type: 'text',
-        },
-      };
+    describe('Comportamiento basado en roles - Comerciales', () => {
+      it('debe permitir a comercial crear chat especificando visitorId', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Hola, soy tu comercial asignado',
+            type: 'text',
+          },
+          visitorInfo: {
+            visitorId: 'visitor-target-123',
+            name: 'Cliente Objetivo',
+            email: 'cliente@example.com',
+          },
+        };
 
-      // Act & Assert
-      const response = await request(httpServer)
-        .post('/v2/chats/with-message')
-        .set('Authorization', 'Bearer admin-token')
-        .send(createChatWithMessageDto)
-        .expect(201);
+        // Act & Assert
+        const response = await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer commercial-token')
+          .send(createChatWithMessageDto)
+          .expect(201);
 
-      expect(response.body).toHaveProperty('chatId');
-      expect(response.body).toHaveProperty('messageId');
-      expect(response.body).toHaveProperty('position');
+        expect(response.body).toHaveProperty('chatId');
+        expect(response.body).toHaveProperty('messageId');
+        expect(response.body).toHaveProperty('position');
+      });
+
+      it('debe fallar si comercial no especifica visitorId en visitorInfo', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Mensaje sin visitorId',
+            type: 'text',
+          },
+          visitorInfo: {
+            name: 'Cliente Sin ID',
+            email: 'sinid@test.com',
+          },
+        };
+
+        // Act & Assert
+        const response = await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer commercial-token')
+          .send(createChatWithMessageDto)
+          .expect(400);
+
+        expect(response.body.message).toContain(
+          'Los comerciales y administradores deben especificar visitorInfo.visitorId',
+        );
+      });
+
+      it('debe fallar si comercial no envía visitorInfo', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Mensaje de comercial sin visitorInfo',
+            type: 'text',
+          },
+          // No se incluye visitorInfo
+        };
+
+        // Act & Assert
+        await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer commercial-token')
+          .send(createChatWithMessageDto)
+          .expect(400);
+      });
+    });
+
+    describe('Comportamiento basado en roles - Administradores', () => {
+      it('debe permitir a admin crear chat especificando visitorId', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Mensaje de admin para visitante específico',
+            type: 'text',
+          },
+          visitorInfo: {
+            visitorId: 'visitor-for-admin-456',
+            name: 'Cliente para Admin',
+            email: 'cliente-admin@example.com',
+          },
+        };
+
+        // Act & Assert
+        const response = await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer admin-token')
+          .send(createChatWithMessageDto)
+          .expect(201);
+
+        expect(response.body).toHaveProperty('chatId');
+        expect(response.body).toHaveProperty('messageId');
+        expect(response.body).toHaveProperty('position');
+      });
+
+      it('debe fallar si admin no especifica visitorId', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Mensaje de admin sin visitorId',
+            type: 'text',
+          },
+          visitorInfo: {
+            name: 'Sin ID',
+            email: 'sinid@test.com',
+          },
+        };
+
+        // Act & Assert
+        const response = await request(httpServer)
+          .post('/v2/chats/with-message')
+          .set('Authorization', 'Bearer admin-token')
+          .send(createChatWithMessageDto)
+          .expect(400);
+
+        expect(response.body.message).toContain(
+          'Los comerciales y administradores deben especificar visitorInfo.visitorId',
+        );
+      });
     });
 
     it('debe fallar sin autenticación', async () => {

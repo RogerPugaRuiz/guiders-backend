@@ -205,32 +205,52 @@ export class ChatV2Controller {
    * ```
    */
   @Post('with-message')
-  @UseGuards(OptionalAuthGuard)
+  @UseGuards(DualAuthGuard, RolesGuard)
   @RequiredRoles('visitor', 'commercial', 'admin')
   @ApiOperation({
     summary: 'Crear nuevo chat con primer mensaje',
     description:
-      'Crea un nuevo chat para el visitante autenticado, lo coloca en la cola de espera e incluye un primer mensaje. Esta operación es atómica que garantiza que tanto el chat como el mensaje se crean juntos o fallan juntos.',
+      'Crea un nuevo chat con primer mensaje. El comportamiento varía según el rol:\n' +
+      '- **Visitante**: Crea un chat para sí mismo usando su ID del token.\n' +
+      '- **Comercial/Admin**: Puede crear un chat para cualquier visitante especificando el visitorId en visitorInfo.\n' +
+      'Esta operación es atómica que garantiza que tanto el chat como el mensaje se crean juntos o fallan juntos.',
   })
   @ApiBody({
     description: 'Datos del chat y primer mensaje',
     type: CreateChatWithMessageRequestDto,
     examples: {
-      'texto-simple': {
-        summary: 'Mensaje de texto simple',
-        description: 'Ejemplo básico con solo mensaje de texto',
+      'visitante-simple': {
+        summary: 'Visitante - Mensaje simple',
+        description:
+          'Ejemplo de visitante creando un chat para sí mismo (no necesita especificar visitorId)',
         value: {
           firstMessage: {
             content: 'Hola, me gustaría información sobre sus productos',
             type: 'text',
           },
+          metadata: {
+            department: 'ventas',
+            priority: 'NORMAL',
+          },
+        },
+      },
+      'comercial-para-visitante': {
+        summary: 'Comercial/Admin - Crear chat para visitante',
+        description:
+          'Ejemplo de comercial/admin creando un chat para un visitante específico (debe especificar visitorInfo.visitorId)',
+        value: {
+          firstMessage: {
+            content: 'Iniciando conversación con el visitante',
+            type: 'text',
+          },
           visitorInfo: {
+            visitorId: '550e8400-e29b-41d4-a716-446655440000',
             name: 'Juan Pérez',
             email: 'juan@example.com',
           },
           metadata: {
             department: 'ventas',
-            priority: 'NORMAL',
+            priority: 'HIGH',
           },
         },
       },
@@ -251,15 +271,6 @@ export class ChatV2Controller {
           metadata: {
             department: 'soporte',
             priority: 'HIGH',
-          },
-        },
-      },
-      minimo: {
-        summary: 'Mensaje mínimo',
-        description: 'Solo con el contenido requerido',
-        value: {
-          firstMessage: {
-            content: 'Hola, necesito ayuda',
           },
         },
       },
@@ -309,11 +320,20 @@ export class ChatV2Controller {
       properties: {
         statusCode: { type: 'number', example: 400 },
         message: {
-          type: 'array',
-          items: { type: 'string' },
-          example: [
-            'firstMessage.content should not be empty',
-            'firstMessage.type must be one of the following values: text, image, file',
+          oneOf: [
+            {
+              type: 'array',
+              items: { type: 'string' },
+              example: [
+                'firstMessage.content should not be empty',
+                'firstMessage.type must be one of the following values: text, image, file',
+              ],
+            },
+            {
+              type: 'string',
+              example:
+                'Los comerciales y administradores deben especificar visitorInfo.visitorId',
+            },
           ],
         },
         error: { type: 'string', example: 'Bad Request' },
@@ -322,14 +342,15 @@ export class ChatV2Controller {
   })
   @ApiResponse({
     status: 401,
-    description: 'Usuario no autenticado',
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o sesión BFF (Keycloak)',
     schema: {
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 401 },
         message: {
           type: 'string',
-          example: 'Se requiere autenticación para crear un chat',
+          example: 'Token de autenticación requerido',
         },
         error: { type: 'string', example: 'Unauthorized' },
       },
@@ -364,20 +385,12 @@ export class ChatV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<CreateChatWithMessageResult> {
     try {
-      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
-      if (!req.user || !req.user.id) {
-        throw new HttpException(
-          'Se requiere autenticación para crear un chat',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      this.logger.log(
-        `Creando chat con primer mensaje para visitante: ${req.user.id}`,
+      // DualAuthGuard ya garantiza que req.user existe
+      const userRoles = req.user.roles || [];
+      const isVisitor = userRoles.includes('visitor');
+      const isCommercialOrAdmin = userRoles.some((role) =>
+        ['commercial', 'admin'].includes(role),
       );
-
-      // El visitorId se obtiene del token autenticado
-      const visitorId = req.user.id;
 
       // Usar los datos del DTO
       const {
@@ -385,6 +398,42 @@ export class ChatV2Controller {
         visitorInfo: visitorInfoDto,
         metadata,
       } = createChatWithMessageDto;
+
+      // Determinar el visitorId según el rol
+      let visitorId: string;
+
+      if (isVisitor) {
+        // Los visitantes crean chats para sí mismos
+        visitorId = req.user.id;
+        this.logger.log(
+          `Visitante ${req.user.id} creando chat para sí mismo con primer mensaje`,
+        );
+
+        // Ignorar visitorId del DTO si lo proporcionaron
+        if (visitorInfoDto?.visitorId) {
+          this.logger.warn(
+            `Visitante ${req.user.id} intentó especificar visitorId ${visitorInfoDto.visitorId}, será ignorado`,
+          );
+        }
+      } else if (isCommercialOrAdmin) {
+        // Comerciales/admins deben especificar el visitorId
+        if (!visitorInfoDto?.visitorId) {
+          throw new HttpException(
+            'Los comerciales y administradores deben especificar visitorInfo.visitorId',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        visitorId = visitorInfoDto.visitorId;
+        this.logger.log(
+          `Usuario ${req.user.id} (${userRoles.join(',')}) creando chat para visitante ${visitorId} con primer mensaje`,
+        );
+      } else {
+        throw new HttpException(
+          'Rol no autorizado para crear chats',
+          HttpStatus.FORBIDDEN,
+        );
+      }
 
       // Transformar visitorInfo DTO a VisitorInfoData
       const visitorInfo = visitorInfoDto
@@ -409,8 +458,19 @@ export class ChatV2Controller {
           }
         : undefined;
 
+      // Determinar el senderId del mensaje:
+      // - Si es visitante: el mensaje es del visitante (req.user.id)
+      // - Si es comercial/admin: el mensaje es del comercial/admin (req.user.id)
+      const senderId = req.user.id;
+
+      // Determinar el commercialId:
+      // - Si es comercial/admin: el chat se asigna directamente a él (req.user.id)
+      // - Si es visitante: el chat queda pendiente (undefined)
+      const commercialId = isCommercialOrAdmin ? req.user.id : undefined;
+
       const command = new CreateChatWithMessageCommand(
-        visitorId,
+        visitorId, // ID del visitante para quien es el chat
+        senderId, // ID del remitente del mensaje (visitor o commercial)
         {
           content: firstMessage.content,
           type: firstMessage.type || 'text',
@@ -418,6 +478,7 @@ export class ChatV2Controller {
         },
         visitorInfo,
         metadata,
+        commercialId, // ID del comercial para asignación directa (solo si es comercial/admin)
       );
 
       this.logger.debug(

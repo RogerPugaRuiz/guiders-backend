@@ -47,7 +47,7 @@ export class CreateChatWithMessageCommandHandler
     );
 
     // Crear el chat con configuración apropiada
-    const chat = Chat.createPendingChat({
+    let chat = Chat.createPendingChat({
       visitorId: command.visitorId,
       visitorInfo: command.visitorInfo || {},
       availableCommercialIds: [], // Se asignarán comerciales disponibles según la lógica de negocio
@@ -55,15 +55,21 @@ export class CreateChatWithMessageCommandHandler
       metadata: command.metadata
         ? ChatMetadata.fromPrimitives(command.metadata).toPrimitives()
         : undefined,
-      // Solo auto-asignar si el modo cola está desactivado
-      autoAssign: !shouldUseQueue,
-      autoAssignOptions: !shouldUseQueue
-        ? {
-            strategy: 'WORKLOAD_BALANCED',
-            maxWaitTimeSeconds: this.queueConfigService.getMaxQueueWaitTime(),
-          }
-        : undefined,
+      // Solo auto-asignar si el modo cola está desactivado Y no hay commercialId especificado
+      autoAssign: !shouldUseQueue && !command.commercialId,
+      autoAssignOptions:
+        !shouldUseQueue && !command.commercialId
+          ? {
+              strategy: 'WORKLOAD_BALANCED',
+              maxWaitTimeSeconds: this.queueConfigService.getMaxQueueWaitTime(),
+            }
+          : undefined,
     });
+
+    // Si viene un commercialId, asignar el chat directamente
+    if (command.commercialId) {
+      chat = chat.assignCommercial(command.commercialId);
+    }
 
     // Preparar el contexto con eventos
     const chatAggregate = this.publisher.mergeObjectContext(chat);
@@ -86,7 +92,7 @@ export class CreateChatWithMessageCommandHandler
       // Mensaje con archivo adjunto
       message = Message.createFileMessage({
         chatId: chat.id.getValue(),
-        senderId: command.visitorId,
+        senderId: command.senderId, // Usar senderId del command (puede ser visitor o commercial)
         fileName: command.firstMessage.attachment.fileName,
         attachment: command.firstMessage.attachment,
         isInternal: false,
@@ -95,10 +101,10 @@ export class CreateChatWithMessageCommandHandler
       // Mensaje de texto
       message = Message.createTextMessage({
         chatId: chat.id.getValue(),
-        senderId: command.visitorId,
+        senderId: command.senderId, // Usar senderId del command (puede ser visitor o commercial)
         content: command.firstMessage.content,
         isInternal: false,
-        isFirstResponse: false, // Esto es el primer mensaje del visitante, no la primera respuesta
+        isFirstResponse: false, // Esto es el primer mensaje, no la primera respuesta
       });
     }
 
@@ -117,15 +123,19 @@ export class CreateChatWithMessageCommandHandler
       );
     }
 
-    // Calcular posición en la cola
-    const positionResult: Result<number, any> =
-      await this.chatRepository.countPendingCreatedBefore(
-        chat.createdAt,
-        chat.metadata.isPresent()
-          ? chat.metadata.get().getDepartment()
-          : undefined,
-      );
-    const position = positionResult.isOk() ? positionResult.value + 1 : 1;
+    // Calcular posición en la cola (solo si el chat está pendiente)
+    let position = 0;
+    if (!command.commercialId) {
+      // Solo calcular posición si el chat está PENDING
+      const positionResult: Result<number, any> =
+        await this.chatRepository.countPendingCreatedBefore(
+          chat.createdAt,
+          chat.metadata.isPresent()
+            ? chat.metadata.get().getDepartment()
+            : undefined,
+        );
+      position = positionResult.isOk() ? positionResult.value + 1 : 1;
+    }
 
     // Confirmar eventos de dominio
     chatAggregate.commit();

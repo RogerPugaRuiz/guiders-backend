@@ -7,7 +7,7 @@ import { ChatV2Controller } from '../chat-v2.controller';
 import { CreateChatWithMessageCommand } from '../../../application/commands/create-chat-with-message.command';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
-import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
+import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
 import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
 import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
@@ -41,7 +41,7 @@ describe('ChatV2Controller - createChatWithMessage', () => {
       canActivate: jest.fn().mockReturnValue(true),
     };
 
-    const mockOptionalAuthGuard = {
+    const mockDualAuthGuard = {
       canActivate: jest.fn().mockReturnValue(true),
     };
 
@@ -87,8 +87,8 @@ describe('ChatV2Controller - createChatWithMessage', () => {
       .useValue(mockAuthGuard)
       .overrideGuard(RolesGuard)
       .useValue(mockRolesGuard)
-      .overrideGuard(OptionalAuthGuard)
-      .useValue(mockOptionalAuthGuard)
+      .overrideGuard(DualAuthGuard)
+      .useValue(mockDualAuthGuard)
       .compile();
 
     app = module.createNestApplication();
@@ -368,6 +368,260 @@ describe('ChatV2Controller - createChatWithMessage', () => {
       expect(executedCommand.metadata).toEqual(
         createChatWithMessageDto.metadata,
       );
+    });
+
+    describe('Comportamiento basado en roles', () => {
+      it('debe permitir a visitante crear chat para sí mismo sin especificar visitorId', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Necesito ayuda',
+            type: 'text',
+          },
+          visitorInfo: {
+            name: 'Visitante Test',
+            email: 'visitante@test.com',
+          },
+        };
+
+        const expectedResult = {
+          chatId: 'chat-visitor-001',
+          messageId: 'msg-visitor-001',
+          position: 1,
+        };
+
+        (commandBus.execute as jest.Mock).mockResolvedValue(expectedResult);
+
+        // Act & Assert
+        const response = await request(app.getHttpServer())
+          .post('/v2/chats/with-message')
+          .send(createChatWithMessageDto)
+          .expect(HttpStatus.CREATED);
+
+        expect(response.body).toEqual(expectedResult);
+
+        const executedCommand = (commandBus.execute as jest.Mock).mock
+          .calls[0][0];
+        // El visitorId debe ser el ID del usuario autenticado
+        expect(executedCommand.visitorId).toBe(mockUser.id);
+      });
+
+      it('debe ignorar visitorId especificado por visitante y usar su propio ID', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Hola',
+            type: 'text',
+          },
+          visitorInfo: {
+            visitorId: 'otro-visitante-456', // Intenta especificar otro ID
+            name: 'Visitante Malicioso',
+          },
+        };
+
+        const expectedResult = {
+          chatId: 'chat-visitor-002',
+          messageId: 'msg-visitor-002',
+          position: 1,
+        };
+
+        (commandBus.execute as jest.Mock).mockResolvedValue(expectedResult);
+
+        // Act & Assert
+        const response = await request(app.getHttpServer())
+          .post('/v2/chats/with-message')
+          .send(createChatWithMessageDto)
+          .expect(HttpStatus.CREATED);
+
+        expect(response.body).toEqual(expectedResult);
+
+        const executedCommand = (commandBus.execute as jest.Mock).mock
+          .calls[0][0];
+        // Debe usar el ID del visitante autenticado, no el especificado
+        expect(executedCommand.visitorId).toBe(mockUser.id);
+        expect(executedCommand.visitorId).not.toBe('otro-visitante-456');
+      });
+    });
+
+    describe('Comportamiento para comerciales y admins', () => {
+      let commercialApp: INestApplication;
+
+      beforeEach(async () => {
+        const mockCommandBus = {
+          execute: jest.fn(),
+        };
+
+        const mockQueryBus = {
+          execute: jest.fn(),
+        };
+
+        const mockAuthGuard = {
+          canActivate: jest.fn().mockReturnValue(true),
+        };
+
+        const mockRolesGuard = {
+          canActivate: jest.fn().mockReturnValue(true),
+        };
+
+        const mockDualAuthGuard = {
+          canActivate: jest.fn().mockReturnValue(true),
+        };
+
+        const mockTokenVerifyService = {
+          verifyToken: jest.fn(),
+        };
+
+        const mockVisitorSessionAuthService = {
+          authenticateVisitor: jest.fn(),
+        };
+
+        const mockBffSessionAuthService = {
+          extractBffSessionTokens: jest.fn(),
+          validateBffSession: jest.fn(),
+        };
+
+        const module: TestingModule = await Test.createTestingModule({
+          controllers: [ChatV2Controller],
+          providers: [
+            {
+              provide: CommandBus,
+              useValue: mockCommandBus,
+            },
+            {
+              provide: QueryBus,
+              useValue: mockQueryBus,
+            },
+            {
+              provide: TokenVerifyService,
+              useValue: mockTokenVerifyService,
+            },
+            {
+              provide: VisitorSessionAuthService,
+              useValue: mockVisitorSessionAuthService,
+            },
+            {
+              provide: BffSessionAuthService,
+              useValue: mockBffSessionAuthService,
+            },
+          ],
+        })
+          .overrideGuard(AuthGuard)
+          .useValue(mockAuthGuard)
+          .overrideGuard(RolesGuard)
+          .useValue(mockRolesGuard)
+          .overrideGuard(DualAuthGuard)
+          .useValue(mockDualAuthGuard)
+          .compile();
+
+        commercialApp = module.createNestApplication();
+
+        commercialApp.useGlobalPipes(
+          new ValidationPipe({
+            transform: true,
+            whitelist: true,
+            forbidNonWhitelisted: true,
+          }),
+        );
+
+        // Mock del user como comercial en el request
+        commercialApp.use((req: any, _res, next) => {
+          req.user = {
+            id: 'commercial-789',
+            roles: ['commercial'],
+            username: 'test-commercial',
+            email: 'commercial@test.com',
+          };
+          next();
+        });
+
+        await commercialApp.init();
+
+        commandBus = module.get<CommandBus>(CommandBus);
+      });
+
+      afterEach(async () => {
+        if (commercialApp) {
+          await commercialApp.close();
+        }
+      });
+
+      it('debe permitir a comercial crear chat especificando visitorId', async () => {
+        // Arrange
+        const targetVisitorId = 'visitor-target-123';
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Hola, soy tu comercial asignado',
+            type: 'text',
+          },
+          visitorInfo: {
+            visitorId: targetVisitorId,
+            name: 'Cliente Objetivo',
+            email: 'cliente@example.com',
+          },
+        };
+
+        const expectedResult = {
+          chatId: 'chat-commercial-001',
+          messageId: 'msg-commercial-001',
+          position: 1,
+        };
+
+        (commandBus.execute as jest.Mock).mockResolvedValue(expectedResult);
+
+        // Act & Assert
+        const response = await request(commercialApp.getHttpServer())
+          .post('/v2/chats/with-message')
+          .send(createChatWithMessageDto)
+          .expect(HttpStatus.CREATED);
+
+        expect(response.body).toEqual(expectedResult);
+
+        const executedCommand = (commandBus.execute as jest.Mock).mock
+          .calls[0][0];
+        // Debe usar el visitorId especificado
+        expect(executedCommand.visitorId).toBe(targetVisitorId);
+      });
+
+      it('debe retornar 400 si comercial no especifica visitorId', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Mensaje sin visitorId',
+            type: 'text',
+          },
+          visitorInfo: {
+            name: 'Sin ID',
+            email: 'sinid@test.com',
+          },
+        };
+
+        // Act & Assert
+        const response = await request(commercialApp.getHttpServer())
+          .post('/v2/chats/with-message')
+          .send(createChatWithMessageDto)
+          .expect(HttpStatus.BAD_REQUEST);
+
+        expect(response.body.message).toContain(
+          'Los comerciales y administradores deben especificar visitorInfo.visitorId',
+        );
+      });
+
+      it('debe retornar 400 si comercial envia visitorInfo sin visitorId', async () => {
+        // Arrange
+        const createChatWithMessageDto = {
+          firstMessage: {
+            content: 'Mensaje',
+            type: 'text',
+          },
+          // visitorInfo no especificado
+        };
+
+        // Act & Assert
+        await request(commercialApp.getHttpServer())
+          .post('/v2/chats/with-message')
+          .send(createChatWithMessageDto)
+          .expect(HttpStatus.BAD_REQUEST);
+      });
     });
   });
 
