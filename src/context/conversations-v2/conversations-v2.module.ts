@@ -51,6 +51,7 @@ import { SendMessageCommandHandler } from './application/commands/send-message.c
 import { AutoAssignChatCommandHandler } from './application/commands/auto-assign-chat.command-handler';
 import { CreateAssignmentRulesCommandHandler } from './application/commands/create-assignment-rules.command-handler';
 import { AssignChatToCommercialCommandHandler } from './application/commands/assign-chat-to-commercial.command-handler';
+import { MarkMessagesAsReadCommandHandler } from './application/commands/mark-messages-as-read.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
@@ -59,10 +60,12 @@ import { GetChatMessagesQueryHandler } from './application/queries/get-chat-mess
 import { GetApplicableAssignmentRulesQueryHandler } from './application/queries/get-applicable-assignment-rules.query-handler';
 import { GetPendingQueueQueryHandler } from './application/queries/get-pending-queue.query-handler';
 import { GetVisitorPendingChatsQueryHandler } from './application/queries/get-visitor-pending-chats.query-handler';
+import { GetUnreadMessagesQueryHandler } from './application/queries/get-unread-messages.query-handler';
 
 // Event Handlers
 import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
 import { NotifyMessageSentOnMessageSentEventHandler } from './application/events/notify-message-sent-on-message-sent.event-handler';
+import { NotifyChatCreatedOnChatCreatedEventHandler } from './application/events/notify-chat-created-on-chat-created.event-handler';
 
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
@@ -145,6 +148,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     AutoAssignChatCommandHandler,
     CreateAssignmentRulesCommandHandler,
     AssignChatToCommercialCommandHandler,
+    MarkMessagesAsReadCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
 
@@ -155,10 +159,12 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     GetApplicableAssignmentRulesQueryHandler,
     GetPendingQueueQueryHandler,
     GetVisitorPendingChatsQueryHandler,
+    GetUnreadMessagesQueryHandler,
 
     // Event Handlers
     ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,
     NotifyMessageSentOnMessageSentEventHandler,
+    NotifyChatCreatedOnChatCreatedEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

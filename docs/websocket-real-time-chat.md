@@ -6,6 +6,8 @@ Sistema bidireccional de comunicación en tiempo real entre visitantes y comerci
 - ✅ **Recepción instantánea** de mensajes nuevos via WebSocket
 - ✅ **Envío de mensajes** via HTTP POST (endpoint REST)
 - ✅ **Salas de chat** para agrupar participantes
+- ✅ **Salas de visitantes** para notificaciones proactivas (NUEVO)
+- ✅ **Notificaciones de chats creados** por comerciales (NUEVO)
 - ✅ **Autenticación dual**: JWT Bearer token y cookies de sesión
 - ✅ **Mensajes internos** solo visibles para comerciales
 - ✅ **Notificaciones de estado** del chat (IN_PROGRESS, etc.)
@@ -107,7 +109,56 @@ socket.on('connect', () => {
 });
 ```
 
-### 3. Unirse a una Sala de Chat
+### 3. Unirse a una Sala de Visitante (NUEVO - Para Notificaciones Proactivas)
+
+```javascript
+// IMPORTANTE: Hacer esto ANTES de unirse a salas de chat específicas
+// Esto permite recibir notificaciones cuando un comercial crea un chat para ti
+
+// Obtener el visitorId (normalmente del contexto de autenticación)
+const visitorId = 'visitor-uuid-456';
+
+socket.emit('visitor:join', { visitorId }, (response) => {
+  if (response.success) {
+    console.log('✅ Unido a sala de visitante:', response.roomName);
+    // roomName: "visitor:visitor-uuid-456"
+  } else {
+    console.error('❌ Error al unirse a sala de visitante:', response.message);
+  }
+});
+
+// Escuchar confirmación
+socket.on('visitor:joined', (data) => {
+  console.log('Confirmación de sala de visitante:', data);
+  // { visitorId, roomName, timestamp }
+});
+
+// Escuchar cuando un comercial crea un chat para ti
+socket.on('chat:created', (data) => {
+  console.log('🎉 Un comercial ha iniciado un chat contigo:', data);
+  // {
+  //   chatId: 'chat-uuid-789',
+  //   visitorId: 'visitor-uuid-456',
+  //   status: 'ASSIGNED',
+  //   priority: 'NORMAL',
+  //   visitorInfo: { name: 'Juan', email: 'juan@example.com' },
+  //   metadata: { department: 'ventas' },
+  //   createdAt: '2025-10-13T10:00:00.000Z',
+  //   message: 'Un comercial ha iniciado una conversación contigo'
+  // }
+
+  // Ahora puedes unirte automáticamente al chat
+  socket.emit('chat:join', { chatId: data.chatId });
+
+  // Mostrar notificación al usuario
+  showNotification('Tienes un nuevo chat con un comercial!');
+
+  // Redirigir a la sala de chat
+  navigateToChat(data.chatId);
+});
+```
+
+### 4. Unirse a una Sala de Chat
 
 ```javascript
 // Unirse a la sala del chat para recibir mensajes
@@ -126,7 +177,7 @@ socket.on('chat:joined', (data) => {
 });
 ```
 
-### 4. Escuchar Mensajes Nuevos
+### 5. Escuchar Mensajes Nuevos
 
 ```javascript
 // Escuchar mensajes nuevos en tiempo real
@@ -151,7 +202,7 @@ socket.on('message:new', (message) => {
 });
 ```
 
-### 5. Escuchar Cambios de Estado del Chat
+### 6. Escuchar Cambios de Estado del Chat
 
 ```javascript
 // Escuchar cuando el chat cambia de estado
@@ -165,7 +216,7 @@ socket.on('chat:status', (data) => {
 });
 ```
 
-### 6. Enviar un Mensaje (via HTTP)
+### 7. Enviar un Mensaje (via HTTP)
 
 ```javascript
 // IMPORTANTE: Los mensajes se envían via HTTP, NO via WebSocket
@@ -192,7 +243,7 @@ async function enviarMensaje(chatId, contenido) {
 }
 ```
 
-### 7. Salir de una Sala de Chat
+### 8. Salir de una Sala de Chat
 
 ```javascript
 socket.emit('chat:leave', { chatId: 'chat-uuid-123' }, (response) => {
@@ -206,7 +257,23 @@ socket.on('chat:left', (data) => {
 });
 ```
 
-### 8. Manejo de Desconexión
+### 9. Salir de una Sala de Visitante
+
+```javascript
+// Si el visitante quiere dejar de recibir notificaciones proactivas
+socket.emit('visitor:leave', { visitorId: 'visitor-uuid-456' }, (response) => {
+  if (response.success) {
+    console.log('✅ Saliste de la sala de visitante');
+  }
+});
+
+socket.on('visitor:left', (data) => {
+  console.log('Confirmación de salida de sala de visitante:', data);
+  // { visitorId, roomName, timestamp }
+});
+```
+
+### 10. Manejo de Desconexión
 
 ```javascript
 socket.on('disconnect', (reason) => {
@@ -2065,6 +2132,8 @@ socket.on('message:new', (message) => {
 
 | Evento | Payload | Descripción |
 |--------|---------|-------------|
+| `visitor:join` | `{ visitorId: string }` | Unirse a sala de visitante (notificaciones proactivas) |
+| `visitor:leave` | `{ visitorId: string }` | Salir de sala de visitante |
 | `chat:join` | `{ chatId: string }` | Unirse a una sala de chat |
 | `chat:leave` | `{ chatId: string }` | Salir de una sala de chat |
 | `health-check` | - | Verificar estado del servidor |
@@ -2075,8 +2144,11 @@ socket.on('message:new', (message) => {
 | Evento | Payload | Descripción |
 |--------|---------|-------------|
 | `welcome` | `{ message, clientId, timestamp }` | Mensaje de bienvenida al conectar |
-| `chat:joined` | `{ chatId, roomName, timestamp }` | Confirmación de unión a sala |
-| `chat:left` | `{ chatId, roomName, timestamp }` | Confirmación de salida de sala |
+| `visitor:joined` | `{ visitorId, roomName, timestamp }` | Confirmación de unión a sala de visitante |
+| `visitor:left` | `{ visitorId, roomName, timestamp }` | Confirmación de salida de sala de visitante |
+| `chat:created` | `{ chatId, visitorId, status, priority, ... }` | Notificación de chat creado por comercial |
+| `chat:joined` | `{ chatId, roomName, timestamp }` | Confirmación de unión a sala de chat |
+| `chat:left` | `{ chatId, roomName, timestamp }` | Confirmación de salida de sala de chat |
 | `message:new` | `{ messageId, chatId, content, ... }` | Nuevo mensaje en el chat |
 | `chat:status` | `{ chatId, status, timestamp }` | Cambio de estado del chat |
 
@@ -2427,14 +2499,19 @@ socket.on('message:new', (message) => {
 ```typescript
 /**
  * Eventos del Chat en Tiempo Real
- * 
+ *
  * Cliente → Servidor:
+ * - visitor:join { visitorId: string }
+ * - visitor:leave { visitorId: string }
  * - chat:join { chatId: string }
  * - chat:leave { chatId: string }
  * - typing:start { chatId: string }
  * - typing:stop { chatId: string }
- * 
+ *
  * Servidor → Cliente:
+ * - visitor:joined { visitorId, roomName, timestamp }
+ * - visitor:left { visitorId, roomName, timestamp }
+ * - chat:created { chatId, visitorId, status, priority, visitorInfo, metadata, createdAt, message }
  * - message:new { messageId, chatId, content, senderId, sentAt, ... }
  * - chat:status { chatId, status, timestamp }
  * - user:typing { userId, chatId }

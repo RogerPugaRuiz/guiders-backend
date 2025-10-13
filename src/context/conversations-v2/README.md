@@ -96,16 +96,17 @@ conversations-v2/
 - Módulo completamente configurado con providers
 - Tests unitarios y E2E para endpoints principales
 - Documentación Swagger completa
+- **Event handler para notificaciones de chat creado** (NotifyChatCreatedOnChatCreatedEventHandler)
+- **Salas de visitantes en WebSocket** para notificaciones proactivas
+- **Tests unitarios para event handlers** de notificaciones
 
 ### 🚧 En Progreso
 
-- Event handlers para comunicación entre contextos
 - Optimización de índices MongoDB basada en uso real
-- Tests de integración adicionales
+- Tests de integración adicionales para WebSocket
 
 ### ⏳ Pendiente
 
-- Integración completa con sistema de notificaciones WebSocket
 - Métricas avanzadas de rendimiento
 - Soporte para archivos adjuntos en mensajes
 
@@ -155,13 +156,61 @@ POST /api/v2/chats/with-message
 }
 ```
 
+## Notificaciones Proactivas en Tiempo Real (NUEVO)
+
+### Sistema de Salas de Visitantes
+
+El sistema ahora soporta **notificaciones proactivas** cuando un comercial crea un chat para un visitante:
+
+#### Flujo de Notificación
+
+```
+1. Visitante se conecta al WebSocket y se une a su sala personal:
+   → socket.emit('visitor:join', { visitorId })
+
+2. Comercial crea un chat para el visitante:
+   → POST /v2/chats/with-message
+
+3. Se dispara el evento ChatCreatedEvent
+
+4. NotifyChatCreatedOnChatCreatedEventHandler emite notificación:
+   → socket.to(`visitor:${visitorId}`).emit('chat:created', chatData)
+
+5. Visitante recibe notificación instantánea:
+   → socket.on('chat:created', (data) => { ... })
+```
+
+#### Event Handler Implementado
+
+- **NotifyChatCreatedOnChatCreatedEventHandler**
+  - Ubicación: `src/context/conversations-v2/application/events/`
+  - Escucha: `ChatCreatedEvent`
+  - Acción: Emite `chat:created` a la sala `visitor:{visitorId}`
+  - Tests: 6 tests unitarios completos
+
+#### Eventos WebSocket Disponibles
+
+| Evento | Dirección | Payload | Descripción |
+|--------|-----------|---------|-------------|
+| `visitor:join` | Cliente → Servidor | `{ visitorId }` | Unirse a sala de visitante |
+| `visitor:leave` | Cliente → Servidor | `{ visitorId }` | Salir de sala de visitante |
+| `visitor:joined` | Servidor → Cliente | `{ visitorId, roomName, timestamp }` | Confirmación de unión |
+| `visitor:left` | Servidor → Cliente | `{ visitorId, roomName, timestamp }` | Confirmación de salida |
+| `chat:created` | Servidor → Cliente | `{ chatId, visitorId, status, priority, visitorInfo, metadata, createdAt, message }` | Notificación de chat creado |
+
+### Documentación Completa
+
+Para guías completas de implementación frontend:
+- `docs/websocket-real-time-chat.md` - Guía completa con ejemplos avanzados
+- `docs/websocket-implementation-summary.md` - Resumen ejecutivo y quick start
+
 ## Próximos Pasos
 
-1. **Optimizar Event handlers** - Para notificaciones en tiempo real vía WebSocket
-2. **Implementar métricas avanzadas** - Dashboard comercial con métricas detalladas  
-3. **Añadir soporte para archivos adjuntos** - Upload y gestión de archivos en mensajes
-4. **Tests de carga** - Para validar rendimiento con alto volumen de mensajes
-5. **Optimizar índices MongoDB** - Basado en patrones de uso en producción
+1. **Implementar métricas avanzadas** - Dashboard comercial con métricas detalladas
+2. **Añadir soporte para archivos adjuntos** - Upload y gestión de archivos en mensajes
+3. **Tests de carga** - Para validar rendimiento con alto volumen de mensajes
+4. **Optimizar índices MongoDB** - Basado en patrones de uso en producción
+5. **Notificaciones push móviles** - Integración con FCM/APNS
 
 ## Características Destacadas (NUEVAS)
 

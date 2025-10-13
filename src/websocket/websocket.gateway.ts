@@ -26,11 +26,22 @@ interface LeaveChatRoomPayload {
   chatId: string;
 }
 
+interface JoinVisitorRoomPayload {
+  visitorId: string;
+  token?: string; // JWT token (opcional)
+  sessionId?: string; // Session ID de visitante (opcional)
+}
+
+interface LeaveVisitorRoomPayload {
+  visitorId: string;
+}
+
 /**
  * WebSocket Gateway para comunicación bidireccional en tiempo real
  * Soporta:
  * - Autenticación dual (JWT Bearer token y cookies de sesión)
  * - Salas de chat para comunicación entre visitantes y comerciales
+ * - Salas de visitantes para notificaciones proactivas
  * - Notificaciones de mensajes nuevos en tiempo real
  * - Separación de mensajes internos (solo comerciales)
  */
@@ -234,6 +245,120 @@ export class WebSocketGatewayBasic
         (error as Error).message,
       );
       return { success: false, message: 'Error al salir de la sala de chat' };
+    }
+  }
+
+  /**
+   * Listener para unirse a una sala de visitante
+   * Permite a los visitantes recibir notificaciones proactivas cuando un comercial crea un chat para ellos
+   */
+  @SubscribeMessage('visitor:join')
+  async handleJoinVisitorRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: JoinVisitorRoomPayload,
+  ) {
+    try {
+      const { visitorId } = data;
+
+      if (!visitorId) {
+        client.emit('error', {
+          message: 'visitorId es requerido',
+          timestamp: Date.now(),
+        });
+        return { success: false, message: 'visitorId es requerido' };
+      }
+
+      // Construir nombre de la sala del visitante
+      const roomName = `visitor:${visitorId}`;
+
+      // Unir el cliente a la sala
+      await client.join(roomName);
+
+      // Trackear la sala
+      const rooms = this.clientRooms.get(client.id) || new Set();
+      rooms.add(roomName);
+      this.clientRooms.set(client.id, rooms);
+
+      this.logger.log(
+        `Cliente ${client.id} se unió a la sala de visitante: ${roomName}`,
+      );
+
+      // Notificar éxito
+      client.emit('visitor:joined', {
+        visitorId,
+        roomName,
+        timestamp: Date.now(),
+      });
+
+      return {
+        success: true,
+        message: 'Unido a la sala de visitante exitosamente',
+        visitorId,
+        roomName,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al unir cliente a sala de visitante:`,
+        (error as Error).message,
+      );
+      return {
+        success: false,
+        message: 'Error al unirse a la sala de visitante',
+      };
+    }
+  }
+
+  /**
+   * Listener para salir de una sala de visitante
+   */
+  @SubscribeMessage('visitor:leave')
+  async handleLeaveVisitorRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: LeaveVisitorRoomPayload,
+  ) {
+    try {
+      const { visitorId } = data;
+
+      if (!visitorId) {
+        return { success: false, message: 'visitorId es requerido' };
+      }
+
+      const roomName = `visitor:${visitorId}`;
+
+      // Salir de la sala
+      await client.leave(roomName);
+
+      // Actualizar tracking
+      const rooms = this.clientRooms.get(client.id);
+      if (rooms) {
+        rooms.delete(roomName);
+      }
+
+      this.logger.log(
+        `Cliente ${client.id} salió de la sala de visitante: ${roomName}`,
+      );
+
+      // Notificar éxito
+      client.emit('visitor:left', {
+        visitorId,
+        roomName,
+        timestamp: Date.now(),
+      });
+
+      return {
+        success: true,
+        message: 'Salió de la sala de visitante exitosamente',
+        visitorId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al salir de sala de visitante:`,
+        (error as Error).message,
+      );
+      return {
+        success: false,
+        message: 'Error al salir de la sala de visitante',
+      };
     }
   }
 

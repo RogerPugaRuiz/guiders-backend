@@ -207,6 +207,7 @@ export class Chat extends AggregateRoot {
 
   /**
    * Asigna un comercial al chat
+   * IMPORTANTE: Preserva los eventos no comprometidos del chat original (ej: ChatCreatedEvent)
    */
   public assignCommercial(commercialId: string): Chat {
     if (!this._status.canBeAssigned()) {
@@ -237,6 +238,12 @@ export class Chat extends AggregateRoot {
       now,
     );
 
+    // CRÍTICO: Copiar eventos no comprometidos del chat original (ej: ChatCreatedEvent)
+    // Esto asegura que los eventos previos no se pierdan al crear el nuevo aggregate
+    const originalEvents = this.getUncommittedEvents();
+    originalEvents.forEach((event) => updatedChat.apply(event));
+
+    // Aplicar el nuevo evento de asignación
     updatedChat.apply(
       new CommercialAssignedEvent({
         assignment: {

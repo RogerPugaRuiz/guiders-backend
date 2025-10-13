@@ -4,6 +4,13 @@
 
 Sistema completo de comunicación bidireccional entre visitantes y comerciales usando WebSockets para notificaciones en tiempo real y HTTP para envío de mensajes.
 
+### 🆕 Nuevas Funcionalidades (Octubre 2025)
+
+- ✅ **Salas de visitantes** para notificaciones proactivas
+- ✅ **Notificaciones de chats creados** por comerciales
+- ✅ **Event handler** `NotifyChatCreatedOnChatCreatedEventHandler`
+- ✅ **Eventos WebSocket**: `visitor:join`, `visitor:leave`, `chat:created`
+
 ---
 
 ## 📋 Resumen Ejecutivo
@@ -103,7 +110,95 @@ VITE_WS_PATH=/socket.io/
 # VITE_WS_PATH=/socket.io/
 ```
 
-### Paso 3: Crear Hook de Chat (Ejemplo Completo)
+### Paso 3: Unirse a Sala de Visitante (NUEVO - Para Notificaciones Proactivas)
+
+```typescript
+// hooks/useVisitorNotifications.ts
+import { useEffect } from 'react';
+import { Socket } from 'socket.io-client';
+
+interface VisitorNotificationData {
+  chatId: string;
+  visitorId: string;
+  status: string;
+  priority: string;
+  visitorInfo: any;
+  metadata?: any;
+  createdAt: string;
+  message: string;
+}
+
+export function useVisitorNotifications(
+  socket: Socket | null,
+  visitorId: string,
+  onChatCreated: (data: VisitorNotificationData) => void
+) {
+  useEffect(() => {
+    if (!socket || !visitorId) return;
+
+    // Unirse a la sala del visitante para recibir notificaciones proactivas
+    socket.emit('visitor:join', { visitorId });
+
+    // Escuchar confirmación de unión
+    socket.on('visitor:joined', (data) => {
+      console.log('✅ Sala de visitante unida:', data.roomName);
+    });
+
+    // Escuchar notificaciones de chats creados
+    socket.on('chat:created', (data: VisitorNotificationData) => {
+      console.log('🎉 Nuevo chat creado por comercial:', data);
+      onChatCreated(data);
+    });
+
+    // Cleanup
+    return () => {
+      socket.emit('visitor:leave', { visitorId });
+      socket.off('visitor:joined');
+      socket.off('visitor:left');
+      socket.off('chat:created');
+    };
+  }, [socket, visitorId, onChatCreated]);
+}
+```
+
+### Ejemplo de Uso del Hook de Notificaciones
+
+```typescript
+// App.tsx
+import React, { useState, useCallback } from 'react';
+import { io } from 'socket.io-client';
+import { useVisitorNotifications } from './hooks/useVisitorNotifications';
+
+export function App() {
+  const [socket] = useState(() => io('http://localhost:3000', {
+    path: '/socket.io/',
+    withCredentials: true,
+  }));
+
+  const visitorId = 'visitor-123'; // Obtener del contexto de auth
+
+  const handleChatCreated = useCallback((data) => {
+    // Mostrar notificación
+    showNotification(`¡Tienes un nuevo chat con un comercial!`);
+
+    // Automáticamente unirse al chat
+    socket.emit('chat:join', { chatId: data.chatId });
+
+    // Navegar a la sala de chat
+    navigate(`/chat/${data.chatId}`);
+  }, [socket]);
+
+  useVisitorNotifications(socket, visitorId, handleChatCreated);
+
+  return (
+    <div>
+      {/* Tu aplicación */}
+    </div>
+  );
+}
+```
+
+### Paso 4: Crear Hook de Chat (Ejemplo Completo)
 
 ```typescript
 // hooks/useRealtimeChat.ts
@@ -233,7 +328,7 @@ export function useRealtimeChat(chatId: string, authToken?: string) {
 }
 ```
 
-### Paso 4: Usar el Hook en un Componente
+### Paso 5: Usar el Hook en un Componente
 
 ```typescript
 // components/ChatRoom.tsx
@@ -325,7 +420,7 @@ export function ChatRoom({ chatId, authToken, isCommercial }: ChatRoomProps) {
 }
 ```
 
-### Paso 5: Integrar en tu Aplicación
+### Paso 6: Integrar en tu Aplicación
 
 ```typescript
 // App.tsx

@@ -72,6 +72,39 @@ describe('Chat', () => {
       expect(assignedChat.isAssignedTo(mockCommercialId)).toBe(true);
     });
 
+    it('debería preservar ChatCreatedEvent al asignar comercial', () => {
+      // Arrange
+      const chat = Chat.createPendingChat({
+        visitorId: mockVisitorId,
+        visitorInfo: mockVisitorInfo,
+        availableCommercialIds: [mockCommercialId],
+      });
+
+      // Verificar que el chat original tiene ChatCreatedEvent
+      const originalEvents = chat.getUncommittedEvents();
+      expect(originalEvents).toHaveLength(1);
+      expect(originalEvents[0].constructor.name).toBe('ChatCreatedEvent');
+
+      // Act
+      const assignedChat = chat.assignCommercial(mockCommercialId);
+
+      // Assert: El chat asignado debe tener AMBOS eventos
+      const assignedEvents = assignedChat.getUncommittedEvents();
+      expect(assignedEvents).toHaveLength(2);
+
+      // Verificar que ChatCreatedEvent se preservó
+      const chatCreatedEvent = assignedEvents.find(
+        (e) => e.constructor.name === 'ChatCreatedEvent',
+      );
+      expect(chatCreatedEvent).toBeDefined();
+
+      // Verificar que CommercialAssignedEvent se agregó
+      const commercialAssignedEvent = assignedEvents.find(
+        (e) => e.constructor.name === 'CommercialAssignedEvent',
+      );
+      expect(commercialAssignedEvent).toBeDefined();
+    });
+
     it('debería lanzar error si se intenta asignar chat ya cerrado', () => {
       // Arrange
       const chat = Chat.createPendingChat({
