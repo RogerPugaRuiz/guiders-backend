@@ -5,6 +5,10 @@ export class IdentifyVisitorCommand implements ICommand {
     public readonly fingerprint: string,
     public readonly domain: string,
     public readonly apiKey: string,
+    public readonly hasAcceptedPrivacyPolicy: boolean,
+    public readonly ipAddress: string,
+    public readonly userAgent: string | undefined,
     public readonly currentUrl?: string,
+    public readonly consentVersion?: string,
   ) {}
 }

@@ -90,6 +90,10 @@ jobs:
           echo 'KEYCLOAK_ISSUER=${{ secrets.KEYCLOAK_ISSUER }}' >> .env.production
           echo 'KEYCLOAK_JWKS_URI=${{ secrets.KEYCLOAK_JWKS_URI }}' >> .env.production
           echo 'KEYCLOAK_AUDIENCE=${{ secrets.KEYCLOAK_AUDIENCE }}' >> .env.production
+          # Configuración de versión de consentimiento (opcional - fallback a v1.4.0)
+          echo 'CONSENT_VERSION_CURRENT=${{ secrets.PROD_CONSENT_VERSION || 'v1.4.0' }}' >> .env.production
+          # Habilitar compatibilidad semántica por defecto (acepta MINOR y PATCH superiores)
+          echo 'ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}' >> .env.production
 
           # Subir archivos al servidor
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"

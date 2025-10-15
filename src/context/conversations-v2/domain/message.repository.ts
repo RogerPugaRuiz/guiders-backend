@@ -154,12 +154,15 @@ export interface IMessageRepository {
   ): Promise<Result<Message[], DomainError>>;
 
   /**
-   * Marca mensajes como leídos
+   * Marca mensajes como leídos (actualizado para simplificar)
+   * @param messageIds - Array de IDs de mensajes en formato string
+   * @param readBy - ID del usuario que marca como leído (string)
+   * @returns Number de mensajes marcados como leídos
    */
   markAsRead(
-    messageIds: MessageId[],
-    readBy: VisitorId | CommercialId,
-  ): Promise<Result<void, DomainError>>;
+    messageIds: string[],
+    readBy: string,
+  ): Promise<Result<number, DomainError>>;
 
   /**
    * Obtiene el último mensaje de un chat
@@ -272,3 +275,13 @@ export interface IMessageRepository {
  * Símbolo de inyección de dependencias para el repositorio de Message V2
  */
 export const MESSAGE_V2_REPOSITORY = Symbol('MESSAGE_V2_REPOSITORY');
+
+/**
+ * Alias para compatibilidad
+ */
+export const MESSAGE_REPOSITORY = MESSAGE_V2_REPOSITORY;
+
+/**
+ * Tipo del repositorio exportado
+ */
+export type MessageRepository = IMessageRepository;

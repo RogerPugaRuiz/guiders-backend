@@ -42,6 +42,7 @@ import { SESSION_MANAGEMENT_SERVICE_PROVIDER } from './infrastructure/providers/
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
 import { BffSessionAuthService } from '../shared/infrastructure/services/bff-session-auth.service';
 import { VisitorSessionAuthService } from '../shared/infrastructure/services/visitor-session-auth.service';
+import { ConsentModule } from '../consent/consent.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { VisitorSessionAuthService } from '../shared/infrastructure/services/vis
     ConfigModule, // Para TokenVerifyService
     CompanyModule,
     AuthVisitorModule,
+    ConsentModule, // ← Importar para que RecordConsentCommand esté disponible
     forwardRef(() => ConversationsV2Module),
   ],
   controllers: [

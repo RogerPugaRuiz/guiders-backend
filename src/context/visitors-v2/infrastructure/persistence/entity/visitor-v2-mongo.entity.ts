@@ -18,6 +18,15 @@ export class VisitorV2MongoEntity extends Document {
   @Prop({ required: true, enum: ['ANON', 'ENGAGED', 'LEAD', 'CONVERTED'] })
   lifecycle: string;
 
+  @Prop({ required: true, default: false })
+  hasAcceptedPrivacyPolicy: boolean;
+
+  @Prop({ type: Date, default: null })
+  privacyPolicyAcceptedAt: Date | null;
+
+  @Prop({ type: String, default: null })
+  consentVersion: string | null;
+
   @Prop({ required: true })
   createdAt: Date;
 
@@ -56,3 +65,6 @@ VisitorV2MongoEntitySchema.index({ siteId: 1 });
 VisitorV2MongoEntitySchema.index({ lifecycle: 1 });
 VisitorV2MongoEntitySchema.index({ 'sessions.id': 1 });
 VisitorV2MongoEntitySchema.index({ 'sessions.endedAt': 1 });
+// Índice para consultas de consentimiento
+VisitorV2MongoEntitySchema.index({ hasAcceptedPrivacyPolicy: 1 });
+VisitorV2MongoEntitySchema.index({ privacyPolicyAcceptedAt: 1 });

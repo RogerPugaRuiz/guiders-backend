@@ -86,6 +86,9 @@ describe('GetVisitorsByTenantQueryHandler', () => {
             tenantId,
             siteId,
             lifecycle: VisitorLifecycle.ANON,
+            hasAcceptedPrivacyPolicy: true,
+            privacyPolicyAcceptedAt: new Date().toISOString(),
+            consentVersion: 'v1.0',
             sessions: [
               {
                 id: Uuid.random().value,
@@ -171,6 +174,9 @@ describe('GetVisitorsByTenantQueryHandler', () => {
             tenantId,
             siteId,
             lifecycle: VisitorLifecycle.ANON,
+            hasAcceptedPrivacyPolicy: true,
+            privacyPolicyAcceptedAt: new Date().toISOString(),
+            consentVersion: 'v1.0',
             sessions: [
               {
                 id: Uuid.random().value,
@@ -242,6 +248,9 @@ describe('GetVisitorsByTenantQueryHandler', () => {
             tenantId,
             siteId,
             lifecycle: VisitorLifecycle.ANON,
+            hasAcceptedPrivacyPolicy: true,
+            privacyPolicyAcceptedAt: new Date().toISOString(),
+            consentVersion: 'v1.0',
             sessions: [
               {
                 id: Uuid.random().value,
@@ -353,6 +362,9 @@ describe('GetVisitorsByTenantQueryHandler', () => {
             tenantId,
             siteId,
             lifecycle: VisitorLifecycle.ANON,
+            hasAcceptedPrivacyPolicy: true,
+            privacyPolicyAcceptedAt: new Date().toISOString(),
+            consentVersion: 'v1.0',
             sessions: [
               {
                 id: Uuid.random().value,
@@ -437,6 +449,9 @@ describe('GetVisitorsByTenantQueryHandler', () => {
           tenantId,
           siteId,
           lifecycle: VisitorLifecycle.ANON,
+          hasAcceptedPrivacyPolicy: true,
+          privacyPolicyAcceptedAt: new Date().toISOString(),
+          consentVersion: 'v1.0',
           sessions: [
             {
               id: Uuid.random().value,

@@ -102,14 +102,26 @@ export class VisitorV2Controller {
   })
   async identifyVisitor(
     @Body() identifyVisitorDto: IdentifyVisitorDto,
+    @Req() request: ExpressRequest,
     @Response({ passthrough: true }) response: ExpressResponse,
   ): Promise<IdentifyVisitorResponseDto> {
     try {
+      // Extraer IP y User-Agent para cumplimiento RGPD
+      const ipAddress =
+        (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+        request.socket.remoteAddress ||
+        'unknown';
+      const userAgent = request.headers['user-agent'];
+
       const command = new IdentifyVisitorCommand(
         identifyVisitorDto.fingerprint,
         identifyVisitorDto.domain,
         identifyVisitorDto.apiKey,
+        identifyVisitorDto.hasAcceptedPrivacyPolicy,
+        ipAddress,
+        userAgent,
         identifyVisitorDto.currentUrl,
+        identifyVisitorDto.consentVersion,
       );
 
       const result = await this.commandBus.execute<

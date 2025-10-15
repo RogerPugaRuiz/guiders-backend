@@ -38,6 +38,9 @@ export interface MessagePrimitives {
   attachment?: AttachmentData;
   isInternal: boolean;
   isFirstResponse: boolean;
+  isRead: boolean;
+  readAt?: Date;
+  readBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +58,9 @@ export interface MessageProperties {
   attachment?: AttachmentData;
   isInternal: boolean;
   isFirstResponse: boolean;
+  isRead?: boolean;
+  readAt?: Date;
+  readBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +79,9 @@ export class Message extends AggregateRoot {
     private readonly _attachment: AttachmentData | null,
     private readonly _isInternal: boolean,
     private readonly _isFirstResponse: boolean,
+    private readonly _isRead: boolean,
+    private readonly _readAt: Date | null,
+    private readonly _readBy: string | null,
     private readonly _createdAt: Date,
     private readonly _updatedAt: Date,
   ) {
@@ -93,6 +102,9 @@ export class Message extends AggregateRoot {
       props.attachment || null,
       props.isInternal,
       props.isFirstResponse,
+      props.isRead || false,
+      props.readAt || null,
+      props.readBy || null,
       props.createdAt,
       props.updatedAt,
     );
@@ -131,6 +143,9 @@ export class Message extends AggregateRoot {
       params.attachment || null,
       params.isInternal,
       params.isFirstResponse,
+      params.isRead || false,
+      params.readAt || null,
+      params.readBy || null,
       params.createdAt,
       params.updatedAt,
     );
@@ -254,6 +269,9 @@ export class Message extends AggregateRoot {
       attachment: this._attachment || undefined,
       isInternal: this._isInternal,
       isFirstResponse: this._isFirstResponse,
+      isRead: this._isRead,
+      readAt: this._readAt || undefined,
+      readBy: this._readBy || undefined,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -304,6 +322,18 @@ export class Message extends AggregateRoot {
     return this._updatedAt;
   }
 
+  get isRead(): boolean {
+    return this._isRead;
+  }
+
+  get readAt(): Date | null {
+    return this._readAt;
+  }
+
+  get readBy(): string | null {
+    return this._readBy;
+  }
+
   /**
    * Verifica si es un mensaje del sistema
    */
@@ -330,5 +360,20 @@ export class Message extends AggregateRoot {
    */
   public getContentSummary(): string {
     return this._content.getSummary();
+  }
+
+  /**
+   * Verifica si el mensaje fue leído por un usuario específico
+   */
+  public isReadBy(userId: string): boolean {
+    return this._isRead && this._readBy === userId;
+  }
+
+  /**
+   * Verifica si el mensaje debe ser marcado como no leído para un usuario
+   * (mensajes enviados por otros usuarios que aún no han sido leídos)
+   */
+  public isUnreadFor(userId: string): boolean {
+    return !this._isRead && this._senderId !== userId;
   }
 }

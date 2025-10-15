@@ -66,12 +66,13 @@ export class CreateChatWithMessageCommandHandler
           : undefined,
     });
 
-    // Si viene un commercialId, asignar el chat directamente
+    // Si viene un commercialId, asignar el chat directamente ANTES de mergeObjectContext
+    // Esto permite que assignCommercial() agregue el CommercialAssignedEvent al mismo aggregate
     if (command.commercialId) {
       chat = chat.assignCommercial(command.commercialId);
     }
 
-    // Preparar el contexto con eventos
+    // Preparar el contexto con TODOS los eventos (ChatCreatedEvent + CommercialAssignedEvent si aplica)
     const chatAggregate = this.publisher.mergeObjectContext(chat);
 
     // Guardar el chat

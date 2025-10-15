@@ -50,6 +50,11 @@ import { ok, err, okVoid } from '../src/context/shared/domain/result';
 import { VisitorV2PersistenceError } from '../src/context/visitors-v2/infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { CompanyNotFoundError } from '../src/context/company/domain/errors/company.error';
 import { EventPublisher } from '@nestjs/cqrs';
+import { RecordConsentCommandHandler } from '../src/context/consent/application/commands/record-consent.command-handler';
+import {
+  ConsentRepository,
+  CONSENT_REPOSITORY,
+} from '../src/context/consent/domain/consent.repository';
 
 describe('Visitors E2E', () => {
   let app: INestApplication;
@@ -57,6 +62,7 @@ describe('Visitors E2E', () => {
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
+  let mockConsentRepository: jest.Mocked<ConsentRepository>;
 
   // Mock data
   const mockVisitorId = '01234567-8901-4234-9567-890123456789';
@@ -130,6 +136,14 @@ describe('Visitors E2E', () => {
       validate: jest.fn(),
     } as any;
 
+    // Mock consent repository
+    mockConsentRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByVisitorId: jest.fn(),
+      findByVisitorIdAndType: jest.fn(),
+    } as any;
+
     // Mock event publisher
     mockEventPublisher = {
       mergeObjectContext: jest.fn(),
@@ -143,6 +157,7 @@ describe('Visitors E2E', () => {
         UpdateSessionHeartbeatCommandHandler,
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
+        RecordConsentCommandHandler,
         {
           provide: VISITOR_V2_REPOSITORY,
           useValue: mockVisitorRepository,
@@ -154,6 +169,10 @@ describe('Visitors E2E', () => {
         {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: mockValidateDomainApiKey,
+        },
+        {
+          provide: CONSENT_REPOSITORY,
+          useValue: mockConsentRepository,
         },
         {
           provide: EventPublisher,
@@ -171,6 +190,7 @@ describe('Visitors E2E', () => {
 
     // Configurar respuestas por defecto
     mockVisitorRepository.save.mockResolvedValue(okVoid());
+    mockConsentRepository.save.mockResolvedValue(okVoid());
     mockEventPublisher.mergeObjectContext.mockImplementation(
       (visitor) => visitor,
     );
@@ -267,6 +287,7 @@ describe('Visitors E2E', () => {
       fingerprint: 'fp_abc123def456',
       domain: 'landing.mytech.com',
       apiKey: 'ak_live_1234567890',
+      hasAcceptedPrivacyPolicy: true,
       currentPath: 'https://landing.mytech.com/home',
     };
 
@@ -592,6 +613,7 @@ describe('Visitors E2E', () => {
           fingerprint: 'fp_integration_test',
           domain: 'landing.mytech.com',
           apiKey: 'ak_live_1234567890',
+          hasAcceptedPrivacyPolicy: true,
           currentPath: 'https://landing.mytech.com/home',
         })
         .expect(200);
@@ -698,6 +720,7 @@ describe('Visitors E2E', () => {
           domain: 'landing.mytech.com',
           apiKey: 'test-api-key',
           fingerprint: 'fp_test_123',
+          hasAcceptedPrivacyPolicy: true,
         })
         .expect(200);
 
@@ -748,6 +771,7 @@ describe('Visitors E2E', () => {
           domain: 'landing.mytech.com',
           apiKey: 'test-api-key',
           fingerprint: 'fp_test_123', // MISMO fingerprint
+          hasAcceptedPrivacyPolicy: true,
         })
         .expect(200);
 

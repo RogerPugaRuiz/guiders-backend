@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventPublisher } from '@nestjs/cqrs';
+import { EventPublisher, CommandBus } from '@nestjs/cqrs';
 import { IdentifyVisitorCommandHandler } from '../identify-visitor.command-handler';
 import { IdentifyVisitorCommand } from '../identify-visitor.command';
 import {
@@ -52,6 +52,12 @@ describe('IdentifyVisitorCommandHandler', () => {
             mergeObjectContext: jest.fn(),
           },
         },
+        {
+          provide: CommandBus,
+          useValue: {
+            execute: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -70,6 +76,9 @@ describe('IdentifyVisitorCommandHandler', () => {
       'fp_abc123def456',
       'landing.mytech.com',
       'ak_live_1234567890',
+      true, // hasAcceptedPrivacyPolicy
+      '192.168.1.1', // ipAddress
+      'Mozilla/5.0', // userAgent
       'https://landing.mytech.com/home',
     );
 
@@ -107,6 +116,9 @@ describe('IdentifyVisitorCommandHandler', () => {
         'fp_abc123def456',
         'www.landing.mytech.com', // ← Con www.
         'ak_live_1234567890',
+        true, // hasAcceptedPrivacyPolicy
+        '192.168.1.1', // ipAddress
+        'Mozilla/5.0', // userAgent
         'https://www.landing.mytech.com/home',
       );
 

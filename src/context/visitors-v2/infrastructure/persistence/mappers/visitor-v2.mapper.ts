@@ -19,6 +19,11 @@ export class VisitorV2Mapper {
       siteId: primitives.siteId,
       fingerprint: primitives.fingerprint,
       lifecycle: primitives.lifecycle,
+      hasAcceptedPrivacyPolicy: primitives.hasAcceptedPrivacyPolicy,
+      privacyPolicyAcceptedAt: primitives.privacyPolicyAcceptedAt
+        ? new Date(primitives.privacyPolicyAcceptedAt)
+        : null,
+      consentVersion: primitives.consentVersion,
       createdAt: new Date(primitives.createdAt),
       updatedAt: new Date(primitives.updatedAt),
       sessions: primitives.sessions.map((session) => ({
@@ -40,6 +45,11 @@ export class VisitorV2Mapper {
       siteId: entity.siteId,
       fingerprint: entity.fingerprint,
       lifecycle: entity.lifecycle as VisitorLifecycle,
+      hasAcceptedPrivacyPolicy: entity.hasAcceptedPrivacyPolicy,
+      privacyPolicyAcceptedAt: entity.privacyPolicyAcceptedAt
+        ? entity.privacyPolicyAcceptedAt.toISOString()
+        : null,
+      consentVersion: entity.consentVersion,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       sessions: entity.sessions.map((session) => ({

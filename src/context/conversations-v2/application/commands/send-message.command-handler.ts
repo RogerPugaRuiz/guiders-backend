@@ -97,6 +97,9 @@ export class SendMessageCommandHandler
       attachment: messagePrimitives.attachment,
       isInternal: messagePrimitives.isInternal,
       isFirstResponse: messagePrimitives.isFirstResponse,
+      isRead: messagePrimitives.isRead,
+      readAt: messagePrimitives.readAt?.toISOString(),
+      readBy: messagePrimitives.readBy,
       createdAt: messagePrimitives.createdAt.toISOString(),
       updatedAt: messagePrimitives.updatedAt.toISOString(),
     };

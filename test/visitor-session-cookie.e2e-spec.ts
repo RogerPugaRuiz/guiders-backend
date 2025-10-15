@@ -41,6 +41,12 @@ import { SiteName } from '../src/context/company/domain/value-objects/site-name'
 import { CanonicalDomain } from '../src/context/company/domain/value-objects/canonical-domain';
 import { DomainAliases } from '../src/context/company/domain/value-objects/domain-aliases';
 import { Uuid } from '../src/context/shared/domain/value-objects/uuid';
+import { RecordConsentCommandHandler } from '../src/context/consent/application/commands/record-consent.command-handler';
+import { DenyConsentCommandHandler } from '../src/context/consent/application/commands/deny-consent.command-handler';
+import {
+  ConsentRepository,
+  CONSENT_REPOSITORY,
+} from '../src/context/consent/domain/consent.repository';
 
 // Este test valida que el backend acepta heartbeats y endSession usando únicamente la cookie HttpOnly
 // sin enviar sessionId explícito en el body.
@@ -51,6 +57,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
+  let mockConsentRepository: jest.Mocked<ConsentRepository>;
 
   const mockVisitorId = '01234567-8901-4234-9567-890123456789';
   const mockTenantId = '23456789-0123-4567-8901-234567890123';
@@ -109,6 +116,13 @@ describe('Visitor Session Cookie Fallback E2E', () => {
     mockValidateDomainApiKey = { validate: jest.fn() } as any;
     mockEventPublisher = { mergeObjectContext: jest.fn() } as any;
 
+    mockConsentRepository = {
+      save: jest.fn(),
+      findById: jest.fn(),
+      findByVisitorId: jest.fn(),
+      findByVisitorIdAndType: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [VisitorV2Controller],
@@ -117,12 +131,15 @@ describe('Visitor Session Cookie Fallback E2E', () => {
         UpdateSessionHeartbeatCommandHandler,
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
+        RecordConsentCommandHandler,
+        DenyConsentCommandHandler,
         { provide: VISITOR_V2_REPOSITORY, useValue: mockVisitorRepository },
         { provide: COMPANY_REPOSITORY, useValue: mockCompanyRepository },
         {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: mockValidateDomainApiKey,
         },
+        { provide: CONSENT_REPOSITORY, useValue: mockConsentRepository },
         { provide: EventPublisher, useValue: mockEventPublisher },
       ],
     }).compile();
@@ -134,6 +151,8 @@ describe('Visitor Session Cookie Fallback E2E', () => {
     await app.init();
 
     mockValidateDomainApiKey.validate.mockResolvedValue(true);
+    mockConsentRepository.save.mockResolvedValue(okVoid());
+    mockVisitorRepository.save.mockResolvedValue(okVoid());
 
     const mockCompany = createMockCompany();
     mockCompanyRepository.findByDomain.mockResolvedValue(ok(mockCompany));
@@ -172,6 +191,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
         fingerprint: 'fp_cookie_test',
         domain: 'landing.mytech.com',
         apiKey: 'ak_live_1234567890',
+        hasAcceptedPrivacyPolicy: true,
       })
       .expect(200);
 

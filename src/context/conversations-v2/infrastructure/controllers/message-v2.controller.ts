@@ -49,6 +49,8 @@ import {
 } from '../../application/dtos/message-response.dto';
 import { SendMessageCommand } from '../../application/commands/send-message.command';
 import { GetChatMessagesQuery } from '../../application/queries/get-chat-messages.query';
+import { GetUnreadMessagesQuery } from '../../application/queries/get-unread-messages.query';
+import { MarkMessagesAsReadCommand } from '../../application/commands/mark-messages-as-read.command';
 
 /**
  * Controller para la gestión de mensajes v2
@@ -445,7 +447,7 @@ export class MessageV2Controller {
     description:
       'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
   })
-  markAsRead(
+  async markAsRead(
     @Body() markAsReadDto: MarkAsReadDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<{ success: boolean; markedCount: number }> {
@@ -462,20 +464,18 @@ export class MessageV2Controller {
         `Marcando ${markAsReadDto.messageIds.length} mensajes como leídos para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
 
-      // TODO: Implementar command handler
-      // const command = new MarkMessagesAsReadCommand({
-      //   messageIds: markAsReadDto.messageIds,
-      //   readBy: req.user.id,
-      //   userRole: req.user.roles[0],
-      // });
+      const command = new MarkMessagesAsReadCommand(
+        markAsReadDto.messageIds,
+        req.user.id,
+        req.user.roles[0],
+      );
 
-      // const result = await this.commandBus.execute(command);
+      const result = await this.commandBus.execute<
+        MarkMessagesAsReadCommand,
+        { success: boolean; markedCount: number }
+      >(command);
 
-      // Respuesta temporal
-      return Promise.resolve({
-        success: true,
-        markedCount: markAsReadDto.messageIds.length,
-      });
+      return result;
     } catch (error) {
       this.logger.error('Error al marcar mensajes como leídos:', error);
       throw new HttpException(
@@ -531,7 +531,7 @@ export class MessageV2Controller {
     status: 404,
     description: 'Chat no encontrado',
   })
-  getUnreadMessages(
+  async getUnreadMessages(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageResponseDto[]> {
@@ -548,17 +548,18 @@ export class MessageV2Controller {
         `Obteniendo mensajes no leídos del chat ${chatId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
 
-      // TODO: Implementar query handler
-      // const query = new GetUnreadMessagesQuery({
-      //   chatId,
-      //   userId: req.user.id,
-      //   userRole: req.user.roles[0],
-      // });
+      const query = new GetUnreadMessagesQuery(
+        chatId,
+        req.user.id,
+        req.user.roles[0],
+      );
 
-      // const result = await this.queryBus.execute(query);
+      const result = await this.queryBus.execute<
+        GetUnreadMessagesQuery,
+        MessageResponseDto[]
+      >(query);
 
-      // Respuesta temporal
-      return Promise.resolve([]);
+      return result;
     } catch (error) {
       this.logger.error(
         `Error al obtener mensajes no leídos del chat ${chatId}:`,

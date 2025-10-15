@@ -93,6 +93,26 @@ export class MessageResponseDto {
     example: '2025-07-28T10:30:00.000Z',
   })
   updatedAt: string;
+
+  @ApiProperty({
+    description: 'Indica si el mensaje ha sido leído',
+    example: false,
+  })
+  isRead: boolean;
+
+  @ApiProperty({
+    description: 'Fecha y hora en que el mensaje fue leído',
+    example: '2025-07-28T10:35:00.000Z',
+    required: false,
+  })
+  readAt?: string;
+
+  @ApiProperty({
+    description: 'ID del usuario que leyó el mensaje',
+    example: '550e8400-e29b-41d4-a716-446655440003',
+    required: false,
+  })
+  readBy?: string;
 }
 
 /**

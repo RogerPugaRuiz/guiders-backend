@@ -75,6 +75,9 @@ describe('VisitorV2MongoRepositoryImpl - Session Preservation', () => {
         siteId: siteId.getValue(),
         fingerprint: fingerprint.getValue(),
         lifecycle: VisitorLifecycle.ANON,
+        hasAcceptedPrivacyPolicy: true,
+        privacyPolicyAcceptedAt: '2023-01-01T10:00:00Z',
+        consentVersion: 'v1.0',
         createdAt: '2023-01-01T10:00:00Z',
         updatedAt: '2023-01-01T10:10:00Z',
         sessions: [
@@ -153,6 +156,9 @@ describe('VisitorV2MongoRepositoryImpl - Session Preservation', () => {
         siteId: existingMongoDoc.siteId,
         fingerprint: existingMongoDoc.fingerprint,
         lifecycle: VisitorLifecycle.ANON,
+        hasAcceptedPrivacyPolicy: true,
+        privacyPolicyAcceptedAt: '2023-01-01T10:00:00Z',
+        consentVersion: 'v1.0',
         createdAt: '2023-01-01T10:00:00Z',
         updatedAt: '2023-01-01T10:15:00Z',
         sessions: [
@@ -197,6 +203,9 @@ describe('VisitorV2MongoRepositoryImpl - Session Preservation', () => {
         siteId: SiteId.random().getValue(),
         fingerprint: 'fingerprint-new',
         lifecycle: VisitorLifecycle.ANON,
+        hasAcceptedPrivacyPolicy: true,
+        privacyPolicyAcceptedAt: '2023-01-01T10:00:00Z',
+        consentVersion: 'v1.0',
         createdAt: '2023-01-01T10:00:00Z',
         updatedAt: '2023-01-01T10:00:00Z',
         sessions: [

@@ -491,6 +491,10 @@ jobs:
           ALLOW_RETURN_TO=${{ secrets.STAGING_CONSOLE_URL }},${{ secrets.STAGING_ADMIN_URL }}
           # Control temporal de sincronización de TypeORM (usar solo puntualmente y volver a false)
           TYPEORM_SYNC=${{ vars.TYPEORM_SYNC || 'false' }}
+          # Configuración de versión de consentimiento (opcional - fallback a v1.4.0)
+          CONSENT_VERSION_CURRENT=${{ secrets.STAGING_CONSENT_VERSION || 'v1.4.0' }}
+          # Habilitar compatibilidad semántica por defecto (acepta MINOR y PATCH superiores)
+          ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}
           EOF
           
           echo "✅ Archivo .env.staging creado exitosamente"

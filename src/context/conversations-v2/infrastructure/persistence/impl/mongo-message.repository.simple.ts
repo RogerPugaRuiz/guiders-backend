@@ -380,27 +380,29 @@ export class MongoMessageRepositorySimple implements IMessageRepository {
   }
 
   /**
-   * Marca mensajes como leídos
+   * Marca mensajes como leídos (actualizado para simplificar)
+   * @param messageIds - Array de IDs de mensajes en formato string
+   * @param readBy - ID del usuario que marca como leído (string)
+   * @returns Number de mensajes marcados como leídos
    */
   async markAsRead(
-    messageIds: MessageId[],
-    readBy: VisitorId | CommercialId,
-  ): Promise<Result<void, DomainError>> {
+    messageIds: string[],
+    readBy: string,
+  ): Promise<Result<number, DomainError>> {
     try {
-      const ids = messageIds.map((id) => id.value);
       const now = new Date();
 
-      await this.messageModel.updateMany(
-        { id: { $in: ids }, isDeleted: false },
+      const result = await this.messageModel.updateMany(
+        { id: { $in: messageIds }, isDeleted: false },
         {
           isRead: true,
-          readBy: readBy.value,
+          readBy: readBy,
           readAt: now,
           updatedAt: now,
         },
       );
 
-      return okVoid();
+      return ok(result.modifiedCount);
     } catch (error) {
       return err(
         new MessagePersistenceError(

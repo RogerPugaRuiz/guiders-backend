@@ -22,6 +22,7 @@ import { ConversationsV2Module } from './context/conversations-v2/conversations-
 import { CommercialModule } from './context/commercial/commercial.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ConsentModule } from './context/consent/consent.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CompanyModule,
     ConversationsV2Module,
     CommercialModule,
+    ConsentModule,
     WebSocketModule,
     ScheduleModule.forRoot(),
     // OpenSearchModule,
