@@ -27,6 +27,9 @@ export interface VisitorPrimitives {
   siteId: string;
   fingerprint: string;
   lifecycle: VisitorLifecycle; // ANON/ENGAGED/LEAD/CONVERTED
+  hasAcceptedPrivacyPolicy: boolean;
+  privacyPolicyAcceptedAt: string | null;
+  consentVersion: string | null;
   createdAt: string;
   updatedAt: string;
   sessions: ReturnType<Session['toPrimitives']>[];
@@ -43,6 +46,9 @@ export class VisitorV2 extends AggregateRoot {
   private readonly siteId: SiteId;
   private readonly fingerprint: VisitorFingerprint;
   private lifecycle: VisitorLifecycleVO;
+  private hasAcceptedPrivacyPolicy: boolean;
+  private privacyPolicyAcceptedAt: Date | null;
+  private consentVersion: string | null;
   private readonly createdAt: Date;
   private updatedAt: Date;
   private sessions: Session[];
@@ -53,6 +59,9 @@ export class VisitorV2 extends AggregateRoot {
     siteId: SiteId;
     fingerprint: VisitorFingerprint;
     lifecycle: VisitorLifecycleVO;
+    hasAcceptedPrivacyPolicy: boolean;
+    privacyPolicyAcceptedAt: Date | null;
+    consentVersion: string | null;
     createdAt: Date;
     updatedAt: Date;
     sessions: Session[];
@@ -63,6 +72,9 @@ export class VisitorV2 extends AggregateRoot {
     this.siteId = props.siteId;
     this.fingerprint = props.fingerprint;
     this.lifecycle = props.lifecycle;
+    this.hasAcceptedPrivacyPolicy = props.hasAcceptedPrivacyPolicy;
+    this.privacyPolicyAcceptedAt = props.privacyPolicyAcceptedAt;
+    this.consentVersion = props.consentVersion;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     this.sessions = props.sessions;
@@ -77,10 +89,13 @@ export class VisitorV2 extends AggregateRoot {
     siteId: SiteId;
     fingerprint: VisitorFingerprint;
     lifecycle?: VisitorLifecycleVO;
+    hasAcceptedPrivacyPolicy?: boolean;
+    consentVersion?: string;
   }): VisitorV2 {
     const now = new Date();
     const lifecycle = props.lifecycle || VisitorLifecycleVO.anon();
     const initialSession = Session.create(SessionId.random());
+    const hasAccepted = props.hasAcceptedPrivacyPolicy || false;
 
     const visitor = new VisitorV2({
       id: props.id,
@@ -88,6 +103,9 @@ export class VisitorV2 extends AggregateRoot {
       siteId: props.siteId,
       fingerprint: props.fingerprint,
       lifecycle,
+      hasAcceptedPrivacyPolicy: hasAccepted,
+      privacyPolicyAcceptedAt: hasAccepted ? now : null,
+      consentVersion: props.consentVersion || null,
       createdAt: now,
       updatedAt: now,
       sessions: [initialSession],
@@ -118,6 +136,11 @@ export class VisitorV2 extends AggregateRoot {
       siteId: new SiteId(primitives.siteId),
       fingerprint: new VisitorFingerprint(primitives.fingerprint),
       lifecycle: new VisitorLifecycleVO(primitives.lifecycle),
+      hasAcceptedPrivacyPolicy: primitives.hasAcceptedPrivacyPolicy,
+      privacyPolicyAcceptedAt: primitives.privacyPolicyAcceptedAt
+        ? new Date(primitives.privacyPolicyAcceptedAt)
+        : null,
+      consentVersion: primitives.consentVersion,
       createdAt: new Date(primitives.createdAt),
       updatedAt: new Date(primitives.updatedAt),
       sessions: primitives.sessions.map((sessionPrimitives) =>
@@ -136,6 +159,11 @@ export class VisitorV2 extends AggregateRoot {
       siteId: this.siteId.getValue(),
       fingerprint: this.fingerprint.getValue(),
       lifecycle: this.lifecycle.getValue(),
+      hasAcceptedPrivacyPolicy: this.hasAcceptedPrivacyPolicy,
+      privacyPolicyAcceptedAt: this.privacyPolicyAcceptedAt
+        ? this.privacyPolicyAcceptedAt.toISOString()
+        : null,
+      consentVersion: this.consentVersion,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       sessions: this.sessions.map((session) => session.toPrimitives()),
@@ -360,5 +388,36 @@ export class VisitorV2 extends AggregateRoot {
         timestamp: new Date().toISOString(),
       }),
     );
+  }
+
+  /**
+   * Registra la aceptación de la política de privacidad
+   * RGPD Art. 7.1: Capacidad de demostrar el consentimiento
+   */
+  public acceptPrivacyPolicy(version: string): void {
+    this.hasAcceptedPrivacyPolicy = true;
+    this.privacyPolicyAcceptedAt = new Date();
+    this.consentVersion = version;
+    this.updatedAt = new Date();
+  }
+
+  /**
+   * Verifica si el visitante ha aceptado la política de privacidad
+   */
+  public hasValidConsent(): boolean {
+    return this.hasAcceptedPrivacyPolicy;
+  }
+
+  // Getters para los nuevos campos
+  public getHasAcceptedPrivacyPolicy(): boolean {
+    return this.hasAcceptedPrivacyPolicy;
+  }
+
+  public getPrivacyPolicyAcceptedAt(): Date | null {
+    return this.privacyPolicyAcceptedAt;
+  }
+
+  public getConsentVersion(): string | null {
+    return this.consentVersion;
   }
 }

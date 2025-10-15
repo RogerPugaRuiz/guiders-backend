@@ -32,6 +32,7 @@ import { VisitorAccountApiKey } from '../../../auth/auth-visitor/domain/models/v
 import { RecordConsentCommand } from '../../../consent/application/commands/record-consent.command';
 import { DenyConsentCommand } from '../../../consent/application/commands/deny-consent.command';
 import { BadRequestException } from '@nestjs/common';
+import { getCurrentConsentVersion } from '../../../consent/domain/config/consent-version.config';
 
 @CommandHandler(IdentifyVisitorCommand)
 export class IdentifyVisitorCommandHandler
@@ -125,7 +126,8 @@ export class IdentifyVisitorCommandHandler
       const tenantId = new TenantId(company.getId().getValue());
 
       // Declarar consentVersion una sola vez para usar en ambos flujos
-      const consentVersion = command.consentVersion || 'v1.0';
+      const consentVersion: string =
+        command.consentVersion || getCurrentConsentVersion();
 
       // ========================================================================
       // MANEJO ESPECIAL: Usuario rechazó el consentimiento
@@ -178,10 +180,10 @@ export class IdentifyVisitorCommandHandler
           this.logger.log(
             `✅ Rechazo de consentimiento registrado para: ${visitor.getId().value}`,
           );
-        } catch (error) {
+        } catch (error: unknown) {
           this.logger.error(
             'Error al registrar rechazo de consentimiento:',
-            error,
+            error instanceof Error ? error.message : String(error),
           );
         }
 
@@ -289,12 +291,12 @@ export class IdentifyVisitorCommandHandler
         this.logger.log(
           `✅ Consentimiento registrado en contexto consent para visitante: ${visitor.getId().value}`,
         );
-      } catch (error) {
+      } catch (error: unknown) {
         // No fallar toda la operación si falla el registro de consentimiento
         // pero sí loguear el error para investigación
         this.logger.error(
           'Error al registrar consentimiento en contexto consent:',
-          error,
+          error instanceof Error ? error.message : String(error),
         );
       }
 
@@ -314,8 +316,11 @@ export class IdentifyVisitorCommandHandler
         consentStatus: 'granted',
         allowedActions: ['chat', 'forms', 'tracking', 'all'],
       });
-    } catch (error) {
-      this.logger.error('Error al identificar visitante:', error);
+    } catch (error: unknown) {
+      this.logger.error(
+        'Error al identificar visitante:',
+        error instanceof Error ? error.message : String(error),
+      );
       throw error;
     }
   }
