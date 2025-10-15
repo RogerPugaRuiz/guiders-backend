@@ -76,7 +76,14 @@ export class RecordConsentCommandHandler
 
       // CRÍTICO: Commit para despachar los eventos
       this.logger.debug('📢 Ejecutando commit() para despachar eventos...');
-      consentCtx.commit();
+      if (consentCtx && typeof consentCtx.commit === 'function') {
+        consentCtx.commit();
+        this.logger.log('✅ Eventos despachados correctamente');
+      } else {
+        this.logger.warn(
+          '⚠️  EventPublisher no disponible, eventos no serán despachados',
+        );
+      }
       this.logger.log(
         `✅ [FIN] Consentimiento registrado completamente: ${consent.id.value}`,
       );

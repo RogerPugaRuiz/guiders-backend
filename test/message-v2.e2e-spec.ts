@@ -160,6 +160,10 @@ describe('MessageV2Controller (e2e)', () => {
           nextCursor: undefined,
         });
       }
+      // Mock para GetUnreadMessagesQuery
+      if (query.constructor.name === 'GetUnreadMessagesQuery') {
+        return Promise.resolve([]);
+      }
       // Mock para stats queries
       if (
         query.constructor.name.includes('Stats') ||
@@ -183,6 +187,13 @@ describe('MessageV2Controller (e2e)', () => {
       // Mock para SendMessageCommand
       if (command.constructor.name === 'SendMessageCommand') {
         throw new Error('Funcionalidad no implementada');
+      }
+      // Mock para MarkMessagesAsReadCommand
+      if (command.constructor.name === 'MarkMessagesAsReadCommand') {
+        return Promise.resolve({
+          success: true,
+          markedCount: command.messageIds?.length || 0,
+        });
       }
       // Mock por defecto
       return Promise.resolve({});

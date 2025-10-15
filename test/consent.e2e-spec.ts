@@ -41,7 +41,7 @@ describe('ConsentController (e2e)', () => {
   const mockConsent = VisitorConsent.grant({
     visitorId,
     consentType: new ConsentType('privacy_policy'),
-    version: ConsentVersion.fromString('v1.0.0'),
+    version: ConsentVersion.fromString('v1.4.0'),
     ipAddress: '192.168.1.1',
     userAgent: 'Mozilla/5.0',
   });
@@ -51,7 +51,7 @@ describe('ConsentController (e2e)', () => {
     visitorId,
     actionType: AuditActionType.granted(),
     consentType: 'privacy_policy',
-    consentVersion: 'v1.0.0',
+    consentVersion: 'v1.4.0',
     ipAddress: '192.168.1.1',
     userAgent: 'Mozilla/5.0',
   });

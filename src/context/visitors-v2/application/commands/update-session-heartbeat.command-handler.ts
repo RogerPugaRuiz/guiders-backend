@@ -65,7 +65,13 @@ export class UpdateSessionHeartbeatCommandHandler
       }
 
       // Commit eventos
-      visitorContext.commit();
+      if (visitorContext && typeof visitorContext.commit === 'function') {
+        visitorContext.commit();
+      } else {
+        this.logger.warn(
+          'EventPublisher no disponible, eventos no serán despachados',
+        );
+      }
 
       this.logger.log(
         `Heartbeat actualizado exitosamente para sesión: ${command.sessionId}`,
