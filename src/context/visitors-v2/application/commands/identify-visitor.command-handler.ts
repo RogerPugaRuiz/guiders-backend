@@ -165,7 +165,7 @@ export class IdentifyVisitorCommandHandler
         try {
           const denyCommand = new DenyConsentCommand(
             visitor.getId().value,
-            'privacy_policy',
+            'privacy_policy' as string,
             command.ipAddress,
             command.userAgent,
             {
@@ -173,7 +173,7 @@ export class IdentifyVisitorCommandHandler
               domain: normalizedDomain,
               currentUrl: command.currentUrl,
               reason: 'User explicitly denied consent',
-            },
+            } as Record<string, unknown>,
           );
 
           await this.commandBus.execute(denyCommand);
@@ -276,7 +276,7 @@ export class IdentifyVisitorCommandHandler
       try {
         const recordConsentCommand = new RecordConsentCommand(
           visitor.getId().value,
-          'privacy_policy', // ConsentType.PRIVACY_POLICY
+          'privacy_policy' as string, // ConsentType.PRIVACY_POLICY
           consentVersion,
           command.ipAddress,
           command.userAgent,
@@ -284,7 +284,7 @@ export class IdentifyVisitorCommandHandler
             fingerprint: command.fingerprint,
             domain: normalizedDomain,
             currentUrl: command.currentUrl,
-          },
+          } as Record<string, unknown>,
         );
 
         await this.commandBus.execute(recordConsentCommand);
