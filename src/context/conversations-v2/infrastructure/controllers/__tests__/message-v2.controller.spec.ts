@@ -156,27 +156,37 @@ describe('MessageV2Controller', () => {
   });
 
   describe('markAsRead', () => {
-    it('should return success response (temporary behavior)', async () => {
+    it('should call commandBus.execute with MarkMessagesAsReadCommand', async () => {
       const markAsReadDto = {
         messageIds: ['msg-1', 'msg-2'],
       };
 
-      const result = await controller.markAsRead(markAsReadDto, mockRequest);
-
-      expect(result).toEqual({
+      const expectedResult = {
         success: true,
         markedCount: 2,
-      });
+      };
+
+      mockCommandBus.execute.mockResolvedValue(expectedResult);
+
+      const result = await controller.markAsRead(markAsReadDto, mockRequest);
+
+      expect(mockCommandBus.execute).toHaveBeenCalled();
+      expect(result).toEqual(expectedResult);
     });
   });
 
   describe('getUnreadMessages', () => {
-    it('should return empty array (temporary behavior)', async () => {
+    it('should call queryBus.execute with GetUnreadMessagesQuery', async () => {
+      const expectedResult: any[] = [];
+
+      mockQueryBus.execute.mockResolvedValue(expectedResult);
+
       const result = await controller.getUnreadMessages(
         'chat-123',
         mockRequest,
       );
 
+      expect(mockQueryBus.execute).toHaveBeenCalled();
       expect(result).toEqual([]);
     });
   });
