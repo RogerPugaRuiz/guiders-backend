@@ -194,7 +194,7 @@ GET /consents/visitors/:visitorId
       "visitorId": "550e8400-e29b-41d4-a716-446655440002",
       "consentType": "privacy_policy",
       "status": "granted",
-      "version": "v1.0.0",
+      "version": "v1.4.0",
       "grantedAt": "2025-01-10T10:30:00.000Z",
       "revokedAt": null,
       "expiresAt": "2026-01-10T10:30:00.000Z",
@@ -245,7 +245,7 @@ GET /consents/visitors/:visitorId/audit-logs
       "visitorId": "550e8400-e29b-41d4-a716-446655440002",
       "actionType": "consent_granted",  // consent_granted | consent_revoked | consent_expired | consent_renewed
       "consentType": "privacy_policy",
-      "consentVersion": "v1.0.0",
+      "consentVersion": "v1.4.0",
       "ipAddress": "192.168.1.1",
       "userAgent": "Mozilla/5.0...",
       "reason": null,
@@ -761,12 +761,130 @@ function ConsentManager({ visitorId }: ConsentManagerProps) {
 
 ---
 
+## Versionado de Consentimientos y SemVer
+
+### Versión Actual del Sistema
+
+**Versión mínima requerida**: `v1.4.0`
+
+El sistema utiliza **Compatibilidad Semántica de Versiones (SemVer)** para gestionar las versiones de consentimiento de manera flexible.
+
+### ¿Cómo Funciona SemVer?
+
+El formato de versión sigue el estándar SemVer: `vMAJOR.MINOR.PATCH[-prerelease]`
+
+Ejemplo: `v1.4.0`, `v1.5.2`, `v2.0.0-beta.1`
+
+#### Reglas de Compatibilidad
+
+Cuando el backend requiere `v1.4.0`:
+
+| Versión Enviada | ¿Aceptada? | Razón |
+|----------------|-----------|-------|
+| `v1.4.0` | ✅ Sí | Versión exacta |
+| `v1.4.1` | ✅ Sí | PATCH mayor (compatible) |
+| `v1.5.0` | ✅ Sí | MINOR mayor (compatible) |
+| `v1.6.2` | ✅ Sí | MINOR y PATCH mayores |
+| `v2.0.0` | ❌ No | MAJOR diferente (breaking change) |
+| `v1.3.9` | ❌ No | MINOR menor (obsoleta) |
+| `v1.0.0` | ❌ No | MINOR menor (obsoleta) |
+
+### Configuración del Sistema
+
+- **SemVer habilitado por defecto**: `ENABLE_SEMVER_COMPATIBILITY=true`
+- **Versión por defecto del backend**: `v1.4.0`
+
+### Mejores Prácticas para Desarrolladores
+
+#### ✅ Recomendado: Omitir la versión
+
+Deja que el backend use su versión actual automáticamente:
+
+```typescript
+// ✅ MEJOR PRÁCTICA: El backend usará v1.4.0
+const response = await fetch('/api/visitors/identify', {
+  method: 'POST',
+  body: JSON.stringify({
+    fingerprint: 'fp_123',
+    domain: 'example.com',
+    apiKey: 'YOUR_API_KEY',
+    hasAcceptedPrivacyPolicy: true,
+    // NO especificar consentVersion
+  })
+});
+```
+
+#### ⚠️ Alternativa: Especificar versión igual o superior
+
+Si necesitas especificar la versión:
+
+```typescript
+// ⚠️ ALTERNATIVA: Especificar versión manualmente
+const response = await fetch('/api/visitors/identify', {
+  method: 'POST',
+  body: JSON.stringify({
+    fingerprint: 'fp_123',
+    domain: 'example.com',
+    apiKey: 'YOUR_API_KEY',
+    hasAcceptedPrivacyPolicy: true,
+    consentVersion: '1.4.0', // o '1.5.0', '1.4.1', etc.
+  })
+});
+```
+
+#### ❌ Evitar: Versiones obsoletas
+
+No uses versiones antiguas:
+
+```typescript
+// ❌ MAL: Esto FALLARÁ
+const response = await fetch('/api/visitors/identify', {
+  method: 'POST',
+  body: JSON.stringify({
+    fingerprint: 'fp_123',
+    domain: 'example.com',
+    apiKey: 'YOUR_API_KEY',
+    hasAcceptedPrivacyPolicy: true,
+    consentVersion: '1.0.0', // ← ERROR: v1.0.0 < v1.4.0
+  })
+});
+
+// Error response:
+// {
+//   "statusCode": 400,
+//   "message": "Versión de consentimiento obsoleta: v1.0.0. Backend requiere versión mínima v1.4.0"
+// }
+```
+
+### Normalización Automática
+
+El backend normaliza automáticamente las versiones:
+
+```typescript
+// Todas estas formas son equivalentes:
+'1.4.0'         → 'v1.4.0'  ✅
+'v1.4.0'        → 'v1.4.0'  ✅
+'1.5.2-beta.1'  → 'v1.5.2-beta.1'  ✅
+```
+
+### Beneficios de SemVer
+
+1. **Flexibilidad**: Los frontends pueden usar versiones superiores sin romper compatibilidad
+2. **Mantenibilidad**: Permite evolucionar políticas de privacidad sin forzar actualizaciones inmediatas
+3. **Claridad**: Indica claramente cambios menores (PATCH, MINOR) vs cambios mayores (MAJOR)
+4. **Cumplimiento RGPD**: Mantiene registro histórico de qué versión aceptó cada usuario
+
+---
+
 ## Recursos Adicionales
 
 ### Enlaces Útiles
 
 - [RGPD - Texto oficial](https://gdpr-info.eu/)
 - [Guía de cumplimiento RGPD](https://www.aepd.es/es/guias)
+- [Semantic Versioning Specification](https://semver.org/)
+- [Guía de Integración Frontend](./FRONTEND_CONSENT_INTEGRATION.md)
+- [Documentación SemVer del Sistema](./CONSENT_SEMVER_COMPATIBILITY.md)
 
 ### Soporte
 
@@ -776,6 +894,6 @@ Para soporte técnico o preguntas sobre la API:
 
 ---
 
-**Versión**: 1.0.0
-**Última actualización**: Octubre 2025
+**Versión**: 2.0.0
+**Última actualización**: Enero 2025
 **Mantenido por**: Equipo de Backend

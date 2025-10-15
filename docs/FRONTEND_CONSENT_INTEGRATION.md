@@ -30,9 +30,10 @@ interface IdentifyVisitorPayload {
 
   // ========== CAMPOS OPCIONALES ==========
   currentUrl?: string;               // URL completa actual
-  consentVersion?: string;           // Versión de la política (default: "v1.0")
-                                     // Acepta: "v1.0", "1.0", "v1.2.3-alpha.1", "1.2.3-alpha.1"
+  consentVersion?: string;           // Versión de la política (default: "v1.4.0")
+                                     // Acepta: "v1.4.0", "1.4.0", "v1.5.2-beta.1", "1.5.2-beta.1"
                                      // Se normaliza automáticamente agregando "v" si no lo tiene
+                                     // Versión mínima requerida: v1.4.0 (con soporte SemVer)
   ipAddress?: string;                // IP del visitante (se captura automáticamente si no se envía)
   userAgent?: string;                // User-Agent (se captura automáticamente si no se envía)
 }
@@ -234,7 +235,7 @@ async execute(command: IdentifyVisitorCommand): Promise<IdentifyVisitorResponseD
   "visitorId": "4bb44f8d-0e2d-4d5a-8836-8e11f50fb1be",
   "consentType": "privacy_policy",
   "status": "granted",
-  "version": "v1.2.2-alpha.1",
+  "version": "v1.4.0",
   "grantedAt": "2025-10-10T12:00:00.000Z",
   "expiresAt": "2026-10-10T12:00:00.000Z",
   "revokedAt": null,
@@ -280,7 +281,7 @@ async execute(command: IdentifyVisitorCommand): Promise<IdentifyVisitorResponseD
   "visitorId": "5cc55f9e-1f3e-5e6b-9947-9f22g61gc2cf",
   "consentType": "privacy_policy",
   "status": "denied",
-  "version": "v1.2.2-alpha.1",
+  "version": "v1.4.0",
   "grantedAt": "2025-10-10T12:00:00.000Z",
   "revokedAt": null,
   "expiresAt": null,
@@ -360,7 +361,7 @@ class GuidersSDK {
           domain: options.domain,
           apiKey: options.apiKey,
           hasAcceptedPrivacyPolicy: options.hasAcceptedPrivacyPolicy,
-          consentVersion: options.consentVersion || 'v1.0',
+          consentVersion: options.consentVersion || 'v1.4.0',
           currentUrl: options.currentUrl || window.location.href,
         }),
       });
@@ -484,7 +485,7 @@ document.getElementById('accept-privacy-btn')?.addEventListener('click', async (
       domain: window.location.hostname,
       apiKey: 'YOUR_API_KEY_HERE',
       hasAcceptedPrivacyPolicy: true, // ← Usuario ACEPTÓ
-      consentVersion: '1.0.0',
+      consentVersion: '1.4.0',
       currentUrl: window.location.href,
     });
 
@@ -518,7 +519,7 @@ document.getElementById('reject-privacy-btn')?.addEventListener('click', async (
       domain: window.location.hostname,
       apiKey: 'YOUR_API_KEY_HERE',
       hasAcceptedPrivacyPolicy: false, // ← Usuario RECHAZÓ
-      consentVersion: '1.0.0',
+      consentVersion: '1.4.0',
       currentUrl: window.location.href,
     });
 
@@ -620,7 +621,7 @@ export function useConsent() {
           domain: window.location.hostname,
           apiKey: process.env.REACT_APP_GUIDERS_API_KEY,
           hasAcceptedPrivacyPolicy: hasAccepted,
-          consentVersion: '1.0.0',
+          consentVersion: '1.4.0',
           currentUrl: window.location.href,
         }),
       });
@@ -762,5 +763,64 @@ export function ChatWidget() {
 
 ---
 
+## 🔐 Compatibilidad Semántica de Versiones (SemVer)
+
+### ¿Qué es SemVer?
+
+El backend soporta **Compatibilidad Semántica de Versiones** para las versiones de consentimiento. Esto significa:
+
+- ✅ **MINOR** y **PATCH** superiores son aceptadas automáticamente
+- ❌ **MAJOR** diferentes son rechazadas
+
+**Ejemplo**: Si el backend requiere `v1.4.0`:
+- ✅ `v1.4.0` - Aceptada (exacta)
+- ✅ `v1.4.1` - Aceptada (patch mayor)
+- ✅ `v1.5.0` - Aceptada (minor mayor)
+- ✅ `v1.6.2` - Aceptada (minor y patch mayores)
+- ❌ `v2.0.0` - Rechazada (major diferente)
+- ❌ `v1.3.0` - Rechazada (minor menor)
+- ❌ `v0.9.0` - Rechazada (major diferente)
+
+### Configuración
+
+La compatibilidad SemVer está **habilitada por defecto** en todos los entornos. Si deseas deshabilitarla, contacta al equipo de backend para configurar `ENABLE_SEMVER_COMPATIBILITY=false`.
+
+### Recomendaciones
+
+1. **Usa siempre la versión actual o superior** para evitar problemas de compatibilidad
+2. **No especifiques versiones antiguas** a menos que sea absolutamente necesario
+3. **Deja que el backend use su versión por defecto** omitiendo el campo `consentVersion`
+
+```typescript
+// ✅ Recomendado: Deja que el backend use su versión actual
+await sdk.identifyVisitor({
+  fingerprint: await generateFingerprint(),
+  domain: window.location.hostname,
+  apiKey: 'YOUR_API_KEY',
+  hasAcceptedPrivacyPolicy: true,
+  // NO especificar consentVersion - el backend usará v1.4.0 automáticamente
+});
+
+// ⚠️ Alternativa: Especifica versión igual o superior
+await sdk.identifyVisitor({
+  fingerprint: await generateFingerprint(),
+  domain: window.location.hostname,
+  apiKey: 'YOUR_API_KEY',
+  hasAcceptedPrivacyPolicy: true,
+  consentVersion: '1.4.0', // o '1.5.0', '1.4.1', etc.
+});
+
+// ❌ NO hacer: Usar versión obsoleta
+await sdk.identifyVisitor({
+  fingerprint: await generateFingerprint(),
+  domain: window.location.hostname,
+  apiKey: 'YOUR_API_KEY',
+  hasAcceptedPrivacyPolicy: true,
+  consentVersion: '1.0.0', // ← ESTO FALLARÁ
+});
+```
+
+---
+
 **Última actualización**: Enero 2025
-**Versión**: 2.0.0 (actualizado con soporte para rechazo de consentimientos)
+**Versión**: 2.1.0 (actualizado con soporte SemVer y versión v1.4.0)
