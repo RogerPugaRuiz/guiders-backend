@@ -10,6 +10,7 @@ import { ConsentType } from '../../domain/value-objects/consent-type';
 import { ConsentVersion } from '../../domain/value-objects/consent-version';
 import { Result, ok, err } from '../../../shared/domain/result';
 import { ConsentError } from '../../domain/errors/consent.error';
+import { VisitorId } from '../../../visitors-v2/domain/value-objects/visitor-id';
 
 /**
  * Handler para registrar un consentimiento
@@ -39,9 +40,35 @@ export class RecordConsentCommandHandler
       this.logger.debug('📝 Validando tipo de consentimiento...');
       const consentType = new ConsentType(command.consentType);
       const version = ConsentVersion.fromString(command.version);
+      const visitorId = VisitorId.create(command.visitorId);
       this.logger.debug(
         `✅ Tipo validado: ${consentType.value}, Versión: ${version.value}`,
       );
+
+      // IDEMPOTENCIA: Verificar si ya existe consentimiento activo del mismo tipo
+      this.logger.debug('🔍 Verificando consentimiento activo existente...');
+      const existingConsentResult =
+        await this.repository.findActiveConsentByType(visitorId, consentType);
+
+      if (existingConsentResult.isOk() && existingConsentResult.value) {
+        const existingConsent = existingConsentResult.value;
+        const existingVersion = existingConsent.version.value;
+
+        // Si ya existe con la misma versión, retornar ID existente (idempotencia)
+        if (existingVersion === version.value) {
+          this.logger.log(
+            `♻️  Consentimiento duplicado detectado. Retornando existente: ${existingConsent.id.value} (versión: ${existingVersion})`,
+          );
+          return ok(existingConsent.id.value);
+        }
+
+        // Si existe con versión diferente, crear nuevo (cambio de política RGPD)
+        this.logger.log(
+          `🔄 Cambio de versión detectado: ${existingVersion} -> ${version.value}. Creando nuevo consentimiento.`,
+        );
+      } else {
+        this.logger.debug('✅ No existe consentimiento activo previo');
+      }
 
       // Crear el agregado de consentimiento (emite evento)
       this.logger.debug('🏗️  Creando agregado de consentimiento...');
