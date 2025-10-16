@@ -41,23 +41,31 @@ export class GetChatsWithFiltersQueryHandler
     }
 
     try {
-      this.logger.log(`[getCommercialData] → Ejecutando FindUserByIdQuery para ID: ${commercialId}`);
+      this.logger.log(
+        `[getCommercialData] → Ejecutando FindUserByIdQuery para ID: ${commercialId}`,
+      );
       const user = await this.queryBus.execute(
         new FindUserByIdQuery(commercialId),
       );
 
-      this.logger.log(`[getCommercialData] ← Resultado: ${user ? '✓ Usuario encontrado' : '✗ Usuario NO encontrado'}`);
+      this.logger.log(
+        `[getCommercialData] ← Resultado: ${user ? '✓ Usuario encontrado' : '✗ Usuario NO encontrado'}`,
+      );
 
       if (user) {
         const userName = user.name.value;
-        this.logger.log(`[getCommercialData] ✓ Retornando datos: { id: ${commercialId}, name: "${userName}" }`);
+        this.logger.log(
+          `[getCommercialData] ✓ Retornando datos: { id: ${commercialId}, name: "${userName}" }`,
+        );
         return {
           id: commercialId,
           name: userName,
         };
       }
 
-      this.logger.warn(`[getCommercialData] ✗ Usuario ${commercialId} no encontrado, retornando NULL`);
+      this.logger.warn(
+        `[getCommercialData] ✗ Usuario ${commercialId} no encontrado, retornando NULL`,
+      );
       return null;
     } catch (error) {
       this.logger.error(
@@ -283,8 +291,7 @@ export class GetChatsWithFiltersQueryHandler
       >();
       await Promise.all(
         commercialIds.map(async (commercialId) => {
-          const commercialData =
-            await this.getCommercialData(commercialId);
+          const commercialData = await this.getCommercialData(commercialId);
           if (commercialData) {
             commercialsDataMap.set(commercialId, commercialData);
           }

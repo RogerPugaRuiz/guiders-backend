@@ -25,9 +25,14 @@ export class SessionCleanupScheduler {
   }
 
   /**
-   * Ejecuta limpieza cada 15 minutos
+   * Ejecuta limpieza cada 5 minutos
+   * Frecuencia optimizada para detección más rápida de sesiones expiradas:
+   * - ANON: timeout 5 min → sesión cerrada en máximo 10 min (5 min timeout + 5 min scheduler)
+   * - ENGAGED: timeout 15 min → sesión cerrada en máximo 20 min
+   * - LEAD: timeout 30 min → sesión cerrada en máximo 35 min
+   * - CONVERTED: timeout 60 min → sesión cerrada en máximo 65 min
    */
-  @Cron('0 */15 * * * *')
+  @Cron('0 */5 * * * *')
   async handleSessionCleanup(): Promise<void> {
     if (!this.isEnabled) {
       this.logger.debug('Session cleanup deshabilitado via ENV');
@@ -35,7 +40,10 @@ export class SessionCleanupScheduler {
     }
 
     try {
-      this.logger.log('Iniciando limpieza automática de sesiones expiradas');
+      const startTime = Date.now();
+      this.logger.log(
+        `🧹 Iniciando limpieza automática de sesiones expiradas (lote: ${this.batchSize})`,
+      );
 
       const command = new CleanExpiredSessionsCommand(
         undefined,
@@ -49,18 +57,18 @@ export class SessionCleanupScheduler {
       if (result.isOk()) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const { cleanedCount } = result.value;
+        const duration = Date.now() - startTime;
         this.logger.log(
-          `Limpieza automática completada. Visitantes procesados: ${cleanedCount as number}`,
+          `✅ Limpieza automática completada en ${duration}ms. Visitantes con sesiones cerradas: ${cleanedCount as number}`,
         );
       } else {
         this.logger.error(
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          `Error en limpieza automática: ${result.error.message as string}`,
+          `❌ Error en limpieza automática: ${result.error.message as string}`,
         );
       }
     } catch (error) {
       this.logger.error(
-        'Error inesperado durante limpieza automática de sesiones',
+        '🚨 Error inesperado durante limpieza automática de sesiones',
         error,
       );
     }

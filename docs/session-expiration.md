@@ -17,12 +17,18 @@ El sistema aplica diferentes tiempos de timeout según el estado del visitante:
 
 ### Proceso de Limpieza
 
-1. **Scheduler Automático**: `SessionCleanupScheduler` ejecuta cada 15 minutos (configurable via cron)
+1. **Scheduler Automático**: `SessionCleanupScheduler` ejecuta cada 5 minutos (configurable via cron)
 2. **Búsqueda**: Busca visitantes con sesiones activas usando `findWithActiveSessions()`
 3. **Verificación**: Determina qué sesiones han expirado según el timeout del lifecycle del visitante
 4. **Cierre Múltiple**: Cierra **TODAS** las sesiones activas expiradas (no solo la primera)
 5. **Eventos**: Publica `SessionEndedEvent` por cada sesión cerrada
 6. **Persistencia**: Guarda los cambios en MongoDB
+
+**Tiempo máximo de cierre**: timeout + intervalo del scheduler
+- ANON: 5 min timeout + 5 min scheduler = **máximo 10 minutos**
+- ENGAGED: 15 min timeout + 5 min scheduler = **máximo 20 minutos**
+- LEAD: 30 min timeout + 5 min scheduler = **máximo 35 minutos**
+- CONVERTED: 60 min timeout + 5 min scheduler = **máximo 65 minutos**
 
 ### Endpoints
 
@@ -47,8 +53,18 @@ Mantiene la sesión activa actualizando el `lastActivityAt`.
 ```
 
 **Comportamiento:**
+
 - Si no se recibe heartbeat durante el tiempo de timeout, la sesión expirará
 - El sistema cerrará automáticamente todas las sesiones expiradas en el próximo ciclo de limpieza
+
+**Frecuencia recomendada de heartbeat desde el frontend:**
+
+- **Visitantes ANON**: cada 30-60 segundos (timeout: 5 minutos)
+- **Visitantes ENGAGED**: cada 60-90 segundos (timeout: 15 minutos)
+- **Visitantes LEAD**: cada 2-3 minutos (timeout: 30 minutos)
+- **Visitantes CONVERTED**: cada 5 minutos (timeout: 60 minutos)
+
+La frecuencia debe ser menor a la mitad del timeout para garantizar que al menos 2 heartbeats lleguen antes de la expiración.
 
 ## Configuración
 
