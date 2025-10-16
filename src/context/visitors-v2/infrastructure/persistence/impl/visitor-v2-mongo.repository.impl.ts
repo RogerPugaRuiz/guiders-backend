@@ -350,7 +350,8 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         'sessions.0': { $exists: true }, // Tiene al menos una sesión
         sessions: {
           $elemMatch: {
-            endedAt: { $exists: false }, // Al menos una sesión activa
+            // Sesión activa: endedAt es null o no existe
+            $or: [{ endedAt: null }, { endedAt: { $exists: false } }],
           },
         },
       };
