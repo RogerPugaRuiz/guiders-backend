@@ -4,10 +4,11 @@ import { VisitorId } from '../value-objects/visitor-id';
 import { TenantId } from '../value-objects/tenant-id';
 import { SiteId } from '../value-objects/site-id';
 import { VisitorFingerprint } from '../value-objects/visitor-fingerprint';
-import { SessionTimeout } from '../value-objects/session-timeout';
-import { Session } from '../session.entity';
 import { SessionId } from '../value-objects/session-id';
-import { VisitorLifecycleVO, VisitorLifecycle } from '../value-objects/visitor-lifecycle';
+import {
+  VisitorLifecycleVO,
+  VisitorLifecycle,
+} from '../value-objects/visitor-lifecycle';
 
 describe('SessionManagementDomainServiceImpl', () => {
   let service: SessionManagementDomainServiceImpl;

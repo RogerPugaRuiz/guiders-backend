@@ -49,7 +49,7 @@ describe('VisitorV2 - Session Management', () => {
       });
 
       const nonExistentSessionId = SessionId.random();
-      
+
       // Debe tener 1 sesión activa inicial
       expect(visitor.getActiveSessions().length).toBe(1);
 

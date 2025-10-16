@@ -119,7 +119,7 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       // Mock event publisher
       const mockCommit = jest.fn();
       eventPublisher.mergeObjectContext.mockImplementation((visitor) => {
-        const merged = visitor as any;
+        const merged = visitor as VisitorV2 & { commit: () => void };
         merged.commit = mockCommit;
         return merged;
       });
@@ -146,9 +146,9 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       );
 
       // Verificar que se limpiaron las sesiones
-      expect(sessionManagementService.cleanExpiredSessions).toHaveBeenCalledTimes(
-        2,
-      );
+      expect(
+        sessionManagementService.cleanExpiredSessions,
+      ).toHaveBeenCalledTimes(2);
 
       // Verificar que se guardaron los visitantes
       expect(visitorRepository.save).toHaveBeenCalledTimes(2);
@@ -204,7 +204,9 @@ describe('CleanExpiredSessionsCommandHandler', () => {
 
       // No debe intentar guardar si no hay sesiones expiradas
       expect(visitorRepository.save).not.toHaveBeenCalled();
-      expect(sessionManagementService.cleanExpiredSessions).not.toHaveBeenCalled();
+      expect(
+        sessionManagementService.cleanExpiredSessions,
+      ).not.toHaveBeenCalled();
     });
 
     it('debe continuar procesando si falla guardar un visitante', async () => {
@@ -267,7 +269,7 @@ describe('CleanExpiredSessionsCommandHandler', () => {
 
       const mockCommit = jest.fn();
       eventPublisher.mergeObjectContext.mockImplementation((visitor) => {
-        const merged = visitor as any;
+        const merged = visitor as VisitorV2 & { commit: () => void };
         merged.commit = mockCommit;
         return merged;
       });
