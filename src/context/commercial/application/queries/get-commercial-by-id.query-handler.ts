@@ -26,7 +26,10 @@ class CommercialQueryError extends DomainError {
 @QueryHandler(GetCommercialByIdQuery)
 export class GetCommercialByIdQueryHandler
   implements
-    IQueryHandler<GetCommercialByIdQuery, Result<Commercial | null, DomainError>>
+    IQueryHandler<
+      GetCommercialByIdQuery,
+      Result<Commercial | null, DomainError>
+    >
 {
   private readonly logger = new Logger(GetCommercialByIdQueryHandler.name);
 
@@ -39,9 +42,7 @@ export class GetCommercialByIdQueryHandler
     query: GetCommercialByIdQuery,
   ): Promise<Result<Commercial | null, DomainError>> {
     try {
-      this.logger.debug(
-        `Obteniendo comercial con ID: ${query.commercialId}`,
-      );
+      this.logger.debug(`Obteniendo comercial con ID: ${query.commercialId}`);
 
       const commercialId = new CommercialId(query.commercialId);
       const result = await this.commercialRepository.findById(commercialId);
@@ -61,7 +62,9 @@ export class GetCommercialByIdQueryHandler
         error,
       );
       return err(
-        new CommercialQueryError(`Error al obtener comercial: ${error instanceof Error ? error.message : String(error)}`),
+        new CommercialQueryError(
+          `Error al obtener comercial: ${error instanceof Error ? error.message : String(error)}`,
+        ),
       );
     }
   }

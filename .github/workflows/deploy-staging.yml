@@ -495,8 +495,15 @@ jobs:
           CONSENT_VERSION_CURRENT=${{ secrets.STAGING_CONSENT_VERSION || 'v1.4.0' }}
           # Habilitar compatibilidad semántica por defecto (acepta MINOR y PATCH superiores)
           ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}
+          # Configuración de limpieza automática de sesiones
+          SESSION_CLEANUP_ENABLED=${{ vars.SESSION_CLEANUP_ENABLED || 'true' }}
+          SESSION_CLEANUP_BATCH_SIZE=${{ vars.SESSION_CLEANUP_BATCH_SIZE || '100' }}
+          SESSION_TIMEOUT_SHORT_MS=${{ vars.SESSION_TIMEOUT_SHORT_MS || '300000' }}
+          SESSION_TIMEOUT_MEDIUM_MS=${{ vars.SESSION_TIMEOUT_MEDIUM_MS || '900000' }}
+          SESSION_TIMEOUT_LONG_MS=${{ vars.SESSION_TIMEOUT_LONG_MS || '1800000' }}
+          SESSION_TIMEOUT_EXTENDED_MS=${{ vars.SESSION_TIMEOUT_EXTENDED_MS || '3600000' }}
           EOF
-          
+
           echo "✅ Archivo .env.staging creado exitosamente"
           echo "🔍 Usando JWKS_BASE_URL=${{ secrets.STAGING_APP_URL }}"
 

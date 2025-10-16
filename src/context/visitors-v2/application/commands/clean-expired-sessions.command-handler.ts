@@ -1,4 +1,4 @@
-import { ICommandHandler, CommandHandler } from '@nestjs/cqrs';
+import { ICommandHandler, CommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { CleanExpiredSessionsCommand } from './clean-expired-sessions.command';
 import {
@@ -27,6 +27,7 @@ export class CleanExpiredSessionsCommandHandler
     private readonly sessionManagementService: SessionManagementDomainService,
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
+    private readonly publisher: EventPublisher,
   ) {}
 
   async execute(
@@ -56,13 +57,22 @@ export class CleanExpiredSessionsCommandHandler
           const cleanedVisitor =
             this.sessionManagementService.cleanExpiredSessions(visitor);
 
+          // Merge con EventPublisher para publicar eventos
+          const visitorContext =
+            this.publisher.mergeObjectContext(cleanedVisitor);
+
           // Guardar el visitante actualizado
-          const saveResult = await this.visitorRepository.save(cleanedVisitor);
+          const saveResult = await this.visitorRepository.save(visitorContext);
           if (saveResult.isErr()) {
             this.logger.warn(
               `Error al guardar visitante ${visitor.getId().getValue()}: ${saveResult.error.message}`,
             );
             continue;
+          }
+
+          // Commit eventos de sesiones cerradas
+          if (visitorContext && typeof visitorContext.commit === 'function') {
+            visitorContext.commit();
           }
 
           cleanedCount++;

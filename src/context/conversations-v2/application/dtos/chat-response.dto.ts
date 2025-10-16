@@ -152,7 +152,8 @@ export class ChatResponseDto {
   visitorInfo: VisitorInfoResponseDto;
 
   @ApiProperty({
-    description: 'ID del comercial asignado (DEPRECATED: usar assignedCommercial.id)',
+    description:
+      'ID del comercial asignado (DEPRECATED: usar assignedCommercial.id)',
     example: '550e8400-e29b-41d4-a716-446655440001',
     required: false,
     deprecated: true,

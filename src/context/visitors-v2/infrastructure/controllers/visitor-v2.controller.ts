@@ -157,7 +157,14 @@ export class VisitorV2Controller {
   @ApiOperation({
     summary: 'Actualizar heartbeat de sesión',
     description:
-      'Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). Mientras se reciban heartbeats, el visitante se considera online.',
+      'Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). ' +
+      'Mientras se reciban heartbeats, el visitante se considera online.\n\n' +
+      '**Frecuencia recomendada de heartbeat desde el frontend:**\n' +
+      '- Visitantes ANON: cada 30-60 segundos (timeout: 5 minutos)\n' +
+      '- Visitantes ENGAGED: cada 60-90 segundos (timeout: 15 minutos)\n' +
+      '- Visitantes LEAD: cada 2-3 minutos (timeout: 30 minutos)\n' +
+      '- Visitantes CONVERTED: cada 5 minutos (timeout: 60 minutos)\n\n' +
+      'El sistema verifica sesiones expiradas cada 5 minutos automáticamente.',
   })
   @ApiOkResponse({
     description: 'Heartbeat actualizado exitosamente',

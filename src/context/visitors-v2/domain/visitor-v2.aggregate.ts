@@ -263,6 +263,55 @@ export class VisitorV2 extends AggregateRoot {
   }
 
   /**
+   * Finaliza una sesión específica por su ID
+   */
+  public endSession(sessionId: SessionId): void {
+    const session = this.sessions.find(
+      (s) => s.getId().getValue() === sessionId.getValue(),
+    );
+    if (session && session.isActive()) {
+      const duration = session.getDuration();
+      session.end();
+      this.updatedAt = new Date();
+
+      // Emitir evento de sesión finalizada
+      this.apply(
+        new SessionEndedEvent({
+          visitorId: this.id.getValue(),
+          sessionId: session.getId().getValue(),
+          endedAt: session.getEndedAt()!.toISOString(),
+          duration,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Finaliza todas las sesiones activas que cumplan con un predicado
+   */
+  public endSessionsWhere(predicate: (session: Session) => boolean): void {
+    const sessionsToEnd = this.sessions.filter(
+      (session) => session.isActive() && predicate(session),
+    );
+
+    sessionsToEnd.forEach((session) => {
+      const duration = session.getDuration();
+      session.end();
+      this.updatedAt = new Date();
+
+      // Emitir evento de sesión finalizada
+      this.apply(
+        new SessionEndedEvent({
+          visitorId: this.id.getValue(),
+          sessionId: session.getId().getValue(),
+          endedAt: session.getEndedAt()!.toISOString(),
+          duration,
+        }),
+      );
+    });
+  }
+
+  /**
    * Actualiza la actividad de la sesión actual
    */
   public updateSessionActivity(): void {

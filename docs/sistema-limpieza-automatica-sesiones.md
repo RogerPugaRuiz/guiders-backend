@@ -7,8 +7,9 @@ Sistema automático para desactivar las sesiones que no tienen respuesta o heart
 
 ### 1. SessionCleanupScheduler
 - **Ubicación**: `src/context/visitors-v2/infrastructure/schedulers/session-cleanup.scheduler.ts`
-- **Funcionalidad**: Ejecuta limpieza automática cada 15 minutos usando `@Cron`
+- **Funcionalidad**: Ejecuta limpieza automática cada 5 minutos usando `@Cron`
 - **Configuración**: Variables de entorno `SESSION_CLEANUP_ENABLED` y `SESSION_CLEANUP_BATCH_SIZE`
+- **Mejoras en logs**: Incluye duración de ejecución y emojis para facilitar monitoreo
 
 ### 2. CleanExpiredSessionsCommand & Handler
 - **Comando**: `src/context/visitors-v2/application/commands/clean-expired-sessions.command.ts`
@@ -38,11 +39,18 @@ SESSION_TIMEOUT_MS=900000
 
 ## Funcionamiento
 
-1. **Programación**: El scheduler se ejecuta automáticamente cada 15 minutos
+1. **Programación**: El scheduler se ejecuta automáticamente cada 5 minutos
 2. **Detección**: Busca visitantes con sesiones activas sin heartbeat reciente
 3. **Validación**: Usa SessionManagementDomainService para verificar expiración
 4. **Limpieza**: Finaliza las sesiones expiradas estableciendo `endedAt`
-5. **Logging**: Registra resultados de la operación
+5. **Logging**: Registra resultados de la operación con duración y emojis visuales
+
+**Tiempo máximo de cierre de sesión:**
+
+- ANON: 5 min timeout + 5 min scheduler = **máximo 10 minutos**
+- ENGAGED: 15 min timeout + 5 min scheduler = **máximo 20 minutos**
+- LEAD: 30 min timeout + 5 min scheduler = **máximo 35 minutos**
+- CONVERTED: 60 min timeout + 5 min scheduler = **máximo 65 minutos**
 
 ## Integración en Módulos
 

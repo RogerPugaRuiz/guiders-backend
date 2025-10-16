@@ -73,20 +73,13 @@ export class SessionManagementDomainServiceImpl
    */
   cleanExpiredSessions(visitor: VisitorV2): VisitorV2 {
     const timeout = this.determineTimeoutForVisitor(visitor);
-    const updatedVisitor = visitor;
 
-    const sessions = visitor.getSessions();
-    sessions.forEach((session) => {
-      if (
-        session.isActive() &&
-        timeout.isExpired(session.getLastActivityAt())
-      ) {
-        // Terminar la sesión activa expirada
-        updatedVisitor.endCurrentSession();
-      }
-    });
+    // Cerrar todas las sesiones activas que hayan expirado
+    visitor.endSessionsWhere((session) =>
+      timeout.isExpired(session.getLastActivityAt()),
+    );
 
-    return updatedVisitor;
+    return visitor;
   }
 
   /**
