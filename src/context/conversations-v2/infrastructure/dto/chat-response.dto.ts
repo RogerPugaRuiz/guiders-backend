@@ -10,18 +10,27 @@ export interface ChatPrimitives {
   [key: string]: any;
 }
 
+export interface AssignedCommercialData {
+  id: string;
+  name: string;
+}
+
 export class ChatResponseDto {
   id: string;
   assignedCommercialId?: string;
+  assignedCommercial?: AssignedCommercialData | null;
   status?: string;
   priority?: string;
   visitorId?: string;
   visitorInfo?: any;
   [key: string]: any;
 
-  static fromDomain(chat: {
-    toPrimitives: () => ChatPrimitives;
-  }): ChatResponseDto {
+  static fromDomain(
+    chat: {
+      toPrimitives: () => ChatPrimitives;
+    },
+    assignedCommercialData?: AssignedCommercialData | null,
+  ): ChatResponseDto {
     const primitives: Record<string, unknown> = chat.toPrimitives();
     const dto = new ChatResponseDto();
     // Asignar solo los campos conocidos
@@ -31,6 +40,17 @@ export class ChatResponseDto {
     if (typeof primitives.assignedCommercialId === 'string') {
       dto.assignedCommercialId = primitives.assignedCommercialId;
     }
+
+    // Enriquecer con datos del comercial si están disponibles
+    if (primitives.assignedCommercialId && assignedCommercialData) {
+      dto.assignedCommercial = {
+        id: assignedCommercialData.id,
+        name: assignedCommercialData.name,
+      };
+    } else {
+      dto.assignedCommercial = null;
+    }
+
     if (typeof primitives.status === 'string') {
       dto.status = primitives.status;
     }

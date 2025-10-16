@@ -9,6 +9,7 @@ import { CommercialModule } from '../commercial/commercial.module';
 import { TrackingModule } from '../tracking/tracking.module';
 import { WebSocketModule } from 'src/websocket/websocket.module';
 import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
+import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.module';
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
@@ -85,6 +86,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     forwardRef(() => VisitorsV2Module), // Para acceso al VisitorV2Repository
     forwardRef(() => TrackingModule), // Para acceso al TrackingEventRepository
     CommercialModule, // Para acceso al Commercial heartbeat service
+    AuthUserModule, // Para acceso a UserAccount queries
     MongooseModule.forFeature([
       { name: ChatSchema.name, schema: ChatSchemaDefinition },
       { name: MessageSchema.name, schema: MessageSchemaDefinition },

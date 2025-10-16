@@ -34,6 +34,7 @@ import { FindUserByKeycloakIdQueryHandler } from '../application/queries/find-us
 import { SyncUserWithKeycloakCommandHandler } from '../application/commands/sync-user-with-keycloak-command.handler';
 import { KeycloakRoleMapperService } from '../application/services/keycloak-role-mapper.service';
 import { VerifyRoleMappingQueryHandler } from '../application/queries/verify-role-mapping.query-handler';
+import { FindUserByIdQueryHandler } from '../application/queries/find-user-by-id.query-handler';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { VerifyRoleMappingQueryHandler } from '../application/queries/verify-rol
     TokenVerifyService,
     // handlers
     FindOneUserByIdQueryHandler,
+    FindUserByIdQueryHandler,
     CreateInviteCommandHandler,
     CreateAdminOnCompanyCreatedWithAdminEventHandler,
     CreateInviteOnUserAccountCreatedEventHandler,

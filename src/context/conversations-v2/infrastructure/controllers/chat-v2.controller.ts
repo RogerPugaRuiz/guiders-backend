@@ -59,6 +59,7 @@ import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-wi
 import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
 import { CreateChatWithMessageCommand } from '../../application/commands/create-chat-with-message.command';
 import { AssignChatToCommercialCommand } from '../../application/commands/assign-chat-to-commercial.command';
+import { FindUserByIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-id.query';
 
 // Interfaces para respuestas de comandos
 interface CreateChatWithMessageResult {
@@ -82,6 +83,39 @@ export class ChatV2Controller {
     private readonly queryBus: QueryBus,
     private readonly commandBus: CommandBus,
   ) {}
+
+  /**
+   * Método helper para obtener datos del comercial/usuario asignado
+   */
+  private async getCommercialData(
+    commercialId: string | undefined,
+  ): Promise<{ id: string; name: string } | null> {
+    if (!commercialId) {
+      return null;
+    }
+
+    try {
+      const user = await this.queryBus.execute(
+        new FindUserByIdQuery(commercialId),
+      );
+
+      if (user) {
+        const userName = user.name.value;
+        return {
+          id: commercialId,
+          name: userName,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo obtener datos del usuario ${commercialId}:`,
+        error,
+      );
+      return null;
+    }
+  }
 
   /**
    * Crea un nuevo chat para el visitante autenticado
@@ -1114,7 +1148,13 @@ export class ChatV2Controller {
       if (result.isErr()) {
         throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
       }
-      return ChatResponseDto.fromDomain(result.unwrap());
+
+      // Obtener datos del comercial asignado
+      const chat = result.unwrap();
+      const assignedCommercialId = chat.toPrimitives().assignedCommercialId;
+      const commercialData = await this.getCommercialData(assignedCommercialId);
+
+      return ChatResponseDto.fromDomain(chat, commercialData);
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Error al obtener chat ${chatId}:`, error);
@@ -1569,8 +1609,11 @@ export class ChatV2Controller {
         throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
       }
 
-      // Retornar el DTO
-      return ChatResponseDto.fromDomain(chatResult.value);
+      // Obtener datos del comercial asignado
+      const commercialData = await this.getCommercialData(commercialId);
+
+      // Retornar el DTO con datos del comercial
+      return ChatResponseDto.fromDomain(chatResult.value, commercialData);
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

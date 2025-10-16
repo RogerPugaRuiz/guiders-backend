@@ -1,4 +1,4 @@
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs';
 import { GetChatsWithFiltersQuery } from './get-chats-with-filters.query';
 import { Chat } from '../../domain/entities/chat.aggregate';
 import { Inject, Logger } from '@nestjs/common';
@@ -12,6 +12,7 @@ import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base6
 import { ChatListResponseDto } from '../dtos/chat-response.dto';
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
+import { FindUserByIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-id.query';
 
 /**
  * Handler para obtener chats con filtros avanzados y paginación con cursor
@@ -25,7 +26,47 @@ export class GetChatsWithFiltersQueryHandler
   constructor(
     @Inject(CHAT_V2_REPOSITORY)
     private readonly chatRepository: IChatRepository,
+    private readonly queryBus: QueryBus,
   ) {}
+
+  /**
+   * Obtiene los datos del comercial/usuario por su ID
+   */
+  private async getCommercialData(
+    commercialId: string | undefined,
+  ): Promise<{ id: string; name: string } | null> {
+    if (!commercialId) {
+      this.logger.log('[getCommercialData] commercialId es undefined o null');
+      return null;
+    }
+
+    try {
+      this.logger.log(`[getCommercialData] → Ejecutando FindUserByIdQuery para ID: ${commercialId}`);
+      const user = await this.queryBus.execute(
+        new FindUserByIdQuery(commercialId),
+      );
+
+      this.logger.log(`[getCommercialData] ← Resultado: ${user ? '✓ Usuario encontrado' : '✗ Usuario NO encontrado'}`);
+
+      if (user) {
+        const userName = user.name.value;
+        this.logger.log(`[getCommercialData] ✓ Retornando datos: { id: ${commercialId}, name: "${userName}" }`);
+        return {
+          id: commercialId,
+          name: userName,
+        };
+      }
+
+      this.logger.warn(`[getCommercialData] ✗ Usuario ${commercialId} no encontrado, retornando NULL`);
+      return null;
+    } catch (error) {
+      this.logger.error(
+        `[getCommercialData] ERROR al obtener datos del usuario ${commercialId}:`,
+        error,
+      );
+      return null;
+    }
+  }
 
   async execute(query: GetChatsWithFiltersQuery): Promise<ChatListResponseDto> {
     const { userId, userRole, filters, sort, cursor, limit } = query;
@@ -225,10 +266,39 @@ export class GetChatsWithFiltersQueryHandler
       const total = totalResult.isOk() ? totalResult.value.length : 0;
       this.logger.log(`Total de chats encontrados: ${total}`);
 
+      // Obtener IDs únicos de comerciales para enriquecer datos
+      this.logger.log(`Obteniendo datos de comerciales asignados...`);
+      const commercialIds = [
+        ...new Set(
+          chats
+            .map((chat) => chat.toPrimitives().assignedCommercialId)
+            .filter((id): id is string => !!id),
+        ),
+      ];
+
+      // Obtener datos de todos los comerciales en paralelo
+      const commercialsDataMap = new Map<
+        string,
+        { id: string; name: string }
+      >();
+      await Promise.all(
+        commercialIds.map(async (commercialId) => {
+          const commercialData =
+            await this.getCommercialData(commercialId);
+          if (commercialData) {
+            commercialsDataMap.set(commercialId, commercialData);
+          }
+        }),
+      );
+
       // Mapear a DTOs de respuesta
       this.logger.log(`Mapeando ${chats.length} chats a DTOs...`);
       const chatDtos = chats.map((chat) => {
         const primitives = chat.toPrimitives();
+        const commercialData = primitives.assignedCommercialId
+          ? commercialsDataMap.get(primitives.assignedCommercialId)
+          : null;
+
         return {
           id: primitives.id,
           status: primitives.status,
@@ -249,6 +319,12 @@ export class GetChatsWithFiltersQueryHandler
             },
           },
           assignedCommercialId: primitives.assignedCommercialId,
+          assignedCommercial: commercialData
+            ? {
+                id: commercialData.id,
+                name: commercialData.name,
+              }
+            : null,
           availableCommercialIds: primitives.availableCommercialIds,
           metadata: {
             department: primitives.metadata?.department || '',
