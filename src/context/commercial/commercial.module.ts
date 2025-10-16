@@ -10,6 +10,7 @@ import { COMMERCIAL_REPOSITORY } from './domain/commercial.repository';
 import { GetAvailableCommercialsQueryHandler } from './application/queries/get-available-commercials.query-handler';
 import { GetOnlineCommercialsQueryHandler } from './application/queries/get-online-commercials.query-handler';
 import { GetCommercialConnectionStatusQueryHandler } from './application/queries/get-commercial-connection-status.query-handler';
+import { GetCommercialByIdQueryHandler } from './application/queries/get-commercial-by-id.query-handler';
 
 // Application - Commands
 import { ConnectCommercialCommandHandler } from './application/commands/connect-commercial.command-handler';
@@ -58,6 +59,7 @@ import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas
     GetAvailableCommercialsQueryHandler,
     GetOnlineCommercialsQueryHandler,
     GetCommercialConnectionStatusQueryHandler,
+    GetCommercialByIdQueryHandler,
 
     // Command Handlers
     ConnectCommercialCommandHandler,
