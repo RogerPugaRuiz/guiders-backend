@@ -6,6 +6,7 @@ import {
   UserAccountRepository,
 } from '../../domain/user-account.repository';
 import { UserAccount } from '../../domain/user-account.aggregate';
+import { UserAccountKeycloakId } from '../../domain/value-objects/user-account-keycloak-id';
 
 /**
  * Handler para la query FindUserByIdQuery
@@ -25,12 +26,21 @@ export class FindUserByIdQueryHandler
   async execute(query: FindUserByIdQuery): Promise<UserAccount | null> {
     try {
       this.logger.log(`[FindUserByIdQuery] Buscando usuario con ID: ${query.userId}`);
-      const user = await this.userRepository.findById(query.userId);
+
+      // First try by internal ID
+      let user = await this.userRepository.findById(query.userId);
+
+      if (!user) {
+        // Try by Keycloak ID
+        this.logger.log(`[FindUserByIdQuery] No encontrado por ID interno, intentando con Keycloak ID...`);
+        const keycloakId = new UserAccountKeycloakId(query.userId);
+        user = await this.userRepository.findByKeycloakId(keycloakId);
+      }
 
       if (user) {
         this.logger.log(`[FindUserByIdQuery] ✓ Usuario encontrado: ID=${query.userId}, Name=${user.name.value}, Email=${user.email.value}`);
       } else {
-        this.logger.warn(`[FindUserByIdQuery] ✗ Usuario con ID ${query.userId} NO ENCONTRADO en la base de datos`);
+        this.logger.warn(`[FindUserByIdQuery] ✗ Usuario con ID ${query.userId} NO ENCONTRADO ni por ID interno ni por Keycloak ID`);
       }
 
       return user;
