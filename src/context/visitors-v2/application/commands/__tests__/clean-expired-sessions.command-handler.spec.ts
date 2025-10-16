@@ -18,6 +18,10 @@ import { SessionId } from '../../../domain/value-objects/session-id';
 import { VisitorLifecycle } from '../../../domain/value-objects/visitor-lifecycle';
 import { ok, okVoid } from '../../../../shared/domain/result';
 
+interface VisitorWithCommit extends VisitorV2 {
+  commit: () => void;
+}
+
 describe('CleanExpiredSessionsCommandHandler', () => {
   let handler: CleanExpiredSessionsCommandHandler;
   let visitorRepository: jest.Mocked<VisitorV2Repository>;
@@ -119,7 +123,7 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       // Mock event publisher
       const mockCommit = jest.fn();
       eventPublisher.mergeObjectContext.mockImplementation((visitor) => {
-        const merged = visitor as VisitorV2 & { commit: () => void };
+        const merged = visitor as VisitorWithCommit;
         merged.commit = mockCommit;
         return merged;
       });
@@ -269,7 +273,7 @@ describe('CleanExpiredSessionsCommandHandler', () => {
 
       const mockCommit = jest.fn();
       eventPublisher.mergeObjectContext.mockImplementation((visitor) => {
-        const merged = visitor as VisitorV2 & { commit: () => void };
+        const merged = visitor as VisitorWithCommit;
         merged.commit = mockCommit;
         return merged;
       });
