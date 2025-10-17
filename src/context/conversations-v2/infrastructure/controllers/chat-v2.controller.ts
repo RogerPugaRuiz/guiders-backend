@@ -1331,6 +1331,210 @@ export class ChatV2Controller {
   }
 
   /**
+   * Obtiene el chat asignado a un comercial para un visitante específico
+   * Requiere autenticación de comercial
+   * Soporta autenticación por JWT (Bearer token) o sesión BFF (Keycloak)
+   */
+  @Get('visitor/:visitorId/my-chat')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
+  @ApiBearerAuth()
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary: 'Obtener chat asignado a comercial para un visitante específico',
+    description:
+      'Retorna el chat asociado a un visitante específico donde el comercial autenticado esté asignado. ' +
+      'Útil para que un comercial pueda verificar si tiene un chat activo con un visitante. ' +
+      'Si hay múltiples chats, retorna el más reciente. ' +
+      'Soporta autenticación por JWT Bearer token o sesión BFF (cookie de Keycloak).',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID del visitante',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Chat encontrado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        chats: {
+          type: 'array',
+          description:
+            'Lista de chats del visitante asignados al comercial autenticado',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'chat-123' },
+              visitorId: { type: 'string', example: 'visitor-456' },
+              assignedCommercialId: {
+                type: 'string',
+                example: 'commercial-789',
+              },
+              status: { type: 'string', example: 'ACTIVE' },
+              priority: { type: 'string', example: 'HIGH' },
+              createdAt: {
+                type: 'string',
+                format: 'date-time',
+                example: '2025-07-28T10:30:00.000Z',
+              },
+              lastMessageDate: {
+                type: 'string',
+                format: 'date-time',
+                example: '2025-07-28T11:15:00.000Z',
+                nullable: true,
+              },
+            },
+          },
+        },
+        total: {
+          type: 'number',
+          description:
+            'Número total de chats asignados al comercial para este visitante',
+          example: 1,
+        },
+        totalVisitorChats: {
+          type: 'number',
+          description:
+            'Número total de chats del visitante sin filtrar por comercial asignado',
+          example: 3,
+        },
+        hasMore: {
+          type: 'boolean',
+          description: 'Indica si hay más chats disponibles',
+          example: false,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o sesión BFF (Keycloak)',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 401 },
+        message: {
+          type: 'string',
+          example: 'Token de autenticación requerido',
+        },
+        error: { type: 'string', example: 'Unauthorized' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Usuario sin permisos suficientes - Requiere rol de comercial, admin o supervisor',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 403 },
+        message: {
+          type: 'string',
+          example: 'Acceso denegado. Permisos insuficientes.',
+        },
+        error: { type: 'string', example: 'Forbidden' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'No se encontró ningún chat asignado a este comercial para el visitante',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async getMyVisitorChat(
+    @Param('visitorId') visitorId: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatListResponseDto & { totalVisitorChats: number }> {
+    try {
+      const commercialId = req.user.id;
+
+      this.logger.log(
+        `Obteniendo chat del visitante ${visitorId} asignado al comercial ${commercialId}`,
+      );
+
+      // Crear filtros para buscar chats del visitante asignados al comercial autenticado
+      const filters = {
+        visitorId: visitorId,
+        assignedCommercialId: commercialId,
+      };
+
+      // Usar el query handler existente con filtros específicos
+      const query = GetChatsWithFiltersQuery.create({
+        userId: commercialId,
+        userRole: 'admin', // Usar admin para evitar filtros automáticos adicionales
+        filters: filters,
+        sort: { field: 'createdAt', direction: 'DESC' }, // Más reciente primero
+        cursor: undefined,
+        limit: 20,
+      });
+
+      this.logger.log(`Query creado con filtros: ${JSON.stringify(filters)}`);
+
+      const result: ChatListResponseDto = await this.queryBus.execute(query);
+
+      this.logger.log(
+        `Resultado: ${result.total} chat(s) encontrado(s) para visitante ${visitorId} asignado(s) al comercial ${commercialId}`,
+      );
+
+      // Consulta adicional: obtener total de chats del visitante sin filtrar por comercial
+      const totalVisitorFilters = {
+        visitorId: visitorId,
+        // No incluir assignedCommercialId para obtener todos los chats del visitante
+      };
+
+      const totalVisitorQuery = GetChatsWithFiltersQuery.create({
+        userId: commercialId,
+        userRole: 'admin',
+        filters: totalVisitorFilters,
+        sort: { field: 'createdAt', direction: 'DESC' },
+        cursor: undefined,
+        limit: 1, // Solo necesitamos el total, no los datos
+      });
+
+      this.logger.log(
+        `Obteniendo total de chats del visitante sin filtro de comercial...`,
+      );
+
+      const totalVisitorResult: ChatListResponseDto =
+        await this.queryBus.execute(totalVisitorQuery);
+
+      this.logger.log(
+        `Total de chats del visitante ${visitorId} (sin filtro de comercial): ${totalVisitorResult.total}`,
+      );
+
+      return {
+        ...result,
+        totalVisitorChats: totalVisitorResult.total,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al obtener chat del visitante ${visitorId} para comercial ${req.user.id}:`,
+        error,
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
    * Obtiene la cola de chats pendientes
    * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
