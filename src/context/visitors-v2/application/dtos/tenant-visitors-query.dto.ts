@@ -1,6 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Min, IsEnum } from 'class-validator';
+
+/**
+ * Campos disponibles para ordenamiento
+ */
+export enum SortField {
+  LAST_ACTIVITY = 'lastActivity',
+  CREATED_AT = 'createdAt',
+}
+
+/**
+ * Orden de clasificación
+ */
+export enum SortOrder {
+  ASC = 'asc',
+  DESC = 'desc',
+}
 
 /**
  * DTO para parámetros de consulta de visitantes del tenant
@@ -47,6 +63,31 @@ export class TenantVisitorsQueryDto {
   @IsInt({ message: 'El offset debe ser un número entero' })
   @Min(0, { message: 'El offset debe ser mayor o igual a 0' })
   offset?: number = 0;
+
+  @ApiProperty({
+    description: 'Campo por el cual ordenar los resultados',
+    required: false,
+    enum: SortField,
+    default: SortField.LAST_ACTIVITY,
+    example: SortField.LAST_ACTIVITY,
+  })
+  @IsOptional()
+  @IsEnum(SortField, {
+    message: 'El campo de ordenamiento debe ser "lastActivity" o "createdAt"',
+  })
+  sortBy?: SortField = SortField.LAST_ACTIVITY;
+
+  @ApiProperty({
+    description:
+      'Orden de clasificación: ascendente (asc) o descendente (desc)',
+    required: false,
+    enum: SortOrder,
+    default: SortOrder.DESC,
+    example: SortOrder.DESC,
+  })
+  @IsOptional()
+  @IsEnum(SortOrder, { message: 'El orden debe ser "asc" o "desc"' })
+  sortOrder?: SortOrder = SortOrder.DESC;
 }
 
 /**

@@ -21,6 +21,34 @@ GET /api/site-visitors/:siteId/visitors
 | `limit` | number | Número máximo de visitantes por página | 50 | 1-100 |
 | `offset` | number | Número de registros a omitir | 0 | >= 0 |
 | `includeOffline` | boolean | Incluir visitantes offline | false | true/false |
+| `sortBy` | string | Campo por el cual ordenar | 'lastActivity' | 'lastActivity', 'createdAt' |
+| `sortOrder` | string | Orden de clasificación | 'desc' | 'asc', 'desc' |
+
+---
+
+## Ordenamiento
+
+Los resultados pueden ordenarse por actividad reciente o fecha de creación:
+
+### Actividad más reciente primero (por defecto)
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?sortBy=lastActivity&sortOrder=desc
+```
+
+### Actividad menos reciente primero
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?sortBy=lastActivity&sortOrder=asc
+```
+
+### Por fecha de creación (más antiguos primero)
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?sortBy=createdAt&sortOrder=asc
+```
+
+### Por fecha de creación (más recientes primero)
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?sortBy=createdAt&sortOrder=desc
+```
 
 ---
 
@@ -169,7 +197,7 @@ class VisitorPagination {
     
     const response = await fetch(
       `/api/tenant-visitors/${this.tenantId}/visitors?` +
-      `limit=${this.state.pageSize}&offset=${offset}&includeOffline=true`
+      `limit=${this.state.pageSize}&offset=${offset}&includeOffline=true&sortBy=lastActivity&sortOrder=desc`
     );
     
     const data = await response.json();
@@ -473,16 +501,30 @@ export default VisitorsList;
 
 ## Filtros Adicionales
 
-Puedes combinar la paginación con otros filtros:
+Puedes combinar la paginación con otros filtros y ordenamiento:
 
-### Solo visitantes online (primera página de 50)
+### Solo visitantes online ordenados por actividad reciente (primera página de 50)
+
 ```bash
-GET /api/tenant-visitors/:tenantId/visitors?limit=50&offset=0&includeOffline=false
+GET /api/tenant-visitors/:tenantId/visitors?limit=50&offset=0&includeOffline=false&sortBy=lastActivity&sortOrder=desc
 ```
 
-### Visitantes offline incluidos (página 3 de 20)
+### Visitantes offline incluidos ordenados por fecha de creación (página 3 de 20)
+
 ```bash
-GET /api/tenant-visitors/:tenantId/visitors?limit=20&offset=40&includeOffline=true
+GET /api/tenant-visitors/:tenantId/visitors?limit=20&offset=40&includeOffline=true&sortBy=createdAt&sortOrder=asc
+```
+
+### Visitantes más antiguos primero (página 1 de 100)
+
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?limit=100&offset=0&sortBy=createdAt&sortOrder=asc
+```
+
+### Últimas actividades recientes con offline incluido
+
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?limit=20&offset=0&includeOffline=true&sortBy=lastActivity&sortOrder=desc
 ```
 
 ---
@@ -615,5 +657,16 @@ describe('Visitor Pagination', () => {
 | Primera página (50) | `?limit=50&offset=0` |
 | Segunda página (50) | `?limit=50&offset=50` |
 | Con offline incluidos | `?limit=20&offset=0&includeOffline=true` |
+| Ordenar por actividad reciente | `?limit=20&offset=0&sortBy=lastActivity&sortOrder=desc` |
+| Ordenar por actividad antigua | `?limit=20&offset=0&sortBy=lastActivity&sortOrder=asc` |
+| Ordenar por creación reciente | `?limit=20&offset=0&sortBy=createdAt&sortOrder=desc` |
+| Ordenar por creación antigua | `?limit=20&offset=0&sortBy=createdAt&sortOrder=asc` |
 
 **Fórmula:** `offset = (página - 1) × límite`
+
+**Valores por defecto:**
+- `limit`: 50
+- `offset`: 0
+- `includeOffline`: false
+- `sortBy`: lastActivity
+- `sortOrder`: desc (más recientes primero)

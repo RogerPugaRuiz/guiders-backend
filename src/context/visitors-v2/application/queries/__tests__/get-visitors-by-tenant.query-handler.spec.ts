@@ -507,4 +507,163 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       expect(result.visitors[0].totalChatsCount).toBe(0);
     });
   });
+
+  describe('ordenamiento de resultados', () => {
+    it('debe pasar los parámetros de ordenamiento al repositorio cuando se especifican', async () => {
+      // Arrange
+      const mockVisitors: VisitorV2[] = [
+        VisitorV2.fromPrimitives({
+          id: Uuid.random().value,
+          fingerprint: 'fp_visitor_1',
+          tenantId,
+          siteId,
+          lifecycle: VisitorLifecycle.ANON,
+          hasAcceptedPrivacyPolicy: true,
+          privacyPolicyAcceptedAt: new Date().toISOString(),
+          consentVersion: 'v1.0',
+          sessions: [
+            {
+              id: Uuid.random().value,
+              startedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+            },
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+      ];
+
+      const paginatedResult: PaginatedVisitorsResult = {
+        visitors: mockVisitors,
+        totalCount: 1,
+      };
+
+      mockVisitorRepository.findByTenantIdWithDetails.mockResolvedValue(
+        ok(paginatedResult),
+      );
+
+      mockCompanyRepository.findById.mockResolvedValue(
+        ok({
+          toPrimitives: () => ({
+            companyName: 'Test Company',
+          }),
+          getSites: () => ({
+            toPrimitives: () => [
+              {
+                id: siteId,
+                name: 'Test Site',
+                canonicalDomain: 'test.com',
+              },
+            ],
+          }),
+        } as any),
+      );
+
+      mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
+
+      // Act
+      const query = GetVisitorsByTenantQuery.create({
+        tenantId,
+        includeOffline: true,
+        limit: 10,
+        offset: 0,
+        sortBy: 'lastActivity',
+        sortOrder: 'desc',
+      });
+
+      await handler.execute(query);
+
+      // Assert
+      expect(
+        mockVisitorRepository.findByTenantIdWithDetails,
+      ).toHaveBeenCalledWith(
+        expect.any(TenantId),
+        expect.objectContaining({
+          includeOffline: true,
+          limit: 10,
+          offset: 0,
+          sortBy: 'lastActivity',
+          sortOrder: 'desc',
+        }),
+      );
+    });
+
+    it('debe funcionar con sortBy=createdAt y sortOrder=asc', async () => {
+      // Arrange
+      const mockVisitors: VisitorV2[] = [
+        VisitorV2.fromPrimitives({
+          id: Uuid.random().value,
+          fingerprint: 'fp_visitor_1',
+          tenantId,
+          siteId,
+          lifecycle: VisitorLifecycle.ANON,
+          hasAcceptedPrivacyPolicy: true,
+          privacyPolicyAcceptedAt: new Date().toISOString(),
+          consentVersion: 'v1.0',
+          sessions: [
+            {
+              id: Uuid.random().value,
+              startedAt: new Date().toISOString(),
+              lastActivityAt: new Date().toISOString(),
+            },
+          ],
+          createdAt: new Date(2025, 0, 1).toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+      ];
+
+      const paginatedResult: PaginatedVisitorsResult = {
+        visitors: mockVisitors,
+        totalCount: 1,
+      };
+
+      mockVisitorRepository.findByTenantIdWithDetails.mockResolvedValue(
+        ok(paginatedResult),
+      );
+
+      mockCompanyRepository.findById.mockResolvedValue(
+        ok({
+          toPrimitives: () => ({
+            companyName: 'Test Company',
+          }),
+          getSites: () => ({
+            toPrimitives: () => [
+              {
+                id: siteId,
+                name: 'Test Site',
+                canonicalDomain: 'test.com',
+              },
+            ],
+          }),
+        } as any),
+      );
+
+      mockChatRepository.getPendingQueue.mockResolvedValue(ok([]));
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
+
+      // Act
+      const query = GetVisitorsByTenantQuery.create({
+        tenantId,
+        includeOffline: true,
+        limit: 10,
+        offset: 0,
+        sortBy: 'createdAt',
+        sortOrder: 'asc',
+      });
+
+      await handler.execute(query);
+
+      // Assert
+      expect(
+        mockVisitorRepository.findByTenantIdWithDetails,
+      ).toHaveBeenCalledWith(
+        expect.any(TenantId),
+        expect.objectContaining({
+          sortBy: 'createdAt',
+          sortOrder: 'asc',
+        }),
+      );
+    });
+  });
 });

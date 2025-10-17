@@ -127,6 +127,8 @@ export interface VisitorV2Repository {
       includeOffline?: boolean;
       limit?: number;
       offset?: number;
+      sortBy?: string;
+      sortOrder?: string;
     },
   ): Promise<Result<PaginatedVisitorsResult, DomainError>>;
 

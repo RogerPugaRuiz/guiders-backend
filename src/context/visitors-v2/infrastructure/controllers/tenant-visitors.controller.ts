@@ -71,7 +71,7 @@ export class TenantVisitorsController {
     @Query() queryParams: TenantVisitorsQueryDto,
   ): Promise<TenantVisitorsResponseDto> {
     this.logger.log(
-      `Obteniendo visitantes para tenant ${tenantId}, includeOffline: ${queryParams.includeOffline}`,
+      `Obteniendo visitantes para tenant ${tenantId}, includeOffline: ${queryParams.includeOffline}, sortBy: ${queryParams.sortBy}, sortOrder: ${queryParams.sortOrder}`,
     );
 
     const query = GetVisitorsByTenantQuery.create({
@@ -79,6 +79,8 @@ export class TenantVisitorsController {
       includeOffline: queryParams.includeOffline,
       limit: queryParams.limit,
       offset: queryParams.offset,
+      sortBy: queryParams.sortBy,
+      sortOrder: queryParams.sortOrder,
     });
 
     return await this.queryBus.execute(query);

@@ -52,6 +52,8 @@ export class GetVisitorsByTenantQueryHandler
           includeOffline: query.includeOffline,
           limit: query.limit,
           offset: query.offset,
+          sortBy: query.sortBy,
+          sortOrder: query.sortOrder,
         });
 
       if (visitorsResult.isErr()) {

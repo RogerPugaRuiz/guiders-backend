@@ -520,6 +520,8 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       includeOffline?: boolean;
       limit?: number;
       offset?: number;
+      sortBy?: string;
+      sortOrder?: string;
     },
   ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
     try {
@@ -547,8 +549,25 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         `📊 Total de visitantes encontrados para tenant ${tenantId.value}: ${totalCount}`,
       );
 
-      // Aplicar paginación para obtener los datos
+      // Aplicar paginación y ordenamiento para obtener los datos
       const query = this.visitorModel.find(filter);
+
+      // Aplicar ordenamiento
+      if (options?.sortBy && options?.sortOrder) {
+        const sortField = this.mapSortFieldToMongoField(options.sortBy);
+        const sortDirection = options.sortOrder === 'asc' ? 1 : -1;
+
+        this.logger.debug(
+          `📋 Ordenando por ${sortField} (${options.sortOrder})`,
+        );
+
+        // Para lastActivity, ordenamos por updatedAt como proxy
+        // ya que el cálculo real de lastActivity se hace en el handler
+        query.sort({ [sortField]: sortDirection });
+      } else {
+        // Ordenamiento por defecto: updatedAt descendente (más recientes primero)
+        query.sort({ updatedAt: -1 });
+      }
 
       if (options?.offset) {
         query.skip(options.offset);
@@ -561,7 +580,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       const entities = await query.exec();
 
       this.logger.debug(
-        `� Devolviendo ${entities.length} visitantes de ${totalCount} totales para tenant ${tenantId.value}`,
+        `📦 Devolviendo ${entities.length} visitantes de ${totalCount} totales para tenant ${tenantId.value}`,
       );
 
       const visitors = entities.map((entity) =>
@@ -576,6 +595,18 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       this.logger.error(errorMessage);
       return err(new VisitorV2PersistenceError(errorMessage));
     }
+  }
+
+  /**
+   * Mapea el campo de ordenamiento del DTO al campo de MongoDB
+   */
+  private mapSortFieldToMongoField(sortBy: string): string {
+    const fieldMap: Record<string, string> = {
+      lastActivity: 'updatedAt', // Usamos updatedAt como proxy de lastActivity
+      createdAt: 'createdAt',
+    };
+
+    return fieldMap[sortBy] || 'updatedAt';
   }
 
   findWithUnassignedChatsByTenantId(
