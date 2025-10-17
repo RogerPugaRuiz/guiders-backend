@@ -8,6 +8,7 @@ import { IsBoolean, IsInt, IsOptional, Min, IsEnum } from 'class-validator';
 export enum SortField {
   LAST_ACTIVITY = 'lastActivity',
   CREATED_AT = 'createdAt',
+  CONNECTION_STATUS = 'connectionStatus',
 }
 
 /**
@@ -73,7 +74,8 @@ export class TenantVisitorsQueryDto {
   })
   @IsOptional()
   @IsEnum(SortField, {
-    message: 'El campo de ordenamiento debe ser "lastActivity" o "createdAt"',
+    message:
+      'El campo de ordenamiento debe ser "lastActivity", "createdAt" o "connectionStatus"',
   })
   sortBy?: SortField = SortField.LAST_ACTIVITY;
 

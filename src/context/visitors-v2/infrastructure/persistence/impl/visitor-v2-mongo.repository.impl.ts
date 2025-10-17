@@ -542,6 +542,15 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         `🔍 Buscando visitantes para tenant ${tenantId.value}, includeOffline: ${options?.includeOffline}, filtro: ${JSON.stringify(filter)}`,
       );
 
+      // Si ordenamos por connectionStatus, usamos aggregation pipeline
+      if (options?.sortBy === 'connectionStatus') {
+        return this.findByTenantIdWithConnectionStatusSort(
+          tenantId,
+          filter,
+          options,
+        );
+      }
+
       // Obtener el count total SIN paginación
       const totalCount = await this.visitorModel.countDocuments(filter).exec();
 
@@ -598,12 +607,107 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
   }
 
   /**
+   * Busca visitantes ordenados por estado de conexión usando aggregation pipeline
+   */
+  private async findByTenantIdWithConnectionStatusSort(
+    _tenantId: TenantId,
+    baseFilter: Record<string, unknown>,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+      sortOrder?: string;
+    },
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
+    try {
+      const sortDirection = options?.sortOrder === 'asc' ? 1 : -1;
+
+      this.logger.debug(
+        `🔄 Usando aggregation pipeline para ordenar por connectionStatus (${options?.sortOrder})`,
+      );
+
+      // Pipeline de agregación que calcula el estado de conexión
+      const aggregationPipeline: unknown[] = [
+        // 1. Filtrar por tenant y sesiones activas si aplica
+        { $match: baseFilter },
+
+        // 2. Agregar campo calculado para estado de conexión
+        {
+          $addFields: {
+            hasActiveSessions: {
+              $anyElementTrue: {
+                $map: {
+                  input: { $ifNull: ['$sessions', []] },
+                  as: 'session',
+                  in: {
+                    $or: [
+                      { $eq: ['$$session.endedAt', null] },
+                      { $not: { $ifNull: ['$$session.endedAt', false] } },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        // 3. Ordenar por el campo calculado
+        { $sort: { hasActiveSessions: sortDirection, updatedAt: -1 } },
+      ];
+
+      // Primero obtener el total sin paginación
+      const countPipeline = [
+        ...aggregationPipeline,
+        { $count: 'total' } as any,
+      ];
+      const countResult = await this.visitorModel.aggregate(
+        countPipeline as any,
+      );
+      const totalCount = countResult.length > 0 ? countResult[0].total : 0;
+
+      this.logger.debug(
+        `📊 Total de visitantes con connectionStatus sort: ${totalCount}`,
+      );
+
+      // Aplicar paginación para los datos
+      if (options?.offset) {
+        aggregationPipeline.push({ $skip: options.offset });
+      }
+
+      if (options?.limit) {
+        aggregationPipeline.push({ $limit: options.limit });
+      }
+
+      const entities = await this.visitorModel.aggregate(
+        aggregationPipeline as any,
+      );
+
+      this.logger.debug(
+        `📦 Devolviendo ${entities.length} visitantes de ${totalCount} totales con connectionStatus sort`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok({ visitors, totalCount });
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con ordenamiento por connectionStatus: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  /**
    * Mapea el campo de ordenamiento del DTO al campo de MongoDB
    */
   private mapSortFieldToMongoField(sortBy: string): string {
     const fieldMap: Record<string, string> = {
       lastActivity: 'updatedAt', // Usamos updatedAt como proxy de lastActivity
       createdAt: 'createdAt',
+      connectionStatus: 'hasActiveSessions', // Campo calculado para estado de conexión
     };
 
     return fieldMap[sortBy] || 'updatedAt';

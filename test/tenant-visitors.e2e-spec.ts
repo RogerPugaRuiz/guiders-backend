@@ -568,6 +568,96 @@ describe('TenantVisitorsController (e2e)', () => {
       });
     });
 
+    describe('Ordenamiento por connectionStatus', () => {
+      it('debe ordenar por connectionStatus desc (online primero)', async () => {
+        const mockResponse = {
+          tenantId: validTenantId,
+          companyName: 'Test Company',
+          visitors: [
+            {
+              ...createMockVisitor('visitor-1', new Date(), new Date()),
+              connectionStatus: 'ONLINE',
+            },
+            {
+              ...createMockVisitor('visitor-2', new Date(), new Date()),
+              connectionStatus: 'ONLINE',
+            },
+            {
+              ...createMockVisitor('visitor-3', new Date(), new Date()),
+              connectionStatus: 'OFFLINE',
+            },
+          ],
+          totalCount: 3,
+          activeSitesCount: 1,
+          timestamp: new Date(),
+        };
+
+        queryBusMock.execute.mockResolvedValue(mockResponse);
+
+        const response = await authenticatedRequest(
+          `/tenant-visitors/${validTenantId}/visitors?sortBy=connectionStatus&sortOrder=desc&includeOffline=true`,
+        );
+
+        expect(response.status).toBe(200);
+        expect(queryBusMock.execute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sortBy: 'connectionStatus',
+            sortOrder: 'desc',
+          }),
+        );
+
+        // Verificar que online viene primero
+        const visitors = response.body.visitors;
+        expect(visitors[0].connectionStatus).toBe('ONLINE');
+        expect(visitors[1].connectionStatus).toBe('ONLINE');
+        expect(visitors[2].connectionStatus).toBe('OFFLINE');
+      });
+
+      it('debe ordenar por connectionStatus asc (offline primero)', async () => {
+        const mockResponse = {
+          tenantId: validTenantId,
+          companyName: 'Test Company',
+          visitors: [
+            {
+              ...createMockVisitor('visitor-3', new Date(), new Date()),
+              connectionStatus: 'OFFLINE',
+            },
+            {
+              ...createMockVisitor('visitor-1', new Date(), new Date()),
+              connectionStatus: 'ONLINE',
+            },
+            {
+              ...createMockVisitor('visitor-2', new Date(), new Date()),
+              connectionStatus: 'ONLINE',
+            },
+          ],
+          totalCount: 3,
+          activeSitesCount: 1,
+          timestamp: new Date(),
+        };
+
+        queryBusMock.execute.mockResolvedValue(mockResponse);
+
+        const response = await authenticatedRequest(
+          `/tenant-visitors/${validTenantId}/visitors?sortBy=connectionStatus&sortOrder=asc&includeOffline=true`,
+        );
+
+        expect(response.status).toBe(200);
+        expect(queryBusMock.execute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sortBy: 'connectionStatus',
+            sortOrder: 'asc',
+          }),
+        );
+
+        // Verificar que offline viene primero
+        const visitors = response.body.visitors;
+        expect(visitors[0].connectionStatus).toBe('OFFLINE');
+        expect(visitors[1].connectionStatus).toBe('ONLINE');
+        expect(visitors[2].connectionStatus).toBe('ONLINE');
+      });
+    });
+
     describe('Combinaciones de parámetros', () => {
       it('debe combinar paginación, filtros y ordenamiento', async () => {
         const mockResponse = {

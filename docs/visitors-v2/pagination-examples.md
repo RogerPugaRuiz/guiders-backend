@@ -21,7 +21,7 @@ GET /api/site-visitors/:siteId/visitors
 | `limit` | number | Número máximo de visitantes por página | 50 | 1-100 |
 | `offset` | number | Número de registros a omitir | 0 | >= 0 |
 | `includeOffline` | boolean | Incluir visitantes offline | false | true/false |
-| `sortBy` | string | Campo por el cual ordenar | 'lastActivity' | 'lastActivity', 'createdAt' |
+| `sortBy` | string | Campo por el cual ordenar | 'lastActivity' | 'lastActivity', 'createdAt', 'connectionStatus' |
 | `sortOrder` | string | Orden de clasificación | 'desc' | 'asc', 'desc' |
 
 ---
@@ -49,6 +49,18 @@ GET /api/tenant-visitors/:tenantId/visitors?sortBy=createdAt&sortOrder=asc
 ```bash
 GET /api/tenant-visitors/:tenantId/visitors?sortBy=createdAt&sortOrder=desc
 ```
+
+### Por estado de conexión (online primero)
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?sortBy=connectionStatus&sortOrder=desc&includeOffline=true
+```
+
+### Por estado de conexión (offline primero)
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?sortBy=connectionStatus&sortOrder=asc&includeOffline=true
+```
+
+**Nota:** Cuando ordenamos por `connectionStatus`, es útil incluir `includeOffline=true` para ver la diferencia entre visitantes online y offline.
 
 ---
 
@@ -527,6 +539,12 @@ GET /api/tenant-visitors/:tenantId/visitors?limit=100&offset=0&sortBy=createdAt&
 GET /api/tenant-visitors/:tenantId/visitors?limit=20&offset=0&includeOffline=true&sortBy=lastActivity&sortOrder=desc
 ```
 
+### Ordenar por estado de conexión con online primero
+
+```bash
+GET /api/tenant-visitors/:tenantId/visitors?limit=20&offset=0&includeOffline=true&sortBy=connectionStatus&sortOrder=desc
+```
+
 ---
 
 ## Casos Especiales
@@ -661,6 +679,8 @@ describe('Visitor Pagination', () => {
 | Ordenar por actividad antigua | `?limit=20&offset=0&sortBy=lastActivity&sortOrder=asc` |
 | Ordenar por creación reciente | `?limit=20&offset=0&sortBy=createdAt&sortOrder=desc` |
 | Ordenar por creación antigua | `?limit=20&offset=0&sortBy=createdAt&sortOrder=asc` |
+| Ordenar por estado (online primero) | `?limit=20&offset=0&sortBy=connectionStatus&sortOrder=desc&includeOffline=true` |
+| Ordenar por estado (offline primero) | `?limit=20&offset=0&sortBy=connectionStatus&sortOrder=asc&includeOffline=true` |
 
 **Fórmula:** `offset = (página - 1) × límite`
 
