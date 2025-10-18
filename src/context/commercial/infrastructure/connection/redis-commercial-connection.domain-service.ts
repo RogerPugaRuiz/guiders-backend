@@ -26,8 +26,10 @@ export class RedisCommercialConnectionDomainService
   );
   private client: RedisClientType;
   private readonly TTL_SECONDS = 300; // 5 minutos por defecto
+  private readonly TYPING_TTL_SECONDS = 3; // 3 segundos para typing indicator
   private readonly PREFIX_STATUS = 'commercial:status:'; // key -> status
   private readonly PREFIX_ACTIVITY = 'commercial:activity:'; // key -> timestamp
+  private readonly PREFIX_TYPING = 'commercial:typing:'; // commercial:typing:{commercialId}:{chatId} -> timestamp
   private readonly SET_ONLINE = 'commercials:online';
   private readonly SET_AVAILABLE = 'commercials:available';
   private readonly SET_BUSY = 'commercials:busy';
@@ -82,6 +84,8 @@ export class RedisCommercialConnectionDomainService
     } else if (connectionStatus.isBusy()) {
       await this.client.sAdd(this.SET_ONLINE, commercialId.value);
       await this.client.sAdd(this.SET_BUSY, commercialId.value);
+    } else if (connectionStatus.isAway()) {
+      await this.client.sAdd(this.SET_ONLINE, commercialId.value);
     }
   }
 
@@ -96,6 +100,9 @@ export class RedisCommercialConnectionDomainService
     }
     if (raw === 'busy') {
       return CommercialConnectionStatus.busy();
+    }
+    if (raw === 'away') {
+      return CommercialConnectionStatus.away();
     }
     return CommercialConnectionStatus.offline();
   }
@@ -234,6 +241,58 @@ export class RedisCommercialConnectionDomainService
     }
 
     return activeCommercials;
+  }
+
+  private typingKey(commercialId: CommercialId, chatId: string): string {
+    return `${this.PREFIX_TYPING}${commercialId.value}:${chatId}`;
+  }
+
+  async setTyping(commercialId: CommercialId, chatId: string): Promise<void> {
+    const key = this.typingKey(commercialId, chatId);
+    const timestamp = Date.now().toString();
+
+    await this.client
+      .multi()
+      .set(key, timestamp)
+      .expire(key, this.TYPING_TTL_SECONDS)
+      .exec();
+
+    this.logger.debug(
+      `Comercial ${commercialId.value} está escribiendo en chat ${chatId}`,
+    );
+  }
+
+  async isTyping(commercialId: CommercialId, chatId: string): Promise<boolean> {
+    const key = this.typingKey(commercialId, chatId);
+    const exists = await this.client.exists(key);
+    return exists === 1;
+  }
+
+  async clearTyping(commercialId: CommercialId, chatId: string): Promise<void> {
+    const key = this.typingKey(commercialId, chatId);
+    await this.client.del(key);
+    this.logger.debug(
+      `Comercial ${commercialId.value} dejó de escribir en chat ${chatId}`,
+    );
+  }
+
+  async getTypingInChat(chatId: string): Promise<CommercialId[]> {
+    // Buscar todas las keys que coincidan con el patrón: commercial:typing:*:{chatId}
+    const pattern = `${this.PREFIX_TYPING}*:${chatId}`;
+    const keys = await this.client.keys(pattern);
+
+    const typingCommercials: CommercialId[] = [];
+    for (const key of keys) {
+      // Extraer el commercialId del key
+      // Format: commercial:typing:{commercialId}:{chatId}
+      const parts = key.replace(this.PREFIX_TYPING, '').split(':');
+      if (parts.length === 2) {
+        const commercialIdValue = parts[0];
+        typingCommercials.push(new CommercialId(commercialIdValue));
+      }
+    }
+
+    return typingCommercials;
   }
 }
 

@@ -45,7 +45,7 @@ export class PartitionRouterService {
     this.modelCache.set(collectionName, model);
 
     // Asegurar índices (solo se crean una vez por collection)
-    this.ensureIndexes(model, collectionName);
+    void this.ensureIndexes(model, collectionName);
 
     return model;
   }

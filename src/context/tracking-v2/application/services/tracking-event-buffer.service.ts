@@ -224,13 +224,15 @@ export class TrackingEventBufferService implements OnModuleDestroy {
    * Inicia el timer de flush periódico
    */
   private startFlushTimer(): void {
-    this.flushTimer = setInterval(async () => {
-      if (this.buffer.length > 0) {
-        this.logger.debug(
-          `Flush periódico: ${this.buffer.length} eventos pendientes`,
-        );
-        await this.flush();
-      }
+    this.flushTimer = setInterval(() => {
+      void (async () => {
+        if (this.buffer.length > 0) {
+          this.logger.debug(
+            `Flush periódico: ${this.buffer.length} eventos pendientes`,
+          );
+          await this.flush();
+        }
+      })();
     }, this.config.flushIntervalMs);
   }
 

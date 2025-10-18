@@ -36,6 +36,12 @@ interface LeaveVisitorRoomPayload {
   visitorId: string;
 }
 
+interface TypingPayload {
+  chatId: string;
+  userId: string;
+  userType: 'commercial' | 'visitor';
+}
+
 /**
  * WebSocket Gateway para comunicación bidireccional en tiempo real
  * Soporta:
@@ -428,6 +434,96 @@ export class WebSocketGatewayBasic
       uptime: process.uptime(),
       message: 'WebSocket funcionando correctamente',
     };
+  }
+
+  /**
+   * Listener para indicar que un usuario está escribiendo
+   */
+  @SubscribeMessage('typing:start')
+  handleTypingStart(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: TypingPayload,
+  ) {
+    try {
+      const { chatId, userId, userType } = data;
+
+      if (!chatId || !userId || !userType) {
+        client.emit('error', {
+          message: 'chatId, userId y userType son requeridos',
+          timestamp: Date.now(),
+        });
+        return { success: false, message: 'Parámetros inválidos' };
+      }
+
+      // Emitir a todos los participantes del chat (excepto el remitente)
+      const roomName = `chat:${chatId}`;
+      client.to(roomName).emit('typing:start', {
+        chatId,
+        userId,
+        userType,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.debug(
+        `Usuario ${userId} (${userType}) está escribiendo en chat ${chatId}`,
+      );
+
+      return {
+        success: true,
+        message: 'Typing indicator iniciado',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al procesar typing start:`,
+        (error as Error).message,
+      );
+      return { success: false, message: 'Error al procesar typing start' };
+    }
+  }
+
+  /**
+   * Listener para indicar que un usuario dejó de escribir
+   */
+  @SubscribeMessage('typing:stop')
+  handleTypingStop(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: TypingPayload,
+  ) {
+    try {
+      const { chatId, userId, userType } = data;
+
+      if (!chatId || !userId || !userType) {
+        client.emit('error', {
+          message: 'chatId, userId y userType son requeridos',
+          timestamp: Date.now(),
+        });
+        return { success: false, message: 'Parámetros inválidos' };
+      }
+
+      // Emitir a todos los participantes del chat (excepto el remitente)
+      const roomName = `chat:${chatId}`;
+      client.to(roomName).emit('typing:stop', {
+        chatId,
+        userId,
+        userType,
+        timestamp: new Date().toISOString(),
+      });
+
+      this.logger.debug(
+        `Usuario ${userId} (${userType}) dejó de escribir en chat ${chatId}`,
+      );
+
+      return {
+        success: true,
+        message: 'Typing indicator detenido',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al procesar typing stop:`,
+        (error as Error).message,
+      );
+      return { success: false, message: 'Error al procesar typing stop' };
+    }
   }
 
   // Método para enviar mensajes broadcast (legacy - mantener por compatibilidad)

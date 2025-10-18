@@ -12,14 +12,6 @@ import {
   CompanyRepository,
 } from '../src/context/company/domain/company.repository';
 import { ApiKey } from '../src/context/auth/api-key/domain/model/api-key';
-import { ApiKeyValue } from '../src/context/auth/api-key/domain/model/api-key-value';
-import { ApiKeyDomain } from '../src/context/auth/api-key/domain/model/api-key-domain';
-import { ApiKeyCompanyId } from '../src/context/auth/api-key/domain/model/api-key-company-id';
-import { ApiKeyId } from '../src/context/auth/api-key/domain/model/api-key-id';
-import { ApiKeyKid } from '../src/context/auth/api-key/domain/model/api-key-kid';
-import { ApiKeyPublicKey } from '../src/context/auth/api-key/domain/model/api-key-public-key';
-import { ApiKeyPrivateKey } from '../src/context/auth/api-key/domain/model/api-key-private-key';
-import { ApiKeyCreatedAt } from '../src/context/auth/api-key/domain/model/api-key-created-at';
 import { Company } from '../src/context/company/domain/company.aggregate';
 import { ok, err } from '../src/context/shared/domain/result';
 import { DomainError } from '../src/context/shared/domain/domain.error';

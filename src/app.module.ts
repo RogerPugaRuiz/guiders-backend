@@ -23,6 +23,8 @@ import { TrackingV2Module } from './context/tracking-v2/tracking-v2.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConsentModule } from './context/consent/consent.module';
+import { PresenceInactivityScheduler } from './context/shared/infrastructure/schedulers/presence-inactivity.scheduler';
+import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/shared/infrastructure/events/notify-presence-changed-on-presence-changed.event-handler';
 
 @Module({
   imports: [
@@ -69,7 +71,12 @@ import { ConsentModule } from './context/consent/consent.module';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, TokenVerifyService],
+  providers: [
+    AppService,
+    TokenVerifyService,
+    PresenceInactivityScheduler,
+    NotifyPresenceChangedOnPresenceChangedEventHandler,
+  ],
 })
 export class AppModule {
   private readonly logger = new Logger(AppModule.name);

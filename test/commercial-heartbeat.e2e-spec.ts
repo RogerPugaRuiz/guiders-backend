@@ -8,7 +8,6 @@ describe('Commercial Heartbeat E2E', () => {
   let moduleFixture: TestingModule;
 
   const testCommercialId = '123e4567-e89b-12d3-a456-426614174000'; // UUID válido para tests
-  const testTenantId = 'test-tenant-456';
 
   beforeAll(async () => {
     moduleFixture = await Test.createTestingModule({
@@ -58,7 +57,7 @@ describe('Commercial Heartbeat E2E', () => {
       };
 
       // ID vacío pasa validación del DTO pero falla en el domain layer (CommercialId)
-      const response = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .post('/v2/commercials/connect')
         .send(connectDto)
         .expect(500);

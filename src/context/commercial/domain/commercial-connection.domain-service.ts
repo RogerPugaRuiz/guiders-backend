@@ -73,6 +73,26 @@ export interface CommercialConnectionDomainService {
    * Obtiene todos los comerciales activos (considerando timeout)
    */
   getActiveCommercials(timeoutMinutes?: number): Promise<CommercialId[]>;
+
+  /**
+   * Establece que un comercial está escribiendo en un chat
+   */
+  setTyping(commercialId: CommercialId, chatId: string): Promise<void>;
+
+  /**
+   * Obtiene si un comercial está escribiendo en un chat
+   */
+  isTyping(commercialId: CommercialId, chatId: string): Promise<boolean>;
+
+  /**
+   * Limpia el estado de "escribiendo" de un comercial en un chat
+   */
+  clearTyping(commercialId: CommercialId, chatId: string): Promise<void>;
+
+  /**
+   * Obtiene todos los comerciales que están escribiendo en un chat
+   */
+  getTypingInChat(chatId: string): Promise<CommercialId[]>;
 }
 
 /**

@@ -54,6 +54,12 @@ if (!process.env.TEST_DATABASE) {
   process.env.TEST_DATABASE = 'guiders_test';
 }
 
+// Deshabilitar schedulers en tests E2E para evitar timers que no se limpian
+process.env.PRESENCE_INACTIVITY_ENABLED = 'false';
+process.env.SESSION_CLEANUP_ENABLED = 'false';
+process.env.TRACKING_AUTO_CLEANUP_ENABLED = 'false';
+process.env.BUFFER_FLUSH_SCHEDULER_ENABLED = 'false';
+
 console.log('🔧 E2E Test Setup configurado');
 console.log(
   `🔧 MongoDB Test Host: ${process.env.TEST_MONGODB_HOST}:${process.env.TEST_MONGODB_PORT}`,
@@ -63,3 +69,4 @@ console.log(
   `🔧 PostgreSQL Test Host: ${process.env.TEST_DATABASE_HOST}:${process.env.TEST_DATABASE_PORT}`,
 );
 console.log(`🔧 PostgreSQL Test Database: ${process.env.TEST_DATABASE}`);
+console.log('🔧 Schedulers deshabilitados para tests E2E');

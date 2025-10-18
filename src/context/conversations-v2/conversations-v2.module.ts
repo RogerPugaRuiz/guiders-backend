@@ -14,6 +14,7 @@ import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.modul
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
 import { MessageV2Controller } from './infrastructure/controllers/message-v2.controller';
 import { AssignmentRulesController } from './infrastructure/controllers/assignment-rules.controller';
+import { PresenceController } from './infrastructure/controllers/presence.controller';
 
 // Infrastructure
 import {
@@ -52,6 +53,8 @@ import { AutoAssignChatCommandHandler } from './application/commands/auto-assign
 import { CreateAssignmentRulesCommandHandler } from './application/commands/create-assignment-rules.command-handler';
 import { AssignChatToCommercialCommandHandler } from './application/commands/assign-chat-to-commercial.command-handler';
 import { MarkMessagesAsReadCommandHandler } from './application/commands/mark-messages-as-read.command-handler';
+import { StartTypingCommandHandler } from './application/commands/start-typing.command-handler';
+import { StopTypingCommandHandler } from './application/commands/stop-typing.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
@@ -61,11 +64,14 @@ import { GetApplicableAssignmentRulesQueryHandler } from './application/queries/
 import { GetPendingQueueQueryHandler } from './application/queries/get-pending-queue.query-handler';
 import { GetVisitorPendingChatsQueryHandler } from './application/queries/get-visitor-pending-chats.query-handler';
 import { GetUnreadMessagesQueryHandler } from './application/queries/get-unread-messages.query-handler';
+import { GetChatPresenceQueryHandler } from './application/queries/get-chat-presence.query-handler';
 
 // Event Handlers
 import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
 import { NotifyMessageSentOnMessageSentEventHandler } from './application/events/notify-message-sent-on-message-sent.event-handler';
 import { NotifyChatCreatedOnChatCreatedEventHandler } from './application/events/notify-chat-created-on-chat-created.event-handler';
+import { NotifyTypingStartedOnTypingStartedEventHandler } from './application/events/notify-typing-started-on-typing-started.event-handler';
+import { NotifyTypingStoppedOnTypingStoppedEventHandler } from './application/events/notify-typing-stopped-on-typing-stopped.event-handler';
 
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
@@ -94,6 +100,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     ChatV2Controller,
     MessageV2Controller,
     AssignmentRulesController,
+    PresenceController,
   ],
   providers: [
     // Guards
@@ -149,6 +156,8 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     CreateAssignmentRulesCommandHandler,
     AssignChatToCommercialCommandHandler,
     MarkMessagesAsReadCommandHandler,
+    StartTypingCommandHandler,
+    StopTypingCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
 
@@ -160,11 +169,14 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     GetPendingQueueQueryHandler,
     GetVisitorPendingChatsQueryHandler,
     GetUnreadMessagesQueryHandler,
+    GetChatPresenceQueryHandler,
 
     // Event Handlers
     ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,
     NotifyMessageSentOnMessageSentEventHandler,
     NotifyChatCreatedOnChatCreatedEventHandler,
+    NotifyTypingStartedOnTypingStartedEventHandler,
+    NotifyTypingStoppedOnTypingStoppedEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

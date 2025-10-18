@@ -11,18 +11,7 @@ import {
   EventStats,
 } from '../src/context/tracking-v2/domain/tracking-event.repository';
 import { TrackingEventBufferService } from '../src/context/tracking-v2/application/services/tracking-event-buffer.service';
-import { TrackingEvent } from '../src/context/tracking-v2/domain/tracking-event.aggregate';
-import {
-  TrackingEventId,
-  VisitorId,
-  SessionId,
-  TenantId,
-  SiteId,
-  EventType,
-  EventMetadata,
-  EventOccurredAt,
-} from '../src/context/tracking-v2/domain/value-objects';
-import { Uuid } from '../src/context/shared/domain/value-objects/uuid';
+import { TenantId } from '../src/context/tracking-v2/domain/value-objects';
 import { ok, okVoid } from '../src/context/shared/domain/result';
 import { DomainError } from '../src/context/shared/domain/domain.error';
 
@@ -390,7 +379,7 @@ describe('Tracking V2 E2E', () => {
 
     it('debe rechazar fechas inválidas', async () => {
       // Act & Assert
-      const response = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(`/tracking-v2/stats/tenant/${mockTenantId}`)
         .query({ dateFrom: 'invalid-date' })
         .expect(200);

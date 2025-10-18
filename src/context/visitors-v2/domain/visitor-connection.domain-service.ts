@@ -1,5 +1,6 @@
 import { VisitorId } from './value-objects/visitor-id';
 import { VisitorConnectionVO } from './value-objects/visitor-connection';
+import { VisitorLastActivity } from './value-objects/visitor-last-activity';
 
 // Interfaz del domain service para gestionar conexiones de visitantes
 // Esta abstracción permite que el dominio interactúe con la infraestructura de conexiones
@@ -25,6 +26,33 @@ export interface VisitorConnectionDomainService {
 
   // Obtiene todos los visitantes que están online (incluye chatting)
   getOnlineVisitors(): Promise<VisitorId[]>;
+
+  // Establece que un visitante está escribiendo en un chat
+  setTyping(visitorId: VisitorId, chatId: string): Promise<void>;
+
+  // Obtiene si un visitante está escribiendo en un chat
+  isTyping(visitorId: VisitorId, chatId: string): Promise<boolean>;
+
+  // Limpia el estado de "escribiendo" de un visitante en un chat
+  clearTyping(visitorId: VisitorId, chatId: string): Promise<void>;
+
+  // Obtiene todos los visitantes que están escribiendo en un chat
+  getTypingInChat(chatId: string): Promise<VisitorId[]>;
+
+  // Actualiza la última actividad de un visitante (heartbeat)
+  updateLastActivity(
+    visitorId: VisitorId,
+    lastActivity: VisitorLastActivity,
+  ): Promise<void>;
+
+  // Obtiene la última actividad de un visitante
+  getLastActivity(visitorId: VisitorId): Promise<VisitorLastActivity>;
+
+  // Verifica si un visitante está activo (no expirado según timeout)
+  isVisitorActive(
+    visitorId: VisitorId,
+    timeoutMinutes?: number,
+  ): Promise<boolean>;
 }
 
 // Símbolo para inyección de dependencias

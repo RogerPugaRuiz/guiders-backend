@@ -230,7 +230,7 @@ export class TrackingV2Controller {
       },
     },
   })
-  async healthCheck(): Promise<{ status: string; timestamp: string }> {
+  healthCheck(): { status: string; timestamp: string } {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),

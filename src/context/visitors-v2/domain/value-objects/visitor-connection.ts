@@ -5,6 +5,7 @@ export enum ConnectionStatus {
   OFFLINE = 'offline', // Visitante desconectado
   ONLINE = 'online', // Visitante conectado pero no chateando
   CHATTING = 'chatting', // Visitante activo en chat
+  AWAY = 'away', // Visitante conectado pero inactivo
 }
 
 // Objeto de valor para manejar el estado de conexión del visitante
@@ -21,11 +22,12 @@ export class VisitorConnectionVO extends PrimitiveValueObject<ConnectionStatus> 
     return Object.values(ConnectionStatus).includes(value);
   }
 
-  // Verifica si el visitante está online (sin importar si está chateando)
+  // Verifica si el visitante está online (sin importar si está chateando o away)
   public isOnline(): boolean {
     return (
       this.value === ConnectionStatus.ONLINE ||
-      this.value === ConnectionStatus.CHATTING
+      this.value === ConnectionStatus.CHATTING ||
+      this.value === ConnectionStatus.AWAY
     );
   }
 
@@ -37,6 +39,11 @@ export class VisitorConnectionVO extends PrimitiveValueObject<ConnectionStatus> 
   // Verifica si el visitante está desconectado
   public isOffline(): boolean {
     return this.value === ConnectionStatus.OFFLINE;
+  }
+
+  // Verifica si el visitante está ausente (conectado pero inactivo)
+  public isAway(): boolean {
+    return this.value === ConnectionStatus.AWAY;
   }
 
   // Transición a online (desde offline)
@@ -66,5 +73,24 @@ export class VisitorConnectionVO extends PrimitiveValueObject<ConnectionStatus> 
   // Transición a offline (desde cualquier estado)
   public goOffline(): VisitorConnectionVO {
     return new VisitorConnectionVO(ConnectionStatus.OFFLINE);
+  }
+
+  // Transición a away (desde online o chatting)
+  public goAway(): VisitorConnectionVO {
+    if (
+      this.value !== ConnectionStatus.ONLINE &&
+      this.value !== ConnectionStatus.CHATTING
+    ) {
+      throw new Error('Solo se puede pasar a away desde online o chatting');
+    }
+    return new VisitorConnectionVO(ConnectionStatus.AWAY);
+  }
+
+  // Transición desde away a online
+  public returnFromAway(): VisitorConnectionVO {
+    if (this.value !== ConnectionStatus.AWAY) {
+      throw new Error('Solo se puede retornar desde away');
+    }
+    return new VisitorConnectionVO(ConnectionStatus.ONLINE);
   }
 }

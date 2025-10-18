@@ -156,24 +156,28 @@ export class MongoTrackingEventRepositoryImpl
    * Busca eventos que cumplen con criterios específicos
    * TODO: Implementar cuando se necesite Criteria pattern
    */
-  async match(
-    criteria: Criteria<TrackingEvent>,
+  match(
+    _criteria: Criteria<TrackingEvent>,
   ): Promise<Result<TrackingEvent[], DomainError>> {
     // Placeholder para futura implementación
-    return err(
-      new TrackingEventPersistenceError('Match con Criteria no implementado'),
+    return Promise.resolve(
+      err(
+        new TrackingEventPersistenceError('Match con Criteria no implementado'),
+      ),
     );
   }
 
   /**
    * Cuenta eventos que cumplen con criterios específicos
    */
-  async count(
-    criteria: Criteria<TrackingEvent>,
+  count(
+    _criteria: Criteria<TrackingEvent>,
   ): Promise<Result<number, DomainError>> {
     // Placeholder para futura implementación
-    return err(
-      new TrackingEventPersistenceError('Count con Criteria no implementado'),
+    return Promise.resolve(
+      err(
+        new TrackingEventPersistenceError('Count con Criteria no implementado'),
+      ),
     );
   }
 

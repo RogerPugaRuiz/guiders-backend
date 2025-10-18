@@ -2,9 +2,9 @@ import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-
 
 /**
  * Value Object para el estado de conexión del comercial
- * Define los posibles estados: online, offline, busy
+ * Define los posibles estados: online, offline, busy, away
  */
-const validStatuses = ['online', 'offline', 'busy'] as const;
+const validStatuses = ['online', 'offline', 'busy', 'away'] as const;
 type CommercialConnectionStatusType = (typeof validStatuses)[number];
 
 const isValidStatus = (value: string): boolean => {
@@ -16,7 +16,7 @@ export class CommercialConnectionStatus extends PrimitiveValueObject<string> {
     super(
       value,
       isValidStatus,
-      'El estado de conexión debe ser: online, offline o busy',
+      'El estado de conexión debe ser: online, offline, busy o away',
     );
   }
 
@@ -32,6 +32,10 @@ export class CommercialConnectionStatus extends PrimitiveValueObject<string> {
     return new CommercialConnectionStatus('busy');
   }
 
+  public static away(): CommercialConnectionStatus {
+    return new CommercialConnectionStatus('away');
+  }
+
   public isOnline(): boolean {
     return this.value === 'online';
   }
@@ -42,5 +46,13 @@ export class CommercialConnectionStatus extends PrimitiveValueObject<string> {
 
   public isBusy(): boolean {
     return this.value === 'busy';
+  }
+
+  public isAway(): boolean {
+    return this.value === 'away';
+  }
+
+  public isAvailable(): boolean {
+    return this.value === 'online';
   }
 }

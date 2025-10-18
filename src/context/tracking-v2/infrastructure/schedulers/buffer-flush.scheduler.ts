@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { TrackingEventBufferService } from '../../application/services';
 
 /**
@@ -12,9 +12,12 @@ import { TrackingEventBufferService } from '../../application/services';
 @Injectable()
 export class BufferFlushScheduler {
   private readonly logger = new Logger(BufferFlushScheduler.name);
+  private readonly isEnabled: boolean;
   private isProcessing = false;
 
-  constructor(private readonly bufferService: TrackingEventBufferService) {}
+  constructor(private readonly bufferService: TrackingEventBufferService) {
+    this.isEnabled = process.env.BUFFER_FLUSH_SCHEDULER_ENABLED !== 'false';
+  }
 
   /**
    * Cron job que se ejecuta cada 10 segundos
@@ -25,6 +28,11 @@ export class BufferFlushScheduler {
     timeZone: 'UTC',
   })
   async handleBufferFlush(): Promise<void> {
+    // Verificar si está habilitado
+    if (!this.isEnabled) {
+      return;
+    }
+
     // Evitar ejecuciones concurrentes
     if (this.isProcessing) {
       this.logger.debug('[CRON] Flush ya en progreso, omitiendo ejecución');
