@@ -19,6 +19,7 @@ import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
 import { CommercialModule } from './context/commercial/commercial.module';
+import { TrackingV2Module } from './context/tracking-v2/tracking-v2.module';
 import { WebSocketModule } from './websocket/websocket.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConsentModule } from './context/consent/consent.module';
@@ -36,6 +37,7 @@ import { ConsentModule } from './context/consent/consent.module';
     ConversationsV2Module,
     CommercialModule,
     ConsentModule,
+    TrackingV2Module,
     WebSocketModule,
     ScheduleModule.forRoot(),
     // OpenSearchModule,

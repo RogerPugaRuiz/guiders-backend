@@ -64,3 +64,6 @@ export class AccessTokenResponseDto {
   @ApiProperty({ description: 'Nuevo JWT de acceso' })
   access_token: string;
 }
+
+// Exportar DTO de metadata
+export { PixelMetadataResponseDto } from './pixel-metadata-response.dto';
