@@ -12,6 +12,9 @@ import {
   // UseGuards,
   NotFoundException,
   InternalServerErrorException,
+  BadRequestException,
+  UnauthorizedException,
+  Inject,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -33,17 +36,36 @@ import {
   ConnectCommercialDto,
   CommercialHeartbeatDto,
   DisconnectCommercialDto,
+  CheckCommercialAvailabilityDto,
 } from '../../application/dtos/commercial-request.dto';
 import {
   CommercialConnectionStatusResponseDto,
   OnlineCommercialsResponseDto,
   CommercialOperationResponseDto,
+  CommercialAvailabilityResponseDto,
 } from '../../application/dtos/commercial-response.dto';
 
 // Queries
 import { GetCommercialConnectionStatusQuery } from '../../application/queries/get-commercial-connection-status.query';
 import { GetAvailableCommercialsQuery } from '../../application/queries/get-available-commercials.query';
 import { GetOnlineCommercialsQuery } from '../../application/queries/get-online-commercials.query';
+import { GetCommercialAvailabilityBySiteQuery } from '../../application/queries/get-commercial-availability-by-site.query';
+
+// Commands
+import { ConnectCommercialCommand } from '../../application/commands/connect-commercial.command';
+import { DisconnectCommercialCommand } from '../../application/commands/disconnect-commercial.command';
+import { UpdateCommercialActivityCommand } from '../../application/commands/update-commercial-activity.command';
+
+// Services
+import {
+  ValidateDomainApiKey,
+  VALIDATE_DOMAIN_API_KEY,
+} from '../../../auth/auth-visitor/application/services/validate-domain-api-key';
+import {
+  CompanyRepository,
+  COMPANY_REPOSITORY,
+} from '../../../company/domain/company.repository';
+import { VisitorAccountApiKey } from '../../../auth/auth-visitor/domain/models/visitor-account-api-key';
 
 /**
  * Controlador REST para el contexto Commercial
@@ -59,6 +81,10 @@ export class CommercialController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    @Inject(VALIDATE_DOMAIN_API_KEY)
+    private readonly apiKeyValidator: ValidateDomainApiKey,
+    @Inject(COMPANY_REPOSITORY)
+    private readonly companyRepository: CompanyRepository,
   ) {}
 
   /**
@@ -91,9 +117,13 @@ export class CommercialController {
     try {
       this.logger.log(`Conectando comercial: ${connectDto.id}`);
 
-      // Por ahora, mock de la respuesta hasta implementar commands
-      // TODO: Implementar ConnectCommercialCommand
-      await Promise.resolve(); // Simular operación async
+      // Ejecutar comando para conectar comercial
+      const command = new ConnectCommercialCommand(
+        connectDto.id,
+        connectDto.name,
+        connectDto.metadata,
+      );
+      await this.commandBus.execute(command);
 
       return {
         success: true,
@@ -142,9 +172,9 @@ export class CommercialController {
     try {
       this.logger.log(`Desconectando comercial: ${disconnectDto.id}`);
 
-      // Por ahora, mock de la respuesta hasta implementar commands
-      // TODO: Implementar DisconnectCommercialCommand
-      await Promise.resolve(); // Simular operación async
+      // Ejecutar comando para desconectar comercial
+      const command = new DisconnectCommercialCommand(disconnectDto.id);
+      await this.commandBus.execute(command);
 
       return {
         success: true,
@@ -190,16 +220,16 @@ export class CommercialController {
     try {
       this.logger.log(`Actualizando heartbeat comercial: ${heartbeatDto.id}`);
 
-      // Por ahora, mock de la respuesta hasta implementar commands
-      // TODO: Implementar UpdateCommercialActivityCommand
-      await Promise.resolve(); // Simular operación async
+      // Ejecutar comando para actualizar actividad
+      const command = new UpdateCommercialActivityCommand(heartbeatDto.id);
+      await this.commandBus.execute(command);
 
       return {
         success: true,
         message: 'Actividad actualizada exitosamente',
         commercial: {
           id: heartbeatDto.id,
-          name: 'Mock Commercial',
+          name: 'Commercial',
           connectionStatus: 'CONNECTED',
           lastActivity: new Date(),
           isActive: true,
@@ -350,6 +380,122 @@ export class CommercialController {
       this.logger.error('Error al obtener comerciales disponibles:', error);
       throw new InternalServerErrorException(
         'Error al obtener comerciales disponibles',
+      );
+    }
+  }
+
+  /**
+   * Consulta disponibilidad de comerciales para un sitio (endpoint público)
+   * Usa validación domain + apiKey, sin requerir autenticación previa
+   */
+  @Post('availability')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Consultar disponibilidad de comerciales',
+    description:
+      'Endpoint público que permite a visitantes consultar si hay comerciales disponibles ' +
+      'para atender antes de iniciar sesión. Valida el dominio y API Key del sitio.',
+  })
+  @ApiBody({ type: CheckCommercialAvailabilityDto })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Disponibilidad consultada exitosamente (retorna disponibilidad incluso si no hay comerciales)',
+    type: CommercialAvailabilityResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos (domain o apiKey faltantes)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'API Key no válida para el dominio proporcionado',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Dominio no encontrado en el sistema',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async checkCommercialAvailability(
+    @Body() dto: CheckCommercialAvailabilityDto,
+  ): Promise<CommercialAvailabilityResponseDto> {
+    try {
+      this.logger.log(`Consultando disponibilidad para domain: ${dto.domain}`);
+
+      // Normalizar dominio: eliminar prefijo 'www.' si existe
+      const normalizedDomain = dto.domain.replace(/^www\./i, '');
+
+      // 1. Validar API Key con dominio normalizado
+      const apiKeyValid = await this.apiKeyValidator.validate({
+        apiKey: new VisitorAccountApiKey(dto.apiKey),
+        domain: normalizedDomain,
+      });
+
+      if (!apiKeyValid) {
+        throw new UnauthorizedException(
+          'API Key inválida para el dominio proporcionado',
+        );
+      }
+
+      // 2. Resolver dominio a tenantId y siteId
+      const companyResult =
+        await this.companyRepository.findByDomain(normalizedDomain);
+
+      if (companyResult.isErr()) {
+        throw new NotFoundException(
+          `No se encontró una empresa para el dominio: ${normalizedDomain}`,
+        );
+      }
+
+      const company = companyResult.value;
+      const sites = company.getSites();
+      const sitePrimitives = sites.toPrimitives();
+
+      const targetSite = sitePrimitives.find(
+        (site) =>
+          site.canonicalDomain === normalizedDomain ||
+          site.domainAliases.includes(normalizedDomain),
+      );
+
+      if (!targetSite) {
+        throw new NotFoundException(
+          `No se encontró un sitio específico para el dominio: ${normalizedDomain}`,
+        );
+      }
+
+      this.logger.log(
+        `Sitio resuelto: ${targetSite.id} (domain: ${normalizedDomain})`,
+      );
+
+      // 3. Consultar disponibilidad de comerciales para el sitio
+      const query = new GetCommercialAvailabilityBySiteQuery(targetSite.id);
+      const result = await this.queryBus.execute<
+        GetCommercialAvailabilityBySiteQuery,
+        CommercialAvailabilityResponseDto
+      >(query);
+
+      return result;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error al consultar disponibilidad para domain ${dto.domain}:`,
+        error,
+      );
+
+      // Re-lanzar errores específicos
+      if (
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+
+      // Error genérico del servidor
+      throw new InternalServerErrorException(
+        'Error al consultar disponibilidad de comerciales',
       );
     }
   }

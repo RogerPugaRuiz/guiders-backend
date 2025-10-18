@@ -112,3 +112,33 @@ export class CommercialOperationResponseDto {
   })
   commercial?: CommercialSummaryDto;
 }
+
+/**
+ * DTO para la respuesta de disponibilidad de comerciales (endpoint público)
+ * No expone información sensible de comerciales
+ */
+export class CommercialAvailabilityResponseDto {
+  @ApiProperty({
+    description: 'Indica si hay comerciales disponibles para atender',
+    example: true,
+  })
+  available: boolean;
+
+  @ApiProperty({
+    description: 'Número de comerciales online y disponibles',
+    example: 3,
+  })
+  onlineCount: number;
+
+  @ApiProperty({
+    description: 'Timestamp de cuando se generó la respuesta',
+    example: '2025-01-15T10:30:00.000Z',
+  })
+  timestamp: string;
+
+  @ApiProperty({
+    description: 'ID del sitio consultado',
+    example: 'site_1234567890',
+  })
+  siteId: string;
+}

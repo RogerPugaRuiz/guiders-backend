@@ -11,6 +11,7 @@ import { GetAvailableCommercialsQueryHandler } from './application/queries/get-a
 import { GetOnlineCommercialsQueryHandler } from './application/queries/get-online-commercials.query-handler';
 import { GetCommercialConnectionStatusQueryHandler } from './application/queries/get-commercial-connection-status.query-handler';
 import { GetCommercialByIdQueryHandler } from './application/queries/get-commercial-by-id.query-handler';
+import { GetCommercialAvailabilityBySiteQueryHandler } from './application/queries/get-commercial-availability-by-site.query-handler';
 
 // Application - Commands
 import { ConnectCommercialCommandHandler } from './application/commands/connect-commercial.command-handler';
@@ -30,6 +31,10 @@ import { RedisCommercialConnectionDomainService } from './infrastructure/connect
 // Schema imports
 import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas/commercial.schema';
 
+// External dependencies needed by controller
+import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
+import { CompanyModule } from '../company/company.module';
+
 /**
  * Módulo del contexto Commercial
  * Gestiona la funcionalidad de comerciales y su heartbeat
@@ -40,6 +45,9 @@ import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas
     MongooseModule.forFeature([
       { name: 'Commercial', schema: CommercialSchemaDefinition },
     ]),
+    // Módulos externos necesarios para el controller
+    AuthVisitorModule, // Para validación de API Key
+    CompanyModule, // Para resolver dominio a tenantId/siteId
   ],
   controllers: [CommercialController],
   providers: [
@@ -60,6 +68,7 @@ import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas
     GetOnlineCommercialsQueryHandler,
     GetCommercialConnectionStatusQueryHandler,
     GetCommercialByIdQueryHandler,
+    GetCommercialAvailabilityBySiteQueryHandler,
 
     // Command Handlers
     ConnectCommercialCommandHandler,

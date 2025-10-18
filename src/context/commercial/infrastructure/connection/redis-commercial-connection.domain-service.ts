@@ -147,17 +147,78 @@ export class RedisCommercialConnectionDomainService
 
   async getOnlineCommercials(): Promise<CommercialId[]> {
     const members = await this.client.sMembers(this.SET_ONLINE);
-    return members.map((id) => new CommercialId(id));
+    const validCommercials: CommercialId[] = [];
+
+    // Validar que cada comercial en el set realmente tenga su key de status activa
+    for (const id of members) {
+      const statusKey = `${this.PREFIX_STATUS}${id}`;
+      const exists = await this.client.exists(statusKey);
+
+      if (exists) {
+        validCommercials.push(new CommercialId(id));
+      } else {
+        // Key expiró, limpiar del set
+        this.logger.warn(
+          `Comercial ${id} encontrado en SET_ONLINE pero sin key de status. Limpiando...`,
+        );
+        await this.client.sRem(this.SET_ONLINE, id);
+        await this.client.sRem(this.SET_AVAILABLE, id);
+        await this.client.sRem(this.SET_BUSY, id);
+      }
+    }
+
+    return validCommercials;
   }
 
   async getAvailableCommercials(): Promise<CommercialId[]> {
     const members = await this.client.sMembers(this.SET_AVAILABLE);
-    return members.map((id) => new CommercialId(id));
+    const validCommercials: CommercialId[] = [];
+
+    // Validar que cada comercial en el set realmente tenga su key de status activa
+    // Esto limpia automáticamente comerciales cuyas keys expiraron por falta de heartbeat
+    for (const id of members) {
+      const statusKey = `${this.PREFIX_STATUS}${id}`;
+      const exists = await this.client.exists(statusKey);
+
+      if (exists) {
+        validCommercials.push(new CommercialId(id));
+      } else {
+        // Key expiró, limpiar del set
+        this.logger.warn(
+          `Comercial ${id} encontrado en set pero sin key de status. Limpiando...`,
+        );
+        await this.client.sRem(this.SET_AVAILABLE, id);
+        await this.client.sRem(this.SET_ONLINE, id);
+        await this.client.sRem(this.SET_BUSY, id);
+      }
+    }
+
+    return validCommercials;
   }
 
   async getBusyCommercials(): Promise<CommercialId[]> {
     const members = await this.client.sMembers(this.SET_BUSY);
-    return members.map((id) => new CommercialId(id));
+    const validCommercials: CommercialId[] = [];
+
+    // Validar que cada comercial en el set realmente tenga su key de status activa
+    for (const id of members) {
+      const statusKey = `${this.PREFIX_STATUS}${id}`;
+      const exists = await this.client.exists(statusKey);
+
+      if (exists) {
+        validCommercials.push(new CommercialId(id));
+      } else {
+        // Key expiró, limpiar del set
+        this.logger.warn(
+          `Comercial ${id} encontrado en SET_BUSY pero sin key de status. Limpiando...`,
+        );
+        await this.client.sRem(this.SET_BUSY, id);
+        await this.client.sRem(this.SET_ONLINE, id);
+        await this.client.sRem(this.SET_AVAILABLE, id);
+      }
+    }
+
+    return validCommercials;
   }
 
   async getActiveCommercials(
