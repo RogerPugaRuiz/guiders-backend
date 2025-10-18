@@ -13,10 +13,6 @@ import {
   VISITOR_V2_REPOSITORY,
   VisitorV2Repository,
 } from 'src/context/visitors-v2/domain/visitor-v2.repository';
-import {
-  TRACKING_EVENT_REPOSITORY,
-  ITrackingEventRepository,
-} from 'src/context/tracking/domain/tracking-event.repository';
 import { ok, err } from 'src/context/shared/domain/result';
 import { Chat } from '../../../domain/entities/chat.aggregate';
 import { VisitorId as ChatVisitorId } from '../../../domain/value-objects/visitor-id';
@@ -27,7 +23,6 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
   let chatRepository: jest.Mocked<IChatRepository>;
   let messageRepository: jest.Mocked<IMessageRepository>;
   let visitorRepository: jest.Mocked<VisitorV2Repository>;
-  let trackingEventRepository: jest.Mocked<ITrackingEventRepository>;
 
   beforeEach(async () => {
     // Mock repositories
@@ -44,10 +39,6 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       findById: jest.fn(),
     } as any;
 
-    trackingEventRepository = {
-      match: jest.fn(),
-    } as any;
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GetVisitorPendingChatsQueryHandler,
@@ -62,10 +53,6 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         {
           provide: VISITOR_V2_REPOSITORY,
           useValue: visitorRepository,
-        },
-        {
-          provide: TRACKING_EVENT_REPOSITORY,
-          useValue: trackingEventRepository,
         },
       ],
     }).compile();
@@ -132,7 +119,6 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       messageRepository.findByChatId.mockResolvedValue(
         ok({ messages: [], total: 0, hasMore: false }),
       );
-      trackingEventRepository.match.mockResolvedValue(ok([]));
 
       // Act
       const result = await handler.execute(query);
@@ -193,7 +179,6 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       messageRepository.findByChatId.mockResolvedValue(
         ok({ messages: [], total: 0, hasMore: false }),
       );
-      trackingEventRepository.match.mockResolvedValue(ok([]));
 
       // Act
       const result = await handler.execute(query);
@@ -251,7 +236,6 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
       messageRepository.findByChatId.mockResolvedValue(
         ok({ messages: [], total: 0, hasMore: false }),
       );
-      trackingEventRepository.match.mockResolvedValue(ok([]));
 
       // Act
       const result = await handler.execute(query);

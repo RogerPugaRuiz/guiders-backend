@@ -14,7 +14,6 @@ import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-use
 import { BFFModule } from './context/auth/bff/infrastructure/bff.module';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
-import { TrackingModule } from './context/tracking/tracking.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
 import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
@@ -33,7 +32,6 @@ import { ConsentModule } from './context/consent/consent.module';
     ApiKeyModule,
     VisitorsModule,
     VisitorsV2Module,
-    TrackingModule,
     CompanyModule,
     ConversationsV2Module,
     CommercialModule,
@@ -149,10 +147,6 @@ export class AppModule {
           '/context/conversations/infrastructure/conversation.entity{.ts,.js}',
         __dirname +
           '/context/conversations/infrastructure/message.entity{.ts,.js}',
-        __dirname +
-          '/context/tracking/infrastructure/persistence/entity/tracking-event.typeorm.entity{.ts,.js}',
-        __dirname +
-          '/context/tracking/infrastructure/persistence/entity/visitor-intent.entity{.ts,.js}',
         __dirname +
           '/context/visitors/infrastructure/persistence/visitor-typeorm.entity{.ts,.js}',
         __dirname +

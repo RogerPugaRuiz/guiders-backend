@@ -75,14 +75,6 @@ export const AppDataSource = new DataSource({
     join(__dirname, 'context/conversations/infrastructure/message.entity.js'),
     join(
       __dirname,
-      'context/tracking/infrastructure/persistence/entity/tracking-event.typeorm.entity.js',
-    ),
-    join(
-      __dirname,
-      'context/tracking/infrastructure/persistence/entity/visitor-intent.entity.js',
-    ),
-    join(
-      __dirname,
       'context/visitors/infrastructure/persistence/visitor-typeorm.entity.js',
     ),
     join(__dirname, 'context/shared/domain/entities/test-entity.entity.js'),

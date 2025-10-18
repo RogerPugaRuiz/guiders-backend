@@ -6,7 +6,6 @@ import { HttpModule } from '@nestjs/axios';
 // Import dependencies from other modules
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
 import { CommercialModule } from '../commercial/commercial.module';
-import { TrackingModule } from '../tracking/tracking.module';
 import { WebSocketModule } from 'src/websocket/websocket.module';
 import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
 import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.module';
@@ -84,7 +83,6 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     HttpModule, // Para TokenVerifyService
     WebSocketModule, // Para notificaciones en tiempo real
     forwardRef(() => VisitorsV2Module), // Para acceso al VisitorV2Repository
-    forwardRef(() => TrackingModule), // Para acceso al TrackingEventRepository
     CommercialModule, // Para acceso al Commercial heartbeat service
     AuthUserModule, // Para acceso a UserAccount queries
     MongooseModule.forFeature([

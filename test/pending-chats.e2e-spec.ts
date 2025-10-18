@@ -123,18 +123,6 @@ class MockGetVisitorPendingChatsQueryHandler
           },
         ],
       },
-      visitorActivity: [
-        {
-          activityId: 'act-001',
-          type: 'page_view',
-          description: 'Visitó página de precios',
-          timestamp: '2025-09-30T10:25:00Z',
-          metadata: {
-            page: '/pricing',
-            duration: 120,
-          },
-        },
-      ],
     };
 
     // Filtrar por chatIds si se proporcionan
@@ -234,14 +222,6 @@ describe('GET /api/v1/tenants/:tenantId/visitors/:visitorId/pending-chats (E2E)'
           expect(res.body).toHaveProperty('chatHistory');
           expect(res.body.chatHistory['chat-456']).toBeDefined();
           expect(res.body.chatHistory['chat-456']).toHaveLength(1);
-
-          expect(res.body).toHaveProperty('visitorActivity');
-          expect(res.body.visitorActivity).toHaveLength(1);
-          expect(res.body.visitorActivity[0]).toMatchObject({
-            activityId: 'act-001',
-            type: 'page_view',
-            description: 'Visitó página de precios',
-          });
         });
     });
 

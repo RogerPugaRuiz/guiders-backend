@@ -14,15 +14,9 @@ import {
   VISITOR_V2_REPOSITORY,
   VisitorV2Repository,
 } from 'src/context/visitors-v2/domain/visitor-v2.repository';
-import {
-  TRACKING_EVENT_REPOSITORY,
-  ITrackingEventRepository,
-} from 'src/context/tracking/domain/tracking-event.repository';
 import { VisitorId as ChatVisitorId } from '../../domain/value-objects/visitor-id';
 import { ChatId } from '../../domain/value-objects/chat-id';
 import { VisitorId } from 'src/context/visitors-v2/domain/value-objects/visitor-id';
-import { Criteria, Filter, Operator } from 'src/context/shared/domain/criteria';
-import { TrackingEvent } from 'src/context/tracking/domain/tracking-event.aggregate';
 
 /**
  * Handler para la query de obtener chats pendientes de un visitante
@@ -41,8 +35,6 @@ export class GetVisitorPendingChatsQueryHandler
     private readonly messageRepository: IMessageRepository,
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
-    @Inject(TRACKING_EVENT_REPOSITORY)
-    private readonly trackingEventRepository: ITrackingEventRepository,
   ) {}
 
   async execute(
@@ -185,34 +177,6 @@ export class GetVisitorPendingChatsQueryHandler
       if (Object.keys(chatHistory).length > 0) {
         response.chatHistory = chatHistory;
       }
-
-      // Obtener actividades del visitante
-      const visitorIdFilter = new Filter<TrackingEvent>(
-        'visitorId' as keyof TrackingEvent,
-        Operator.EQUALS,
-        query.visitorId,
-      );
-      const trackingCriteria = new Criteria<TrackingEvent>([visitorIdFilter]);
-
-      const activitiesResult =
-        await this.trackingEventRepository.match(trackingCriteria);
-
-      if (activitiesResult.isOk()) {
-        const activities = activitiesResult.unwrap();
-        response.visitorActivity = activities.map((activity) => {
-          const activityPrimitives = activity.toPrimitives();
-          return {
-            activityId: activityPrimitives.id,
-            type: activityPrimitives.eventType,
-            description: this.getActivityDescription(
-              activityPrimitives.eventType,
-              activityPrimitives.metadata,
-            ),
-            timestamp: activityPrimitives.occurredAt.toISOString(),
-            metadata: activityPrimitives.metadata,
-          };
-        });
-      }
     } catch (error) {
       this.logger.error('Error al obtener chats pendientes:', error);
     }
@@ -227,24 +191,5 @@ export class GetVisitorPendingChatsQueryHandler
     if (messageType === 'VISITOR') return 'VISITOR';
     if (messageType === 'SYSTEM') return 'SYSTEM';
     return 'AGENT';
-  }
-
-  /**
-   * Genera una descripción legible de la actividad
-   */
-  private getActivityDescription(
-    eventType: string,
-    metadata: Record<string, any>,
-  ): string {
-    if (eventType === 'page_view' && metadata.page) {
-      return `Visitó página ${metadata.page}`;
-    }
-    if (eventType === 'form_submission') {
-      return 'Envió un formulario';
-    }
-    if (eventType === 'button_click') {
-      return 'Hizo clic en un botón';
-    }
-    return `Evento: ${eventType}`;
   }
 }
