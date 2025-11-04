@@ -47,6 +47,10 @@ import {
   ConsentRepository,
   CONSENT_REPOSITORY,
 } from '../src/context/consent/domain/consent.repository';
+import {
+  VisitorConnectionDomainService,
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+} from '../src/context/visitors-v2/domain/visitor-connection.domain-service';
 
 // Este test valida que el backend acepta heartbeats y endSession usando únicamente la cookie HttpOnly
 // sin enviar sessionId explícito en el body.
@@ -58,6 +62,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
+  let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
 
   const mockVisitorId = '01234567-8901-4234-9567-890123456789';
   const mockTenantId = '23456789-0123-4567-8901-234567890123';
@@ -123,6 +128,22 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       findByVisitorIdAndType: jest.fn(),
     } as any;
 
+    mockConnectionService = {
+      setConnectionStatus: jest.fn(),
+      getConnectionStatus: jest.fn(),
+      removeConnection: jest.fn(),
+      isVisitorOnline: jest.fn(),
+      getChattingVisitors: jest.fn(),
+      getOnlineVisitors: jest.fn(),
+      setTyping: jest.fn(),
+      isTyping: jest.fn(),
+      clearTyping: jest.fn(),
+      getTypingInChat: jest.fn(),
+      updateLastActivity: jest.fn(),
+      getLastActivity: jest.fn(),
+      isVisitorActive: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [VisitorV2Controller],
@@ -140,6 +161,10 @@ describe('Visitor Session Cookie Fallback E2E', () => {
           useValue: mockValidateDomainApiKey,
         },
         { provide: CONSENT_REPOSITORY, useValue: mockConsentRepository },
+        {
+          provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
+          useValue: mockConnectionService,
+        },
         { provide: EventPublisher, useValue: mockEventPublisher },
       ],
     }).compile();

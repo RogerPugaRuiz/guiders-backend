@@ -55,6 +55,10 @@ import {
   ConsentRepository,
   CONSENT_REPOSITORY,
 } from '../src/context/consent/domain/consent.repository';
+import {
+  VisitorConnectionDomainService,
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+} from '../src/context/visitors-v2/domain/visitor-connection.domain-service';
 
 describe('Visitors E2E', () => {
   let app: INestApplication;
@@ -63,6 +67,7 @@ describe('Visitors E2E', () => {
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
+  let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
 
   // Mock data
   const mockVisitorId = '01234567-8901-4234-9567-890123456789';
@@ -149,6 +154,23 @@ describe('Visitors E2E', () => {
       mergeObjectContext: jest.fn(),
     } as any;
 
+    // Mock connection service
+    mockConnectionService = {
+      setConnectionStatus: jest.fn(),
+      getConnectionStatus: jest.fn(),
+      removeConnection: jest.fn(),
+      isVisitorOnline: jest.fn(),
+      getChattingVisitors: jest.fn(),
+      getOnlineVisitors: jest.fn(),
+      setTyping: jest.fn(),
+      isTyping: jest.fn(),
+      clearTyping: jest.fn(),
+      getTypingInChat: jest.fn(),
+      updateLastActivity: jest.fn(),
+      getLastActivity: jest.fn(),
+      isVisitorActive: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [VisitorV2Controller, SitesController],
@@ -173,6 +195,10 @@ describe('Visitors E2E', () => {
         {
           provide: CONSENT_REPOSITORY,
           useValue: mockConsentRepository,
+        },
+        {
+          provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
+          useValue: mockConnectionService,
         },
         {
           provide: EventPublisher,
