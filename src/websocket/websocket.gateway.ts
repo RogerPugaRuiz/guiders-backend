@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -10,6 +10,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { TokenVerifyService } from '../context/shared/infrastructure/token-verify.service';
 
 interface TestMessage {
   message: string;
@@ -36,6 +37,25 @@ interface LeaveVisitorRoomPayload {
   visitorId: string;
 }
 
+interface JoinTenantRoomPayload {
+  tenantId: string;
+  token?: string; // JWT token (opcional)
+}
+
+interface LeaveTenantRoomPayload {
+  tenantId: string;
+}
+
+interface JoinPresenceRoomPayload {
+  userId: string;
+  userType: 'commercial' | 'visitor';
+}
+
+interface LeavePresenceRoomPayload {
+  userId: string;
+  userType: 'commercial' | 'visitor';
+}
+
 interface TypingPayload {
   chatId: string;
   userId: string;
@@ -48,8 +68,11 @@ interface TypingPayload {
  * - Autenticación dual (JWT Bearer token y cookies de sesión)
  * - Salas de chat para comunicación entre visitantes y comerciales
  * - Salas de visitantes para notificaciones proactivas
+ * - Salas de presencia individual (commercial:id y visitor:id) para eventos filtrados
+ * - Salas de tenant para notificaciones empresariales (deprecated para presencia)
  * - Notificaciones de mensajes nuevos en tiempo real
  * - Separación de mensajes internos (solo comerciales)
+ * - Auto-join a salas personales durante autenticación
  */
 @WebSocketGateway({
   cors: {
@@ -71,8 +94,18 @@ export class WebSocketGatewayBasic
   // Mapa para guardar info del usuario autenticado
   private clientUsers = new Map<
     string,
-    { userId: string; roles: string[]; chatIds: string[] }
+    {
+      userId: string;
+      roles: string[];
+      chatIds: string[];
+      tenantId?: string;
+      companyId?: string;
+    }
   >();
+
+  constructor(
+    @Optional() private readonly tokenVerifyService?: TokenVerifyService,
+  ) {}
 
   afterInit() {
     this.logger.log('WebSocket Gateway inicializado');
@@ -81,15 +114,12 @@ export class WebSocketGatewayBasic
     );
   }
 
-  handleConnection(client: Socket) {
+  async handleConnection(client: Socket) {
     this.logger.log(`Cliente conectado: ${client.id}`);
     this.logger.log(`Transport usado: ${client.conn.transport.name}`);
 
     // Inicializar tracking de este cliente
     this.clientRooms.set(client.id, new Set());
-
-    // Intentar autenticar desde handshake
-    this.authenticateClient(client);
 
     // Enviar mensaje de bienvenida
     client.emit('welcome', {
@@ -97,6 +127,9 @@ export class WebSocketGatewayBasic
       clientId: client.id,
       timestamp: Date.now(),
     });
+
+    // Intentar autenticar desde handshake (async)
+    await this.authenticateClient(client);
   }
 
   handleDisconnect(client: Socket) {
@@ -119,21 +152,105 @@ export class WebSocketGatewayBasic
   /**
    * Intenta autenticar al cliente desde el handshake
    * Soporta JWT Bearer token y cookies de sesión
+   * Si es un comercial, lo une automáticamente a su sala de tenant
    */
-  private authenticateClient(client: Socket): void {
+  private async authenticateClient(client: Socket): Promise<void> {
     try {
-      const token =
+      let token =
         (client.handshake.auth.token as string) ||
         (client.handshake.headers.authorization as string);
-      const cookies = client.handshake.headers.cookie;
 
-      // TODO: Implementar lógica real de autenticación
-      // Por ahora solo logueamos que recibimos credenciales
-      if (token) {
-        this.logger.log(`Cliente ${client.id} envió token de autenticación`);
+      // Extraer token si viene con prefijo "Bearer "
+      if (token && token.startsWith('Bearer ')) {
+        token = token.substring(7);
       }
-      if (cookies) {
-        this.logger.log(`Cliente ${client.id} envió cookies de sesión`);
+
+      if (!token) {
+        this.logger.debug(
+          `Cliente ${client.id} conectado sin token de autenticación`,
+        );
+        return;
+      }
+
+      // Verificar y decodificar el token si hay servicio disponible
+      if (!this.tokenVerifyService) {
+        this.logger.debug(
+          `TokenVerifyService no disponible, omitiendo autenticación`,
+        );
+        return;
+      }
+
+      try {
+        const payload = await this.tokenVerifyService.verifyToken(token);
+
+        this.logger.log(
+          `Cliente ${client.id} autenticado: userId=${payload.sub}, roles=${payload.role.join(',')}`,
+        );
+
+        // Guardar información del usuario
+        this.clientUsers.set(client.id, {
+          userId: payload.sub,
+          roles: payload.role,
+          chatIds: [],
+          companyId: payload.companyId,
+          tenantId: payload.companyId, // El companyId es el tenantId
+        });
+
+        // Si es un comercial y tiene tenantId, unirlo automáticamente a la sala de tenant
+        const isCommercial =
+          payload.role.includes('commercial') ||
+          payload.role.includes('admin') ||
+          payload.role.includes('owner');
+
+        if (isCommercial && payload.companyId) {
+          const tenantRoom = `tenant:${payload.companyId}`;
+          await client.join(tenantRoom);
+
+          // Trackear la sala
+          const rooms = this.clientRooms.get(client.id) || new Set();
+          rooms.add(tenantRoom);
+          this.clientRooms.set(client.id, rooms);
+
+          this.logger.log(
+            `Comercial ${client.id} unido automáticamente a sala de tenant: ${tenantRoom}`,
+          );
+
+          // Notificar al cliente que fue unido a la sala
+          client.emit('tenant:joined', {
+            companyId: payload.companyId,
+            roomName: tenantRoom,
+            timestamp: Date.now(),
+            automatic: true,
+          });
+        }
+
+        // Auto-join a sala personal de presencia (comerciales y visitantes)
+        const userType = isCommercial ? 'commercial' : 'visitor';
+        const presenceRoom = `${userType}:${payload.sub}`;
+
+        await client.join(presenceRoom);
+
+        // Trackear la sala de presencia
+        const presenceRooms = this.clientRooms.get(client.id) || new Set();
+        presenceRooms.add(presenceRoom);
+        this.clientRooms.set(client.id, presenceRooms);
+
+        this.logger.log(
+          `Usuario ${payload.sub} (${userType}) unido automáticamente a sala de presencia: ${presenceRoom}`,
+        );
+
+        // Notificar al cliente que fue unido a la sala de presencia
+        client.emit('presence:joined', {
+          userId: payload.sub,
+          userType,
+          roomName: presenceRoom,
+          timestamp: Date.now(),
+          automatic: true,
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Token inválido o expirado para cliente ${client.id}: ${(error as Error).message}`,
+        );
       }
     } catch (error) {
       this.logger.error(
@@ -364,6 +481,257 @@ export class WebSocketGatewayBasic
       return {
         success: false,
         message: 'Error al salir de la sala de visitante',
+      };
+    }
+  }
+
+  /**
+   * Listener para unirse a una sala de tenant
+   * Permite a los comerciales recibir notificaciones de presencia de todos los visitantes de su empresa
+   */
+  @SubscribeMessage('tenant:join')
+  async handleJoinTenantRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: JoinTenantRoomPayload,
+  ) {
+    try {
+      const { tenantId } = data;
+
+      if (!tenantId) {
+        client.emit('error', {
+          message: 'tenantId es requerido',
+          timestamp: Date.now(),
+        });
+        return { success: false, message: 'tenantId es requerido' };
+      }
+
+      // Construir nombre de la sala del tenant
+      const roomName = `tenant:${tenantId}`;
+
+      // Unir el cliente a la sala
+      await client.join(roomName);
+
+      // Trackear la sala
+      const rooms = this.clientRooms.get(client.id) || new Set();
+      rooms.add(roomName);
+      this.clientRooms.set(client.id, rooms);
+
+      this.logger.log(
+        `Cliente ${client.id} se unió a la sala de tenant: ${roomName}`,
+      );
+
+      // Notificar éxito
+      client.emit('tenant:joined', {
+        companyId: tenantId,
+        roomName,
+        timestamp: Date.now(),
+      });
+
+      return {
+        success: true,
+        message: 'Unido a la sala de tenant exitosamente',
+        companyId: tenantId,
+        roomName,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al unir cliente a sala de tenant:`,
+        (error as Error).message,
+      );
+      return {
+        success: false,
+        message: 'Error al unirse a la sala de tenant',
+      };
+    }
+  }
+
+  /**
+   * Listener para salir de una sala de tenant
+   */
+  @SubscribeMessage('tenant:leave')
+  async handleLeaveTenantRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: LeaveTenantRoomPayload,
+  ) {
+    try {
+      const { tenantId } = data;
+
+      if (!tenantId) {
+        return { success: false, message: 'tenantId es requerido' };
+      }
+
+      const roomName = `tenant:${tenantId}`;
+
+      // Salir de la sala
+      await client.leave(roomName);
+
+      // Actualizar tracking
+      const rooms = this.clientRooms.get(client.id);
+      if (rooms) {
+        rooms.delete(roomName);
+      }
+
+      this.logger.log(
+        `Cliente ${client.id} salió de la sala de tenant: ${roomName}`,
+      );
+
+      // Notificar éxito
+      client.emit('tenant:left', {
+        tenantId,
+        roomName,
+        timestamp: Date.now(),
+      });
+
+      return {
+        success: true,
+        message: 'Salió de la sala de tenant exitosamente',
+        tenantId,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al salir de sala de tenant:`,
+        (error as Error).message,
+      );
+      return {
+        success: false,
+        message: 'Error al salir de la sala de tenant',
+      };
+    }
+  }
+
+  /**
+   * Listener para unirse a una sala de presencia individual
+   * Permite a visitantes y comerciales recibir notificaciones de presencia
+   * basadas en sus chats activos
+   */
+  @SubscribeMessage('presence:join')
+  async handleJoinPresenceRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: JoinPresenceRoomPayload,
+  ) {
+    try {
+      const { userId, userType } = data;
+
+      if (!userId || !userType) {
+        client.emit('error', {
+          message: 'userId y userType son requeridos',
+          timestamp: Date.now(),
+        });
+        return {
+          success: false,
+          message: 'userId y userType son requeridos',
+        };
+      }
+
+      // Validar userType
+      if (userType !== 'commercial' && userType !== 'visitor') {
+        client.emit('error', {
+          message: 'userType debe ser "commercial" o "visitor"',
+          timestamp: Date.now(),
+        });
+        return {
+          success: false,
+          message: 'userType inválido',
+        };
+      }
+
+      // Construir nombre de la sala de presencia
+      const roomName = `${userType}:${userId}`;
+
+      // Unir el cliente a la sala
+      await client.join(roomName);
+
+      // Trackear la sala
+      const rooms = this.clientRooms.get(client.id) || new Set();
+      rooms.add(roomName);
+      this.clientRooms.set(client.id, rooms);
+
+      this.logger.log(
+        `Cliente ${client.id} se unió a sala de presencia: ${roomName}`,
+      );
+
+      // Notificar éxito
+      client.emit('presence:joined', {
+        userId,
+        userType,
+        roomName,
+        timestamp: Date.now(),
+      });
+
+      return {
+        success: true,
+        message: 'Unido a sala de presencia exitosamente',
+        userId,
+        userType,
+        roomName,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al unir cliente a sala de presencia:`,
+        (error as Error).message,
+      );
+      return {
+        success: false,
+        message: 'Error al unirse a la sala de presencia',
+      };
+    }
+  }
+
+  /**
+   * Listener para salir de una sala de presencia individual
+   */
+  @SubscribeMessage('presence:leave')
+  async handleLeavePresenceRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: LeavePresenceRoomPayload,
+  ) {
+    try {
+      const { userId, userType } = data;
+
+      if (!userId || !userType) {
+        return {
+          success: false,
+          message: 'userId y userType son requeridos',
+        };
+      }
+
+      const roomName = `${userType}:${userId}`;
+
+      // Salir de la sala
+      await client.leave(roomName);
+
+      // Actualizar tracking
+      const rooms = this.clientRooms.get(client.id);
+      if (rooms) {
+        rooms.delete(roomName);
+      }
+
+      this.logger.log(
+        `Cliente ${client.id} salió de sala de presencia: ${roomName}`,
+      );
+
+      // Notificar éxito
+      client.emit('presence:left', {
+        userId,
+        userType,
+        roomName,
+        timestamp: Date.now(),
+      });
+
+      return {
+        success: true,
+        message: 'Salió de sala de presencia exitosamente',
+        userId,
+        userType,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al salir de sala de presencia:`,
+        (error as Error).message,
+      );
+      return {
+        success: false,
+        message: 'Error al salir de la sala de presencia',
       };
     }
   }
