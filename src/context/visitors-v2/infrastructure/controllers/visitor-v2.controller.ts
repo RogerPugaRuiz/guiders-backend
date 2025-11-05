@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Put,
   Body,
   Response,
   HttpCode,
@@ -29,6 +30,8 @@ import { UpdateSessionHeartbeatDto } from '../../application/dtos/update-session
 import { UpdateSessionHeartbeatCommand } from '../../application/commands/update-session-heartbeat.command';
 import { EndSessionDto } from '../../application/dtos/end-session.dto';
 import { EndSessionCommand } from '../../application/commands/end-session.command';
+import { ChangeVisitorStatusDto } from '../../application/dtos/change-visitor-status.dto';
+import { ChangeVisitorConnectionStatusCommand } from '../../application/commands/change-visitor-connection-status.command';
 import {
   setVisitorSessionCookie,
   resolveVisitorSessionId,
@@ -313,6 +316,79 @@ export class VisitorV2Controller {
 
       // Error genérico del servidor
       throw new InternalServerErrorException('Error interno al cerrar sesión');
+    }
+  }
+
+  @Put('status')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Cambiar estado de conexión del visitante',
+    description:
+      'Permite a un visitante cambiar manualmente su estado de conexión (online, chatting, away, offline). ' +
+      'Este endpoint es útil para que el visitante indique su disponibilidad o estado actual.',
+  })
+  @ApiBody({ type: ChangeVisitorStatusDto })
+  @ApiOkResponse({
+    description: 'Estado cambiado exitosamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o estado no permitido',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Visitante no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async changeVisitorStatus(
+    @Body() changeStatusDto: ChangeVisitorStatusDto,
+  ): Promise<{ success: boolean; message: string; status: string }> {
+    try {
+      this.logger.log(
+        `Cambiando estado de visitante ${changeStatusDto.id} a ${changeStatusDto.status}`,
+      );
+
+      const command = new ChangeVisitorConnectionStatusCommand(
+        changeStatusDto.id,
+        changeStatusDto.status,
+      );
+
+      await this.commandBus.execute<ChangeVisitorConnectionStatusCommand, void>(
+        command,
+      );
+
+      return {
+        success: true,
+        message: `Estado cambiado a ${changeStatusDto.status} exitosamente`,
+        status: changeStatusDto.status,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Error al cambiar estado del visitante ${changeStatusDto.id}:`,
+        error,
+      );
+
+      // Visitante no encontrado
+      if (error instanceof Error && error.message?.includes('no encontrado')) {
+        throw new NotFoundException(error.message);
+      }
+
+      // Estado inválido
+      if (
+        error instanceof Error &&
+        (error.message?.includes('inválido') ||
+          error.message?.includes('invalid'))
+      ) {
+        throw new BadRequestException(error.message);
+      }
+
+      // Error genérico del servidor
+      throw new InternalServerErrorException(
+        'Error interno al cambiar estado del visitante',
+      );
     }
   }
 }

@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsDateString,
+  IsEnum,
 } from 'class-validator';
 
 /**
@@ -98,4 +99,38 @@ export class CheckCommercialAvailabilityDto {
   @IsString()
   @IsNotEmpty()
   apiKey: string;
+}
+
+/**
+ * Estados válidos para el comercial
+ */
+export enum CommercialStatusEnum {
+  ONLINE = 'online',
+  OFFLINE = 'offline',
+  BUSY = 'busy',
+  AWAY = 'away',
+}
+
+/**
+ * DTO para cambiar el estado de conexión de un comercial manualmente
+ */
+export class ChangeCommercialStatusDto {
+  @ApiProperty({
+    description: 'ID del comercial',
+    example: 'e7f8a9b0-1234-5678-9abc-def012345678',
+  })
+  @IsString()
+  @IsNotEmpty()
+  id: string;
+
+  @ApiProperty({
+    description: 'Nuevo estado de conexión del comercial',
+    enum: CommercialStatusEnum,
+    example: 'busy',
+  })
+  @IsEnum(CommercialStatusEnum, {
+    message: 'El estado debe ser: online, offline, busy o away',
+  })
+  @IsNotEmpty()
+  status: CommercialStatusEnum;
 }

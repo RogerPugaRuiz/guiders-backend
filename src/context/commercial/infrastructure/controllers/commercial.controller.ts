@@ -37,6 +37,8 @@ import {
   CommercialHeartbeatDto,
   DisconnectCommercialDto,
   CheckCommercialAvailabilityDto,
+  ChangeCommercialStatusDto,
+  CommercialStatusEnum,
 } from '../../application/dtos/commercial-request.dto';
 import {
   CommercialConnectionStatusResponseDto,
@@ -55,6 +57,7 @@ import { GetCommercialAvailabilityBySiteQuery } from '../../application/queries/
 import { ConnectCommercialCommand } from '../../application/commands/connect-commercial.command';
 import { DisconnectCommercialCommand } from '../../application/commands/disconnect-commercial.command';
 import { UpdateCommercialActivityCommand } from '../../application/commands/update-commercial-activity.command';
+import { ChangeCommercialConnectionStatusCommand } from '../../application/commands/change-commercial-connection-status.command';
 
 // Services
 import {
@@ -247,6 +250,81 @@ export class CommercialController {
 
       throw new InternalServerErrorException(
         'Error al actualizar heartbeat comercial',
+      );
+    }
+  }
+
+  /**
+   * Cambia el estado de conexión de un comercial manualmente
+   */
+  @Put('status')
+  @HttpCode(HttpStatus.OK)
+  // @Roles(['commercial', 'admin'])
+  @ApiOperation({
+    summary: 'Cambiar estado de conexión del comercial',
+    description:
+      'Permite a un comercial cambiar manualmente su estado de conexión (online, busy, away, offline)',
+  })
+  @ApiBody({ type: ChangeCommercialStatusDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado cambiado exitosamente',
+    type: CommercialOperationResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos de entrada inválidos',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Comercial no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async changeCommercialStatus(
+    @Body() changeStatusDto: ChangeCommercialStatusDto,
+  ): Promise<CommercialOperationResponseDto> {
+    try {
+      this.logger.log(
+        `Cambiando estado de comercial ${changeStatusDto.id} a ${changeStatusDto.status}`,
+      );
+
+      // Ejecutar comando para cambiar estado
+      const command = new ChangeCommercialConnectionStatusCommand(
+        changeStatusDto.id,
+        changeStatusDto.status,
+      );
+      await this.commandBus.execute(command);
+
+      return {
+        success: true,
+        message: `Estado cambiado a ${changeStatusDto.status} exitosamente`,
+        commercial: {
+          id: changeStatusDto.id,
+          name: 'Commercial',
+          connectionStatus: changeStatusDto.status.toUpperCase(),
+          lastActivity: new Date(),
+          isActive: changeStatusDto.status === CommercialStatusEnum.ONLINE,
+        },
+      };
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error al cambiar estado del comercial ${changeStatusDto.id}:`,
+        error,
+      );
+
+      if (error instanceof Error && error.message?.includes('no encontrado')) {
+        throw new NotFoundException('Comercial no encontrado');
+      }
+
+      if (error instanceof Error && error.message?.includes('estado')) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw new InternalServerErrorException(
+        'Error al cambiar estado del comercial',
       );
     }
   }
