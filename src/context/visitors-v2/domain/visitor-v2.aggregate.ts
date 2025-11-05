@@ -440,6 +440,51 @@ export class VisitorV2 extends AggregateRoot {
   }
 
   /**
+   * Marca el visitante como ausente (away)
+   * Emite evento para que la infraestructura sincronice con Redis
+   */
+  public goAway(): void {
+    this.apply(
+      new VisitorConnectionChangedEvent({
+        visitorId: this.id.getValue(),
+        previousConnection: ConnectionStatus.ONLINE, // Puede venir de online o chatting
+        newConnection: ConnectionStatus.AWAY,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
+
+  /**
+   * Detiene el chat activo y retorna a online
+   * Emite evento para que la infraestructura sincronice con Redis
+   */
+  public stopChatting(): void {
+    this.apply(
+      new VisitorConnectionChangedEvent({
+        visitorId: this.id.getValue(),
+        previousConnection: ConnectionStatus.CHATTING,
+        newConnection: ConnectionStatus.ONLINE,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
+
+  /**
+   * Retorna de away a online
+   * Emite evento para que la infraestructura sincronice con Redis
+   */
+  public returnFromAway(): void {
+    this.apply(
+      new VisitorConnectionChangedEvent({
+        visitorId: this.id.getValue(),
+        previousConnection: ConnectionStatus.AWAY,
+        newConnection: ConnectionStatus.ONLINE,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
+
+  /**
    * Registra la aceptación de la política de privacidad
    * RGPD Art. 7.1: Capacidad de demostrar el consentimiento
    */

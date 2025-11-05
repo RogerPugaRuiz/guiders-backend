@@ -134,7 +134,7 @@ export class GetVisitorsWithUnassignedChatsByTenantQueryHandler
       );
 
       return {
-        tenantId: query.tenantId,
+        companyId: query.tenantId,
         companyName,
         visitors: visitorDtos,
         totalCount: visitorDtos.length,

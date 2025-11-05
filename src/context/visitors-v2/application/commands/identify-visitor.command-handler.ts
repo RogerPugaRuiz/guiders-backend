@@ -33,6 +33,7 @@ import { RecordConsentCommand } from '../../../consent/application/commands/reco
 import { DenyConsentCommand } from '../../../consent/application/commands/deny-consent.command';
 import { BadRequestException } from '@nestjs/common';
 import { getCurrentConsentVersion } from '../../../consent/domain/config/consent-version.config';
+import { GoOnlineVisitorCommand } from './go-online-visitor.command';
 
 @CommandHandler(IdentifyVisitorCommand)
 export class IdentifyVisitorCommandHandler
@@ -297,6 +298,23 @@ export class IdentifyVisitorCommandHandler
         this.logger.error(
           'Error al registrar consentimiento en contexto consent:',
           error instanceof Error ? error.message : String(error),
+        );
+      }
+
+      // Marcar visitante como online automáticamente
+      // Esto notificará a los comerciales vía WebSocket que hay un nuevo visitante conectado
+      try {
+        await this.commandBus.execute(
+          new GoOnlineVisitorCommand(visitor.getId().value),
+        );
+        this.logger.log(
+          `✅ Visitante marcado como online automáticamente: ${visitor.getId().value}`,
+        );
+      } catch (error: unknown) {
+        // No fallar toda la operación si falla marcar como online
+        // El visitante puede hacerlo manualmente después
+        this.logger.warn(
+          `⚠️ Error al marcar visitante como online (no crítico): ${error instanceof Error ? error.message : String(error)}`,
         );
       }
 

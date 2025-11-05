@@ -17,16 +17,19 @@ import { GetCommercialAvailabilityBySiteQueryHandler } from './application/queri
 import { ConnectCommercialCommandHandler } from './application/commands/connect-commercial.command-handler';
 import { DisconnectCommercialCommandHandler } from './application/commands/disconnect-commercial.command-handler';
 import { UpdateCommercialActivityCommandHandler } from './application/commands/update-commercial-activity.command-handler';
+import { ChangeCommercialConnectionStatusCommandHandler } from './application/commands/change-commercial-connection-status.command-handler';
 
 // Application - Events
 import { CreateApiKeyOnCommercialConnectedEventHandler } from './application/events/create-api-key-on-commercial-connected.event-handler';
 import { LogActivityOnCommercialHeartbeatReceivedEventHandler } from './application/events/log-activity-on-commercial-heartbeat-received.event-handler';
 import { UpdateMetricsOnCommercialDisconnectedEventHandler } from './application/events/update-metrics-on-commercial-disconnected.event-handler';
+import { EmitPresenceChangedOnCommercialConnectionStatusChangedEventHandler } from './application/events/emit-presence-changed-on-commercial-connection-status-changed.event-handler';
 
 // Infrastructure
 import { MongoCommercialRepositoryImpl } from './infrastructure/persistence/impl/mongo-commercial.repository.impl';
 import { CommercialController } from './infrastructure/controllers/commercial.controller';
 import { RedisCommercialConnectionDomainService } from './infrastructure/connection/redis-commercial-connection.domain-service';
+import { CommercialInactivityScheduler } from './infrastructure/schedulers/inactivity.scheduler';
 
 // Schema imports
 import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas/commercial.schema';
@@ -74,11 +77,16 @@ import { CompanyModule } from '../company/company.module';
     ConnectCommercialCommandHandler,
     DisconnectCommercialCommandHandler,
     UpdateCommercialActivityCommandHandler,
+    ChangeCommercialConnectionStatusCommandHandler,
 
     // Event Handlers
     CreateApiKeyOnCommercialConnectedEventHandler,
     LogActivityOnCommercialHeartbeatReceivedEventHandler,
     UpdateMetricsOnCommercialDisconnectedEventHandler,
+    EmitPresenceChangedOnCommercialConnectionStatusChangedEventHandler,
+
+    // Schedulers
+    CommercialInactivityScheduler,
   ],
   exports: [COMMERCIAL_REPOSITORY, COMMERCIAL_CONNECTION_DOMAIN_SERVICE],
 })

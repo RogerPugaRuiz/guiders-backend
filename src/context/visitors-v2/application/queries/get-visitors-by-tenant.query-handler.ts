@@ -133,7 +133,7 @@ export class GetVisitorsByTenantQueryHandler
       );
 
       return {
-        tenantId: query.tenantId,
+        companyId: query.tenantId,
         companyName,
         visitors: visitorDtos,
         totalCount, // ✅ Ahora usa el count real del repositorio

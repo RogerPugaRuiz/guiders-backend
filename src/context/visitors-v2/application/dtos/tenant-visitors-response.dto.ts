@@ -140,10 +140,10 @@ export class TenantVisitorWithChatDto extends TenantVisitorInfoDto {
  */
 export class TenantVisitorsResponseDto {
   @ApiProperty({
-    description: 'ID del tenant (empresa)',
+    description: 'ID de la compañía',
     example: 'tenant-uuid-123',
   })
-  tenantId: string;
+  companyId: string;
 
   @ApiProperty({
     description: 'Nombre de la empresa',
@@ -183,10 +183,10 @@ export class TenantVisitorsResponseDto {
  */
 export class TenantVisitorsUnassignedChatsResponseDto {
   @ApiProperty({
-    description: 'ID del tenant (empresa)',
+    description: 'ID de la compañía',
     example: 'tenant-uuid-123',
   })
-  tenantId: string;
+  companyId: string;
 
   @ApiProperty({
     description: 'Nombre de la empresa',
@@ -231,10 +231,10 @@ export class TenantVisitorsUnassignedChatsResponseDto {
  */
 export class TenantVisitorsQueuedChatsResponseDto {
   @ApiProperty({
-    description: 'ID del tenant (empresa)',
+    description: 'ID de la compañía',
     example: 'tenant-uuid-123',
   })
-  tenantId: string;
+  companyId: string;
 
   @ApiProperty({
     description: 'Nombre de la empresa',

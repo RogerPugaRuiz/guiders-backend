@@ -25,6 +25,7 @@ import { ConversationsV2Module } from '../conversations-v2/conversations-v2.modu
 import { GoOnlineVisitorCommandHandler } from './application/commands/go-online-visitor.command-handler';
 import { StartChattingVisitorCommandHandler } from './application/commands/start-chatting-visitor.command-handler';
 import { GoOfflineVisitorCommandHandler } from './application/commands/go-offline-visitor.command-handler';
+import { ChangeVisitorConnectionStatusCommandHandler } from './application/commands/change-visitor-connection-status.command-handler';
 import { GetOnlineVisitorsQueryHandler } from './application/queries/get-online-visitors.query-handler';
 import { GetChattingVisitorsQueryHandler } from './application/queries/get-chatting-visitors.query-handler';
 import { GetVisitorConnectionStatusQueryHandler } from './application/queries/get-visitor-connection-status.query-handler';
@@ -35,9 +36,12 @@ import { GetVisitorsByTenantQueryHandler } from './application/queries/get-visit
 import { GetVisitorsWithUnassignedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-unassigned-chats-by-tenant.query-handler';
 import { GetVisitorsWithQueuedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-tenant.query-handler';
 import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
+import { EmitPresenceChangedOnVisitorConnectionChangedEventHandler } from './application/events/emit-presence-changed-on-visitor-connection-changed.event-handler';
+import { ChangeVisitorToOfflineOnSessionEndedEventHandler } from './application/events/change-visitor-to-offline-on-session-ended.event-handler';
 import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
 import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
 import { SessionCleanupScheduler } from './application/services/session-cleanup.scheduler';
+import { VisitorInactivityScheduler } from './infrastructure/schedulers/inactivity.scheduler';
 import { SESSION_MANAGEMENT_SERVICE_PROVIDER } from './infrastructure/providers/session-management.provider';
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
 import { BffSessionAuthService } from '../shared/infrastructure/services/bff-session-auth.service';
@@ -77,6 +81,7 @@ import { ConsentModule } from '../consent/consent.module';
     GoOnlineVisitorCommandHandler,
     StartChattingVisitorCommandHandler,
     GoOfflineVisitorCommandHandler,
+    ChangeVisitorConnectionStatusCommandHandler,
     GetOnlineVisitorsQueryHandler,
     GetChattingVisitorsQueryHandler,
     GetVisitorConnectionStatusQueryHandler,
@@ -87,9 +92,12 @@ import { ConsentModule } from '../consent/consent.module';
     GetVisitorsWithUnassignedChatsByTenantQueryHandler,
     GetVisitorsWithQueuedChatsByTenantQueryHandler,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
+    EmitPresenceChangedOnVisitorConnectionChangedEventHandler,
+    ChangeVisitorToOfflineOnSessionEndedEventHandler,
     VISITOR_CONNECTION_SERVICE_PROVIDER,
     SESSION_MANAGEMENT_SERVICE_PROVIDER,
     SessionCleanupScheduler,
+    VisitorInactivityScheduler,
     TokenVerifyService,
     BffSessionAuthService,
     VisitorSessionAuthService,

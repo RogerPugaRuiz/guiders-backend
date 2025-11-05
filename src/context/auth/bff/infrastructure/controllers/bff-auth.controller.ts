@@ -10,6 +10,9 @@ import {
 import type { Request, Response } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { QueryBus } from '@nestjs/cqrs';
+import { FindUserByKeycloakIdQuery } from '../../../auth-user/application/queries/find-user-by-keycloak-id.query';
+import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 
 // Helpers de configuración en runtime para evitar valores congelados al cargar el módulo
 function parseSameSite(value?: string): 'strict' | 'lax' | 'none' {
@@ -119,7 +122,10 @@ export class BffController {
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
   private readonly logger = new Logger(BffController.name);
 
-  constructor(private readonly oidc: OidcService) {}
+  constructor(
+    private readonly oidc: OidcService,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   // Inicializa/memoiza JWKS desde OIDC_JWKS_URI o derivado de OIDC_ISSUER
   private getJWKS() {
@@ -361,12 +367,19 @@ export class BffController {
 
   // Devuelve claims mínimas
   @ApiOperation({
-    summary: 'Obtener claims del usuario (console)',
+    summary: 'Obtener información del usuario autenticado (console)',
     description:
-      'Devuelve claims básicos del usuario autenticado a partir de la cookie de sesión HttpOnly. Requiere cookie válida.',
+      'Devuelve información del usuario autenticado obtenida desde la base de datos, incluyendo companyId. Requiere cookie de sesión válida.',
   })
-  @ApiResponse({ status: 200, description: 'Claims del usuario' })
-  @ApiResponse({ status: 401, description: 'No autenticado o JWT inválido' })
+  @ApiResponse({
+    status: 200,
+    description: 'Información del usuario',
+    type: BFFMeResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado, JWT inválido o usuario no encontrado',
+  })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me')
   async me(
@@ -377,13 +390,20 @@ export class BffController {
   }
 
   @ApiOperation({
-    summary: 'Obtener claims del usuario (app)',
+    summary: 'Obtener información del usuario autenticado (app)',
     description:
-      'Devuelve claims básicos del usuario autenticado para la app indicada (console|admin). Requiere cookie válida.',
+      'Devuelve información del usuario autenticado obtenida desde la base de datos para la app indicada (console|admin), incluyendo companyId. Requiere cookie de sesión válida.',
   })
   @ApiParam({ name: 'app', enum: ['console', 'admin'] })
-  @ApiResponse({ status: 200, description: 'Claims del usuario' })
-  @ApiResponse({ status: 401, description: 'No autenticado o JWT inválido' })
+  @ApiResponse({
+    status: 200,
+    description: 'Información del usuario',
+    type: BFFMeResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado, JWT inválido o usuario no encontrado',
+  })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me/:app')
   async meForApp(
@@ -450,39 +470,43 @@ export class BffController {
         .status(401)
         .send({ error: 'unauthenticated', reason: 'jwt_verify_failed' });
     }
-    const pl = payload as JWTPayload & {
-      email?: string;
-      realm_access?: { roles?: string[] };
-    };
+
     this.logger.debug(
       `[BFF /me/${app}] JWT OK: sub=${payload.sub ?? 'n/a'}, exp=${payload.exp ?? 'n/a'}`,
     );
 
-    // Log detallado de todos los claims del payload
-    this.logger.log(
-      `🔍 [BFF /me/${app}] Claims completos del JWT: ${JSON.stringify(payload, null, 2)}`,
+    // Obtener información del usuario desde la base de datos
+    if (!payload.sub) {
+      this.logger.error(`[BFF /me/${app}] JWT sin claim 'sub'`);
+      return res
+        .status(401)
+        .send({ error: 'unauthenticated', reason: 'invalid_jwt_sub' });
+    }
+
+    const userResult = await this.queryBus.execute(
+      new FindUserByKeycloakIdQuery(payload.sub),
     );
 
-    // Log específico de organization claims
-    const orgClaims = {
-      organization: payload.organization,
-      organization_id: payload.organization_id,
-      organization_name: payload.organization_name,
-    };
-    this.logger.log(
-      `🏢 [BFF /me/${app}] Organization Claims extraídos: ${JSON.stringify(orgClaims)}`,
+    if (userResult.isErr()) {
+      this.logger.warn(
+        `[BFF /me/${app}] Usuario con sub=${payload.sub} no encontrado en BD: ${userResult.error.message}`,
+      );
+      return res
+        .status(401)
+        .send({ error: 'unauthenticated', reason: 'user_not_found' });
+    }
+
+    const user = userResult.unwrap();
+    this.logger.debug(
+      `[BFF /me/${app}] Usuario encontrado: id=${user.id}, email=${user.email}, companyId=${user.companyId}`,
     );
 
     const response = {
       sub: payload.sub,
-      email: pl.email,
-      roles: pl.realm_access?.roles ?? [],
-      app: app, // Incluir información de la app
-      // Incluir información de organization si está disponible
-      organization: payload.organization || null,
-      organization_id: payload.organization_id || null,
-      organization_name: payload.organization_name || null,
-      // Opcional: informa al cliente del TTL que queda
+      email: user.email,
+      roles: user.roles,
+      companyId: user.companyId,
+      app: app,
       session: { exp: payload.exp, iat: payload.iat },
     };
 

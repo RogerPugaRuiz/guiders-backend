@@ -21,6 +21,7 @@ import { ConversationsV2Module } from './context/conversations-v2/conversations-
 import { CommercialModule } from './context/commercial/commercial.module';
 import { TrackingV2Module } from './context/tracking-v2/tracking-v2.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { WebSocketGatewayBasic } from './websocket/websocket.gateway';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConsentModule } from './context/consent/consent.module';
 import { PresenceInactivityScheduler } from './context/shared/infrastructure/schedulers/presence-inactivity.scheduler';
@@ -76,6 +77,11 @@ import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/sh
     TokenVerifyService,
     PresenceInactivityScheduler,
     NotifyPresenceChangedOnPresenceChangedEventHandler,
+    // Provider para que NotifyPresenceChangedOnPresenceChangedEventHandler pueda inyectar el WebSocketGateway
+    {
+      provide: 'WEBSOCKET_GATEWAY',
+      useExisting: WebSocketGatewayBasic,
+    },
   ],
 })
 export class AppModule {

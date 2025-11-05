@@ -6,6 +6,11 @@ import {
   VISITOR_V2_REPOSITORY,
 } from '../../domain/visitor-v2.repository';
 import { SessionId } from '../../domain/value-objects/session-id';
+import {
+  VisitorConnectionDomainService,
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+} from '../../domain/visitor-connection.domain-service';
+import { VisitorLastActivity } from '../../domain/value-objects/visitor-last-activity';
 
 @CommandHandler(UpdateSessionHeartbeatCommand)
 export class UpdateSessionHeartbeatCommandHandler
@@ -18,6 +23,8 @@ export class UpdateSessionHeartbeatCommandHandler
   constructor(
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
+    @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
+    private readonly connectionService: VisitorConnectionDomainService,
     private readonly publisher: EventPublisher,
   ) {}
 
@@ -51,6 +58,16 @@ export class UpdateSessionHeartbeatCommandHandler
 
       // Actualizar el heartbeat de la sesión activa
       visitor.updateSessionActivity();
+
+      // IMPORTANTE: Actualizar lastActivity en Redis para que el scheduler de inactividad
+      // detecte que el visitante sigue activo y no lo marque como away/offline
+      const visitorId = visitor.getId();
+      const lastActivity = VisitorLastActivity.now();
+      await this.connectionService.updateLastActivity(visitorId, lastActivity);
+
+      this.logger.debug(
+        `LastActivity actualizado en Redis para visitante: ${visitorId.value}`,
+      );
 
       // Persistir cambios con eventos
       const visitorContext = this.publisher.mergeObjectContext(visitor);

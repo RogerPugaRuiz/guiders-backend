@@ -68,11 +68,7 @@ describe('StartTypingCommandHandler', () => {
 
     it('should set typing for visitor user', async () => {
       const visitorId = '223e4567-e89b-12d3-a456-426614174002';
-      const command = new StartTypingCommand(
-        'chat-789',
-        visitorId,
-        'visitor',
-      );
+      const command = new StartTypingCommand('chat-789', visitorId, 'visitor');
 
       await handler.execute(command);
 
@@ -89,11 +85,7 @@ describe('StartTypingCommandHandler', () => {
 
     it('should publish TypingStartedEvent with correct data', async () => {
       const userId = '323e4567-e89b-12d3-a456-426614174003';
-      const command = new StartTypingCommand(
-        'chat-123',
-        userId,
-        'commercial',
-      );
+      const command = new StartTypingCommand('chat-123', userId, 'commercial');
 
       await handler.execute(command);
 
