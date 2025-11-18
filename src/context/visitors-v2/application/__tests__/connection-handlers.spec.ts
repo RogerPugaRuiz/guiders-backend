@@ -45,6 +45,7 @@ describe('Connection Handlers', () => {
     repository = {
       findById: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
     } as any;
     // Instanciamos un EventPublisher "vacío" y parcheamos mergeObjectContext
     publisher = {
@@ -161,6 +162,7 @@ describe('Connection Handlers', () => {
     it('sincroniza setConnectionStatus cuando no offline', async () => {
       const handler = new SyncConnectionOnVisitorConnectionChangedEventHandler(
         connectionService,
+        repository,
       );
       await handler.handle(
         new VisitorConnectionChangedEvent({
@@ -176,6 +178,7 @@ describe('Connection Handlers', () => {
     it('sincroniza removeConnection cuando offline', async () => {
       const handler = new SyncConnectionOnVisitorConnectionChangedEventHandler(
         connectionService,
+        repository,
       );
       await handler.handle(
         new VisitorConnectionChangedEvent({

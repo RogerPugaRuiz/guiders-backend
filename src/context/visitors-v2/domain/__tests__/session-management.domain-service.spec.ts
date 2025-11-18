@@ -28,7 +28,7 @@ describe('SessionManagementDomainServiceImpl', () => {
       });
 
       const timeout = service.determineTimeoutForVisitor(visitor);
-      expect(timeout.toMinutes()).toBe(5); // SHORT = 5 minutos
+      expect(timeout.toMinutes()).toBe(2); // SHORT = 2 minutos (reducido para testing)
     });
 
     it('debe retornar timeout MEDIUM para visitante ENGAGED', () => {
@@ -41,7 +41,7 @@ describe('SessionManagementDomainServiceImpl', () => {
       });
 
       const timeout = service.determineTimeoutForVisitor(visitor);
-      expect(timeout.toMinutes()).toBe(15); // MEDIUM = 15 minutos
+      expect(timeout.toMinutes()).toBe(5); // MEDIUM = 5 minutos (reducido para testing)
     });
 
     it('debe retornar timeout LONG para visitante LEAD', () => {
@@ -54,7 +54,7 @@ describe('SessionManagementDomainServiceImpl', () => {
       });
 
       const timeout = service.determineTimeoutForVisitor(visitor);
-      expect(timeout.toMinutes()).toBe(30); // LONG = 30 minutos
+      expect(timeout.toMinutes()).toBe(10); // LONG = 10 minutos (reducido para testing)
     });
 
     it('debe retornar timeout EXTENDED para visitante CONVERTED', () => {
@@ -67,7 +67,7 @@ describe('SessionManagementDomainServiceImpl', () => {
       });
 
       const timeout = service.determineTimeoutForVisitor(visitor);
-      expect(timeout.toMinutes()).toBe(60); // EXTENDED = 60 minutos
+      expect(timeout.toMinutes()).toBe(15); // EXTENDED = 15 minutos (reducido para testing)
     });
   });
 
@@ -85,7 +85,7 @@ describe('SessionManagementDomainServiceImpl', () => {
     });
 
     it('debe retornar true si hay sesiones expiradas', () => {
-      // Crear visitante con sesión expirada (más de 5 minutos)
+      // Crear visitante con sesión expirada (más de 2 minutos para ANON)
       const visitor = VisitorV2.fromPrimitives({
         id: VisitorId.random().getValue(),
         tenantId: TenantId.random().getValue(),
@@ -101,7 +101,7 @@ describe('SessionManagementDomainServiceImpl', () => {
           {
             id: SessionId.random().getValue(),
             startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutos atrás
-            lastActivityAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutos atrás
+            lastActivityAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(), // 10 minutos atrás (> 2 min timeout)
             // sin endedAt = sesión activa
           },
         ],
@@ -138,7 +138,7 @@ describe('SessionManagementDomainServiceImpl', () => {
 
   describe('cleanExpiredSessions', () => {
     it('debe cerrar todas las sesiones activas expiradas', () => {
-      // Crear visitante con múltiples sesiones expiradas
+      // Crear visitante con múltiples sesiones expiradas (timeout ANON = 2 min)
       const visitor = VisitorV2.fromPrimitives({
         id: VisitorId.random().getValue(),
         tenantId: TenantId.random().getValue(),
@@ -155,19 +155,19 @@ describe('SessionManagementDomainServiceImpl', () => {
             id: SessionId.random().getValue(),
             startedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
             lastActivityAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-            // activa pero expirada (20 min > 5 min timeout)
+            // activa pero expirada (20 min > 2 min timeout)
           },
           {
             id: SessionId.random().getValue(),
             startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
             lastActivityAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-            // activa pero expirada (10 min > 5 min timeout)
+            // activa pero expirada (10 min > 2 min timeout)
           },
           {
             id: SessionId.random().getValue(),
-            startedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-            lastActivityAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-            // activa y NO expirada (2 min < 5 min timeout)
+            startedAt: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
+            lastActivityAt: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
+            // activa y NO expirada (1 min < 2 min timeout)
           },
         ],
       });

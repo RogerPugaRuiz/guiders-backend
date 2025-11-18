@@ -19,12 +19,17 @@ import { TenantId } from '../../../domain/value-objects/tenant-id';
 import { ok } from '../../../../shared/domain/result';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 import { VisitorLifecycle } from '../../../domain/value-objects/visitor-lifecycle';
+import {
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+  VisitorConnectionDomainService,
+} from '../../../domain/visitor-connection.domain-service';
 
 describe('GetVisitorsByTenantQueryHandler', () => {
   let handler: GetVisitorsByTenantQueryHandler;
   let mockVisitorRepository: jest.Mocked<VisitorV2Repository>;
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
   let mockChatRepository: jest.Mocked<IChatRepository>;
+  let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
 
   const tenantId = Uuid.random().value;
   const siteId = Uuid.random().value;
@@ -46,6 +51,15 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       findByVisitorId: jest.fn(),
     } as any;
 
+    // Mock del servicio de conexión
+    mockConnectionService = {
+      getConnectionStatus: jest.fn(),
+      setConnectionStatus: jest.fn(),
+      isVisitorOnline: jest.fn(),
+      getOnlineVisitors: jest.fn(),
+      getChattingVisitors: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GetVisitorsByTenantQueryHandler,
@@ -60,6 +74,10 @@ describe('GetVisitorsByTenantQueryHandler', () => {
         {
           provide: CHAT_V2_REPOSITORY,
           useValue: mockChatRepository,
+        },
+        {
+          provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
+          useValue: mockConnectionService,
         },
       ],
     }).compile();
