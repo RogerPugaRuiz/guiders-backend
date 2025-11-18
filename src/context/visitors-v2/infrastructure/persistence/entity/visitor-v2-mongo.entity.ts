@@ -18,6 +18,13 @@ export class VisitorV2MongoEntity extends Document {
   @Prop({ required: true, enum: ['ANON', 'ENGAGED', 'LEAD', 'CONVERTED'] })
   lifecycle: string;
 
+  @Prop({
+    required: true,
+    enum: ['online', 'away', 'chatting', 'offline'],
+    default: 'offline',
+  })
+  connectionStatus: string;
+
   @Prop({ required: true, default: false })
   hasAcceptedPrivacyPolicy: boolean;
 
@@ -63,6 +70,7 @@ VisitorV2MongoEntitySchema.index(
 VisitorV2MongoEntitySchema.index({ tenantId: 1 });
 VisitorV2MongoEntitySchema.index({ siteId: 1 });
 VisitorV2MongoEntitySchema.index({ lifecycle: 1 });
+VisitorV2MongoEntitySchema.index({ connectionStatus: 1 });
 VisitorV2MongoEntitySchema.index({ 'sessions.id': 1 });
 VisitorV2MongoEntitySchema.index({ 'sessions.endedAt': 1 });
 // Índice para consultas de consentimiento

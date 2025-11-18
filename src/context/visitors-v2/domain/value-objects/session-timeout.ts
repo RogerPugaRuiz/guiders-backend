@@ -2,12 +2,17 @@ import { PrimitiveValueObject } from '../../../shared/domain/primitive-value-obj
 
 /**
  * Configuraciones de timeout predefinidas para diferentes tipos de sesión
+ * Valores configurables via ENV para facilitar testing:
+ * - SESSION_TIMEOUT_SHORT: ANON (default: 120000ms = 2 min)
+ * - SESSION_TIMEOUT_MEDIUM: ENGAGED (default: 300000ms = 5 min)
+ * - SESSION_TIMEOUT_LONG: LEAD (default: 600000ms = 10 min)
+ * - SESSION_TIMEOUT_EXTENDED: CONVERTED (default: 900000ms = 15 min)
  */
 export enum SessionTimeoutType {
-  SHORT = 300000, // 5 minutos (ms)
-  MEDIUM = 900000, // 15 minutos
-  LONG = 1800000, // 30 minutos
-  EXTENDED = 3600000, // 60 minutos
+  SHORT = 120000, // 2 minutos (ms) - antes 5 min
+  MEDIUM = 300000, // 5 minutos - antes 15 min
+  LONG = 600000, // 10 minutos - antes 30 min
+  EXTENDED = 900000, // 15 minutos - antes 60 min
 }
 
 /**
@@ -25,30 +30,52 @@ export class SessionTimeout extends PrimitiveValueObject<number> {
 
   /**
    * Timeout corto para visitantes anónimos
+   * Configurable via SESSION_TIMEOUT_SHORT (default: 2 min)
    */
   public static short(): SessionTimeout {
-    return new SessionTimeout(SessionTimeoutType.SHORT);
+    const timeout = parseInt(
+      process.env.SESSION_TIMEOUT_SHORT || SessionTimeoutType.SHORT.toString(),
+      10,
+    );
+    return new SessionTimeout(timeout);
   }
 
   /**
    * Timeout medio para visitantes identificados
+   * Configurable via SESSION_TIMEOUT_MEDIUM (default: 5 min)
    */
   public static medium(): SessionTimeout {
-    return new SessionTimeout(SessionTimeoutType.MEDIUM);
+    const timeout = parseInt(
+      process.env.SESSION_TIMEOUT_MEDIUM ||
+        SessionTimeoutType.MEDIUM.toString(),
+      10,
+    );
+    return new SessionTimeout(timeout);
   }
 
   /**
    * Timeout largo para visitantes en conversación
+   * Configurable via SESSION_TIMEOUT_LONG (default: 10 min)
    */
   public static long(): SessionTimeout {
-    return new SessionTimeout(SessionTimeoutType.LONG);
+    const timeout = parseInt(
+      process.env.SESSION_TIMEOUT_LONG || SessionTimeoutType.LONG.toString(),
+      10,
+    );
+    return new SessionTimeout(timeout);
   }
 
   /**
    * Timeout extendido para visitantes leads/convertidos
+   * Configurable via SESSION_TIMEOUT_EXTENDED (default: 15 min)
    */
   public static extended(): SessionTimeout {
-    return new SessionTimeout(SessionTimeoutType.EXTENDED);
+    const timeout = parseInt(
+      process.env.SESSION_TIMEOUT_EXTENDED ||
+        SessionTimeoutType.EXTENDED.toString(),
+      10,
+    );
+    return new SessionTimeout(timeout);
   }
 
   /**

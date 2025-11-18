@@ -27,6 +27,7 @@ export interface VisitorPrimitives {
   siteId: string;
   fingerprint: string;
   lifecycle: VisitorLifecycle; // ANON/ENGAGED/LEAD/CONVERTED
+  connectionStatus?: ConnectionStatus; // online/away/chatting/offline (opcional para retrocompatibilidad)
   hasAcceptedPrivacyPolicy: boolean;
   privacyPolicyAcceptedAt: string | null;
   consentVersion: string | null;
@@ -46,6 +47,7 @@ export class VisitorV2 extends AggregateRoot {
   private readonly siteId: SiteId;
   private readonly fingerprint: VisitorFingerprint;
   private lifecycle: VisitorLifecycleVO;
+  private connectionStatus: ConnectionStatus;
   private hasAcceptedPrivacyPolicy: boolean;
   private privacyPolicyAcceptedAt: Date | null;
   private consentVersion: string | null;
@@ -59,6 +61,7 @@ export class VisitorV2 extends AggregateRoot {
     siteId: SiteId;
     fingerprint: VisitorFingerprint;
     lifecycle: VisitorLifecycleVO;
+    connectionStatus: ConnectionStatus;
     hasAcceptedPrivacyPolicy: boolean;
     privacyPolicyAcceptedAt: Date | null;
     consentVersion: string | null;
@@ -72,6 +75,7 @@ export class VisitorV2 extends AggregateRoot {
     this.siteId = props.siteId;
     this.fingerprint = props.fingerprint;
     this.lifecycle = props.lifecycle;
+    this.connectionStatus = props.connectionStatus;
     this.hasAcceptedPrivacyPolicy = props.hasAcceptedPrivacyPolicy;
     this.privacyPolicyAcceptedAt = props.privacyPolicyAcceptedAt;
     this.consentVersion = props.consentVersion;
@@ -103,6 +107,7 @@ export class VisitorV2 extends AggregateRoot {
       siteId: props.siteId,
       fingerprint: props.fingerprint,
       lifecycle,
+      connectionStatus: ConnectionStatus.OFFLINE,
       hasAcceptedPrivacyPolicy: hasAccepted,
       privacyPolicyAcceptedAt: hasAccepted ? now : null,
       consentVersion: props.consentVersion || null,
@@ -136,6 +141,7 @@ export class VisitorV2 extends AggregateRoot {
       siteId: new SiteId(primitives.siteId),
       fingerprint: new VisitorFingerprint(primitives.fingerprint),
       lifecycle: new VisitorLifecycleVO(primitives.lifecycle),
+      connectionStatus: primitives.connectionStatus || ConnectionStatus.OFFLINE,
       hasAcceptedPrivacyPolicy: primitives.hasAcceptedPrivacyPolicy,
       privacyPolicyAcceptedAt: primitives.privacyPolicyAcceptedAt
         ? new Date(primitives.privacyPolicyAcceptedAt)
@@ -159,6 +165,7 @@ export class VisitorV2 extends AggregateRoot {
       siteId: this.siteId.getValue(),
       fingerprint: this.fingerprint.getValue(),
       lifecycle: this.lifecycle.getValue(),
+      connectionStatus: this.connectionStatus,
       hasAcceptedPrivacyPolicy: this.hasAcceptedPrivacyPolicy,
       privacyPolicyAcceptedAt: this.privacyPolicyAcceptedAt
         ? this.privacyPolicyAcceptedAt.toISOString()
@@ -343,6 +350,10 @@ export class VisitorV2 extends AggregateRoot {
     return this.lifecycle;
   }
 
+  public getConnectionStatus(): ConnectionStatus {
+    return this.connectionStatus;
+  }
+
   public getCreatedAt(): Date {
     return this.createdAt;
   }
@@ -399,12 +410,16 @@ export class VisitorV2 extends AggregateRoot {
    * Emite evento para que la infraestructura sincronice con Redis
    */
   public goOnline(): void {
+    const previousStatus = this.connectionStatus;
+    this.connectionStatus = ConnectionStatus.ONLINE;
+    this.updatedAt = new Date();
+
     this.apply(
       new VisitorConnectionChangedEvent({
         visitorId: this.id.getValue(),
-        previousConnection: null, // Asumimos que venía de offline
+        previousConnection: previousStatus,
         newConnection: ConnectionStatus.ONLINE,
-        timestamp: new Date().toISOString(),
+        timestamp: this.updatedAt.toISOString(),
       }),
     );
   }
@@ -414,12 +429,16 @@ export class VisitorV2 extends AggregateRoot {
    * Emite evento para que la infraestructura sincronice con Redis
    */
   public startChatting(): void {
+    const previousStatus = this.connectionStatus;
+    this.connectionStatus = ConnectionStatus.CHATTING;
+    this.updatedAt = new Date();
+
     this.apply(
       new VisitorConnectionChangedEvent({
         visitorId: this.id.getValue(),
-        previousConnection: ConnectionStatus.ONLINE,
+        previousConnection: previousStatus,
         newConnection: ConnectionStatus.CHATTING,
-        timestamp: new Date().toISOString(),
+        timestamp: this.updatedAt.toISOString(),
       }),
     );
   }
@@ -429,12 +448,16 @@ export class VisitorV2 extends AggregateRoot {
    * Emite evento para que la infraestructura sincronice con Redis
    */
   public goOffline(): void {
+    const previousStatus = this.connectionStatus;
+    this.connectionStatus = ConnectionStatus.OFFLINE;
+    this.updatedAt = new Date();
+
     this.apply(
       new VisitorConnectionChangedEvent({
         visitorId: this.id.getValue(),
-        previousConnection: null, // Podría venir de cualquier estado
+        previousConnection: previousStatus,
         newConnection: ConnectionStatus.OFFLINE,
-        timestamp: new Date().toISOString(),
+        timestamp: this.updatedAt.toISOString(),
       }),
     );
   }
@@ -444,12 +467,16 @@ export class VisitorV2 extends AggregateRoot {
    * Emite evento para que la infraestructura sincronice con Redis
    */
   public goAway(): void {
+    const previousStatus = this.connectionStatus;
+    this.connectionStatus = ConnectionStatus.AWAY;
+    this.updatedAt = new Date();
+
     this.apply(
       new VisitorConnectionChangedEvent({
         visitorId: this.id.getValue(),
-        previousConnection: ConnectionStatus.ONLINE, // Puede venir de online o chatting
+        previousConnection: previousStatus,
         newConnection: ConnectionStatus.AWAY,
-        timestamp: new Date().toISOString(),
+        timestamp: this.updatedAt.toISOString(),
       }),
     );
   }
@@ -459,12 +486,16 @@ export class VisitorV2 extends AggregateRoot {
    * Emite evento para que la infraestructura sincronice con Redis
    */
   public stopChatting(): void {
+    const previousStatus = this.connectionStatus;
+    this.connectionStatus = ConnectionStatus.ONLINE;
+    this.updatedAt = new Date();
+
     this.apply(
       new VisitorConnectionChangedEvent({
         visitorId: this.id.getValue(),
-        previousConnection: ConnectionStatus.CHATTING,
+        previousConnection: previousStatus,
         newConnection: ConnectionStatus.ONLINE,
-        timestamp: new Date().toISOString(),
+        timestamp: this.updatedAt.toISOString(),
       }),
     );
   }
@@ -474,12 +505,16 @@ export class VisitorV2 extends AggregateRoot {
    * Emite evento para que la infraestructura sincronice con Redis
    */
   public returnFromAway(): void {
+    const previousStatus = this.connectionStatus;
+    this.connectionStatus = ConnectionStatus.ONLINE;
+    this.updatedAt = new Date();
+
     this.apply(
       new VisitorConnectionChangedEvent({
         visitorId: this.id.getValue(),
-        previousConnection: ConnectionStatus.AWAY,
+        previousConnection: previousStatus,
         newConnection: ConnectionStatus.ONLINE,
-        timestamp: new Date().toISOString(),
+        timestamp: this.updatedAt.toISOString(),
       }),
     );
   }

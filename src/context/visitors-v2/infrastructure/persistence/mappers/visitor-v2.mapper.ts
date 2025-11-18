@@ -1,6 +1,7 @@
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorV2MongoEntity } from '../entity/visitor-v2-mongo.entity';
 import { VisitorLifecycle } from '../../../domain/value-objects/visitor-lifecycle';
+import { ConnectionStatus } from '../../../domain/value-objects/visitor-connection';
 
 /**
  * Mapper para convertir entre el agregado de dominio VisitorV2
@@ -19,6 +20,7 @@ export class VisitorV2Mapper {
       siteId: primitives.siteId,
       fingerprint: primitives.fingerprint,
       lifecycle: primitives.lifecycle,
+      connectionStatus: primitives.connectionStatus,
       hasAcceptedPrivacyPolicy: primitives.hasAcceptedPrivacyPolicy,
       privacyPolicyAcceptedAt: primitives.privacyPolicyAcceptedAt
         ? new Date(primitives.privacyPolicyAcceptedAt)
@@ -45,6 +47,9 @@ export class VisitorV2Mapper {
       siteId: entity.siteId,
       fingerprint: entity.fingerprint,
       lifecycle: entity.lifecycle as VisitorLifecycle,
+      connectionStatus:
+        (entity.connectionStatus as ConnectionStatus) ||
+        ConnectionStatus.OFFLINE,
       hasAcceptedPrivacyPolicy: entity.hasAcceptedPrivacyPolicy,
       privacyPolicyAcceptedAt: entity.privacyPolicyAcceptedAt
         ? entity.privacyPolicyAcceptedAt.toISOString()
