@@ -17,6 +17,7 @@ export interface CommercialPrimitives {
   lastActivity: Date;
   createdAt: Date;
   updatedAt: Date;
+  avatarUrl?: string | null;
   metadata?: Record<string, any>;
 }
 
@@ -30,6 +31,7 @@ export interface CommercialProperties {
   lastActivity?: CommercialLastActivity;
   createdAt?: Date;
   updatedAt?: Date;
+  avatarUrl?: string | null;
   metadata?: Record<string, any>;
 }
 
@@ -46,6 +48,7 @@ export class Commercial extends AggregateRoot {
     private _lastActivity: CommercialLastActivity,
     private readonly _createdAt: Date,
     private _updatedAt: Date,
+    private _avatarUrl?: string | null,
     private _metadata?: Record<string, any>,
   ) {
     super();
@@ -63,6 +66,7 @@ export class Commercial extends AggregateRoot {
       props.lastActivity ?? CommercialLastActivity.now(),
       props.createdAt ?? now,
       props.updatedAt ?? now,
+      props.avatarUrl ?? null,
       props.metadata,
     );
 
@@ -89,6 +93,7 @@ export class Commercial extends AggregateRoot {
       new CommercialLastActivity(primitives.lastActivity),
       primitives.createdAt,
       primitives.updatedAt,
+      primitives.avatarUrl ?? null,
       primitives.metadata,
     );
   }
@@ -105,6 +110,8 @@ export class Commercial extends AggregateRoot {
       newLastActivity,
       this._createdAt,
       new Date(),
+      this._avatarUrl,
+      this._metadata,
     );
 
     updated.apply(
@@ -136,6 +143,8 @@ export class Commercial extends AggregateRoot {
       CommercialLastActivity.now(),
       this._createdAt,
       new Date(),
+      this._avatarUrl,
+      this._metadata,
     );
 
     updated.apply(
@@ -168,6 +177,7 @@ export class Commercial extends AggregateRoot {
       lastActivity: this._lastActivity.value,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
+      avatarUrl: this._avatarUrl ?? null,
       metadata: this._metadata,
     };
   }
@@ -199,5 +209,25 @@ export class Commercial extends AggregateRoot {
 
   get metadata(): Record<string, any> | undefined {
     return this._metadata;
+  }
+
+  get avatarUrl(): string | null | undefined {
+    return this._avatarUrl;
+  }
+
+  /**
+   * Actualiza el avatar del comercial
+   */
+  public updateAvatar(avatarUrl: string | null): Commercial {
+    return new Commercial(
+      this._id,
+      this._name,
+      this._connectionStatus,
+      this._lastActivity,
+      this._createdAt,
+      new Date(), // Update updatedAt
+      avatarUrl,
+      this._metadata,
+    );
   }
 }

@@ -47,4 +47,7 @@ export class UserAccountEntity {
 
   @Column({ type: 'uuid', nullable: true, unique: true })
   keycloakId: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  avatarUrl: string | null;
 }

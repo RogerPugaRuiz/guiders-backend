@@ -12,8 +12,10 @@ import { UserPasswordUpdatedEvent } from './events/user-password-updated-event';
 import { UserAccountCompanyId } from './value-objects/user-account-company-id';
 import { UserAccountIsActive } from './value-objects/user-account-is-active';
 import { UserAccountCreatedEvent } from './events/user-account-created-event';
+import { UserAvatarUpdatedEvent } from './events/user-avatar-updated-event';
 import { UserAccountName } from './value-objects/user-account-name';
 import { UserAccountKeycloakId } from './value-objects/user-account-keycloak-id';
+import { UserAccountAvatarUrl } from './value-objects/user-account-avatar-url';
 
 export interface UserAccountPrimitives {
   id: string;
@@ -27,6 +29,7 @@ export interface UserAccountPrimitives {
   companyId: string; // Asociación a compañía
   isActive: boolean; // Campo para estado activo/inactivo
   keycloakId: string | null; // Referencia al ID de usuario en Keycloak
+  avatarUrl: string | null; // URL del avatar en S3
 }
 
 export class UserAccount extends AggregateRoot {
@@ -42,6 +45,7 @@ export class UserAccount extends AggregateRoot {
   private readonly _companyId: UserAccountCompanyId;
   private readonly _isActive: UserAccountIsActive;
   private readonly _keycloakId: UserAccountKeycloakId | null;
+  private readonly _avatarUrl: UserAccountAvatarUrl;
 
   private constructor(
     id: UserAccountId,
@@ -55,6 +59,7 @@ export class UserAccount extends AggregateRoot {
     companyId: UserAccountCompanyId,
     isActive: UserAccountIsActive = new UserAccountIsActive(true), // Por defecto activo
     keycloakId: UserAccountKeycloakId | null = null, // Por defecto null (usuarios legacy)
+    avatarUrl: UserAccountAvatarUrl = new UserAccountAvatarUrl(null), // Por defecto sin avatar
   ) {
     super();
     this._id = id;
@@ -68,6 +73,7 @@ export class UserAccount extends AggregateRoot {
     this._companyId = companyId;
     this._isActive = isActive;
     this._keycloakId = keycloakId;
+    this._avatarUrl = avatarUrl;
   }
 
   // Métodos estáticos de fábrica
@@ -80,6 +86,7 @@ export class UserAccount extends AggregateRoot {
     companyId: UserAccountCompanyId;
     isActive?: UserAccountIsActive;
     keycloakId?: UserAccountKeycloakId | null;
+    avatarUrl?: UserAccountAvatarUrl;
   }): UserAccount {
     const now = new Date();
     const user = new UserAccount(
@@ -94,6 +101,7 @@ export class UserAccount extends AggregateRoot {
       params.companyId,
       params.isActive ?? new UserAccountIsActive(true),
       params.keycloakId ?? null,
+      params.avatarUrl ?? new UserAccountAvatarUrl(null),
     );
     // Aplica el evento de dominio al crear el usuario
     user.apply(
@@ -116,6 +124,7 @@ export class UserAccount extends AggregateRoot {
     companyId: string;
     isActive?: boolean;
     keycloakId?: string | null;
+    avatarUrl?: string | null;
   }): UserAccount {
     const newUser = new UserAccount(
       UserAccountId.create(params.id),
@@ -131,6 +140,7 @@ export class UserAccount extends AggregateRoot {
       params.keycloakId
         ? UserAccountKeycloakId.fromString(params.keycloakId)
         : null,
+      new UserAccountAvatarUrl(params.avatarUrl ?? null),
     );
 
     return newUser;
@@ -185,6 +195,12 @@ export class UserAccount extends AggregateRoot {
       : Optional.of(this._keycloakId);
   }
 
+  get avatarUrl(): Optional<string> {
+    return this._avatarUrl.hasAvatar()
+      ? Optional.of(this._avatarUrl.getValue()!)
+      : Optional.empty();
+  }
+
   // Métodos públicos
   public equals(userAccount: UserAccount): boolean {
     return (
@@ -220,6 +236,7 @@ export class UserAccount extends AggregateRoot {
       this._companyId,
       this._isActive,
       this._keycloakId,
+      this._avatarUrl,
     );
   }
 
@@ -237,6 +254,7 @@ export class UserAccount extends AggregateRoot {
       this._companyId,
       this._isActive,
       this._keycloakId,
+      this._avatarUrl,
     );
     this.apply(new UserPasswordUpdatedEvent(this._id.value));
     return updatedUser;
@@ -255,6 +273,7 @@ export class UserAccount extends AggregateRoot {
       companyId: this._companyId.getValue(),
       isActive: this._isActive.value,
       keycloakId: this._keycloakId?.value ?? null,
+      avatarUrl: this._avatarUrl.getValue(),
     };
   }
 
@@ -272,7 +291,38 @@ export class UserAccount extends AggregateRoot {
       this._companyId,
       this._isActive,
       keycloakId,
+      this._avatarUrl,
     );
+  }
+
+  // Método para actualizar el avatar del usuario
+  public updateAvatar(newAvatarUrl: string | null): UserAccount {
+    const previousAvatarUrl = this._avatarUrl.getValue();
+    const updatedUser = new UserAccount(
+      this._id,
+      this._email,
+      this._name,
+      this._password,
+      this._createdAt,
+      this._updatedAt,
+      this._lastLoginAt,
+      this._roles,
+      this._companyId,
+      this._isActive,
+      this._keycloakId,
+      new UserAccountAvatarUrl(newAvatarUrl),
+    );
+
+    // Aplica el evento de dominio
+    this.apply(
+      new UserAvatarUpdatedEvent(
+        this._id.value,
+        newAvatarUrl,
+        previousAvatarUrl,
+      ),
+    );
+
+    return updatedUser;
   }
 
   // Método para verificar si el usuario está vinculado con Keycloak

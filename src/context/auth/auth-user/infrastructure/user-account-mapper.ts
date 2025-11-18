@@ -20,6 +20,7 @@ export class UserAccountMapper {
       companyId: userAccountEntity.companyId,
       isActive: userAccountEntity.isActive ?? true,
       keycloakId: userAccountEntity.keycloakId,
+      avatarUrl: userAccountEntity.avatarUrl,
     });
   }
 
@@ -37,6 +38,7 @@ export class UserAccountMapper {
     userAccountEntity.isActive = userAccount.isActive;
     userAccountEntity.keycloakId =
       userAccount.keycloakId.getOrNull()?.value ?? null;
+    userAccountEntity.avatarUrl = userAccount.avatarUrl.getOrNull();
     return userAccountEntity;
   }
 }

@@ -35,6 +35,11 @@ import { SyncUserWithKeycloakCommandHandler } from '../application/commands/sync
 import { KeycloakRoleMapperService } from '../application/services/keycloak-role-mapper.service';
 import { VerifyRoleMappingQueryHandler } from '../application/queries/verify-role-mapping.query-handler';
 import { FindUserByIdQueryHandler } from '../application/queries/find-user-by-id.query-handler';
+import { UpdateUserAvatarCommandHandler } from '../application/commands/update-user-avatar-command.handler';
+import { UploadModule } from 'src/context/shared/infrastructure/modules/upload.module';
+import { UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler } from '../application/events/update-commercial-avatar-on-user-avatar-updated-event.handler';
+import { CommercialModule } from 'src/context/commercial/commercial.module';
+import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
 
 @Module({
   imports: [
@@ -42,6 +47,8 @@ import { FindUserByIdQueryHandler } from '../application/queries/find-user-by-id
     HttpModule,
     CqrsModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
+    UploadModule,
+    CommercialModule,
   ],
   controllers: [AuthUserController],
   providers: [
@@ -70,6 +77,10 @@ import { FindUserByIdQueryHandler } from '../application/queries/find-user-by-id
     SyncUserWithKeycloakCommandHandler,
     KeycloakRoleMapperService,
     VerifyRoleMappingQueryHandler,
+    UpdateUserAvatarCommandHandler,
+    UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler,
+    // Servicios necesarios para DualAuthGuard
+    BffSessionAuthService,
   ],
   exports: [USER_ACCOUNT_REPOSITORY, PassportModule],
 })

@@ -24,6 +24,9 @@ export class CommercialSchema extends Document {
   @Prop({ required: true, index: true })
   lastActivity: Date; // Última actividad registrada
 
+  @Prop({ required: false, type: String })
+  avatarUrl?: string | null; // URL del avatar en S3
+
   @Prop({ required: false, type: mongoose.Schema.Types.Mixed })
   metadata?: Record<string, any>; // Información adicional flexible
 

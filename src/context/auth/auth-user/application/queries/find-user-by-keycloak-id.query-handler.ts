@@ -31,12 +31,27 @@ export class FindUserByKeycloakIdQueryHandler
     query: FindUserByKeycloakIdQuery,
   ): Promise<Result<UserResponseDto, DomainError>> {
     try {
+      this.logger.log(
+        `[FindUserByKeycloakIdQuery] Buscando usuario con Keycloak ID: ${query.keycloakId}`,
+      );
+
       const keycloakId = UserAccountKeycloakId.fromString(query.keycloakId);
+      this.logger.log(
+        `[FindUserByKeycloakIdQuery] Keycloak ID validado correctamente`,
+      );
+
       const user = await this.userRepository.findByKeycloakId(keycloakId);
 
       if (!user) {
+        this.logger.warn(
+          `[FindUserByKeycloakIdQuery] Usuario con Keycloak ID ${query.keycloakId} NO ENCONTRADO`,
+        );
         return err(new UserNotFoundByKeycloakIdError(query.keycloakId));
       }
+
+      this.logger.log(
+        `[FindUserByKeycloakIdQuery] Usuario ENCONTRADO: ID=${user.id.getValue()}, Email=${user.email.getValue()}`,
+      );
 
       const userDto: UserResponseDto = {
         id: user.id.getValue(),
@@ -53,10 +68,15 @@ export class FindUserByKeycloakIdQueryHandler
       return ok(userDto);
     } catch (error) {
       this.logger.error(
-        `Error buscando usuario por Keycloak ID: ${error instanceof Error ? error.message : String(error)}`,
+        `[FindUserByKeycloakIdQuery] ERROR: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
-      throw error;
+      // En lugar de lanzar, retornar un error
+      return err(
+        new UserNotFoundByKeycloakIdError(
+          `${query.keycloakId} (Error: ${error instanceof Error ? error.message : String(error)})`,
+        ),
+      );
     }
   }
 }
