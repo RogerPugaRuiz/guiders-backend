@@ -502,6 +502,12 @@ jobs:
           SESSION_TIMEOUT_MEDIUM_MS=${{ vars.SESSION_TIMEOUT_MEDIUM_MS || '900000' }}
           SESSION_TIMEOUT_LONG_MS=${{ vars.SESSION_TIMEOUT_LONG_MS || '1800000' }}
           SESSION_TIMEOUT_EXTENDED_MS=${{ vars.SESSION_TIMEOUT_EXTENDED_MS || '3600000' }}
+          # Configuración de AWS S3 para avatares
+          AWS_ACCESS_KEY_ID=${{ secrets.STAGING_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.STAGING_AWS_REGION || 'eu-north-1' }}
+          AWS_S3_BUCKET_NAME=${{ secrets.STAGING_AWS_S3_BUCKET_NAME }}
+          AWS_S3_AVATAR_FOLDER=${{ secrets.STAGING_AWS_S3_AVATAR_FOLDER || 'avatars' }}
           EOF
 
           echo "✅ Archivo .env.staging creado exitosamente"

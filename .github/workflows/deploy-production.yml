@@ -94,6 +94,12 @@ jobs:
           echo 'CONSENT_VERSION_CURRENT=${{ secrets.PROD_CONSENT_VERSION || 'v1.4.0' }}' >> .env.production
           # Habilitar compatibilidad semántica por defecto (acepta MINOR y PATCH superiores)
           echo 'ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}' >> .env.production
+          # Configuración de AWS S3 para avatares
+          echo 'AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}' >> .env.production
+          echo 'AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}' >> .env.production
+          echo 'AWS_REGION=${{ secrets.PROD_AWS_REGION || 'eu-north-1' }}' >> .env.production
+          echo 'AWS_S3_BUCKET_NAME=${{ secrets.PROD_AWS_S3_BUCKET_NAME }}' >> .env.production
+          echo 'AWS_S3_AVATAR_FOLDER=${{ secrets.PROD_AWS_S3_AVATAR_FOLDER || 'avatars' }}' >> .env.production
 
           # Subir archivos al servidor
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
