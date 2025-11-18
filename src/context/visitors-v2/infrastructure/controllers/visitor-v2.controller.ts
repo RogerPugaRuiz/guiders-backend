@@ -160,14 +160,20 @@ export class VisitorV2Controller {
   @ApiOperation({
     summary: 'Actualizar heartbeat de sesión',
     description:
-      'Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). ' +
-      'Mientras se reciban heartbeats, el visitante se considera online.\n\n' +
-      '**Frecuencia recomendada de heartbeat desde el frontend:**\n' +
+      'Mantiene viva la sesión abierta y opcionalmente reactiva el estado del visitante. ' +
+      'Actualiza el timestamp de última actividad (lastActivityAt).\n\n' +
+      '**Tipos de actividad (`activityType`):**\n' +
+      '- `heartbeat` (default): Heartbeat automático periódico. Solo mantiene la sesión viva, NO cambia el estado de conexión (AWAY/OFFLINE se mantienen).\n' +
+      '- `user-interaction`: Interacción real del usuario (click, teclado, scroll). Actualiza actividad Y reactiva a ONLINE si está AWAY/OFFLINE.\n\n' +
+      '**Uso recomendado desde el frontend:**\n' +
+      '1. **Heartbeat automático** (cada 30-60s): Enviar con `activityType: "heartbeat"` para mantener sesión viva sin cambiar estado.\n' +
+      '2. **Detección de actividad** (eventos de usuario): Enviar con `activityType: "user-interaction"` cuando se detecte interacción real (mousemove, click, keydown, etc.).\n\n' +
+      '**Frecuencia recomendada de heartbeat:**\n' +
       '- Visitantes ANON: cada 30-60 segundos (timeout: 5 minutos)\n' +
       '- Visitantes ENGAGED: cada 60-90 segundos (timeout: 15 minutos)\n' +
       '- Visitantes LEAD: cada 2-3 minutos (timeout: 30 minutos)\n' +
       '- Visitantes CONVERTED: cada 5 minutos (timeout: 60 minutos)\n\n' +
-      'El sistema verifica sesiones expiradas cada 5 minutos automáticamente.',
+      'El sistema verifica sesiones expiradas cada 5 minutos y marca como AWAY/OFFLINE según inactividad.',
   })
   @ApiOkResponse({
     description: 'Heartbeat actualizado exitosamente',
@@ -198,6 +204,7 @@ export class VisitorV2Controller {
       const command = new UpdateSessionHeartbeatCommand(
         sessionId,
         updateHeartbeatDto.visitorId,
+        updateHeartbeatDto.activityType, // Tipo de actividad: heartbeat o user-interaction
       );
 
       await this.commandBus.execute<UpdateSessionHeartbeatCommand, void>(

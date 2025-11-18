@@ -17,8 +17,13 @@ export class SiteVisitorInfoDto {
   fingerprint: string;
 
   @ApiProperty({
-    description: 'Estado de conexión del visitante',
-    enum: ['ONLINE', 'OFFLINE', 'CHATTING'],
+    description:
+      'Estado de conexión del visitante:\n' +
+      '- ONLINE: Visitante activo e interactuando\n' +
+      '- AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)\n' +
+      '- OFFLINE: Visitante desconectado\n' +
+      '- CHATTING: Visitante en conversación activa con un comercial',
+    enum: ['ONLINE', 'AWAY', 'OFFLINE', 'CHATTING'],
     example: 'ONLINE',
   })
   connectionStatus: string;

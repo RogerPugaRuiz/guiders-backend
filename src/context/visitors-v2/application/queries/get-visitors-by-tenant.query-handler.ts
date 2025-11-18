@@ -21,6 +21,11 @@ import {
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
 import { VisitorV2 } from '../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../conversations-v2/domain/value-objects/visitor-id';
+import {
+  VisitorConnectionDomainService,
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+} from '../../domain/visitor-connection.domain-service';
+import { VisitorId as VisitorIdV2 } from '../../domain/value-objects/visitor-id';
 
 @QueryHandler(GetVisitorsByTenantQuery)
 export class GetVisitorsByTenantQueryHandler
@@ -35,6 +40,8 @@ export class GetVisitorsByTenantQueryHandler
     private readonly companyRepository: CompanyRepository,
     @Inject(CHAT_V2_REPOSITORY)
     private readonly chatRepository: IChatRepository,
+    @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
+    private readonly connectionService: VisitorConnectionDomainService,
   ) {}
 
   async execute(
@@ -90,37 +97,53 @@ export class GetVisitorsByTenantQueryHandler
       );
 
       // Mapear los chats pendientes a cada visitante
-      const visitorDtos: TenantVisitorInfoDto[] = visitors.map((visitor) => {
-        const sessions = visitor.getSessions();
-        const activeSessions = sessions.filter((session) => session.isActive());
-        const latestSession =
-          activeSessions.length > 0
-            ? activeSessions[activeSessions.length - 1]
-            : sessions[sessions.length - 1];
+      const visitorDtos: TenantVisitorInfoDto[] = await Promise.all(
+        visitors.map(async (visitor) => {
+          const sessions = visitor.getSessions();
+          const activeSessions = sessions.filter((session) =>
+            session.isActive(),
+          );
+          const latestSession =
+            activeSessions.length > 0
+              ? activeSessions[activeSessions.length - 1]
+              : sessions[sessions.length - 1];
 
-        const siteId = visitor.getSiteId().getValue();
-        const siteName = siteNamesMap.get(siteId) || `Sitio ${siteId}`;
+          const siteId = visitor.getSiteId().getValue();
+          const siteName = siteNamesMap.get(siteId) || `Sitio ${siteId}`;
 
-        // Filtrar los chats pendientes que correspondan a este visitante
-        const visitorId = visitor.getId().getValue();
-        const visitorPendingChatIds = pendingChatsMap.get(visitorId) || [];
-        const totalChatsCount = totalChatsCountMap.get(visitorId) || 0;
+          // Filtrar los chats pendientes que correspondan a este visitante
+          const visitorId = visitor.getId().getValue();
+          const visitorPendingChatIds = pendingChatsMap.get(visitorId) || [];
+          const totalChatsCount = totalChatsCountMap.get(visitorId) || 0;
 
-        return {
-          id: visitor.getId().getValue(),
-          fingerprint: visitor.getFingerprint().getValue(),
-          connectionStatus: activeSessions.length > 0 ? 'ONLINE' : 'OFFLINE',
-          siteId,
-          siteName,
-          currentUrl: undefined, // TODO: Implementar cuando se agregue currentUrl a Session
-          userAgent: undefined, // TODO: Implementar cuando se agregue userAgent a Session
-          createdAt: visitor.getCreatedAt(),
-          lastActivity:
-            latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
-          pendingChatIds: visitorPendingChatIds,
-          totalChatsCount,
-        };
-      });
+          // Obtener estado de conexión real desde Redis
+          let connectionStatus = 'OFFLINE';
+          try {
+            const visitorIdVO = new VisitorIdV2(visitorId);
+            const status =
+              await this.connectionService.getConnectionStatus(visitorIdVO);
+            connectionStatus = status.getValue().toUpperCase();
+          } catch {
+            // Fallback: Si no hay estado en Redis, usar lógica de sesiones activas
+            connectionStatus = activeSessions.length > 0 ? 'ONLINE' : 'OFFLINE';
+          }
+
+          return {
+            id: visitor.getId().getValue(),
+            fingerprint: visitor.getFingerprint().getValue(),
+            connectionStatus,
+            siteId,
+            siteName,
+            currentUrl: undefined, // TODO: Implementar cuando se agregue currentUrl a Session
+            userAgent: undefined, // TODO: Implementar cuando se agregue userAgent a Session
+            createdAt: visitor.getCreatedAt(),
+            lastActivity:
+              latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
+            pendingChatIds: visitorPendingChatIds,
+            totalChatsCount,
+          };
+        }),
+      );
 
       // Calcular sitios únicos activos
       const uniqueSites = new Set(

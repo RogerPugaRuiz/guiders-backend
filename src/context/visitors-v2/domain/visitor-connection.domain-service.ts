@@ -39,7 +39,7 @@ export interface VisitorConnectionDomainService {
   // Obtiene todos los visitantes que están escribiendo en un chat
   getTypingInChat(chatId: string): Promise<VisitorId[]>;
 
-  // Actualiza la última actividad de un visitante (heartbeat)
+  // Actualiza la última actividad de un visitante (heartbeat automático)
   updateLastActivity(
     visitorId: VisitorId,
     lastActivity: VisitorLastActivity,
@@ -53,6 +53,18 @@ export interface VisitorConnectionDomainService {
     visitorId: VisitorId,
     timeoutMinutes?: number,
   ): Promise<boolean>;
+
+  // Actualiza la última actividad real del usuario (interacciones)
+  updateLastUserActivity(
+    visitorId: VisitorId,
+    lastUserActivity: VisitorLastActivity,
+  ): Promise<void>;
+
+  // Obtiene la última actividad real del usuario
+  getLastUserActivity(visitorId: VisitorId): Promise<VisitorLastActivity>;
+
+  // Verifica si el usuario está activo (interactuando realmente, no solo heartbeat)
+  isUserActive(visitorId: VisitorId, timeoutMinutes?: number): Promise<boolean>;
 }
 
 // Símbolo para inyección de dependencias

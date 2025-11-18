@@ -14,6 +14,11 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../../company/domain/company.repository';
+import {
+  VisitorConnectionDomainService,
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+} from '../../domain/visitor-connection.domain-service';
+import { VisitorId } from '../../domain/value-objects/visitor-id';
 
 @QueryHandler(GetVisitorsBySiteQuery)
 export class GetVisitorsBySiteQueryHandler
@@ -26,6 +31,8 @@ export class GetVisitorsBySiteQueryHandler
     private readonly visitorRepository: VisitorV2Repository,
     @Inject(COMPANY_REPOSITORY)
     private readonly companyRepository: CompanyRepository,
+    @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
+    private readonly connectionService: VisitorConnectionDomainService,
   ) {}
 
   async execute(
@@ -59,25 +66,41 @@ export class GetVisitorsBySiteQueryHandler
       // Fallback: mantener placeholder si no se encuentra.
       const siteName = await resolveSiteName(this.companyRepository, siteId);
 
-      const visitorDtos: SiteVisitorInfoDto[] = visitors.map((visitor) => {
-        const sessions = visitor.getSessions();
-        const activeSessions = sessions.filter((session) => session.isActive());
-        const latestSession =
-          activeSessions.length > 0
-            ? activeSessions[activeSessions.length - 1]
-            : sessions[sessions.length - 1];
+      const visitorDtos: SiteVisitorInfoDto[] = await Promise.all(
+        visitors.map(async (visitor) => {
+          const sessions = visitor.getSessions();
+          const activeSessions = sessions.filter((session) =>
+            session.isActive(),
+          );
+          const latestSession =
+            activeSessions.length > 0
+              ? activeSessions[activeSessions.length - 1]
+              : sessions[sessions.length - 1];
 
-        return {
-          id: visitor.getId().getValue(),
-          fingerprint: visitor.getFingerprint().getValue(),
-          connectionStatus: activeSessions.length > 0 ? 'ONLINE' : 'OFFLINE',
-          currentUrl: undefined, // TODO: Implementar cuando se agregue currentUrl a Session
-          userAgent: undefined, // TODO: Implementar cuando se agregue userAgent a Session
-          createdAt: visitor.getCreatedAt(),
-          lastActivity:
-            latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
-        };
-      });
+          // Obtener estado de conexión real desde Redis
+          let connectionStatus = 'OFFLINE';
+          try {
+            const visitorId = new VisitorId(visitor.getId().getValue());
+            const status =
+              await this.connectionService.getConnectionStatus(visitorId);
+            connectionStatus = status.getValue().toUpperCase();
+          } catch {
+            // Fallback: Si no hay estado en Redis, usar lógica de sesiones activas
+            connectionStatus = activeSessions.length > 0 ? 'ONLINE' : 'OFFLINE';
+          }
+
+          return {
+            id: visitor.getId().getValue(),
+            fingerprint: visitor.getFingerprint().getValue(),
+            connectionStatus,
+            currentUrl: undefined, // TODO: Implementar cuando se agregue currentUrl a Session
+            userAgent: undefined, // TODO: Implementar cuando se agregue userAgent a Session
+            createdAt: visitor.getCreatedAt(),
+            lastActivity:
+              latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
+          };
+        }),
+      );
 
       this.logger.log(
         `Encontrados ${visitorDtos.length} visitantes en esta página (${totalCount} totales) para sitio ${query.siteId}`,

@@ -26,10 +26,11 @@ export class RedisVisitorConnectionDomainService
     RedisVisitorConnectionDomainService.name,
   );
   private client: RedisClientType;
-  private readonly TTL_SECONDS = 120; // Configurable si se necesita
+  private readonly TTL_SECONDS = 600; // 10 minutos - Cache de respaldo mientras MongoDB es source of truth
   private readonly TYPING_TTL_SECONDS = 3; // 3 segundos para typing indicator
   private readonly PREFIX_KEY = 'visitor:conn:'; // valor simple key -> status
-  private readonly PREFIX_ACTIVITY = 'visitor:activity:'; // key -> timestamp
+  private readonly PREFIX_ACTIVITY = 'visitor:activity:'; // key -> timestamp (heartbeat automático)
+  private readonly PREFIX_USER_ACTIVITY = 'visitor:user-activity:'; // key -> timestamp (interacciones reales)
   private readonly PREFIX_TYPING = 'visitor:typing:'; // visitor:typing:{visitorId}:{chatId} -> timestamp
   private readonly SET_ONLINE = 'visitors:online';
   private readonly SET_CHATTING = 'visitors:chatting';
@@ -57,6 +58,10 @@ export class RedisVisitorConnectionDomainService
 
   private activityKey(visitorId: VisitorId): string {
     return `${this.PREFIX_ACTIVITY}${visitorId.getValue()}`;
+  }
+
+  private userActivityKey(visitorId: VisitorId): string {
+    return `${this.PREFIX_USER_ACTIVITY}${visitorId.getValue()}`;
   }
 
   async setConnectionStatus(
@@ -205,6 +210,38 @@ export class RedisVisitorConnectionDomainService
   ): Promise<boolean> {
     const lastActivity = await this.getLastActivity(visitorId);
     return !lastActivity.isExpired(timeoutMinutes);
+  }
+
+  async updateLastUserActivity(
+    visitorId: VisitorId,
+    lastUserActivity: VisitorLastActivity,
+  ): Promise<void> {
+    const userActivityKey = this.userActivityKey(visitorId);
+    const timestamp = lastUserActivity.value.getTime().toString();
+
+    await this.client
+      .multi()
+      .set(userActivityKey, timestamp)
+      .expire(userActivityKey, this.TTL_SECONDS)
+      .exec();
+  }
+
+  async getLastUserActivity(
+    visitorId: VisitorId,
+  ): Promise<VisitorLastActivity> {
+    const raw = await this.client.get(this.userActivityKey(visitorId));
+    if (!raw) return VisitorLastActivity.now();
+
+    const timestamp = parseInt(raw, 10);
+    return new VisitorLastActivity(new Date(timestamp));
+  }
+
+  async isUserActive(
+    visitorId: VisitorId,
+    timeoutMinutes: number = 5,
+  ): Promise<boolean> {
+    const lastUserActivity = await this.getLastUserActivity(visitorId);
+    return !lastUserActivity.isExpired(timeoutMinutes);
   }
 }
 

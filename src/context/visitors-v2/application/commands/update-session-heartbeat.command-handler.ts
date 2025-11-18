@@ -11,6 +11,7 @@ import {
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../../domain/visitor-connection.domain-service';
 import { VisitorLastActivity } from '../../domain/value-objects/visitor-last-activity';
+import { ActivityType } from '../dtos/update-session-heartbeat.dto';
 
 @CommandHandler(UpdateSessionHeartbeatCommand)
 export class UpdateSessionHeartbeatCommandHandler
@@ -59,15 +60,63 @@ export class UpdateSessionHeartbeatCommandHandler
       // Actualizar el heartbeat de la sesión activa
       visitor.updateSessionActivity();
 
-      // IMPORTANTE: Actualizar lastActivity en Redis para que el scheduler de inactividad
-      // detecte que el visitante sigue activo y no lo marque como away/offline
       const visitorId = visitor.getId();
-      const lastActivity = VisitorLastActivity.now();
-      await this.connectionService.updateLastActivity(visitorId, lastActivity);
+      const now = VisitorLastActivity.now();
 
-      this.logger.debug(
-        `LastActivity actualizado en Redis para visitante: ${visitorId.value}`,
-      );
+      // IMPORTANTE: SIEMPRE actualizar lastActivity (mantiene sesión viva)
+      await this.connectionService.updateLastActivity(visitorId, now);
+
+      // CRÍTICO: Solo actualizar lastUserActivity si es interacción real del usuario
+      // El scheduler de inactividad verifica lastUserActivity para detectar inactividad
+      const isUserInteraction =
+        command.activityType === ActivityType.USER_INTERACTION;
+
+      if (isUserInteraction) {
+        // Interacción real del usuario → actualizar lastUserActivity
+        await this.connectionService.updateLastUserActivity(visitorId, now);
+        this.logger.debug(
+          `LastActivity y LastUserActivity actualizados en Redis para visitante: ${visitorId.value} (user-interaction)`,
+        );
+      } else {
+        // Heartbeat automático → solo actualiza lastActivity (mantiene sesión)
+        this.logger.debug(
+          `Solo LastActivity actualizado en Redis para visitante: ${visitorId.value} (heartbeat automático)`,
+        );
+      }
+
+      // REACTIVACIÓN CONDICIONAL: Solo reactiva si es una interacción del usuario
+      // - Si activityType es 'user-interaction': reactiva a ONLINE si está AWAY/OFFLINE
+      // - Si activityType es 'heartbeat' o undefined: solo mantiene sesión, NO reactiva
+
+      if (isUserInteraction) {
+        try {
+          const currentStatus =
+            await this.connectionService.getConnectionStatus(visitorId);
+
+          if (currentStatus.isAway()) {
+            this.logger.log(
+              `Reactivando visitante ${visitorId.value} desde AWAY a ONLINE (user-interaction)`,
+            );
+            visitor.returnFromAway();
+          } else if (currentStatus.isOffline()) {
+            this.logger.log(
+              `Reactivando visitante ${visitorId.value} desde OFFLINE a ONLINE (user-interaction)`,
+            );
+            visitor.goOnline();
+          }
+        } catch {
+          // Si no existe estado en Redis (primera vez), simplemente continuar
+          // El estado se sincronizará en la próxima conexión explícita
+          this.logger.debug(
+            `Estado de conexión no encontrado para visitante ${visitorId.value}, continuando sin reactivación`,
+          );
+        }
+      } else {
+        // Heartbeat automático: solo actualiza timestamp, no cambia estado de conexión
+        this.logger.debug(
+          `Heartbeat automático para visitante ${visitorId.value}, no se modifica el estado de conexión`,
+        );
+      }
 
       // Persistir cambios con eventos
       const visitorContext = this.publisher.mergeObjectContext(visitor);
