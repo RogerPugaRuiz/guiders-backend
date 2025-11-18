@@ -1,5 +1,5 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
+import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs';
 import { GetVisitorPendingChatsQuery } from './get-visitor-pending-chats.query';
 import { PendingChatsResponseDto } from '../dtos/pending-chats-response.dto';
 import {
@@ -17,6 +17,7 @@ import {
 import { VisitorId as ChatVisitorId } from '../../domain/value-objects/visitor-id';
 import { ChatId } from '../../domain/value-objects/chat-id';
 import { VisitorId } from 'src/context/visitors-v2/domain/value-objects/visitor-id';
+import { FindUserByIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-id.query';
 
 /**
  * Handler para la query de obtener chats pendientes de un visitante
@@ -35,6 +36,7 @@ export class GetVisitorPendingChatsQueryHandler
     private readonly messageRepository: IMessageRepository,
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
+    private readonly queryBus: QueryBus,
   ) {}
 
   async execute(
@@ -157,6 +159,32 @@ export class GetVisitorPendingChatsQueryHandler
           ).length;
         }
 
+        // Obtener datos del comercial asignado si existe
+        let assignedCommercial: {
+          id: string;
+          name: string;
+          avatarUrl?: string | null;
+        } | null = null;
+        if (chatPrimitives.assignedCommercialId) {
+          try {
+            const user = await this.queryBus.execute(
+              new FindUserByIdQuery(chatPrimitives.assignedCommercialId),
+            );
+            if (user) {
+              assignedCommercial = {
+                id: chatPrimitives.assignedCommercialId,
+                name: user.name.value,
+                avatarUrl: user.avatarUrl.getOrNull(),
+              };
+            }
+          } catch (error) {
+            this.logger.warn(
+              `No se pudo obtener datos del comercial ${chatPrimitives.assignedCommercialId}:`,
+              error,
+            );
+          }
+        }
+
         response.pendingChats.push({
           chatId: chatId,
           status: chatPrimitives.status,
@@ -166,6 +194,7 @@ export class GetVisitorPendingChatsQueryHandler
             typeof chatPrimitives.metadata?.customFields?.subject === 'string'
               ? chatPrimitives.metadata.customFields.subject
               : undefined,
+          assignedCommercial,
           queuePosition,
           estimatedWaitTime: queuePosition ? queuePosition * 60 : undefined, // 1 minuto por posición
           createdAt: chatPrimitives.createdAt.toISOString(),

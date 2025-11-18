@@ -89,7 +89,7 @@ export class ChatV2Controller {
    */
   private async getCommercialData(
     commercialId: string | undefined,
-  ): Promise<{ id: string; name: string } | null> {
+  ): Promise<{ id: string; name: string; avatarUrl?: string | null } | null> {
     if (!commercialId) {
       return null;
     }
@@ -101,9 +101,11 @@ export class ChatV2Controller {
 
       if (user) {
         const userName = user.name.value;
+        const userAvatarUrl = user.avatarUrl.getOrNull();
         return {
           id: commercialId,
           name: userName,
+          avatarUrl: userAvatarUrl,
         };
       }
 

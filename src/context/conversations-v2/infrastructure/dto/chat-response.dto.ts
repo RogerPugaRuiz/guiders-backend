@@ -13,6 +13,7 @@ export interface ChatPrimitives {
 export interface AssignedCommercialData {
   id: string;
   name: string;
+  avatarUrl?: string | null;
 }
 
 export class ChatResponseDto {
@@ -46,6 +47,7 @@ export class ChatResponseDto {
       dto.assignedCommercial = {
         id: assignedCommercialData.id,
         name: assignedCommercialData.name,
+        avatarUrl: assignedCommercialData.avatarUrl ?? null,
       };
     } else {
       dto.assignedCommercial = null;

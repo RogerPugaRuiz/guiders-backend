@@ -60,6 +60,14 @@ export class AssignedCommercialResponseDto {
     example: 'Juan Pérez',
   })
   name: string;
+
+  @ApiProperty({
+    description: 'URL del avatar del comercial en S3',
+    example: 'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
+    required: false,
+    nullable: true,
+  })
+  avatarUrl?: string | null;
 }
 
 /**
@@ -293,7 +301,7 @@ export class ChatResponseDto {
     chat: {
       toPrimitives: () => ChatPrimitives;
     },
-    assignedCommercialData?: { id: string; name: string } | null,
+    assignedCommercialData?: { id: string; name: string; avatarUrl?: string | null } | null,
   ): ChatResponseDto {
     const p = chat.toPrimitives();
     const dto = new ChatResponseDto();
@@ -308,6 +316,7 @@ export class ChatResponseDto {
       dto.assignedCommercial = {
         id: assignedCommercialData.id,
         name: assignedCommercialData.name,
+        avatarUrl: assignedCommercialData.avatarUrl ?? null,
       };
     } else {
       dto.assignedCommercial = null;

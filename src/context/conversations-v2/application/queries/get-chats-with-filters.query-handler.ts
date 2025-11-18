@@ -34,7 +34,7 @@ export class GetChatsWithFiltersQueryHandler
    */
   private async getCommercialData(
     commercialId: string | undefined,
-  ): Promise<{ id: string; name: string } | null> {
+  ): Promise<{ id: string; name: string; avatarUrl?: string | null } | null> {
     if (!commercialId) {
       this.logger.log('[getCommercialData] commercialId es undefined o null');
       return null;
@@ -54,12 +54,14 @@ export class GetChatsWithFiltersQueryHandler
 
       if (user) {
         const userName = user.name.value;
+        const userAvatarUrl = user.avatarUrl.getOrNull();
         this.logger.log(
-          `[getCommercialData] ✓ Retornando datos: { id: ${commercialId}, name: "${userName}" }`,
+          `[getCommercialData] ✓ Retornando datos: { id: ${commercialId}, name: "${userName}", avatarUrl: "${userAvatarUrl || 'null'}" }`,
         );
         return {
           id: commercialId,
           name: userName,
+          avatarUrl: userAvatarUrl,
         };
       }
 
@@ -287,7 +289,7 @@ export class GetChatsWithFiltersQueryHandler
       // Obtener datos de todos los comerciales en paralelo
       const commercialsDataMap = new Map<
         string,
-        { id: string; name: string }
+        { id: string; name: string; avatarUrl?: string | null }
       >();
       await Promise.all(
         commercialIds.map(async (commercialId) => {
@@ -330,6 +332,7 @@ export class GetChatsWithFiltersQueryHandler
             ? {
                 id: commercialData.id,
                 name: commercialData.name,
+                avatarUrl: commercialData.avatarUrl ?? null,
               }
             : null,
           availableCommercialIds: primitives.availableCommercialIds,

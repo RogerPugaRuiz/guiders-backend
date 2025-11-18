@@ -57,6 +57,31 @@ export class LastMessageDto {
 }
 
 /**
+ * DTO para información del comercial asignado
+ */
+export class AssignedCommercialDto {
+  @ApiProperty({
+    description: 'ID del comercial',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Nombre del comercial',
+    example: 'María García',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'URL del avatar del comercial',
+    example: 'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
+    required: false,
+    nullable: true,
+  })
+  avatarUrl?: string | null;
+}
+
+/**
  * DTO para un chat pendiente
  */
 export class PendingChatDto {
@@ -100,6 +125,14 @@ export class PendingChatDto {
     required: false,
   })
   subject?: string;
+
+  @ApiProperty({
+    description: 'Información del comercial asignado al chat',
+    type: AssignedCommercialDto,
+    required: false,
+    nullable: true,
+  })
+  assignedCommercial?: AssignedCommercialDto | null;
 
   @ApiProperty({
     description: 'Posición en la cola de espera',
