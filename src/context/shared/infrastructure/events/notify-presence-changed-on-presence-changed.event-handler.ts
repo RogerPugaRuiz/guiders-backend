@@ -42,14 +42,14 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
   ) {}
 
   async handle(event: PresenceChangedEvent): Promise<void> {
-    this.logger.debug(
-      `Procesando cambio de presencia: usuario ${event.getUserId()} (${event.getUserType()}) de ${event.getPreviousStatus()} a ${event.getNewStatus()}`,
+    this.logger.log(
+      `🔔 [PresenceChangedEvent RECIBIDO] usuario: ${event.getUserId()} | tipo: ${event.getUserType()} | ${event.getPreviousStatus()} → ${event.getNewStatus()} | tenant: ${event.getTenantId()}`,
     );
 
     // Si no hay websocketGateway disponible (ej: en tests), simplemente retornar
     if (!this.websocketGateway) {
-      this.logger.debug(
-        'WebSocket gateway no disponible, omitiendo notificación',
+      this.logger.warn(
+        '⚠️ WebSocket gateway NO disponible, omitiendo notificación',
       );
       return;
     }
@@ -68,6 +68,7 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
         status: newStatus,
         previousStatus,
         timestamp,
+        tenantId: event.getTenantId(), // Necesario para emitir a sala del tenant
       };
 
       // Siempre emitir a sala específica del usuario (para auto-actualización)
@@ -143,9 +144,75 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
 
       const activeChats = chatsResult.unwrap();
 
+      // SOLUCIÓN: Buscar también chats cerrados recientemente (últimas 24 horas)
+      // para notificar a comerciales que tuvieron interacción con el visitante
       if (activeChats.length === 0) {
-        this.logger.debug(
-          `Visitante ${visitorId} no tiene chats activos, no se notifica a ningún comercial`,
+        this.logger.log(
+          `📢 Visitante ${visitorId} sin chats activos → Buscando chats cerrados recientemente para notificar`,
+        );
+
+        // Buscar chats cerrados en las últimas 24 horas
+        const closedStatuses = [
+          ChatStatusEnum.CLOSED,
+          ChatStatusEnum.ABANDONED,
+        ].map((status) => ({ value: status }));
+
+        const recentChatsResult = await this.chatRepository.findByVisitorId(
+          visitorIdVO,
+          closedStatuses as any,
+        );
+
+        if (recentChatsResult.isOk()) {
+          const recentChats = recentChatsResult.unwrap();
+
+          // Filtrar solo chats cerrados en las últimas 24 horas
+          const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+          const recentClosedChats = recentChats.filter((chat) => {
+            const chatPrimitives = chat.toPrimitives();
+            if (chatPrimitives.closedAt) {
+              const closedTime = new Date(chatPrimitives.closedAt).getTime();
+              return closedTime > twentyFourHoursAgo;
+            }
+            return false;
+          });
+
+          if (recentClosedChats.length > 0) {
+            this.logger.log(
+              `✅ Encontrados ${recentClosedChats.length} chat(s) cerrado(s) recientemente para visitante ${visitorId}`,
+            );
+
+            // Extraer comercialIds únicos
+            const commercialIds = new Set<string>();
+            recentClosedChats.forEach((chat) => {
+              const primitives = chat.toPrimitives();
+              if (primitives.assignedCommercialId) {
+                commercialIds.add(primitives.assignedCommercialId);
+              }
+            });
+
+            if (commercialIds.size > 0) {
+              this.logger.log(
+                `✅ Emitiendo presence:changed de visitante ${visitorId} (${payload.previousStatus} → ${payload.status}) a ${commercialIds.size} comercial(es) con chats recientes`,
+              );
+
+              commercialIds.forEach((commercialId) => {
+                const commercialRoom = `commercial:${commercialId}`;
+                this.logger.log(
+                  `📤 WebSocket emit → sala: ${commercialRoom} | evento: presence:changed | visitante: ${visitorId} | estado: ${payload.previousStatus} → ${payload.status}`,
+                );
+                this.websocketGateway.emitToRoom(
+                  commercialRoom,
+                  'presence:changed',
+                  payload,
+                );
+              });
+              return;
+            }
+          }
+        }
+
+        this.logger.warn(
+          `⚠️ Visitante ${visitorId} cambió a ${payload.status} sin chats activos ni chats cerrados recientemente, no se notifica a ningún comercial`,
         );
         return;
       }
@@ -160,21 +227,21 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
       });
 
       if (commercialIds.size === 0) {
-        this.logger.debug(
-          `Chats activos del visitante ${visitorId} no tienen comerciales asignados, no se notifica`,
+        this.logger.warn(
+          `⚠️ Visitante ${visitorId} cambió a ${payload.status} con ${activeChats.length} chat(s) activo(s) pero SIN comerciales asignados, no se notifica`,
         );
         return;
       }
 
       // Emitir a cada comercial asignado
-      this.logger.debug(
-        `Emitiendo presence:changed de visitante ${visitorId} a ${commercialIds.size} comercial(es) con chats activos`,
+      this.logger.log(
+        `✅ Emitiendo presence:changed de visitante ${visitorId} (${payload.previousStatus} → ${payload.status}) a ${commercialIds.size} comercial(es) con chats activos`,
       );
 
       commercialIds.forEach((commercialId) => {
         const commercialRoom = `commercial:${commercialId}`;
-        this.logger.debug(
-          `Emitiendo a sala: ${commercialRoom} - Visitante ${visitorId} cambió estado a ${payload.status}`,
+        this.logger.log(
+          `📤 WebSocket emit → sala: ${commercialRoom} | evento: presence:changed | visitante: ${visitorId} | estado: ${payload.previousStatus} → ${payload.status}`,
         );
         this.websocketGateway.emitToRoom(
           commercialRoom,

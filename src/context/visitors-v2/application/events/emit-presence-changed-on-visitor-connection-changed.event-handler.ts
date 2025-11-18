@@ -40,8 +40,8 @@ export class EmitPresenceChangedOnVisitorConnectionChangedEventHandler
         newConnection,
       } = event.attributes;
 
-      this.logger.debug(
-        `Procesando cambio de conexión de visitante: ${rawId} de ${previousConnection} a ${newConnection}`,
+      this.logger.log(
+        `🔀 [VisitorConnectionChangedEvent] Visitante ${rawId}: ${previousConnection} → ${newConnection}`,
       );
 
       // Obtener el visitor para extraer el tenantId
@@ -49,14 +49,18 @@ export class EmitPresenceChangedOnVisitorConnectionChangedEventHandler
       const visitorResult = await this.repository.findById(visitorIdVO);
 
       if (visitorResult.isErr()) {
-        this.logger.warn(
-          `No se pudo encontrar el visitante ${rawId} para emitir PresenceChangedEvent`,
+        this.logger.error(
+          `❌ No se pudo encontrar el visitante ${rawId} para emitir PresenceChangedEvent - ERROR: ${visitorResult.error.message}`,
         );
         return;
       }
 
       const visitor = visitorResult.unwrap();
       const tenantId = visitor.getTenantId().getValue();
+
+      this.logger.log(
+        `📋 Visitante encontrado: ${rawId} | TenantId: ${tenantId} | Lifecycle: ${visitor.getLifecycle().getValue()}`,
+      );
 
       // Emitir evento genérico de presencia para notificación WebSocket
       const presenceEvent = new PresenceChangedEvent(
@@ -69,8 +73,8 @@ export class EmitPresenceChangedOnVisitorConnectionChangedEventHandler
 
       this.eventBus.publish(presenceEvent);
 
-      this.logger.debug(
-        `PresenceChangedEvent emitido para visitante: ${rawId} (tenant: ${tenantId})`,
+      this.logger.log(
+        `✅ [PresenceChangedEvent EMITIDO] visitante: ${rawId} | tenant: ${tenantId} | ${previousConnection} → ${newConnection} | userType: visitor`,
       );
     } catch (error) {
       const errorObj = error as Error;

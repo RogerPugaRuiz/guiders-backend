@@ -137,18 +137,23 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       );
     });
 
-    it('debe notificar solo al visitante si no tiene chats activos', async () => {
+    it('debe notificar solo al visitante si no tiene chats activos ni recientes', async () => {
       // Arrange
       const visitorId = '550e8400-e29b-41d4-a716-446655440000';
+      const tenantId = 'tenant-123';
       const event = new PresenceChangedEvent(
         visitorId,
         'visitor',
         'offline',
         'online',
-        'tenant-123',
+        tenantId,
       );
 
-      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
+      // Primera llamada: chats activos = vacío
+      // Segunda llamada: chats cerrados/completados = vacío
+      mockChatRepository.findByVisitorId
+        .mockResolvedValueOnce(ok([])) // Chats activos
+        .mockResolvedValueOnce(ok([])); // Chats cerrados
 
       // Act
       await handler.handle(event);
@@ -156,8 +161,62 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       // Assert
       // Solo debe emitir 1 vez: al propio visitante
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(1);
+
+      // Verifica emisión al visitante
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
         `visitor:${visitorId}`,
+        'presence:changed',
+        expect.any(Object),
+      );
+    });
+
+    it('debe notificar a comerciales con chats cerrados recientemente', async () => {
+      // Arrange
+      const visitorId = '550e8400-e29b-41d4-a716-446655440000';
+      const commercialId = 'commercial-456';
+      const tenantId = 'tenant-123';
+      const event = new PresenceChangedEvent(
+        visitorId,
+        'visitor',
+        'offline',
+        'online',
+        tenantId,
+      );
+
+      // Mock de chat cerrado hace 1 hora (debe notificar)
+      const recentClosedChat = {
+        toPrimitives: () => ({
+          id: 'chat-1',
+          visitorId,
+          assignedCommercialId: commercialId,
+          status: ChatStatusEnum.CLOSED,
+          closedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Hace 1 hora
+        }),
+      } as unknown as Chat;
+
+      // Primera llamada: chats activos = vacío
+      // Segunda llamada: chats cerrados = 1 chat reciente
+      mockChatRepository.findByVisitorId
+        .mockResolvedValueOnce(ok([])) // Chats activos
+        .mockResolvedValueOnce(ok([recentClosedChat])); // Chats cerrados
+
+      // Act
+      await handler.handle(event);
+
+      // Assert
+      // Debe emitir 2 veces: al visitante + al comercial con chat reciente
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(2);
+
+      // Verifica emisión al visitante
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        `visitor:${visitorId}`,
+        'presence:changed',
+        expect.any(Object),
+      );
+
+      // Verifica emisión al comercial con chat cerrado recientemente
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        `commercial:${commercialId}`,
         'presence:changed',
         expect.any(Object),
       );

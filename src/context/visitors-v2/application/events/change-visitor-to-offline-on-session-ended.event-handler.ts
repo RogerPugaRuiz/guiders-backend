@@ -39,8 +39,8 @@ export class ChangeVisitorToOfflineOnSessionEndedEventHandler
     try {
       const { visitorId, sessionId, duration } = event.attributes;
 
-      this.logger.debug(
-        `Sesión cerrada: visitorId=${visitorId}, sessionId=${sessionId}, duration=${duration}ms`,
+      this.logger.log(
+        `🔚 [SessionEndedEvent] Sesión cerrada: visitorId=${visitorId}, sessionId=${sessionId}, duration=${duration}ms`,
       );
 
       // Obtener el visitante para verificar si tiene otras sesiones activas
@@ -48,8 +48,8 @@ export class ChangeVisitorToOfflineOnSessionEndedEventHandler
       const visitorResult = await this.visitorRepository.findById(visitorIdVO);
 
       if (visitorResult.isErr()) {
-        this.logger.warn(
-          `No se encontró visitante ${visitorId} para actualizar estado después de cerrar sesión`,
+        this.logger.error(
+          `❌ No se encontró visitante ${visitorId} para actualizar estado después de cerrar sesión - ERROR: ${visitorResult.error.message}`,
         );
         return;
       }
@@ -58,17 +58,23 @@ export class ChangeVisitorToOfflineOnSessionEndedEventHandler
 
       // Verificar si aún tiene sesiones activas
       const hasActiveSessions = visitor.hasActiveSessions();
+      const activeSessions = visitor.getActiveSessions();
+
+      this.logger.log(
+        `📊 Visitante ${visitorId} tiene ${activeSessions.length} sesión(es) activa(s)`,
+      );
 
       if (hasActiveSessions) {
-        this.logger.debug(
-          `Visitante ${visitorId} aún tiene sesiones activas, no se marca como offline`,
+        this.logger.log(
+          `⏭️ Visitante ${visitorId} aún tiene sesiones activas, NO se marca como offline`,
         );
         return;
       }
 
       // No tiene sesiones activas, marcar como offline
+      const currentStatus = visitor.getConnectionStatus();
       this.logger.log(
-        `Visitante ${visitorId} no tiene sesiones activas, marcando como offline`,
+        `🔄 Visitante ${visitorId} no tiene sesiones activas, cambiando de ${currentStatus} a OFFLINE`,
       );
 
       // Merge con EventPublisher para que los eventos se publiquen
@@ -77,22 +83,30 @@ export class ChangeVisitorToOfflineOnSessionEndedEventHandler
       // Cambiar estado a offline (emite VisitorConnectionChangedEvent)
       aggCtx.goOffline();
 
+      this.logger.log(
+        `🎯 goOffline() llamado para visitante ${visitorId} - VisitorConnectionChangedEvent debe ser emitido al hacer commit()`,
+      );
+
       // Persistir cambios
       const saveResult = await this.visitorRepository.save(aggCtx);
 
       if (saveResult.isErr()) {
         this.logger.error(
-          `Error al guardar visitante ${visitorId}: ${saveResult.error.message}`,
+          `❌ Error al guardar visitante ${visitorId}: ${saveResult.error.message}`,
         );
         return;
       }
+
+      this.logger.log(
+        `💾 Visitante ${visitorId} guardado en MongoDB. Haciendo commit para emitir eventos...`,
+      );
 
       // CRITICAL: Publicar eventos de dominio
       // Esto dispara VisitorConnectionChangedEvent → PresenceChangedEvent → WebSocket
       aggCtx.commit();
 
       this.logger.log(
-        `Estado de conexión actualizado a offline para visitante ${visitorId}`,
+        `✅ [commit() EJECUTADO] Visitante ${visitorId} → VisitorConnectionChangedEvent emitido → PresenceChangedEvent debería ser emitido por EmitPresenceChangedOnVisitorConnectionChangedEventHandler`,
       );
     } catch (error) {
       const errorObj = error as Error;
