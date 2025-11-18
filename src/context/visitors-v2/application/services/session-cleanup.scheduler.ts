@@ -58,9 +58,15 @@ export class SessionCleanupScheduler {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         const { cleanedCount } = result.value;
         const duration = Date.now() - startTime;
-        this.logger.log(
-          `✅ Limpieza automática completada en ${duration}ms. Visitantes con sesiones cerradas: ${cleanedCount as number}`,
-        );
+        if (cleanedCount > 0) {
+          this.logger.log(
+            `✅ Limpieza automática completada en ${duration}ms. Visitantes con sesiones cerradas: ${cleanedCount as number} → Esto disparará SessionEndedEvent para cada uno`,
+          );
+        } else {
+          this.logger.debug(
+            `✅ Limpieza automática completada en ${duration}ms. No se encontraron sesiones expiradas`,
+          );
+        }
       } else {
         this.logger.error(
           `❌ Error en limpieza automática: ${result.error.message as string}`,

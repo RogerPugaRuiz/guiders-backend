@@ -41,7 +41,6 @@ import { ChangeVisitorToOfflineOnSessionEndedEventHandler } from './application/
 import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
 import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
 import { SessionCleanupScheduler } from './application/services/session-cleanup.scheduler';
-import { VisitorInactivityScheduler } from './infrastructure/schedulers/inactivity.scheduler';
 import { SESSION_MANAGEMENT_SERVICE_PROVIDER } from './infrastructure/providers/session-management.provider';
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
 import { BffSessionAuthService } from '../shared/infrastructure/services/bff-session-auth.service';
@@ -97,7 +96,6 @@ import { ConsentModule } from '../consent/consent.module';
     VISITOR_CONNECTION_SERVICE_PROVIDER,
     SESSION_MANAGEMENT_SERVICE_PROVIDER,
     SessionCleanupScheduler,
-    VisitorInactivityScheduler,
     TokenVerifyService,
     BffSessionAuthService,
     VisitorSessionAuthService,
