@@ -74,7 +74,8 @@ export class AssignedCommercialDto {
 
   @ApiProperty({
     description: 'URL del avatar del comercial',
-    example: 'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
+    example:
+      'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
     required: false,
     nullable: true,
   })

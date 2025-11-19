@@ -10,7 +10,7 @@ import { S3Config } from '../config/s3.config';
         fileSize: S3Config.getMaxFileSize(), // 5MB por defecto
         files: 1, // Solo un archivo por request
       },
-      fileFilter: (req, file, cb) => {
+      fileFilter: (_req, file, cb) => {
         const allowedMimeTypes = S3Config.getAllowedMimeTypes();
         if (allowedMimeTypes.includes(file.mimetype)) {
           cb(null, true);

@@ -10,9 +10,15 @@ import * as path from 'path';
 @Injectable()
 export class S3UploadService {
   private readonly logger = new Logger(S3UploadService.name);
-  private readonly client = S3Config.getClient();
-  private readonly bucket = S3Config.getBucketName();
-  private readonly avatarPrefix = S3Config.getAvatarPrefix();
+  private get client() {
+    return S3Config.getClient();
+  }
+  private get bucket() {
+    return S3Config.getBucketName();
+  }
+  private get avatarPrefix() {
+    return S3Config.getAvatarPrefix();
+  }
 
   /**
    * Sube un avatar a S3 y retorna la URL pública

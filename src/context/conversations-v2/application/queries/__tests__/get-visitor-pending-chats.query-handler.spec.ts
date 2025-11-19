@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { QueryBus } from '@nestjs/cqrs';
 import { GetVisitorPendingChatsQueryHandler } from '../get-visitor-pending-chats.query-handler';
 import { GetVisitorPendingChatsQuery } from '../get-visitor-pending-chats.query';
 import {
@@ -53,6 +54,12 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         {
           provide: VISITOR_V2_REPOSITORY,
           useValue: visitorRepository,
+        },
+        {
+          provide: QueryBus,
+          useValue: {
+            execute: jest.fn(),
+          },
         },
       ],
     }).compile();

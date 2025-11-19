@@ -57,7 +57,8 @@ export class CurrentUserResponseDto {
     required: false,
     nullable: true,
     description: 'URL del avatar del usuario en S3 (puede ser null)',
-    example: 'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
+    example:
+      'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
   })
   avatarUrl: string | null;
 }

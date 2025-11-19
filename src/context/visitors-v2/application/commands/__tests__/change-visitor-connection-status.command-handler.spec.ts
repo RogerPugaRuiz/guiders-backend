@@ -11,17 +11,13 @@ import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { TenantId } from '../../../domain/value-objects/tenant-id';
 import { SiteId } from '../../../domain/value-objects/site-id';
 import { VisitorFingerprint } from '../../../domain/value-objects/visitor-fingerprint';
-import {
-  VisitorLifecycleVO,
-  VisitorLifecycle,
-} from '../../../domain/value-objects/visitor-lifecycle';
+import { VisitorLifecycleVO } from '../../../domain/value-objects/visitor-lifecycle';
 import { ok } from '../../../../shared/domain/result';
 import { ConnectionStatus } from '../../../domain/value-objects/visitor-connection';
 
 describe('ChangeVisitorConnectionStatusCommandHandler', () => {
   let handler: ChangeVisitorConnectionStatusCommandHandler;
   let mockRepository: jest.Mocked<VisitorV2Repository>;
-  let mockPublisher: EventPublisher;
   let eventBus: EventBus;
   let publishedEvents: any[];
 
@@ -76,6 +72,7 @@ describe('ChangeVisitorConnectionStatusCommandHandler', () => {
                   obj.uncommitAll();
                 }
               };
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
               return obj;
             },
           },

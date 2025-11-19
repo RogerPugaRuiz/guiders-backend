@@ -474,11 +474,15 @@ export class AuthUserController {
 
       if (keycloakResult.isOk()) {
         backendUserId = keycloakResult.value.id;
-        this.logger.log(`[me] Usuario resuelto por Keycloak ID. Backend ID: ${backendUserId}`);
+        this.logger.log(
+          `[me] Usuario resuelto por Keycloak ID. Backend ID: ${backendUserId}`,
+        );
       } else {
         // Si no es Keycloak ID, asumir que ya es Backend ID
         backendUserId = rawUserId;
-        this.logger.log(`[me] Usando directamente como Backend ID: ${backendUserId}`);
+        this.logger.log(
+          `[me] Usando directamente como Backend ID: ${backendUserId}`,
+        );
       }
 
       const optional: Optional<{ user: UserAccountPrimitives }> =
@@ -533,13 +537,20 @@ export class AuthUserController {
     type: CurrentUserResponseDto,
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado con ese Keycloak ID' })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado con ese Keycloak ID',
+  })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   @RequiredRoles('admin', 'commercial')
   @UseGuards(DualAuthGuard, RolesGuard)
-  async getUserById(@Param('keycloakId') keycloakId: string): Promise<CurrentUserResponseDto> {
+  async getUserById(
+    @Param('keycloakId') keycloakId: string,
+  ): Promise<CurrentUserResponseDto> {
     try {
-      this.logger.log(`[getUserById] Buscando usuario con Keycloak ID: ${keycloakId}`);
+      this.logger.log(
+        `[getUserById] Buscando usuario con Keycloak ID: ${keycloakId}`,
+      );
 
       // Buscar SOLO por Keycloak ID
       const keycloakResult = await this.queryBus.execute(
@@ -580,7 +591,10 @@ export class AuthUserController {
         avatarUrl: userPrimitives.avatarUrl ?? null,
       };
     } catch (error) {
-      this.logger.error(`Error fetching user by Keycloak ID ${keycloakId}`, error);
+      this.logger.error(
+        `Error fetching user by Keycloak ID ${keycloakId}`,
+        error,
+      );
       if (error instanceof HttpException) {
         throw error;
       }
@@ -758,7 +772,9 @@ export class AuthUserController {
 
     try {
       // Resolver el Keycloak ID del usuario objetivo a Backend ID
-      this.logger.log(`[uploadAvatar] Buscando usuario objetivo con Keycloak ID: ${keycloakId}`);
+      this.logger.log(
+        `[uploadAvatar] Buscando usuario objetivo con Keycloak ID: ${keycloakId}`,
+      );
 
       const targetUserResult = await this.queryBus.execute(
         new FindUserByKeycloakIdQuery(keycloakId),
@@ -772,10 +788,14 @@ export class AuthUserController {
       }
 
       const userId = targetUserResult.value.id;
-      this.logger.log(`[uploadAvatar] Usuario objetivo encontrado. Backend ID: ${userId}`);
+      this.logger.log(
+        `[uploadAvatar] Usuario objetivo encontrado. Backend ID: ${userId}`,
+      );
 
       // Resolver el Keycloak ID del usuario autenticado a Backend ID
-      this.logger.log(`[uploadAvatar] Resolviendo requester Keycloak ID: ${rawRequesterId}`);
+      this.logger.log(
+        `[uploadAvatar] Resolviendo requester Keycloak ID: ${rawRequesterId}`,
+      );
 
       const requesterResult = await this.queryBus.execute(
         new FindUserByKeycloakIdQuery(rawRequesterId),
@@ -789,7 +809,9 @@ export class AuthUserController {
       }
 
       const requesterId = requesterResult.value.id;
-      this.logger.log(`[uploadAvatar] Requester encontrado. Backend ID: ${requesterId}`);
+      this.logger.log(
+        `[uploadAvatar] Requester encontrado. Backend ID: ${requesterId}`,
+      );
 
       const command = new UpdateUserAvatarCommand(userId, file, requesterId);
       const result = await this.commandBus.execute(command);
@@ -896,7 +918,7 @@ export class AuthUserController {
       const requesterId = requesterResult.value.id;
 
       // Crear un command para eliminar el avatar (pasamos null como nuevo avatar)
-      const command = new UpdateUserAvatarCommand(
+      const _command = new UpdateUserAvatarCommand(
         userId,
         null as unknown as Express.Multer.File, // Will be handled specially in handler
         requesterId,
