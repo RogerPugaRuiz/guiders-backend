@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { LeadScoringService } from '../../domain/lead-scoring.service';
 import {
-  LeadScoringService,
-} from '../../domain/lead-scoring.service';
-import { LeadScore, LeadScoringInput } from '../../domain/value-objects/lead-score';
+  LeadScore,
+  LeadScoringInput,
+} from '../../domain/value-objects/lead-score';
 
 /**
  * Implementación del servicio de Lead Scoring

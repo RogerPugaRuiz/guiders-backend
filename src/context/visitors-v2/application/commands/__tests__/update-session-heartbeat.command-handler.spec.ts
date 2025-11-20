@@ -10,18 +10,9 @@ import {
   VisitorConnectionDomainService,
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../../../domain/visitor-connection.domain-service';
-import {
-  LEAD_SCORING_SERVICE,
-  LeadScoringService,
-} from '../../../../lead-scoring/domain/lead-scoring.service';
-import {
-  TRACKING_EVENT_REPOSITORY,
-  TrackingEventRepository,
-} from '../../../../tracking-v2/domain/tracking-event.repository';
-import {
-  CHAT_V2_REPOSITORY,
-  IChatRepository,
-} from '../../../../conversations-v2/domain/chat.repository';
+import { LEAD_SCORING_SERVICE } from '../../../../lead-scoring/domain/lead-scoring.service';
+import { TRACKING_EVENT_REPOSITORY } from '../../../../tracking-v2/domain/tracking-event.repository';
+import { CHAT_V2_REPOSITORY } from '../../../../conversations-v2/domain/chat.repository';
 import { ok } from '../../../../shared/domain/result';
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';

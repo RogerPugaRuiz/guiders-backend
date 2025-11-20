@@ -20,7 +20,7 @@ export class NotifyHighIntentOnVisitorBecameHighIntentEventHandler
     private readonly websocketGateway: WebSocketGatewayBasic,
   ) {}
 
-  async handle(event: VisitorBecameHighIntentEvent): Promise<void> {
+  handle(event: VisitorBecameHighIntentEvent): void {
     const { visitorId, tenantId, siteId, fingerprint, leadScore, timestamp } =
       event.attributes;
 

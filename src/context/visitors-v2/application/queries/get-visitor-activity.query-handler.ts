@@ -23,7 +23,8 @@ import { VisitorId as ChatVisitorId } from 'src/context/conversations-v2/domain/
 
 @QueryHandler(GetVisitorActivityQuery)
 export class GetVisitorActivityQueryHandler
-  implements IQueryHandler<GetVisitorActivityQuery, GetVisitorActivityResponseDto>
+  implements
+    IQueryHandler<GetVisitorActivityQuery, GetVisitorActivityResponseDto>
 {
   constructor(
     @Inject(VISITOR_V2_REPOSITORY)
@@ -62,7 +63,8 @@ export class GetVisitorActivityQueryHandler
 
     // Obtener chats del visitante
     const chatVisitorId = ChatVisitorId.create(query.visitorId);
-    const chatsResult = await this.chatRepository.findByVisitorId(chatVisitorId);
+    const chatsResult =
+      await this.chatRepository.findByVisitorId(chatVisitorId);
     const totalChats = chatsResult.isOk() ? chatsResult.unwrap().length : 0;
 
     // Calcular estadísticas del visitante

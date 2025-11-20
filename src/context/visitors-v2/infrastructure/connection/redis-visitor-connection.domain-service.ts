@@ -254,11 +254,7 @@ export class RedisVisitorConnectionDomainService
     value: string,
     ttlSeconds: number,
   ): Promise<void> {
-    await this.client
-      .multi()
-      .set(key, value)
-      .expire(key, ttlSeconds)
-      .exec();
+    await this.client.multi().set(key, value).expire(key, ttlSeconds).exec();
   }
 }
 

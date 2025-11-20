@@ -15,7 +15,9 @@ class TenantLeadSignalsDto implements LeadSignals {
   @ApiProperty({ description: 'Tiempo invertido (≥5 minutos)' })
   hasInvestedTime: boolean;
 
-  @ApiProperty({ description: 'Necesita ayuda (engaged + ≥3 sesiones + 0 chats)' })
+  @ApiProperty({
+    description: 'Necesita ayuda (engaged + ≥3 sesiones + 0 chats)',
+  })
   needsHelp: boolean;
 }
 
@@ -26,7 +28,10 @@ class TenantLeadScoreDto implements LeadScorePrimitives {
   @ApiProperty({ description: 'Tier del lead', enum: ['cold', 'warm', 'hot'] })
   tier: LeadTier;
 
-  @ApiProperty({ description: 'Señales de intención', type: TenantLeadSignalsDto })
+  @ApiProperty({
+    description: 'Señales de intención',
+    type: TenantLeadSignalsDto,
+  })
   signals: LeadSignals;
 }
 

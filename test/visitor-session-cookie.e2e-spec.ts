@@ -225,7 +225,10 @@ describe('Visitor Session Cookie Fallback E2E', () => {
         },
         { provide: EventPublisher, useValue: mockEventPublisher },
         { provide: LEAD_SCORING_SERVICE, useValue: mockLeadScoringService },
-        { provide: TRACKING_EVENT_REPOSITORY, useValue: mockTrackingRepository },
+        {
+          provide: TRACKING_EVENT_REPOSITORY,
+          useValue: mockTrackingRepository,
+        },
         { provide: CHAT_V2_REPOSITORY, useValue: mockChatRepository },
         { provide: EventBus, useValue: mockEventBus },
       ],

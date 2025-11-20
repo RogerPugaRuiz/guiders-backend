@@ -15,7 +15,9 @@ class LeadSignalsDto implements LeadSignals {
   @ApiProperty({ description: 'Tiempo invertido (≥5 minutos)' })
   hasInvestedTime: boolean;
 
-  @ApiProperty({ description: 'Necesita ayuda (engaged + ≥3 sesiones + 0 chats)' })
+  @ApiProperty({
+    description: 'Necesita ayuda (engaged + ≥3 sesiones + 0 chats)',
+  })
   needsHelp: boolean;
 }
 
@@ -58,6 +60,9 @@ export class GetVisitorActivityResponseDto {
   @ApiProperty({ description: 'URL actual', required: false })
   currentUrl?: string;
 
-  @ApiProperty({ description: 'Lead score y señales de intención', type: LeadScoreDto })
+  @ApiProperty({
+    description: 'Lead score y señales de intención',
+    type: LeadScoreDto,
+  })
   leadScore: LeadScorePrimitives;
 }

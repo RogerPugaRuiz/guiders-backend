@@ -953,9 +953,18 @@ describe('Visitors E2E', () => {
       expect(response.body).toHaveProperty('totalPagesVisited', 15);
       expect(response.body).toHaveProperty('totalTimeConnectedMs');
       expect(response.body.totalTimeConnectedMs).toBeGreaterThan(0);
-      expect(response.body).toHaveProperty('currentConnectionStatus', ConnectionStatus.ONLINE);
-      expect(response.body).toHaveProperty('lifecycle', VisitorLifecycle.ENGAGED);
-      expect(response.body).toHaveProperty('currentUrl', 'https://example.com/products');
+      expect(response.body).toHaveProperty(
+        'currentConnectionStatus',
+        ConnectionStatus.ONLINE,
+      );
+      expect(response.body).toHaveProperty(
+        'lifecycle',
+        VisitorLifecycle.ENGAGED,
+      );
+      expect(response.body).toHaveProperty(
+        'currentUrl',
+        'https://example.com/products',
+      );
       expect(response.body).toHaveProperty('lastActivityAt');
     });
 

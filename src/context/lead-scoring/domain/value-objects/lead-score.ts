@@ -61,9 +61,7 @@ export class LeadScore {
 
     // Calcular score base
     const rawScore =
-      (input.totalSessions * 10) +
-      (input.totalPagesVisited * 2) +
-      (timeMinutes * 1);
+      input.totalSessions * 10 + input.totalPagesVisited * 2 + timeMinutes * 1;
 
     const score = Math.min(100, rawScore);
 

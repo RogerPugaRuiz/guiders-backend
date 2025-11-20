@@ -70,7 +70,11 @@ export interface VisitorConnectionDomainService {
   hasKey(key: string): Promise<boolean>;
 
   // Establece una clave con tiempo de expiración
-  setKeyWithExpiry(key: string, value: string, ttlSeconds: number): Promise<void>;
+  setKeyWithExpiry(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<void>;
 }
 
 // Símbolo para inyección de dependencias

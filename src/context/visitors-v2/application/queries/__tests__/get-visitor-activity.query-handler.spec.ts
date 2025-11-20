@@ -162,7 +162,9 @@ describe('GetVisitorActivityQueryHandler', () => {
       );
 
       // Act
-      const result = await handler.execute(new GetVisitorActivityQuery(visitorId));
+      const result = await handler.execute(
+        new GetVisitorActivityQuery(visitorId),
+      );
 
       // Assert
       expect(result.visitorId).toBe(visitorId);
@@ -218,7 +220,9 @@ describe('GetVisitorActivityQueryHandler', () => {
       mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
-      const result = await handler.execute(new GetVisitorActivityQuery(visitorId));
+      const result = await handler.execute(
+        new GetVisitorActivityQuery(visitorId),
+      );
 
       // Assert
       expect(result.totalPagesVisited).toBe(0);
@@ -261,7 +265,9 @@ describe('GetVisitorActivityQueryHandler', () => {
       mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
-      const result = await handler.execute(new GetVisitorActivityQuery(visitorId));
+      const result = await handler.execute(
+        new GetVisitorActivityQuery(visitorId),
+      );
 
       // Assert
       expect(result.totalChats).toBe(0);
@@ -317,7 +323,9 @@ describe('GetVisitorActivityQueryHandler', () => {
       mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
 
       // Act
-      const result = await handler.execute(new GetVisitorActivityQuery(visitorId));
+      const result = await handler.execute(
+        new GetVisitorActivityQuery(visitorId),
+      );
 
       // Assert
       expect(result.totalSessions).toBe(2);

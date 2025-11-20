@@ -29,7 +29,8 @@ export class NotifyPageChangedOnVisitorCurrentPageChangedEventHandler
   ) {}
 
   async handle(event: VisitorCurrentPageChangedEvent): Promise<void> {
-    const { visitorId, previousPage, currentPage, timestamp } = event.attributes;
+    const { visitorId, previousPage, currentPage, timestamp } =
+      event.attributes;
 
     this.logger.log(
       `📍 Visitante ${visitorId} cambió de página: ${previousPage || '(ninguna)'} → ${currentPage}`,
