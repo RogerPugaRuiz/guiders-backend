@@ -1,4 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  LeadScorePrimitives,
+  LeadSignals,
+  LeadTier,
+} from 'src/context/lead-scoring/domain/value-objects/lead-score';
+
+class TenantLeadSignalsDto implements LeadSignals {
+  @ApiProperty({ description: 'Visitante recurrente (≥3 sesiones)' })
+  isRecurrentVisitor: boolean;
+
+  @ApiProperty({ description: 'Alto engagement (≥10 páginas)' })
+  hasHighEngagement: boolean;
+
+  @ApiProperty({ description: 'Tiempo invertido (≥5 minutos)' })
+  hasInvestedTime: boolean;
+
+  @ApiProperty({ description: 'Necesita ayuda (engaged + ≥3 sesiones + 0 chats)' })
+  needsHelp: boolean;
+}
+
+class TenantLeadScoreDto implements LeadScorePrimitives {
+  @ApiProperty({ description: 'Score numérico del lead (0-100)' })
+  score: number;
+
+  @ApiProperty({ description: 'Tier del lead', enum: ['cold', 'warm', 'hot'] })
+  tier: LeadTier;
+
+  @ApiProperty({ description: 'Señales de intención', type: TenantLeadSignalsDto })
+  signals: LeadSignals;
+}
 
 /**
  * DTO para información básica de visitante con información del sitio en respuesta de tenant
@@ -82,6 +112,12 @@ export class TenantVisitorInfoDto {
     nullable: true,
   })
   totalChatsCount?: number;
+
+  @ApiProperty({
+    description: 'Lead score y señales de intención',
+    type: TenantLeadScoreDto,
+  })
+  leadScore: LeadScorePrimitives;
 }
 
 /**

@@ -34,6 +34,9 @@ export class VisitorV2MongoEntity extends Document {
   @Prop({ type: String, default: null })
   consentVersion: string | null;
 
+  @Prop({ type: String, default: null })
+  currentUrl: string | null;
+
   @Prop({ required: true })
   createdAt: Date;
 
@@ -47,6 +50,7 @@ export class VisitorV2MongoEntity extends Document {
         startedAt: { type: Date, required: true },
         lastActivityAt: { type: Date, required: true },
         endedAt: { type: Date, default: null },
+        currentUrl: { type: String, default: null },
       },
     ],
     default: [],
@@ -56,6 +60,7 @@ export class VisitorV2MongoEntity extends Document {
     startedAt: Date;
     lastActivityAt: Date;
     endedAt?: Date;
+    currentUrl?: string;
   }>;
 }
 

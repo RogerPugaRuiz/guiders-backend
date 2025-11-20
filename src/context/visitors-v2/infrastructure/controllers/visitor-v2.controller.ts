@@ -2,22 +2,30 @@ import {
   Controller,
   Post,
   Put,
+  Get,
   Body,
   Response,
   HttpCode,
   Req,
+  Param,
+  UseGuards,
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
   Logger,
 } from '@nestjs/common';
-import { CommandBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
+import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
+import { Roles } from '../../../shared/infrastructure/roles.decorator';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiOkResponse,
   ApiBody,
+  ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import {
   Response as ExpressResponse,
@@ -37,13 +45,20 @@ import {
   resolveVisitorSessionId,
   clearVisitorSessionCookie,
 } from '../http/visitor-session-cookie.util';
+import { GetVisitorCurrentPageQuery } from '../../application/queries/get-visitor-current-page.query';
+import { GetVisitorCurrentPageResponseDto } from '../../application/dtos/get-visitor-current-page-response.dto';
+import { GetVisitorActivityQuery } from '../../application/queries/get-visitor-activity.query';
+import { GetVisitorActivityResponseDto } from '../../application/dtos/get-visitor-activity-response.dto';
 
 @ApiTags('visitors')
 @Controller('visitors')
 export class VisitorV2Controller {
   private readonly logger = new Logger(VisitorV2Controller.name);
 
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   @Post('identify')
   @HttpCode(200)
@@ -397,5 +412,114 @@ export class VisitorV2Controller {
         'Error interno al cambiar estado del visitante',
       );
     }
+  }
+
+  @Get(':visitorId/current-page')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @Roles(['commercial'])
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener la página actual del visitante',
+    description:
+      'Retorna la URL de la página que está visitando actualmente un usuario específico. ' +
+      'Este endpoint permite a los comerciales conocer en qué página se encuentra un visitante ' +
+      'para poder ofrecer asistencia contextualizada.\n\n' +
+      '**Requisitos:**\n' +
+      '- Autenticación: JWT Bearer token o cookie de sesión BFF\n' +
+      '- Rol requerido: `commercial`\n\n' +
+      '**Notas:**\n' +
+      '- El campo `currentUrl` será `null` si el visitante nunca ha enviado su URL actual\n' +
+      '- La URL se actualiza cuando el visitante llama a `/visitors/identify` con el parámetro `currentUrl`',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID único del visitante (UUID)',
+    example: '9598b495-205c-46af-9c06-d5dffb28ee21',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Página actual del visitante obtenida exitosamente',
+    type: GetVisitorCurrentPageResponseDto,
+    schema: {
+      example: {
+        currentUrl: 'https://example.com/products/laptop-gaming',
+        updatedAt: '2025-11-19T19:30:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado - Token JWT inválido o expirado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos - Se requiere rol de comercial',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Visitante no encontrado con el ID proporcionado',
+  })
+  async getVisitorCurrentPage(
+    @Param('visitorId') visitorId: string,
+  ): Promise<GetVisitorCurrentPageResponseDto> {
+    this.logger.log(`Obteniendo página actual del visitante: ${visitorId}`);
+
+    const query = new GetVisitorCurrentPageQuery(visitorId);
+    return this.queryBus.execute<
+      GetVisitorCurrentPageQuery,
+      GetVisitorCurrentPageResponseDto
+    >(query);
+  }
+
+  @Get(':visitorId/activity')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @Roles(['commercial'])
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener estadísticas de actividad del visitante',
+    description:
+      'Retorna las estadísticas de actividad de un visitante específico, incluyendo:\n' +
+      '- Número total de sesiones\n' +
+      '- Número total de chats\n' +
+      '- Número total de páginas visitadas\n' +
+      '- Tiempo total conectado en milisegundos\n' +
+      '- Estado de conexión actual\n' +
+      '- Ciclo de vida del visitante\n\n' +
+      '**Requisitos:**\n' +
+      '- Autenticación: JWT Bearer token o cookie de sesión BFF\n' +
+      '- Rol requerido: `commercial`',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID único del visitante (UUID)',
+    example: '9598b495-205c-46af-9c06-d5dffb28ee21',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'Estadísticas de actividad obtenidas exitosamente',
+    type: GetVisitorActivityResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado - Token JWT inválido o expirado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos - Se requiere rol de comercial',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Visitante no encontrado con el ID proporcionado',
+  })
+  async getVisitorActivity(
+    @Param('visitorId') visitorId: string,
+  ): Promise<GetVisitorActivityResponseDto> {
+    this.logger.log(`Obteniendo actividad del visitante: ${visitorId}`);
+
+    const query = new GetVisitorActivityQuery(visitorId);
+    return this.queryBus.execute<
+      GetVisitorActivityQuery,
+      GetVisitorActivityResponseDto
+    >(query);
   }
 }

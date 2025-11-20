@@ -59,6 +59,29 @@ import {
   VisitorConnectionDomainService,
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../src/context/visitors-v2/domain/visitor-connection.domain-service';
+import { GetVisitorActivityQueryHandler } from '../src/context/visitors-v2/application/queries/get-visitor-activity.query-handler';
+import {
+  TRACKING_EVENT_REPOSITORY,
+  TrackingEventRepository,
+} from '../src/context/tracking-v2/domain/tracking-event.repository';
+import {
+  CHAT_V2_REPOSITORY,
+  IChatRepository,
+} from '../src/context/conversations-v2/domain/chat.repository';
+import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { ConnectionStatus } from '../src/context/visitors-v2/domain/value-objects/visitor-connection';
+import {
+  LEAD_SCORING_SERVICE,
+  LeadScoringService,
+} from '../src/context/lead-scoring/domain/lead-scoring.service';
+import { EventBus } from '@nestjs/cqrs';
+
+// Mock RolesGuard for E2E tests
+class MockRolesGuard {
+  canActivate(): boolean {
+    return true;
+  }
+}
 
 describe('Visitors E2E', () => {
   let app: INestApplication;
@@ -68,6 +91,10 @@ describe('Visitors E2E', () => {
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
+  let mockTrackingRepository: jest.Mocked<TrackingEventRepository>;
+  let mockChatRepository: jest.Mocked<IChatRepository>;
+  let mockLeadScoringService: jest.Mocked<LeadScoringService>;
+  let mockEventBus: jest.Mocked<EventBus>;
 
   // Mock data
   const mockVisitorId = '01234567-8901-4234-9567-890123456789';
@@ -171,6 +198,37 @@ describe('Visitors E2E', () => {
       isVisitorActive: jest.fn(),
     } as any;
 
+    // Mock tracking repository
+    mockTrackingRepository = {
+      getStatsByVisitor: jest.fn(),
+    } as any;
+
+    // Mock chat repository
+    mockChatRepository = {
+      findByVisitorId: jest.fn(),
+    } as any;
+
+    // Mock lead scoring service
+    mockLeadScoringService = {
+      calculateScore: jest.fn().mockReturnValue({
+        toPrimitives: () => ({
+          score: 0,
+          tier: 'cold',
+          signals: {
+            isRecurrentVisitor: false,
+            hasHighEngagement: false,
+            hasInvestedTime: false,
+            needsHelp: false,
+          },
+        }),
+      }),
+    } as any;
+
+    // Mock event bus
+    mockEventBus = {
+      publish: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [VisitorV2Controller, SitesController],
@@ -180,6 +238,7 @@ describe('Visitors E2E', () => {
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
         RecordConsentCommandHandler,
+        GetVisitorActivityQueryHandler,
         {
           provide: VISITOR_V2_REPOSITORY,
           useValue: mockVisitorRepository,
@@ -204,10 +263,28 @@ describe('Visitors E2E', () => {
           provide: EventPublisher,
           useValue: mockEventPublisher,
         },
+        {
+          provide: TRACKING_EVENT_REPOSITORY,
+          useValue: mockTrackingRepository,
+        },
+        {
+          provide: CHAT_V2_REPOSITORY,
+          useValue: mockChatRepository,
+        },
+        {
+          provide: LEAD_SCORING_SERVICE,
+          useValue: mockLeadScoringService,
+        },
+        {
+          provide: EventBus,
+          useValue: mockEventBus,
+        },
       ],
     })
       .overrideGuard(DualAuthGuard)
       .useClass(MockDualAuthGuard)
+      .overrideGuard(RolesGuard)
+      .useClass(MockRolesGuard)
       .compile();
 
     app = module.createNestApplication();
@@ -813,6 +890,125 @@ describe('Visitors E2E', () => {
 
       // Verificar que save se llamó para ambas operaciones
       expect(mockVisitorRepository.save).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('GET /visitors/:visitorId/activity', () => {
+    it('debe retornar estadísticas de actividad del visitante', async () => {
+      // Arrange
+      const mockVisitor = VisitorV2.fromPrimitives({
+        id: mockVisitorId,
+        fingerprint: 'fp_test_visitor',
+        tenantId: mockTenantId,
+        siteId: mockSiteId,
+        lifecycle: VisitorLifecycle.ENGAGED,
+        connectionStatus: ConnectionStatus.ONLINE,
+        hasAcceptedPrivacyPolicy: true,
+        privacyPolicyAcceptedAt: new Date().toISOString(),
+        consentVersion: 'v1.0',
+        currentUrl: 'https://example.com/products',
+        sessions: [
+          {
+            id: Uuid.random().value,
+            startedAt: new Date(Date.now() - 3600000).toISOString(),
+            lastActivityAt: new Date().toISOString(),
+          },
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockVisitorRepository.findById.mockResolvedValue(ok(mockVisitor));
+
+      mockTrackingRepository.getStatsByVisitor.mockResolvedValue(
+        ok({
+          visitorId: mockVisitorId,
+          totalEvents: 20,
+          eventsByType: {
+            PAGE_VIEW: 15,
+            CLICK: 5,
+          },
+          sessionsCount: 1,
+          firstEventAt: new Date(Date.now() - 3600000),
+          lastEventAt: new Date(),
+        }),
+      );
+
+      mockChatRepository.findByVisitorId.mockResolvedValue(
+        ok([
+          { id: { getValue: () => 'chat1' } },
+          { id: { getValue: () => 'chat2' } },
+        ] as any),
+      );
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .get(`/visitors/${mockVisitorId}/activity`)
+        .expect(200);
+
+      // Assert
+      expect(response.body).toHaveProperty('visitorId', mockVisitorId);
+      expect(response.body).toHaveProperty('totalSessions', 1);
+      expect(response.body).toHaveProperty('totalChats', 2);
+      expect(response.body).toHaveProperty('totalPagesVisited', 15);
+      expect(response.body).toHaveProperty('totalTimeConnectedMs');
+      expect(response.body.totalTimeConnectedMs).toBeGreaterThan(0);
+      expect(response.body).toHaveProperty('currentConnectionStatus', ConnectionStatus.ONLINE);
+      expect(response.body).toHaveProperty('lifecycle', VisitorLifecycle.ENGAGED);
+      expect(response.body).toHaveProperty('currentUrl', 'https://example.com/products');
+      expect(response.body).toHaveProperty('lastActivityAt');
+    });
+
+    it('debe retornar 404 cuando el visitante no existe', async () => {
+      // Arrange
+      const nonExistentId = Uuid.random().value;
+      mockVisitorRepository.findById.mockResolvedValue(
+        err(new VisitorV2PersistenceError('Visitante no encontrado')),
+      );
+
+      // Act & Assert
+      await request(app.getHttpServer())
+        .get(`/visitors/${nonExistentId}/activity`)
+        .expect(404);
+    });
+
+    it('debe retornar estadísticas con valores 0 cuando no hay tracking ni chats', async () => {
+      // Arrange
+      const mockVisitor = VisitorV2.fromPrimitives({
+        id: mockVisitorId,
+        fingerprint: 'fp_test_visitor',
+        tenantId: mockTenantId,
+        siteId: mockSiteId,
+        lifecycle: VisitorLifecycle.ANON,
+        hasAcceptedPrivacyPolicy: true,
+        privacyPolicyAcceptedAt: new Date().toISOString(),
+        consentVersion: 'v1.0',
+        sessions: [
+          {
+            id: Uuid.random().value,
+            startedAt: new Date().toISOString(),
+            lastActivityAt: new Date().toISOString(),
+          },
+        ],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      mockVisitorRepository.findById.mockResolvedValue(ok(mockVisitor));
+      mockTrackingRepository.getStatsByVisitor.mockResolvedValue(
+        err(new VisitorV2PersistenceError('No stats found')),
+      );
+      mockChatRepository.findByVisitorId.mockResolvedValue(ok([]));
+
+      // Act
+      const response = await request(app.getHttpServer())
+        .get(`/visitors/${mockVisitorId}/activity`)
+        .expect(200);
+
+      // Assert
+      expect(response.body).toHaveProperty('totalPagesVisited', 0);
+      expect(response.body).toHaveProperty('totalChats', 0);
+      expect(response.body).toHaveProperty('totalSessions', 1);
     });
   });
 });

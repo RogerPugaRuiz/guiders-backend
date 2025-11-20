@@ -17,6 +17,7 @@ import {
   SessionStartedEvent,
   SessionEndedEvent,
 } from './events/session.events';
+import { VisitorCurrentPageChangedEvent } from './events/visitor-current-page-changed.event';
 
 /**
  * Primitivos para la serialización del agregado VisitorV2
@@ -31,6 +32,7 @@ export interface VisitorPrimitives {
   hasAcceptedPrivacyPolicy: boolean;
   privacyPolicyAcceptedAt: string | null;
   consentVersion: string | null;
+  currentUrl?: string; // URL actual del visitante
   createdAt: string;
   updatedAt: string;
   sessions: ReturnType<Session['toPrimitives']>[];
@@ -51,6 +53,7 @@ export class VisitorV2 extends AggregateRoot {
   private hasAcceptedPrivacyPolicy: boolean;
   private privacyPolicyAcceptedAt: Date | null;
   private consentVersion: string | null;
+  private currentUrl?: string;
   private readonly createdAt: Date;
   private updatedAt: Date;
   private sessions: Session[];
@@ -65,6 +68,7 @@ export class VisitorV2 extends AggregateRoot {
     hasAcceptedPrivacyPolicy: boolean;
     privacyPolicyAcceptedAt: Date | null;
     consentVersion: string | null;
+    currentUrl?: string;
     createdAt: Date;
     updatedAt: Date;
     sessions: Session[];
@@ -79,6 +83,7 @@ export class VisitorV2 extends AggregateRoot {
     this.hasAcceptedPrivacyPolicy = props.hasAcceptedPrivacyPolicy;
     this.privacyPolicyAcceptedAt = props.privacyPolicyAcceptedAt;
     this.consentVersion = props.consentVersion;
+    this.currentUrl = props.currentUrl;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     this.sessions = props.sessions;
@@ -147,6 +152,7 @@ export class VisitorV2 extends AggregateRoot {
         ? new Date(primitives.privacyPolicyAcceptedAt)
         : null,
       consentVersion: primitives.consentVersion,
+      currentUrl: primitives.currentUrl,
       createdAt: new Date(primitives.createdAt),
       updatedAt: new Date(primitives.updatedAt),
       sessions: primitives.sessions.map((sessionPrimitives) =>
@@ -171,6 +177,7 @@ export class VisitorV2 extends AggregateRoot {
         ? this.privacyPolicyAcceptedAt.toISOString()
         : null,
       consentVersion: this.consentVersion,
+      currentUrl: this.currentUrl,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       sessions: this.sessions.map((session) => session.toPrimitives()),
@@ -548,5 +555,42 @@ export class VisitorV2 extends AggregateRoot {
 
   public getConsentVersion(): string | null {
     return this.consentVersion;
+  }
+
+  public getCurrentUrl(): string | undefined {
+    return this.currentUrl;
+  }
+
+  /**
+   * Actualiza la URL actual del visitante y de la sesión activa
+   */
+  public updateCurrentUrl(url: string): void {
+    const previousPage = this.currentUrl || null;
+
+    // Solo emitir evento si la URL realmente cambió
+    if (previousPage === url) {
+      return;
+    }
+
+    this.currentUrl = url;
+    this.updatedAt = new Date();
+
+    // Actualizar también la sesión activa
+    const activeSession = this.sessions.find((session) => session.isActive());
+    if (activeSession) {
+      activeSession.updateCurrentUrl(url);
+    }
+
+    // Emitir evento de cambio de página
+    this.apply(
+      new VisitorCurrentPageChangedEvent({
+        visitorId: this.id.getValue(),
+        tenantId: this.tenantId.getValue(),
+        siteId: this.siteId.getValue(),
+        previousPage,
+        currentPage: url,
+        timestamp: this.updatedAt.toISOString(),
+      }),
+    );
   }
 }

@@ -65,6 +65,12 @@ export interface VisitorConnectionDomainService {
 
   // Verifica si el usuario está activo (interactuando realmente, no solo heartbeat)
   isUserActive(visitorId: VisitorId, timeoutMinutes?: number): Promise<boolean>;
+
+  // Verifica si existe una clave genérica en el cache
+  hasKey(key: string): Promise<boolean>;
+
+  // Establece una clave con tiempo de expiración
+  setKeyWithExpiry(key: string, value: string, ttlSeconds: number): Promise<void>;
 }
 
 // Símbolo para inyección de dependencias

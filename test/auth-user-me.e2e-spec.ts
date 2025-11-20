@@ -67,7 +67,9 @@ class MockQueryBus {
     // Handle FindUserByKeycloakIdQuery (returns Result)
     if (q instanceof FindUserByKeycloakIdQuery) {
       // No tenemos usuarios con Keycloak ID en este test, retornar error
-      return Promise.resolve(err(new RepositoryError('User not found by Keycloak ID')));
+      return Promise.resolve(
+        err(new RepositoryError('User not found by Keycloak ID')),
+      );
     }
 
     // Handle FindOneUserByIdQuery (returns Optional)

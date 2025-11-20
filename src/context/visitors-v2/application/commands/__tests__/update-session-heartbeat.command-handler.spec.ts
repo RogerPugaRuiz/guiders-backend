@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EventPublisher } from '@nestjs/cqrs';
+import { EventPublisher, EventBus } from '@nestjs/cqrs';
 import { UpdateSessionHeartbeatCommandHandler } from '../update-session-heartbeat.command-handler';
 import { UpdateSessionHeartbeatCommand } from '../update-session-heartbeat.command';
 import {
@@ -10,6 +10,18 @@ import {
   VisitorConnectionDomainService,
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../../../domain/visitor-connection.domain-service';
+import {
+  LEAD_SCORING_SERVICE,
+  LeadScoringService,
+} from '../../../../lead-scoring/domain/lead-scoring.service';
+import {
+  TRACKING_EVENT_REPOSITORY,
+  TrackingEventRepository,
+} from '../../../../tracking-v2/domain/tracking-event.repository';
+import {
+  CHAT_V2_REPOSITORY,
+  IChatRepository,
+} from '../../../../conversations-v2/domain/chat.repository';
 import { ok } from '../../../../shared/domain/result';
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
@@ -56,6 +68,33 @@ describe('UpdateSessionHeartbeatCommandHandler', () => {
       mergeObjectContext: jest.fn(),
     };
 
+    const mockLeadScoringServiceValue = {
+      calculateScore: jest.fn().mockReturnValue({
+        toPrimitives: () => ({
+          score: 0,
+          tier: 'cold',
+          signals: {
+            isRecurrentVisitor: false,
+            hasHighEngagement: false,
+            hasInvestedTime: false,
+            needsHelp: false,
+          },
+        }),
+      }),
+    };
+
+    const mockTrackingRepositoryValue = {
+      getStatsByVisitor: jest.fn(),
+    };
+
+    const mockChatRepositoryValue = {
+      findByVisitorId: jest.fn(),
+    };
+
+    const mockEventBusValue = {
+      publish: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UpdateSessionHeartbeatCommandHandler,
@@ -68,8 +107,24 @@ describe('UpdateSessionHeartbeatCommandHandler', () => {
           useValue: mockConnectionServiceValue,
         },
         {
+          provide: LEAD_SCORING_SERVICE,
+          useValue: mockLeadScoringServiceValue,
+        },
+        {
+          provide: TRACKING_EVENT_REPOSITORY,
+          useValue: mockTrackingRepositoryValue,
+        },
+        {
+          provide: CHAT_V2_REPOSITORY,
+          useValue: mockChatRepositoryValue,
+        },
+        {
           provide: EventPublisher,
           useValue: mockEventPublisherValue,
+        },
+        {
+          provide: EventBus,
+          useValue: mockEventBusValue,
         },
       ],
     }).compile();

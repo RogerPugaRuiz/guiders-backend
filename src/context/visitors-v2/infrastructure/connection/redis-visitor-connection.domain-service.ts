@@ -243,6 +243,23 @@ export class RedisVisitorConnectionDomainService
     const lastUserActivity = await this.getLastUserActivity(visitorId);
     return !lastUserActivity.isExpired(timeoutMinutes);
   }
+
+  async hasKey(key: string): Promise<boolean> {
+    const exists = await this.client.exists(key);
+    return exists === 1;
+  }
+
+  async setKeyWithExpiry(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<void> {
+    await this.client
+      .multi()
+      .set(key, value)
+      .expire(key, ttlSeconds)
+      .exec();
+  }
 }
 
 export const VISITOR_CONNECTION_SERVICE_PROVIDER = {

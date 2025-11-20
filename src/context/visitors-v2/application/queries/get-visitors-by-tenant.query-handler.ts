@@ -26,6 +26,10 @@ import {
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../../domain/visitor-connection.domain-service';
 import { VisitorId as VisitorIdV2 } from '../../domain/value-objects/visitor-id';
+import {
+  LEAD_SCORING_SERVICE,
+  LeadScoringService,
+} from '../../../lead-scoring/domain/lead-scoring.service';
 
 @QueryHandler(GetVisitorsByTenantQuery)
 export class GetVisitorsByTenantQueryHandler
@@ -42,6 +46,8 @@ export class GetVisitorsByTenantQueryHandler
     private readonly chatRepository: IChatRepository,
     @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
     private readonly connectionService: VisitorConnectionDomainService,
+    @Inject(LEAD_SCORING_SERVICE)
+    private readonly leadScoringService: LeadScoringService,
   ) {}
 
   async execute(
@@ -128,6 +134,21 @@ export class GetVisitorsByTenantQueryHandler
             connectionStatus = activeSessions.length > 0 ? 'ONLINE' : 'OFFLINE';
           }
 
+          // Calcular tiempo total conectado
+          const totalTimeConnectedMs = sessions.reduce(
+            (total, session) => total + session.getDuration(),
+            0,
+          );
+
+          // Calcular lead score (sin páginas para la lista, se calcula en detalle)
+          const leadScore = this.leadScoringService.calculateScore({
+            totalSessions: sessions.length,
+            totalPagesVisited: 0, // No disponible en lista, se calcula en endpoint de actividad
+            totalTimeConnectedMs,
+            totalChats: totalChatsCount,
+            lifecycle: visitor.getLifecycle().getValue(),
+          });
+
           return {
             id: visitor.getId().getValue(),
             fingerprint: visitor.getFingerprint().getValue(),
@@ -141,6 +162,7 @@ export class GetVisitorsByTenantQueryHandler
               latestSession?.getLastActivityAt() || visitor.getUpdatedAt(),
             pendingChatIds: visitorPendingChatIds,
             totalChatsCount,
+            leadScore: leadScore.toPrimitives(),
           };
         }),
       );

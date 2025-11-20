@@ -113,6 +113,17 @@ export class GetVisitorsWithUnassignedChatsByTenantQueryHandler
             chatCreatedAt: undefined,
             assignedCommercialId: undefined,
             waitingTimeSeconds: undefined,
+            // Lead score placeholder - TODO: calcular score real
+            leadScore: {
+              score: 0,
+              tier: 'cold' as const,
+              signals: {
+                isRecurrentVisitor: false,
+                hasHighEngagement: false,
+                hasInvestedTime: false,
+                needsHelp: false,
+              },
+            },
           };
         },
       );

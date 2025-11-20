@@ -110,6 +110,17 @@ export class GetVisitorsWithQueuedChatsByTenantQueryHandler
             chatCreatedAt: undefined,
             assignedCommercialId: undefined,
             waitingTimeSeconds: undefined, // TODO: Calcular tiempo real de espera
+            // Lead score placeholder - TODO: calcular score real
+            leadScore: {
+              score: 0,
+              tier: 'cold' as const,
+              signals: {
+                isRecurrentVisitor: false,
+                hasHighEngagement: false,
+                hasInvestedTime: false,
+                needsHelp: false,
+              },
+            },
           };
         },
       );

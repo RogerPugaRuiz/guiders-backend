@@ -51,6 +51,33 @@ import {
   VisitorConnectionDomainService,
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../src/context/visitors-v2/domain/visitor-connection.domain-service';
+import {
+  LEAD_SCORING_SERVICE,
+  LeadScoringService,
+} from '../src/context/lead-scoring/domain/lead-scoring.service';
+import {
+  TRACKING_EVENT_REPOSITORY,
+  TrackingEventRepository,
+} from '../src/context/tracking-v2/domain/tracking-event.repository';
+import {
+  CHAT_V2_REPOSITORY,
+  IChatRepository,
+} from '../src/context/conversations-v2/domain/chat.repository';
+import { EventBus } from '@nestjs/cqrs';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
+import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+
+class MockDualAuthGuard {
+  canActivate() {
+    return true;
+  }
+}
+
+class MockRolesGuard {
+  canActivate() {
+    return true;
+  }
+}
 
 // Este test valida que el backend acepta heartbeats y endSession usando únicamente la cookie HttpOnly
 // sin enviar sessionId explícito en el body.
@@ -63,6 +90,10 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
+  let mockLeadScoringService: jest.Mocked<LeadScoringService>;
+  let mockTrackingRepository: jest.Mocked<TrackingEventRepository>;
+  let mockChatRepository: jest.Mocked<IChatRepository>;
+  let mockEventBus: jest.Mocked<EventBus>;
 
   const mockVisitorId = '01234567-8901-4234-9567-890123456789';
   const mockTenantId = '23456789-0123-4567-8901-234567890123';
@@ -144,6 +175,33 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       isVisitorActive: jest.fn(),
     } as any;
 
+    mockLeadScoringService = {
+      calculateScore: jest.fn().mockReturnValue({
+        toPrimitives: () => ({
+          score: 0,
+          tier: 'cold',
+          signals: {
+            isRecurrentVisitor: false,
+            hasHighEngagement: false,
+            hasInvestedTime: false,
+            needsHelp: false,
+          },
+        }),
+      }),
+    } as any;
+
+    mockTrackingRepository = {
+      getStatsByVisitor: jest.fn(),
+    } as any;
+
+    mockChatRepository = {
+      findByVisitorId: jest.fn(),
+    } as any;
+
+    mockEventBus = {
+      publish: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [CqrsModule],
       controllers: [VisitorV2Controller],
@@ -166,8 +224,17 @@ describe('Visitor Session Cookie Fallback E2E', () => {
           useValue: mockConnectionService,
         },
         { provide: EventPublisher, useValue: mockEventPublisher },
+        { provide: LEAD_SCORING_SERVICE, useValue: mockLeadScoringService },
+        { provide: TRACKING_EVENT_REPOSITORY, useValue: mockTrackingRepository },
+        { provide: CHAT_V2_REPOSITORY, useValue: mockChatRepository },
+        { provide: EventBus, useValue: mockEventBus },
       ],
-    }).compile();
+    })
+      .overrideGuard(DualAuthGuard)
+      .useClass(MockDualAuthGuard)
+      .overrideGuard(RolesGuard)
+      .useClass(MockRolesGuard)
+      .compile();
 
     app = module.createNestApplication();
     // Habilitar cookie-parser para que el controller pueda leer la cookie 'sid'

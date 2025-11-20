@@ -23,6 +23,10 @@ import {
   VISITOR_CONNECTION_DOMAIN_SERVICE,
   VisitorConnectionDomainService,
 } from '../../../domain/visitor-connection.domain-service';
+import {
+  LEAD_SCORING_SERVICE,
+  LeadScoringService,
+} from '../../../../lead-scoring/domain/lead-scoring.service';
 
 describe('GetVisitorsByTenantQueryHandler', () => {
   let handler: GetVisitorsByTenantQueryHandler;
@@ -30,6 +34,7 @@ describe('GetVisitorsByTenantQueryHandler', () => {
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
   let mockChatRepository: jest.Mocked<IChatRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
+  let mockLeadScoringService: jest.Mocked<LeadScoringService>;
 
   const tenantId = Uuid.random().value;
   const siteId = Uuid.random().value;
@@ -60,6 +65,22 @@ describe('GetVisitorsByTenantQueryHandler', () => {
       getChattingVisitors: jest.fn(),
     } as any;
 
+    // Mock del servicio de lead scoring
+    mockLeadScoringService = {
+      calculateScore: jest.fn().mockReturnValue({
+        toPrimitives: () => ({
+          score: 0,
+          tier: 'cold',
+          signals: {
+            isRecurrentVisitor: false,
+            hasHighEngagement: false,
+            hasInvestedTime: false,
+            needsHelp: false,
+          },
+        }),
+      }),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GetVisitorsByTenantQueryHandler,
@@ -78,6 +99,10 @@ describe('GetVisitorsByTenantQueryHandler', () => {
         {
           provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
           useValue: mockConnectionService,
+        },
+        {
+          provide: LEAD_SCORING_SERVICE,
+          useValue: mockLeadScoringService,
         },
       ],
     }).compile();

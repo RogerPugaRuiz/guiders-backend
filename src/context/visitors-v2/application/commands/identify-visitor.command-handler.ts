@@ -257,6 +257,12 @@ export class IdentifyVisitorCommandHandler
         this.logger.log(`🆕 Nuevo visitante creado: ${visitor.getId().value}`);
       }
 
+      // Actualizar currentUrl si se proporciona
+      if (command.currentUrl) {
+        visitor.updateCurrentUrl(command.currentUrl);
+        this.logger.log(`📍 URL actual actualizada: ${command.currentUrl}`);
+      }
+
       // Persistir cambios con eventos
       const visitorContext = this.publisher.mergeObjectContext(visitor);
       const saveResult = await this.visitorRepository.save(visitorContext);

@@ -35,9 +35,13 @@ import { GetVisitorsWithQueuedChatsBySiteQueryHandler } from './application/quer
 import { GetVisitorsByTenantQueryHandler } from './application/queries/get-visitors-by-tenant.query-handler';
 import { GetVisitorsWithUnassignedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-unassigned-chats-by-tenant.query-handler';
 import { GetVisitorsWithQueuedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-tenant.query-handler';
+import { GetVisitorCurrentPageQueryHandler } from './application/queries/get-visitor-current-page.query-handler';
+import { GetVisitorActivityQueryHandler } from './application/queries/get-visitor-activity.query-handler';
 import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
 import { EmitPresenceChangedOnVisitorConnectionChangedEventHandler } from './application/events/emit-presence-changed-on-visitor-connection-changed.event-handler';
 import { ChangeVisitorToOfflineOnSessionEndedEventHandler } from './application/events/change-visitor-to-offline-on-session-ended.event-handler';
+import { NotifyPageChangedOnVisitorCurrentPageChangedEventHandler } from './application/events/notify-page-changed-on-visitor-current-page-changed.event-handler';
+import { NotifyHighIntentOnVisitorBecameHighIntentEventHandler } from './application/events/notify-high-intent-on-visitor-became-high-intent.event-handler';
 import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
 import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
 import { SessionCleanupScheduler } from './application/services/session-cleanup.scheduler';
@@ -46,6 +50,10 @@ import { TokenVerifyService } from '../shared/infrastructure/token-verify.servic
 import { BffSessionAuthService } from '../shared/infrastructure/services/bff-session-auth.service';
 import { VisitorSessionAuthService } from '../shared/infrastructure/services/visitor-session-auth.service';
 import { ConsentModule } from '../consent/consent.module';
+import { WebSocketModule } from '../../websocket/websocket.module';
+import { WebSocketGatewayBasic } from '../../websocket/websocket.gateway';
+import { TrackingV2Module } from '../tracking-v2/tracking-v2.module';
+import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
 
 @Module({
   imports: [
@@ -60,6 +68,9 @@ import { ConsentModule } from '../consent/consent.module';
     AuthVisitorModule,
     ConsentModule, // ← Importar para que RecordConsentCommand esté disponible
     forwardRef(() => ConversationsV2Module),
+    TrackingV2Module,
+    WebSocketModule,
+    LeadScoringModule,
   ],
   controllers: [
     VisitorV2Controller,
@@ -90,15 +101,23 @@ import { ConsentModule } from '../consent/consent.module';
     GetVisitorsByTenantQueryHandler,
     GetVisitorsWithUnassignedChatsByTenantQueryHandler,
     GetVisitorsWithQueuedChatsByTenantQueryHandler,
+    GetVisitorCurrentPageQueryHandler,
+    GetVisitorActivityQueryHandler,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
     EmitPresenceChangedOnVisitorConnectionChangedEventHandler,
     ChangeVisitorToOfflineOnSessionEndedEventHandler,
+    NotifyPageChangedOnVisitorCurrentPageChangedEventHandler,
+    NotifyHighIntentOnVisitorBecameHighIntentEventHandler,
     VISITOR_CONNECTION_SERVICE_PROVIDER,
     SESSION_MANAGEMENT_SERVICE_PROVIDER,
     SessionCleanupScheduler,
     TokenVerifyService,
     BffSessionAuthService,
     VisitorSessionAuthService,
+    {
+      provide: 'WEBSOCKET_GATEWAY',
+      useExisting: WebSocketGatewayBasic,
+    },
   ],
   exports: [VISITOR_V2_REPOSITORY, VISITOR_CONNECTION_DOMAIN_SERVICE],
 })
