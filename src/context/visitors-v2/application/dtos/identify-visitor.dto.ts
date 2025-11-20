@@ -1,5 +1,6 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { getCurrentConsentVersion } from '../../../consent/domain/config/consent-version.config';
 
 export class IdentifyVisitorDto {
   @ApiProperty({
@@ -11,20 +12,20 @@ export class IdentifyVisitorDto {
   fingerprint: string;
 
   @ApiProperty({
-    description: 'ID del sitio donde está el visitante',
-    example: '550e8400-e29b-41d4-a716-446655440001',
+    description: 'Dominio donde está el visitante',
+    example: 'landing.mytech.com',
   })
   @IsString()
   @IsNotEmpty()
-  siteId: string;
+  domain: string;
 
   @ApiProperty({
-    description: 'ID del tenant/empresa',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'API Key para autenticación',
+    example: 'ak_live_1234567890abcdef',
   })
   @IsString()
   @IsNotEmpty()
-  tenantId: string;
+  apiKey: string;
 
   @ApiProperty({
     description: 'URL de la página actual (opcional)',
@@ -34,4 +35,28 @@ export class IdentifyVisitorDto {
   @IsString()
   @IsOptional()
   currentUrl?: string;
+
+  @ApiProperty({
+    description:
+      'Indica si el visitante ha aceptado la política de privacidad (RGPD Art. 7.1). ' +
+      'OBLIGATORIO: debe ser true para poder procesar datos personales.',
+    example: true,
+    required: true,
+  })
+  @IsBoolean()
+  @IsNotEmpty()
+  hasAcceptedPrivacyPolicy: boolean;
+
+  @ApiProperty({
+    description:
+      'Versión de la política de privacidad aceptada (ej: v1.4.0, v2.0). ' +
+      'Permite trackear qué versión aceptó el usuario según RGPD Art. 7.1. ' +
+      'Si no se especifica, usa la versión actual configurada en el sistema.',
+    example: getCurrentConsentVersion(),
+    required: false,
+    default: getCurrentConsentVersion(),
+  })
+  @IsString()
+  @IsOptional()
+  consentVersion?: string;
 }

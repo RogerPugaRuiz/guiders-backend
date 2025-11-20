@@ -1,0 +1,327 @@
+import { ApiProperty } from '@nestjs/swagger';
+import {
+  LeadScorePrimitives,
+  LeadSignals,
+  LeadTier,
+} from 'src/context/lead-scoring/domain/value-objects/lead-score';
+
+class TenantLeadSignalsDto implements LeadSignals {
+  @ApiProperty({ description: 'Visitante recurrente (≥3 sesiones)' })
+  isRecurrentVisitor: boolean;
+
+  @ApiProperty({ description: 'Alto engagement (≥10 páginas)' })
+  hasHighEngagement: boolean;
+
+  @ApiProperty({ description: 'Tiempo invertido (≥5 minutos)' })
+  hasInvestedTime: boolean;
+
+  @ApiProperty({
+    description: 'Necesita ayuda (engaged + ≥3 sesiones + 0 chats)',
+  })
+  needsHelp: boolean;
+}
+
+class TenantLeadScoreDto implements LeadScorePrimitives {
+  @ApiProperty({ description: 'Score numérico del lead (0-100)' })
+  score: number;
+
+  @ApiProperty({ description: 'Tier del lead', enum: ['cold', 'warm', 'hot'] })
+  tier: LeadTier;
+
+  @ApiProperty({
+    description: 'Señales de intención',
+    type: TenantLeadSignalsDto,
+  })
+  signals: LeadSignals;
+}
+
+/**
+ * DTO para información básica de visitante con información del sitio en respuesta de tenant
+ */
+export class TenantVisitorInfoDto {
+  @ApiProperty({
+    description: 'ID único del visitante',
+    example: 'visitor-uuid-123',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Fingerprint único del visitante',
+    example: 'fp_1234567890abcdef',
+  })
+  fingerprint: string;
+
+  @ApiProperty({
+    description:
+      'Estado de conexión del visitante:\n' +
+      '- ONLINE: Visitante activo e interactuando\n' +
+      '- AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)\n' +
+      '- OFFLINE: Visitante desconectado\n' +
+      '- CHATTING: Visitante en conversación activa con un comercial',
+    enum: ['ONLINE', 'AWAY', 'OFFLINE', 'CHATTING'],
+    example: 'ONLINE',
+  })
+  connectionStatus: string;
+
+  @ApiProperty({
+    description: 'ID del sitio donde está el visitante',
+    example: 'site-uuid-456',
+  })
+  siteId: string;
+
+  @ApiProperty({
+    description: 'Nombre del sitio donde está el visitante',
+    example: 'Landing Page Principal',
+  })
+  siteName: string;
+
+  @ApiProperty({
+    description: 'URL actual del visitante',
+    example: 'https://example.com/products',
+    nullable: true,
+  })
+  currentUrl?: string;
+
+  @ApiProperty({
+    description: 'User agent del navegador',
+    example: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    nullable: true,
+  })
+  userAgent?: string;
+
+  @ApiProperty({
+    description: 'Fecha de creación del visitante',
+    example: '2025-09-24T10:30:00.000Z',
+  })
+  createdAt: Date;
+
+  @ApiProperty({
+    description: 'Fecha de última actividad',
+    example: '2025-09-24T10:35:00.000Z',
+    nullable: true,
+  })
+  lastActivity?: Date;
+
+  @ApiProperty({
+    description: 'IDs de chats pendientes asociados al visitante',
+    example: ['db9f4882-a0d4-41f4-9915-4cffb88874dd'],
+    type: [String],
+    nullable: true,
+  })
+  pendingChatIds?: string[];
+
+  @ApiProperty({
+    description:
+      'Número total de chats asociados al visitante (pendientes y resto)',
+    example: 5,
+    nullable: true,
+  })
+  totalChatsCount?: number;
+
+  @ApiProperty({
+    description: 'Lead score y señales de intención',
+    type: TenantLeadScoreDto,
+  })
+  leadScore: LeadScorePrimitives;
+}
+
+/**
+ * DTO para visitante con información de chat para respuesta de tenant
+ */
+export class TenantVisitorWithChatDto extends TenantVisitorInfoDto {
+  @ApiProperty({
+    description: 'ID del chat asociado',
+    example: 'chat-uuid-456',
+    nullable: true,
+  })
+  chatId?: string;
+
+  @ApiProperty({
+    description: 'Estado del chat',
+    enum: [
+      'PENDING',
+      'ASSIGNED',
+      'ACTIVE',
+      'CLOSED',
+      'TRANSFERRED',
+      'ABANDONED',
+    ],
+    example: 'PENDING',
+    nullable: true,
+  })
+  chatStatus?: string;
+
+  @ApiProperty({
+    description: 'Prioridad del chat',
+    enum: ['LOW', 'MEDIUM', 'NORMAL', 'HIGH', 'URGENT'],
+    example: 'NORMAL',
+    nullable: true,
+  })
+  chatPriority?: string;
+
+  @ApiProperty({
+    description: 'Fecha de creación del chat',
+    example: '2025-09-24T10:32:00.000Z',
+    nullable: true,
+  })
+  chatCreatedAt?: Date;
+
+  @ApiProperty({
+    description: 'ID del comercial asignado al chat',
+    example: 'commercial-uuid-789',
+    nullable: true,
+  })
+  assignedCommercialId?: string;
+
+  @ApiProperty({
+    description: 'Tiempo de espera en segundos (para chats en cola)',
+    example: 180,
+    nullable: true,
+  })
+  waitingTimeSeconds?: number;
+}
+
+/**
+ * DTO de respuesta para visitantes de un tenant (empresa)
+ */
+export class TenantVisitorsResponseDto {
+  @ApiProperty({
+    description: 'ID de la compañía',
+    example: 'tenant-uuid-123',
+  })
+  companyId: string;
+
+  @ApiProperty({
+    description: 'Nombre de la empresa',
+    example: 'Mi Empresa S.L.',
+  })
+  companyName: string;
+
+  @ApiProperty({
+    description: 'Lista de visitantes del tenant (todos los sitios)',
+    type: [TenantVisitorInfoDto],
+  })
+  visitors: TenantVisitorInfoDto[];
+
+  @ApiProperty({
+    description: 'Total de visitantes encontrados',
+    example: 25,
+  })
+  totalCount: number;
+
+  @ApiProperty({
+    description: 'Número de sitios con visitantes activos',
+    example: 3,
+  })
+  activeSitesCount: number;
+
+  // Se elimina pendingChatIds global, ahora va por visitante
+
+  @ApiProperty({
+    description: 'Fecha de consulta',
+    example: '2025-09-24T10:30:00.000Z',
+  })
+  timestamp: Date;
+}
+
+/**
+ * DTO de respuesta para visitantes con chats no asignados de un tenant
+ */
+export class TenantVisitorsUnassignedChatsResponseDto {
+  @ApiProperty({
+    description: 'ID de la compañía',
+    example: 'tenant-uuid-123',
+  })
+  companyId: string;
+
+  @ApiProperty({
+    description: 'Nombre de la empresa',
+    example: 'Mi Empresa S.L.',
+  })
+  companyName: string;
+
+  @ApiProperty({
+    description: 'Lista de visitantes con chats no asignados',
+    type: [TenantVisitorWithChatDto],
+  })
+  visitors: TenantVisitorWithChatDto[];
+
+  @ApiProperty({
+    description: 'Total de visitantes con chats no asignados',
+    example: 8,
+  })
+  totalCount: number;
+
+  @ApiProperty({
+    description: 'Número de sitios con chats sin asignar',
+    example: 2,
+  })
+  sitesWithUnassignedChats: number;
+
+  @ApiProperty({
+    description: 'Lista de IDs de chats pendientes sin asignar en el tenant',
+    example: ['chat-uuid-123', 'chat-uuid-456'],
+    type: [String],
+  })
+  pendingChatIds: string[];
+
+  @ApiProperty({
+    description: 'Fecha de consulta',
+    example: '2025-09-24T10:30:00.000Z',
+  })
+  timestamp: Date;
+}
+
+/**
+ * DTO de respuesta para visitantes con chats en cola de un tenant
+ */
+export class TenantVisitorsQueuedChatsResponseDto {
+  @ApiProperty({
+    description: 'ID de la compañía',
+    example: 'tenant-uuid-123',
+  })
+  companyId: string;
+
+  @ApiProperty({
+    description: 'Nombre de la empresa',
+    example: 'Mi Empresa S.L.',
+  })
+  companyName: string;
+
+  @ApiProperty({
+    description: 'Lista de visitantes con chats en cola',
+    type: [TenantVisitorWithChatDto],
+  })
+  visitors: TenantVisitorWithChatDto[];
+
+  @ApiProperty({
+    description: 'Total de visitantes con chats en cola',
+    example: 12,
+  })
+  totalCount: number;
+
+  @ApiProperty({
+    description: 'Número de sitios con chats en cola',
+    example: 3,
+  })
+  sitesWithQueuedChats: number;
+
+  @ApiProperty({
+    description: 'Tiempo promedio de espera en segundos',
+    example: 145,
+  })
+  averageWaitingTime: number;
+
+  @ApiProperty({
+    description: 'Lista de IDs de chats pendientes en cola en el tenant',
+    example: ['chat-uuid-111', 'chat-uuid-222', 'chat-uuid-333'],
+    type: [String],
+  })
+  pendingChatIds: string[];
+
+  @ApiProperty({
+    description: 'Fecha de consulta',
+    example: '2025-09-24T10:30:00.000Z',
+  })
+  timestamp: Date;
+}

@@ -112,7 +112,18 @@ describe('AppModule', () => {
       expect(config.database).toBe('test-db');
       expect(config.synchronize).toBe(false);
       expect(config.autoLoadEntities).toBe(false);
-      expect(config.entities).toContain(__dirname + '/**/*.entity{.ts,.js}');
+      // Verificamos que entities es un array con las entidades específicas
+      expect(Array.isArray(config.entities)).toBe(true);
+      expect(config.entities.length).toBeGreaterThan(0);
+      // Verificamos que contiene algunas entidades específicas
+      expect(config.entities).toContain(
+        __dirname +
+          '/context/auth/api-key/infrastructure/api-key.entity{.ts,.js}',
+      );
+      expect(config.entities).toContain(
+        __dirname +
+          '/context/company/infrastructure/persistence/entity/company-typeorm.entity{.ts,.js}',
+      );
     });
 
     it('should test the exact useFactory function used in TypeOrmModule configuration', () => {
@@ -140,7 +151,18 @@ describe('AppModule', () => {
       expect(config.database).toBe('test-db');
       expect(config.synchronize).toBe(false);
       expect(config.autoLoadEntities).toBe(false);
-      expect(config.entities).toContain(__dirname + '/**/*.entity{.ts,.js}');
+      // Verificamos que entities es un array con las entidades específicas
+      expect(Array.isArray(config.entities)).toBe(true);
+      expect(config.entities.length).toBeGreaterThan(0);
+      // Verificamos que contiene algunas entidades específicas
+      expect(config.entities).toContain(
+        __dirname +
+          '/context/auth/api-key/infrastructure/api-key.entity{.ts,.js}',
+      );
+      expect(config.entities).toContain(
+        __dirname +
+          '/context/company/infrastructure/persistence/entity/company-typeorm.entity{.ts,.js}',
+      );
     });
 
     it('should configure TypeORM for production environment using real factory method', () => {

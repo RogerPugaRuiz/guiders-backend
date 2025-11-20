@@ -38,7 +38,7 @@ export class OidcService implements OnModuleInit {
 
   // Variables de entorno requeridas para configurar el cliente OIDC
   private issuerUrl = process.env.OIDC_ISSUER!; // p.ej. https://sso.guiders.es/realms/guiders
-  private scope = process.env.OIDC_SCOPE || 'openid profile email';
+  private scope = process.env.OIDC_SCOPE || 'openid profile email organization';
 
   // Obtiene la configuración para una app específica
   private getAppConfig(app?: string) {
@@ -51,6 +51,12 @@ export class OidcService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    // Saltar inicialización OIDC en entorno de test para evitar problemas con ES modules
+    if (process.env.NODE_ENV === 'test') {
+      this.logger.log('OIDC inicialización omitida en entorno de test');
+      return;
+    }
+
     // Carga ESM en entorno CommonJS
     const client = await import('openid-client');
     this.clientLib = client;
@@ -202,6 +208,11 @@ export class OidcService implements OnModuleInit {
       nonce,
     });
 
+    this.logger.log(
+      `🔐 OIDC Auth URL generada para app '${opts?.app || 'console'}' con scope: '${this.scope}'`,
+    );
+    this.logger.debug(`🔗 Authorization URL: ${url.href}`);
+
     return url.href;
   }
 
@@ -238,7 +249,7 @@ export class OidcService implements OnModuleInit {
       }
     }
 
-    return c.authorizationCodeGrant(
+    const tokenResponse = await c.authorizationCodeGrant(
       this.config as openid.Configuration,
       currentUrl,
       {
@@ -247,15 +258,100 @@ export class OidcService implements OnModuleInit {
         expectedNonce: nonce,
       },
     );
+
+    // Log detallado de los tokens recibidos
+    this.logger.log(
+      `🎯 OIDC Token Exchange exitoso para app '${opts?.app || 'console'}'`,
+    );
+
+    // Log del access token (solo claims básicos para debugging)
+    if (tokenResponse.access_token) {
+      try {
+        const accessTokenClaims = tokenResponse.claims();
+        if (accessTokenClaims) {
+          const scope = accessTokenClaims.scope as string;
+          const sub = accessTokenClaims.sub;
+          this.logger.log(
+            `🔑 Access Token Claims - scope: '${scope || 'no-scope'}', sub: ${sub}`,
+          );
+
+          // Log específico de claims de organización si existen
+          const orgClaims = {
+            organization: accessTokenClaims.organization as string,
+            organization_id: accessTokenClaims.organization_id as string,
+            organization_name: accessTokenClaims.organization_name as string,
+          };
+
+          if (
+            orgClaims.organization ||
+            orgClaims.organization_id ||
+            orgClaims.organization_name
+          ) {
+            this.logger.log(
+              `🏢 Organization Claims encontrados: ${JSON.stringify(orgClaims)}`,
+            );
+          } else {
+            this.logger.warn(
+              '⚠️  No se encontraron Organization Claims en el token',
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `⚠️  Error parseando claims del access token: ${error}`,
+        );
+      }
+    }
+
+    return tokenResponse;
   }
 
   // Usa Refresh Token para obtener nuevos tokens
   async refresh(refreshToken: string) {
     await this.ensureConfig();
-    return this.clientLib.refreshTokenGrant(
+
+    this.logger.log('🔄 Iniciando refresh de token OIDC');
+
+    const tokenResponse = await this.clientLib.refreshTokenGrant(
       this.config as openid.Configuration,
       refreshToken,
     );
+
+    // Log de los tokens refresheados
+    if (tokenResponse.access_token) {
+      try {
+        const refreshedClaims = tokenResponse.claims();
+        if (refreshedClaims) {
+          const scope = refreshedClaims.scope as string;
+          this.logger.log(
+            `🔄 Token refresheado exitosamente - scope: '${scope || 'no-scope'}'`,
+          );
+
+          // Verificar claims de organización en token refresheado
+          const orgClaims = {
+            organization: refreshedClaims.organization as string,
+            organization_id: refreshedClaims.organization_id as string,
+            organization_name: refreshedClaims.organization_name as string,
+          };
+
+          if (
+            orgClaims.organization ||
+            orgClaims.organization_id ||
+            orgClaims.organization_name
+          ) {
+            this.logger.log(
+              `🏢 Organization Claims en token refresheado: ${JSON.stringify(orgClaims)}`,
+            );
+          }
+        }
+      } catch (error) {
+        this.logger.warn(
+          `⚠️  Error parseando claims del token refresheado: ${error}`,
+        );
+      }
+    }
+
+    return tokenResponse;
   }
 
   // Revoca el refresh token (ignora fallo de revocación)
@@ -266,5 +362,59 @@ export class OidcService implements OnModuleInit {
         token_type_hint: 'refresh_token',
       })
       .catch(() => void 0);
+  }
+
+  // Construye la URL de logout de Keycloak (end_session_endpoint)
+  buildLogoutUrl(opts?: {
+    postLogoutRedirectUri?: string;
+    idTokenHint?: string;
+  }): string {
+    if (!this.config) {
+      throw new Error('OIDC config no inicializada');
+    }
+
+    const as = this.config.serverMetadata();
+    const endSessionEndpoint = as.end_session_endpoint;
+
+    if (!endSessionEndpoint) {
+      this.logger.warn(
+        'end_session_endpoint no disponible en el servidor OIDC. Usando logout local únicamente.',
+      );
+      // Fallback: si Keycloak no expone end_session_endpoint, construir manualmente
+      const issuerUrl = new URL(this.issuerUrl);
+      const logoutUrl = new URL(
+        `${issuerUrl.pathname}/protocol/openid-connect/logout`,
+        issuerUrl.origin,
+      );
+      if (opts?.postLogoutRedirectUri) {
+        logoutUrl.searchParams.set(
+          'post_logout_redirect_uri',
+          opts.postLogoutRedirectUri,
+        );
+      }
+      if (opts?.idTokenHint) {
+        logoutUrl.searchParams.set('id_token_hint', opts.idTokenHint);
+      }
+      return logoutUrl.href;
+    }
+
+    const logoutUrl = new URL(endSessionEndpoint);
+
+    if (opts?.postLogoutRedirectUri) {
+      logoutUrl.searchParams.set(
+        'post_logout_redirect_uri',
+        opts.postLogoutRedirectUri,
+      );
+    }
+
+    if (opts?.idTokenHint) {
+      logoutUrl.searchParams.set('id_token_hint', opts.idTokenHint);
+    }
+
+    this.logger.debug(
+      `🚪 Logout URL construida: ${logoutUrl.href} (redirect=${opts?.postLogoutRedirectUri || 'none'})`,
+    );
+
+    return logoutUrl.href;
   }
 }

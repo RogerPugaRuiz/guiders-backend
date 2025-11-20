@@ -1,0 +1,1332 @@
+version: "1.0.0"
+generated: "2025-09-25T16:30:00.000Z"
+baseUrl: "http://localhost:3000"
+contexts:
+  - name: "visitors-v2"
+    description: "Gestión de visitantes V2 optimizada"
+    controllers:
+      - name: "SitesController"
+        context: "visitors-v2"
+        baseUrl: "sites"
+        description: "Controller para resolución de sitios por host"
+        tags:
+          - "sites"
+        endpoints:
+          - method: "POST"
+            path: "/sites/resolve"
+            summary: "Resolver sitio por host"
+            description: "Resuelve el host actual del navegador y determina a qué site y tenant pertenece"
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos del host a resolver"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    host:
+                      type: "string"
+                      description: "Dominio del navegador"
+                      example: "landing.mytech.com"
+                  required:
+                    - "host"
+            responses:
+              - status: 200
+                description: "Sitio resuelto exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    siteId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    tenantId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440001"
+                    siteName:
+                      type: "string"
+                      example: "Landing Principal"
+                    companyName:
+                      type: "string"
+                      example: "MyTech Solutions"
+              - status: 404
+                description: "Host no encontrado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Host no encontrado"
+            examples:
+              request:
+                host: "landing.mytech.com"
+              response:
+                siteId: "550e8400-e29b-41d4-a716-446655440000"
+                tenantId: "550e8400-e29b-41d4-a716-446655440001"
+                siteName: "Landing Principal"
+                companyName: "MyTech Solutions"
+        filePath: "src/context/visitors-v2/infrastructure/controllers/sites.controller.ts"
+      - name: "SiteVisitorsController"
+        context: "visitors-v2"
+        baseUrl: "site-visitors"
+        description: "Controller para gestión de visitantes por sitio"
+        tags:
+          - "Site Visitors Management"
+        endpoints:
+          - method: "GET"
+            path: "/site-visitors/:siteId/visitors"
+            summary: "Obtener visitantes del sitio"
+            description: "Retorna una lista de visitantes conectados o todos los visitantes del sitio especificado"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              path:
+                - name: "siteId"
+                  description: "ID único del sitio"
+                  example: "site-uuid-123"
+                  required: true
+              query:
+                - name: "includeOffline"
+                  description: "Incluir visitantes desconectados"
+                  type: "boolean"
+                  example: false
+                - name: "limit"
+                  description: "Límite de resultados"
+                  type: "number"
+                  example: 20
+                - name: "offset"
+                  description: "Desplazamiento para paginación"
+                  type: "number"
+                  example: 0
+            responses:
+              - status: 200
+                description: "Lista de visitantes obtenida exitosamente"
+              - status: 400
+                description: "ID de sitio inválido o parámetros de consulta inválidos"
+              - status: 404
+                description: "Sitio no encontrado"
+            examples: {}
+          - method: "GET"
+            path: "/site-visitors/:siteId/visitors/unassigned-chats"
+            summary: "Obtener visitantes con chats sin asignar"
+            description: "Retorna visitantes que tienen chats iniciados pero no asignados a ningún comercial"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              path:
+                - name: "siteId"
+                  description: "ID único del sitio"
+                  example: "site-uuid-123"
+                  required: true
+              query:
+                - name: "limit"
+                  description: "Límite de resultados"
+                  type: "number"
+                  example: 20
+                - name: "offset"
+                  description: "Desplazamiento para paginación"
+                  type: "number"
+                  example: 0
+            responses:
+              - status: 200
+                description: "Lista de visitantes con chats sin asignar obtenida exitosamente"
+              - status: 400
+                description: "ID de sitio inválido o parámetros de consulta inválidos"
+              - status: 404
+                description: "Sitio no encontrado"
+            examples: {}
+          - method: "GET"
+            path: "/site-visitors/:siteId/visitors/queued-chats"
+            summary: "Obtener visitantes con chats en cola"
+            description: "Retorna visitantes que están en cola esperando ser atendidos"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              path:
+                - name: "siteId"
+                  description: "ID único del sitio"
+                  example: "site-uuid-123"
+                  required: true
+              query:
+                - name: "limit"
+                  description: "Límite de resultados"
+                  type: "number"
+                  example: 20
+                - name: "offset"
+                  description: "Desplazamiento para paginación"
+                  type: "number"
+                  example: 0
+            responses:
+              - status: 200
+                description: "Lista de visitantes con chats en cola obtenida exitosamente"
+              - status: 400
+                description: "ID de sitio inválido o parámetros de consulta inválidos"
+              - status: 404
+                description: "Sitio no encontrado"
+            examples: {}
+        filePath: "src/context/visitors-v2/infrastructure/controllers/site-visitors.controller.ts"
+      - name: "VisitorV2Controller"
+        context: "visitors-v2"
+        baseUrl: "visitors"
+        description: "Controller para gestión de visitantes V2"
+        tags:
+          - "visitors"
+        endpoints:
+          - method: "POST"
+            path: "/visitors/identify"
+            summary: "Identificar visitante"
+            description: "Registra o actualiza un visitante en el sistema usando dominio y API Key. El sistema valida automáticamente la API Key contra el dominio proporcionado, resuelve el tenantId y siteId internamente, y procede a identificar al visitante. Si el fingerprint ya existe en el sitio, actualiza al visitante existente. Si no existe, crea un nuevo Visitor en estado inicial (anónimo). Inicia una nueva Session asociada al visitante y devuelve un identificador de sesión en cookie HttpOnly."
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos del visitante para identificación"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    fingerprint:
+                      type: "string"
+                      description: "Huella digital única del visitante (browser fingerprint)"
+                      example: "fp_abc123def456"
+                    domain:
+                      type: "string"
+                      description: "Dominio donde está el visitante"
+                      example: "landing.mytech.com"
+                    apiKey:
+                      type: "string"
+                      description: "API Key para autenticación"
+                      example: "ak_live_1234567890abcdef"
+                    currentUrl:
+                      type: "string"
+                      description: "URL de la página actual (opcional)"
+                      example: "https://landing.mytech.com/home"
+                  required:
+                    - "fingerprint"
+                    - "domain"
+                    - "apiKey"
+            responses:
+              - status: 200
+                description: "Visitante identificado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    visitorId:
+                      type: "string"
+                      description: "ID único del visitante"
+                      example: "550e8400-e29b-41d4-a716-446655440002"
+                    sessionId:
+                      type: "string"
+                      description: "ID de la sesión activa"
+                      example: "550e8400-e29b-41d4-a716-446655440003"
+                    lifecycle:
+                      type: "string"
+                      description: "Estado del ciclo de vida del visitante"
+                      example: "ANON"
+                      enum: ["ANON", "ENGAGED", "LEAD", "CONVERTED"]
+                    isNewVisitor:
+                      type: "boolean"
+                      description: "Indica si es un visitante nuevo o existente"
+                      example: false
+              - status: 400
+                description: "Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)"
+              - status: 401
+                description: "API Key no válida para el dominio proporcionado"
+              - status: 404
+                description: "Dominio no encontrado en el sistema"
+              - status: 500
+                description: "Error interno del servidor"
+            examples:
+              request:
+                fingerprint: "fp_abc123def456"
+                domain: "landing.mytech.com"
+                apiKey: "ak_live_1234567890abcdef"
+                currentUrl: "https://landing.mytech.com/home"
+              response:
+                visitorId: "550e8400-e29b-41d4-a716-446655440002"
+                sessionId: "550e8400-e29b-41d4-a716-446655440003"
+                lifecycle: "ANON"
+                isNewVisitor: false
+          - method: "POST"
+            path: "/visitors/session/heartbeat"
+            summary: "Actualizar heartbeat de sesión"
+            description: "Mantiene viva la sesión abierta. Actualiza el timestamp de última actividad (lastActivityAt). Mientras se reciban heartbeats, el visitante se considera online."
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos para el heartbeat de la sesión"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    sessionId:
+                      type: "string"
+                      description: "ID de la sesión activa (puede venir de cookie o body)"
+                      example: "550e8400-e29b-41d4-a716-446655440003"
+                    visitorId:
+                      type: "string"
+                      description: "ID del visitante (opcional para validación adicional)"
+                      example: "550e8400-e29b-41d4-a716-446655440002"
+                  required: []
+            responses:
+              - status: 200
+                description: "Heartbeat actualizado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    success:
+                      type: "boolean"
+                      example: true
+                    message:
+                      type: "string"
+                      example: "Heartbeat actualizado exitosamente"
+              - status: 400
+                description: "Datos inválidos o sesión no encontrada"
+              - status: 404
+                description: "Sesión no encontrada"
+            examples:
+              request:
+                sessionId: "550e8400-e29b-41d4-a716-446655440003"
+                visitorId: "550e8400-e29b-41d4-a716-446655440002"
+              response:
+                success: true
+                message: "Heartbeat actualizado exitosamente"
+          - method: "POST"
+            path: "/visitors/session/end"
+            summary: "Cerrar sesión de visitante"
+            description: "Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa). Dispara eventos de negocio para sacar al visitante de la lista de activos."
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos para cerrar la sesión"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    sessionId:
+                      type: "string"
+                      description: "ID de la sesión a cerrar (puede venir de cookie o body)"
+                      example: "550e8400-e29b-41d4-a716-446655440003"
+                    visitorId:
+                      type: "string"
+                      description: "ID del visitante (opcional para validación adicional)"
+                      example: "550e8400-e29b-41d4-a716-446655440002"
+                    reason:
+                      type: "string"
+                      description: "Razón del cierre de sesión (opcional)"
+                      example: "Usuario cerró la ventana"
+                  required: []
+            responses:
+              - status: 200
+                description: "Sesión cerrada exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    success:
+                      type: "boolean"
+                      example: true
+                    message:
+                      type: "string"
+                      example: "Sesión cerrada exitosamente"
+              - status: 400
+                description: "Datos inválidos o sesión no encontrada"
+              - status: 404
+                description: "Sesión no encontrada"
+            examples:
+              request:
+                sessionId: "550e8400-e29b-41d4-a716-446655440003"
+                visitorId: "550e8400-e29b-41d4-a716-446655440002"
+                reason: "Usuario cerró la ventana"
+              response:
+                success: true
+                message: "Sesión cerrada exitosamente"
+        filePath: "src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts"
+
+  - name: "conversations-v2"
+    description: "Sistema de chat V2 optimizado (MongoDB)"
+    controllers:
+      - name: "ChatV2Controller"
+        context: "conversations-v2"
+        baseUrl: "v2/chats"
+        description: "Controller para la gestión de chats v2"
+        tags:
+          - "Chats V2"
+        endpoints:
+          - method: "POST"
+            path: "/v2/chats"
+            summary: "Crear nuevo chat"
+            description: "Crea un nuevo chat para el visitante autenticado"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "visitor"
+              bearer: false
+            parameters:
+              body:
+                description: "Datos opcionales para crear el chat"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    department:
+                      type: "string"
+                      description: "Departamento al que dirigir el chat"
+                      example: "ventas"
+                    priority:
+                      type: "string"
+                      enum:
+                        - "LOW"
+                        - "MEDIUM"
+                        - "HIGH"
+                        - "URGENT"
+                      example: "MEDIUM"
+                    subject:
+                      type: "string"
+                      description: "Asunto del chat"
+                      example: "Consulta sobre precios"
+            responses:
+              - status: 201
+                description: "Chat creado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    chatId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    status:
+                      type: "string"
+                      example: "PENDING"
+                    queuePosition:
+                      type: "number"
+                      example: 3
+                    estimatedWaitTime:
+                      type: "number"
+                      example: 180
+            examples:
+              request:
+                department: "ventas"
+                priority: "MEDIUM"
+                subject: "Consulta sobre precios"
+              response:
+                chatId: "550e8400-e29b-41d4-a716-446655440000"
+                status: "PENDING"
+                queuePosition: 3
+                estimatedWaitTime: 180
+          - method: "POST"
+            path: "/v2/chats/with-message"
+            summary: "Crear nuevo chat con primer mensaje"
+            description: "Crea un nuevo chat con mensaje inicial de forma atómica"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "visitor"
+              bearer: false
+            parameters:
+              body:
+                description: "Datos del chat y primer mensaje"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    chat:
+                      type: "object"
+                      properties:
+                        department:
+                          type: "string"
+                          example: "soporte"
+                        priority:
+                          type: "string"
+                          example: "HIGH"
+                        subject:
+                          type: "string"
+                          example: "Problema técnico urgente"
+                    message:
+                      type: "object"
+                      properties:
+                        content:
+                          type: "string"
+                          example: "Hola, tengo un problema urgente"
+                        type:
+                          type: "string"
+                          enum:
+                            - "TEXT"
+                            - "IMAGE"
+                            - "FILE"
+                          example: "TEXT"
+                      required:
+                        - "content"
+                        - "type"
+                  required:
+                    - "message"
+            responses:
+              - status: 201
+                description: "Chat y mensaje creados exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    chat:
+                      type: "object"
+                      properties:
+                        chatId:
+                          type: "string"
+                          example: "550e8400-e29b-41d4-a716-446655440000"
+                        status:
+                          type: "string"
+                          example: "PENDING"
+                    message:
+                      type: "object"
+                      properties:
+                        messageId:
+                          type: "string"
+                          example: "msg_750e8400e29b41d4a716446655440001"
+                        content:
+                          type: "string"
+                          example: "Hola, tengo un problema urgente"
+            examples:
+              request:
+                chat:
+                  department: "soporte"
+                  priority: "HIGH"
+                  subject: "Problema técnico urgente"
+                message:
+                  content: "Hola, tengo un problema urgente"
+                  type: "TEXT"
+              response:
+                chat:
+                  chatId: "550e8400-e29b-41d4-a716-446655440000"
+                  status: "PENDING"
+                message:
+                  messageId: "msg_750e8400e29b41d4a716446655440001"
+                  content: "Hola, tengo un problema urgente"
+        filePath: "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
+      - name: "AssignmentRulesController"
+        context: "conversations-v2"
+        baseUrl: "v2/assignment-rules"
+        description: "Controller para gestión de reglas de auto-asignamiento"
+        tags:
+          - "Reglas de Auto-asignamiento"
+        endpoints:
+          - method: "POST"
+            path: "/v2/assignment-rules"
+            summary: "Crear reglas de auto-asignamiento"
+            description: "Crea nuevas reglas de auto-asignación para una empresa o sitio específico"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "admin"
+                - "supervisor"
+              bearer: true
+            parameters:
+              body:
+                description: "Datos de las reglas de asignamiento"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    companyId:
+                      type: "string"
+                      description: "ID de la empresa"
+                    siteId:
+                      type: "string"
+                      description: "ID del sitio (opcional)"
+                    isActive:
+                      type: "boolean"
+                      description: "Si las reglas están activas"
+                    defaultStrategy:
+                      type: "string"
+                      description: "Estrategia de asignación por defecto"
+                    workingHours:
+                      type: "object"
+                      description: "Horarios de trabajo"
+                    maxChatsPerCommercial:
+                      type: "number"
+                      description: "Máximo número de chats por comercial"
+                  required:
+                    - "companyId"
+                    - "defaultStrategy"
+            responses:
+              - status: 201
+                description: "Reglas creadas exitosamente"
+              - status: 400
+                description: "Datos inválidos"
+              - status: 403
+                description: "Sin permisos suficientes"
+            examples: {}
+          - method: "GET"
+            path: "/v2/assignment-rules/companies/:companyId/applicable"
+            summary: "Obtener reglas aplicables"
+            description: "Obtiene las reglas de auto-asignamiento más específicas para una empresa/sitio"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "admin"
+                - "supervisor"
+                - "commercial"
+              bearer: true
+            parameters:
+              path:
+                - name: "companyId"
+                  description: "ID de la empresa"
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+                  required: true
+              query:
+                - name: "siteId"
+                  description: "ID del sitio (opcional)"
+                  example: "550e8400-e29b-41d4-a716-446655440001"
+            responses:
+              - status: 200
+                description: "Reglas obtenidas exitosamente"
+              - status: 404
+                description: "No se encontraron reglas"
+            examples: {}
+        filePath: "src/context/conversations-v2/infrastructure/controllers/assignment-rules.controller.ts"
+      - name: "MessageV2Controller"
+        context: "conversations-v2"
+        baseUrl: "v2/messages"
+        description: "Controller para la gestión de mensajes v2"
+        tags:
+          - "Messages V2"
+        endpoints:
+          - method: "POST"
+            path: "/v2/messages"
+            summary: "Enviar un nuevo mensaje"
+            description: "Envía un mensaje de texto, imagen o archivo a un chat específico"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "visitor"
+              bearer: false
+            parameters:
+              body:
+                description: "Datos del mensaje a enviar"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    chatId:
+                      type: "string"
+                      description: "ID del chat"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    content:
+                      type: "string"
+                      description: "Contenido del mensaje"
+                      example: "Hola, ¿en qué puedo ayudarte?"
+                    type:
+                      type: "string"
+                      enum:
+                        - "TEXT"
+                        - "IMAGE"
+                        - "FILE"
+                        - "SYSTEM"
+                      example: "TEXT"
+                  required:
+                    - "chatId"
+                    - "content"
+                    - "type"
+            responses:
+              - status: 201
+                description: "Mensaje enviado exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    messageId:
+                      type: "string"
+                      example: "msg_750e8400e29b41d4a716446655440001"
+                    chatId:
+                      type: "string"
+                      example: "550e8400-e29b-41d4-a716-446655440000"
+                    senderId:
+                      type: "string"
+                      example: "user_850e8400e29b41d4a716446655440002"
+                    senderType:
+                      type: "string"
+                      example: "COMMERCIAL"
+                    content:
+                      type: "string"
+                      example: "Hola, ¿en qué puedo ayudarte?"
+                    sentAt:
+                      type: "string"
+                      format: "date-time"
+                      example: "2025-09-20T10:35:00Z"
+                    status:
+                      type: "string"
+                      example: "SENT"
+              - status: 400
+                description: "Datos inválidos"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "El contenido del mensaje es requerido"
+              - status: 404
+                description: "Chat no encontrado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Chat no encontrado"
+            examples:
+              request:
+                chatId: "550e8400-e29b-41d4-a716-446655440000"
+                content: "Hola, ¿en qué puedo ayudarte?"
+                type: "TEXT"
+              response:
+                messageId: "msg_750e8400e29b41d4a716446655440001"
+                chatId: "550e8400-e29b-41d4-a716-446655440000"
+                senderId: "user_850e8400e29b41d4a716446655440002"
+                senderType: "COMMERCIAL"
+                content: "Hola, ¿en qué puedo ayudarte?"
+                sentAt: "2025-09-20T10:35:00Z"
+                status: "SENT"
+        filePath: "src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts"
+
+  - name: "commercial"
+    description: "Gestión de comerciales y su conectividad"
+    controllers:
+      - name: "CommercialController"
+        context: "commercial"
+        baseUrl: "v2/commercials"
+        description: "Controller para gestión de comerciales"
+        tags:
+          - "Commercials"
+        endpoints:
+          - method: "POST"
+            path: "/v2/commercials/connect"
+            summary: "Conectar comercial"
+            description: "Registra un comercial como conectado en el sistema"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              body:
+                description: "Datos del comercial a conectar"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "string"
+                      description: "ID del comercial"
+                    name:
+                      type: "string"
+                      description: "Nombre del comercial"
+                  required:
+                    - "id"
+                    - "name"
+            responses:
+              - status: 200
+                description: "Comercial conectado exitosamente"
+              - status: 400
+                description: "Datos de entrada inválidos"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+          - method: "POST"
+            path: "/v2/commercials/disconnect"
+            summary: "Desconectar comercial"
+            description: "Registra un comercial como desconectado del sistema"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              body:
+                description: "Datos del comercial a desconectar"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "string"
+                      description: "ID del comercial"
+                  required:
+                    - "id"
+            responses:
+              - status: 200
+                description: "Comercial desconectado exitosamente"
+              - status: 400
+                description: "Datos de entrada inválidos"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+          - method: "PUT"
+            path: "/v2/commercials/heartbeat"
+            summary: "Actualizar heartbeat comercial"
+            description: "Actualiza la última actividad de un comercial para mantener la sesión activa"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              body:
+                description: "Datos del heartbeat del comercial"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    id:
+                      type: "string"
+                      description: "ID del comercial"
+                  required:
+                    - "id"
+            responses:
+              - status: 200
+                description: "Actividad actualizada exitosamente"
+              - status: 404
+                description: "Comercial no encontrado"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+          - method: "GET"
+            path: "/v2/commercials/:id/status"
+            summary: "Obtener estado de comercial"
+            description: "Obtiene el estado de conexión actual de un comercial específico"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              path:
+                - name: "id"
+                  description: "ID del comercial"
+                  example: "e7f8a9b0-1234-5678-9abc-def012345678"
+                  required: true
+            responses:
+              - status: 200
+                description: "Estado del comercial obtenido exitosamente"
+              - status: 404
+                description: "Comercial no encontrado"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+          - method: "GET"
+            path: "/v2/commercials/active"
+            summary: "Obtener comerciales activos"
+            description: "Obtiene la lista de todos los comerciales que están actualmente online"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "admin"
+              bearer: true
+            parameters: {}
+            responses:
+              - status: 200
+                description: "Lista de comerciales activos obtenida exitosamente"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+          - method: "GET"
+            path: "/v2/commercials/available"
+            summary: "Obtener comerciales disponibles"
+            description: "Obtiene la lista de comerciales que están online y disponibles para atender chats"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "admin"
+              bearer: true
+            parameters: {}
+            responses:
+              - status: 200
+                description: "Lista de comerciales disponibles obtenida exitosamente"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+          - method: "DELETE"
+            path: "/v2/commercials/:id"
+            summary: "Eliminar comercial"
+            description: "Elimina un comercial del sistema completamente (solo administradores)"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "admin"
+              bearer: true
+            parameters:
+              path:
+                - name: "id"
+                  description: "ID del comercial"
+                  example: "e7f8a9b0-1234-5678-9abc-def012345678"
+                  required: true
+            responses:
+              - status: 200
+                description: "Comercial eliminado exitosamente"
+              - status: 404
+                description: "Comercial no encontrado"
+              - status: 500
+                description: "Error interno del servidor"
+            examples: {}
+        filePath: "src/context/commercial/infrastructure/controllers/commercial.controller.ts"
+
+  - name: "auth"
+    description: "Autenticación y autorización de usuarios"
+    controllers:
+      - name: "AuthUserController"
+        context: "auth"
+        baseUrl: "user/auth"
+        description: "Controller para autenticación de usuarios"
+        tags:
+          - "Autenticación de Usuarios"
+        endpoints:
+          - method: "POST"
+            path: "/user/auth/login"
+            summary: "Iniciar sesión de usuario"
+            description: "Verifica las credenciales y devuelve tokens de acceso"
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Credenciales de login"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    email:
+                      type: "string"
+                      format: "email"
+                      description: "Email del usuario"
+                      example: "admin@mytech.com"
+                    password:
+                      type: "string"
+                      description: "Contraseña del usuario"
+                      example: "SecurePassword123!"
+                  required:
+                    - "email"
+                    - "password"
+            responses:
+              - status: 200
+                description: "Login exitoso"
+                schema:
+                  type: "object"
+                  properties:
+                    accessToken:
+                      type: "string"
+                      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    refreshToken:
+                      type: "string"
+                      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    user:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "user_550e8400e29b41d4a716446655440000"
+                        email:
+                          type: "string"
+                          example: "admin@mytech.com"
+                        name:
+                          type: "string"
+                          example: "Admin Usuario"
+                        role:
+                          type: "string"
+                          example: "admin"
+                        companyId:
+                          type: "string"
+                          example: "company_650e8400e29b41d4a716446655440001"
+                    expiresIn:
+                      type: "number"
+                      example: 3600
+              - status: 401
+                description: "Credenciales inválidas"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Email o contraseña incorrectos"
+            examples:
+              request:
+                email: "admin@mytech.com"
+                password: "SecurePassword123!"
+              response:
+                accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                user:
+                  id: "user_550e8400e29b41d4a716446655440000"
+                  email: "admin@mytech.com"
+                  name: "Admin Usuario"
+                  role: "admin"
+                  companyId: "company_650e8400e29b41d4a716446655440001"
+                expiresIn: 3600
+          - method: "GET"
+            path: "/user/auth/me"
+            summary: "Obtener usuario autenticado"
+            description: "Devuelve la información del usuario autenticado"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "admin"
+                - "commercial"
+              bearer: true
+            parameters: {}
+            responses:
+              - status: 200
+                description: "Información del usuario autenticado"
+                schema:
+                  type: "object"
+                  properties:
+                    user:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "user_550e8400e29b41d4a716446655440000"
+                        email:
+                          type: "string"
+                          example: "admin@mytech.com"
+                        name:
+                          type: "string"
+                          example: "Admin Usuario"
+                        role:
+                          type: "string"
+                          example: "admin"
+                        companyId:
+                          type: "string"
+                          example: "company_650e8400e29b41d4a716446655440001"
+                        company:
+                          type: "object"
+                          properties:
+                            name:
+                              type: "string"
+                              example: "MyTech Solutions"
+                            domain:
+                              type: "string"
+                              example: "mytech.com"
+                        permissions:
+                          type: "array"
+                          items:
+                            type: "string"
+                          example:
+                            - "MANAGE_USERS"
+                            - "VIEW_ANALYTICS"
+                            - "MANAGE_CHATS"
+                        status:
+                          type: "string"
+                          example: "ACTIVE"
+              - status: 401
+                description: "Token inválido o expirado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Token inválido"
+            examples:
+              response:
+                user:
+                  id: "user_550e8400e29b41d4a716446655440000"
+                  email: "admin@mytech.com"
+                  name: "Admin Usuario"
+                  role: "admin"
+                  companyId: "company_650e8400e29b41d4a716446655440001"
+                  company:
+                    name: "MyTech Solutions"
+                    domain: "mytech.com"
+                  permissions:
+                    - "MANAGE_USERS"
+                    - "VIEW_ANALYTICS"
+                    - "MANAGE_CHATS"
+                  status: "ACTIVE"
+        filePath: "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts"
+
+  - name: "company"
+    description: "Gestión de empresas y sitios web"
+    controllers:
+      - name: "CompanyController"
+        context: "company"
+        baseUrl: ""
+        description: "Controller para gestión de empresas"
+        tags:
+          - "companies"
+        endpoints:
+          - method: "POST"
+            path: "/company"
+            summary: "Crear nueva empresa con administrador"
+            description: "Crea una nueva empresa junto con su usuario administrador inicial"
+            tags: []
+            auth:
+              required: false
+              bearer: false
+            parameters:
+              body:
+                description: "Datos de la nueva empresa y administrador"
+                type: "object"
+                required: true
+                schema:
+                  type: "object"
+                  properties:
+                    company:
+                      type: "object"
+                      properties:
+                        name:
+                          type: "string"
+                          example: "TechStart Solutions"
+                        domain:
+                          type: "string"
+                          example: "techstart.com"
+                        industry:
+                          type: "string"
+                          example: "Tecnología"
+                        size:
+                          type: "string"
+                          enum:
+                            - "SMALL"
+                            - "MEDIUM"
+                            - "LARGE"
+                            - "ENTERPRISE"
+                          example: "MEDIUM"
+                      required:
+                        - "name"
+                        - "domain"
+                    admin:
+                      type: "object"
+                      properties:
+                        name:
+                          type: "string"
+                          example: "Carlos Administrador"
+                        email:
+                          type: "string"
+                          format: "email"
+                          example: "admin@techstart.com"
+                        password:
+                          type: "string"
+                          example: "SecurePassword123!"
+                      required:
+                        - "name"
+                        - "email"
+                        - "password"
+                  required:
+                    - "company"
+                    - "admin"
+            responses:
+              - status: 201
+                description: "Empresa creada exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    company:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "company_550e8400e29b41d4a716446655440000"
+                        name:
+                          type: "string"
+                          example: "TechStart Solutions"
+                        domain:
+                          type: "string"
+                          example: "techstart.com"
+                    admin:
+                      type: "object"
+                      properties:
+                        id:
+                          type: "string"
+                          example: "user_650e8400e29b41d4a716446655440001"
+                        email:
+                          type: "string"
+                          example: "admin@techstart.com"
+                    apiKey:
+                      type: "string"
+                      description: "API Key generada para la empresa"
+                      example: "gd_live_sk_abc123def456ghi789"
+              - status: 400
+                description: "Datos inválidos"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "El dominio ya está en uso"
+            examples:
+              request:
+                company:
+                  name: "TechStart Solutions"
+                  domain: "techstart.com"
+                  industry: "Tecnología"
+                  size: "MEDIUM"
+                admin:
+                  name: "Carlos Administrador"
+                  email: "admin@techstart.com"
+                  password: "SecurePassword123!"
+              response:
+                company:
+                  id: "company_550e8400e29b41d4a716446655440000"
+                  name: "TechStart Solutions"
+                  domain: "techstart.com"
+                admin:
+                  id: "user_650e8400e29b41d4a716446655440001"
+                  email: "admin@techstart.com"
+                apiKey: "gd_live_sk_abc123def456ghi789"
+        filePath: "src/context/company/infrastructure/controllers/company.controller.ts"
+
+  - name: "tracking"
+    description: "Seguimiento de intenciones y métricas"
+    controllers:
+      - name: "VisitorIntentController"
+        context: "tracking"
+        baseUrl: "tracking/intent"
+        description: "Controller para seguimiento de intenciones"
+        tags: []
+        endpoints:
+          - method: "GET"
+            path: "/tracking/intent/:visitorId"
+            summary: "Obtener intenciones del visitante"
+            description: "Retorna las intenciones de compra y comportamiento registradas"
+            tags: []
+            auth:
+              required: true
+              roles:
+                - "commercial"
+                - "admin"
+              bearer: true
+            parameters:
+              path:
+                - name: "visitorId"
+                  description: "ID único del visitante"
+                  example: "visitor_550e8400e29b41d4a716446655440000"
+                  required: true
+            responses:
+              - status: 200
+                description: "Intenciones obtenidas exitosamente"
+                schema:
+                  type: "object"
+                  properties:
+                    visitorId:
+                      type: "string"
+                      example: "visitor_550e8400e29b41d4a716446655440000"
+                    intents:
+                      type: "array"
+                      items:
+                        type: "object"
+                        properties:
+                          type:
+                            type: "string"
+                            enum:
+                              - "PURCHASE"
+                              - "INQUIRY"
+                              - "SUPPORT"
+                              - "BROWSING"
+                            example: "PURCHASE"
+                          confidence:
+                            type: "number"
+                            minimum: 0
+                            maximum: 1
+                            example: 0.85
+                          category:
+                            type: "string"
+                            example: "product-pricing"
+                          value:
+                            type: "string"
+                            example: "Interesado en plan premium"
+                          detectedAt:
+                            type: "string"
+                            format: "date-time"
+                            example: "2025-09-20T10:15:00Z"
+                    summary:
+                      type: "object"
+                      properties:
+                        totalIntents:
+                          type: "number"
+                          example: 5
+                        highestConfidence:
+                          type: "number"
+                          example: 0.92
+                        dominantCategory:
+                          type: "string"
+                          example: "product-pricing"
+              - status: 404
+                description: "Visitante no encontrado"
+                schema:
+                  type: "object"
+                  properties:
+                    error:
+                      type: "string"
+                      example: "Visitante no encontrado"
+            examples:
+              response:
+                visitorId: "visitor_550e8400e29b41d4a716446655440000"
+                intents:
+                  - type: "PURCHASE"
+                    confidence: 0.85
+                    category: "product-pricing"
+                    value: "Interesado en plan premium"
+                    detectedAt: "2025-09-20T10:15:00Z"
+                summary:
+                  totalIntents: 5
+                  highestConfidence: 0.92
+                  dominantCategory: "product-pricing"
+        filePath: "src/context/tracking/infrastructure/controllers/visitor-intent.controller.ts"
+
+summary:
+  totalEndpoints: 63
+  totalControllers: 13
+  authenticationMethods:
+    - "Bearer JWT"
+    - "OIDC"
+  availableRoles:
+    - "admin"
+    - "commercial"
+    - "visitor"
+    - "supervisor"

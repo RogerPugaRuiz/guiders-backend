@@ -5,9 +5,11 @@
     "ts"
   ],
   "rootDir": "src",
-  "testRegex": ".*\\.spec\\.ts$",
+  "testRegex": ".*(?<!int)(?<!e2e)\\.spec\\.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.(t|j)s$": ["ts-jest", {
+      "useESM": false
+    }]
   },
   "collectCoverageFrom": [
     "context/**/*.(t|j)s",
@@ -24,10 +26,5 @@
   "transformIgnorePatterns": [
     "node_modules/(?!(jose|@nestjs/websockets|socket.io)/)"
   ],
-  "extensionsToTreatAsEsm": [".ts"],
-  "globals": {
-    "ts-jest": {
-      "useESM": false
-    }
-  }
+  "extensionsToTreatAsEsm": [".ts"]
 }

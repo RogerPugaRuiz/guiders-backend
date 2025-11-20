@@ -26,15 +26,36 @@ export class IdentifyVisitorResponseDto {
   })
   isNewVisitor: boolean;
 
+  @ApiProperty({
+    description: 'Estado del consentimiento del visitante',
+    example: 'granted',
+    enum: ['granted', 'denied', 'pending'],
+    required: false,
+  })
+  consentStatus?: string;
+
+  @ApiProperty({
+    description:
+      'Acciones permitidas para el visitante basadas en su consentimiento',
+    example: ['chat', 'forms', 'tracking'],
+    type: [String],
+    required: false,
+  })
+  allowedActions?: string[];
+
   constructor(props: {
     visitorId: string;
     sessionId: string;
     lifecycle: string;
     isNewVisitor: boolean;
+    consentStatus?: string;
+    allowedActions?: string[];
   }) {
     this.visitorId = props.visitorId;
     this.sessionId = props.sessionId;
     this.lifecycle = props.lifecycle;
     this.isNewVisitor = props.isNewVisitor;
+    this.consentStatus = props.consentStatus;
+    this.allowedActions = props.allowedActions;
   }
 }

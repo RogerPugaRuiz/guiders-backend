@@ -43,4 +43,22 @@ export class CurrentUserResponseDto {
     description: 'Fecha de último inicio de sesión (puede ser null)',
   })
   lastLoginAt: Date | null;
+
+  @ApiProperty({
+    type: String,
+    required: false,
+    nullable: true,
+    description: 'ID del usuario en Keycloak (puede ser null)',
+  })
+  keycloakId: string | null;
+
+  @ApiProperty({
+    type: String,
+    required: false,
+    nullable: true,
+    description: 'URL del avatar del usuario en S3 (puede ser null)',
+    example:
+      'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
+  })
+  avatarUrl: string | null;
 }

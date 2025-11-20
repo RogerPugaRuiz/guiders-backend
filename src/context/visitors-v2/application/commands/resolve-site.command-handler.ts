@@ -43,10 +43,13 @@ export class ResolveSiteCommandHandler
       );
     }
 
+    // Preferimos el nombre del site como etiqueta visible (tests esperan el name)
+    const resolvedSiteName = targetSite.name || targetSite.canonicalDomain;
+
     return new ResolveSiteResponseDto(
       company.getId().getValue(),
       targetSite.id,
-      targetSite.name,
+      resolvedSiteName,
       company.getCompanyName().getValue(),
     );
   }

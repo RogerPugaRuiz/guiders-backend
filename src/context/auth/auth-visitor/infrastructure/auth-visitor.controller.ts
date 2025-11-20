@@ -1,18 +1,23 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   HttpException,
   HttpStatus,
   Logger,
   Post,
+  Query,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
   ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -30,14 +35,30 @@ import {
   RegisterVisitorRequestDto,
   TokenRequestDto,
   TokensResponseDto,
+  PixelMetadataResponseDto,
 } from '../application/dtos/auth-visitor.dto';
+import {
+  API_KEY_REPOSITORY,
+  ApiKeyRepository,
+} from '../../api-key/domain/repository/api-key.repository';
+import { ApiKeyValue } from '../../api-key/domain/model/api-key-value';
+import {
+  COMPANY_REPOSITORY,
+  CompanyRepository,
+} from '../../../company/domain/company.repository';
 
 @ApiTags('Pixel Visitor Auth')
 @Controller('pixel')
 export class AuthVisitorController {
   private readonly logger = new Logger(AuthVisitorController.name);
 
-  constructor(private readonly authVisitor: AuthVisitorService) {}
+  constructor(
+    private readonly authVisitor: AuthVisitorService,
+    @Inject(API_KEY_REPOSITORY)
+    private readonly apiKeyRepository: ApiKeyRepository,
+    @Inject(COMPANY_REPOSITORY)
+    private readonly companyRepository: CompanyRepository,
+  ) {}
 
   @Post('token')
   @ApiOperation({
@@ -199,6 +220,114 @@ export class AuthVisitorController {
         throw new HttpException(error.message, 401);
       }
       throw new HttpException('Internal server error', 500);
+    }
+  }
+
+  @Get('metadata')
+  @ApiOperation({
+    summary: 'Obtener metadatos del sitio por API Key',
+    description:
+      'Devuelve tenantId y siteId necesarios para tracking basándose en el apiKey proporcionado. ' +
+      'Este endpoint permite al frontend obtener los identificadores internos sin necesidad de ' +
+      'conocer el dominio o realizar validaciones complejas.',
+  })
+  @ApiQuery({
+    name: 'apiKey',
+    required: true,
+    type: String,
+    description: 'API Key pública del sitio',
+    example: '12ca17b49af2289436f303e0166030a21e525d266e209267433801a8fd4071a0',
+  })
+  @ApiOkResponse({
+    description: 'Metadatos obtenidos exitosamente',
+    type: PixelMetadataResponseDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'API Key no encontrada o inválida',
+  })
+  @ApiBadRequestResponse({
+    description: 'API Key no proporcionada o formato inválido',
+  })
+  async getMetadata(
+    @Query('apiKey') apiKey: string,
+  ): Promise<PixelMetadataResponseDto> {
+    try {
+      if (!apiKey) {
+        throw new HttpException('API Key es requerida', HttpStatus.BAD_REQUEST);
+      }
+
+      this.logger.log(
+        `Consultando metadata para apiKey: ${apiKey.substring(0, 10)}...`,
+      );
+
+      // Buscar ApiKey en el repositorio
+      const apiKeyValue = ApiKeyValue.create(apiKey);
+      const apiKeyEntity =
+        await this.apiKeyRepository.getApiKeyByApiKey(apiKeyValue);
+
+      if (!apiKeyEntity) {
+        throw new HttpException('API Key no encontrada', HttpStatus.NOT_FOUND);
+      }
+
+      // Obtener domain del ApiKey
+      const domain = apiKeyEntity.domain.getValue();
+      this.logger.log(`API Key válida. Domain: ${domain}`);
+
+      // Buscar company por domain
+      const companyResult = await this.companyRepository.findByDomain(domain);
+
+      if (companyResult.isErr()) {
+        this.logger.error(`No se encontró company para domain: ${domain}`);
+        throw new HttpException(
+          'No se encontró una empresa para este API Key',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      const company = companyResult.value;
+      const tenantId = company.getId().getValue();
+
+      // Buscar site que coincida con el domain
+      const sites = company.getSites();
+      const sitePrimitives = sites.toPrimitives();
+
+      this.logger.log(
+        `Empresa encontrada: ${tenantId}. Sitios disponibles: ${sitePrimitives.length}`,
+      );
+
+      const targetSite = sitePrimitives.find(
+        (site) =>
+          site.canonicalDomain === domain ||
+          site.domainAliases.includes(domain),
+      );
+
+      if (!targetSite) {
+        this.logger.error(
+          `No se encontró site específico para domain: ${domain}`,
+        );
+        throw new HttpException(
+          'No se encontró un sitio específico para este dominio',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      this.logger.log(
+        `Site encontrado: ${targetSite.id} (${targetSite.canonicalDomain})`,
+      );
+
+      return new PixelMetadataResponseDto(tenantId, targetSite.id, domain);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error(
+        `Error al obtener metadata: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new HttpException(
+        'Error interno al obtener metadata',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

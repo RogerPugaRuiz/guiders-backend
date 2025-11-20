@@ -14,12 +14,18 @@ import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-use
 import { BFFModule } from './context/auth/bff/infrastructure/bff.module';
 import { HttpModule } from '@nestjs/axios';
 import { TokenVerifyService } from './context/shared/infrastructure/token-verify.service';
-import { TrackingModule } from './context/tracking/tracking.module';
 import { VisitorsModule } from './context/visitors/infrastructure/visitors.module';
 import { VisitorsV2Module } from './context/visitors-v2/visitors-v2.module';
 import { CompanyModule } from './context/company/company.module';
 import { ConversationsV2Module } from './context/conversations-v2/conversations-v2.module';
+import { CommercialModule } from './context/commercial/commercial.module';
+import { TrackingV2Module } from './context/tracking-v2/tracking-v2.module';
 import { WebSocketModule } from './websocket/websocket.module';
+import { WebSocketGatewayBasic } from './websocket/websocket.gateway';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ConsentModule } from './context/consent/consent.module';
+import { PresenceInactivityScheduler } from './context/shared/infrastructure/schedulers/presence-inactivity.scheduler';
+import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/shared/infrastructure/events/notify-presence-changed-on-presence-changed.event-handler';
 
 @Module({
   imports: [
@@ -30,10 +36,13 @@ import { WebSocketModule } from './websocket/websocket.module';
     ApiKeyModule,
     VisitorsModule,
     VisitorsV2Module,
-    TrackingModule,
     CompanyModule,
     ConversationsV2Module,
+    CommercialModule,
+    ConsentModule,
+    TrackingV2Module,
     WebSocketModule,
+    ScheduleModule.forRoot(),
     // OpenSearchModule,
     CqrsModule.forRoot(),
     HttpModule,
@@ -63,7 +72,17 @@ import { WebSocketModule } from './websocket/websocket.module';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, TokenVerifyService],
+  providers: [
+    AppService,
+    TokenVerifyService,
+    PresenceInactivityScheduler,
+    NotifyPresenceChangedOnPresenceChangedEventHandler,
+    // Provider para que NotifyPresenceChangedOnPresenceChangedEventHandler pueda inyectar el WebSocketGateway
+    {
+      provide: 'WEBSOCKET_GATEWAY',
+      useExisting: WebSocketGatewayBasic,
+    },
+  ],
 })
 export class AppModule {
   private readonly logger = new Logger(AppModule.name);
@@ -126,7 +145,28 @@ export class AppModule {
       database: isTest
         ? configService.get<string>('TEST_DATABASE', 'mydb')
         : configService.get<string>('DATABASE', 'mydb'),
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      entities: [
+        __dirname +
+          '/context/auth/api-key/infrastructure/api-key.entity{.ts,.js}',
+        __dirname +
+          '/context/auth/auth-user/infrastructure/user-account.entity{.ts,.js}',
+        __dirname +
+          '/context/auth/auth-user/infrastructure/persistence/entity/invite-typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/auth/auth-visitor/infrastructure/visitor-account.entity{.ts,.js}',
+        __dirname +
+          '/context/company/infrastructure/persistence/entity/company-typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/company/infrastructure/persistence/typeorm/company-site.entity{.ts,.js}',
+        __dirname +
+          '/context/conversations/infrastructure/conversation.entity{.ts,.js}',
+        __dirname +
+          '/context/conversations/infrastructure/message.entity{.ts,.js}',
+        __dirname +
+          '/context/visitors/infrastructure/persistence/visitor-typeorm.entity{.ts,.js}',
+        __dirname +
+          '/context/shared/domain/entities/test-entity.entity{.ts,.js}',
+      ],
       synchronize: allowSync || isE2ETest,
       autoLoadEntities: allowSync || isE2ETest,
     };
@@ -175,12 +215,24 @@ export class AppModule {
       const encodedUser = encodeURIComponent(mongoUser);
       const encodedPassword = encodeURIComponent(mongoPassword);
       uri = `mongodb://${encodedUser}:${encodedPassword}@${mongoHost}:${mongoPort}/${mongoDatabase}?authSource=admin`;
+    } else if (isTest) {
+      // En entorno de test, permitir conexión sin autenticación
+      logger.log(
+        'Test environment detected. Using MongoDB connection without authentication.',
+      );
+      uri = `mongodb://${mongoHost}:${mongoPort}/${mongoDatabase}`;
     } else {
       logger.warn(
         'MongoDB credentials are not set. Using default connection without authentication.',
       );
+      const mongoUserVar = isTest
+        ? 'TEST_MONGODB_ROOT_USERNAME'
+        : 'MONGODB_ROOT_USERNAME';
+      const mongoPasswordVar = isTest
+        ? 'TEST_MONGODB_ROOT_PASSWORD'
+        : 'MONGODB_ROOT_PASSWORD';
       throw new Error(
-        'MongoDB credentials are required. Please set MONGODB_USERNAME and MONGODB_PASSWORD in your environment variables.',
+        `MongoDB credentials are required. Please set ${mongoUserVar} and ${mongoPasswordVar} in your environment variables.`,
       );
     }
 

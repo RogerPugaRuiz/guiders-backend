@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { VisitorV2Repository } from '../../../domain/visitor-v2.repository';
+import {
+  VisitorV2Repository,
+  PaginatedVisitorsResult,
+} from '../../../domain/visitor-v2.repository';
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { SiteId } from '../../../domain/value-objects/site-id';
@@ -35,13 +38,77 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     try {
       const persistenceEntity = VisitorV2Mapper.toPersistence(visitor);
 
-      await this.visitorModel.findOneAndUpdate(
-        { id: persistenceEntity.id },
-        persistenceEntity,
-        { upsert: true, new: true },
+      this.logger.log(
+        `💾 Guardando visitante: ID=${persistenceEntity.id}, fingerprint=${persistenceEntity.fingerprint}, siteId=${persistenceEntity.siteId}`,
       );
 
-      this.logger.log(`Visitante guardado: ${persistenceEntity.id}`);
+      // Verificar si el visitante ya existe
+      const existingVisitor = await this.visitorModel.findOne({
+        id: persistenceEntity.id,
+      });
+
+      if (existingVisitor) {
+        this.logger.log(
+          `🔄 Visitante existente encontrado, actualizando: ${persistenceEntity.id}`,
+        );
+
+        // Visitante existente: hacer merge de sesiones para preservar historial
+        const existingSessions = existingVisitor.sessions || [];
+        const newSessions = persistenceEntity.sessions || [];
+
+        this.logger.log(`   - Sesiones existentes: ${existingSessions.length}`);
+        this.logger.log(`   - Sesiones nuevas: ${newSessions.length}`);
+
+        // Crear un mapa de sesiones existentes por ID para evitar duplicados
+        const existingSessionsMap = new Map(
+          existingSessions.map((session) => [session.id, session]),
+        );
+
+        // Añadir solo las sesiones nuevas (que no existen ya)
+        const mergedSessions = [...existingSessions];
+        newSessions.forEach((newSession) => {
+          if (!existingSessionsMap.has(newSession.id)) {
+            mergedSessions.push(newSession);
+            this.logger.log(`   + Nueva sesión agregada: ${newSession.id}`);
+          } else {
+            // Actualizar sesión existente (para casos como heartbeat)
+            const existingIndex = mergedSessions.findIndex(
+              (s) => s.id === newSession.id,
+            );
+            if (existingIndex !== -1) {
+              mergedSessions[existingIndex] = newSession;
+              this.logger.log(`   ~ Sesión actualizada: ${newSession.id}`);
+            }
+          }
+        });
+
+        // Actualizar con sesiones preservadas
+        await this.visitorModel.findOneAndUpdate(
+          { id: persistenceEntity.id },
+          {
+            ...persistenceEntity,
+            sessions: mergedSessions,
+          },
+          { new: true },
+        );
+
+        this.logger.log(
+          `✅ Visitante actualizado con ${mergedSessions.length} sesiones totales`,
+        );
+      } else {
+        this.logger.log(`🆕 Visitante nuevo, creando: ${persistenceEntity.id}`);
+
+        // Visitante nuevo: crear con upsert
+        await this.visitorModel.findOneAndUpdate(
+          { id: persistenceEntity.id },
+          persistenceEntity,
+          { upsert: true, new: true },
+        );
+
+        this.logger.log(`✅ Visitante creado exitosamente`);
+      }
+
+      this.logger.log(`💾 Visitante guardado: ${persistenceEntity.id}`);
       return okVoid();
     } catch (error) {
       const errorMessage = `Error al guardar visitante: ${
@@ -78,18 +145,45 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     siteId: SiteId,
   ): Promise<Result<VisitorV2, DomainError>> {
     try {
-      const entity = await this.visitorModel.findOne({
+      const query = {
         fingerprint: fingerprint.value,
         siteId: siteId.value,
-      });
+      };
+
+      this.logger.log(
+        `🔍 Buscando visitante en DB con query: ${JSON.stringify(query)}`,
+      );
+
+      const entity = await this.visitorModel.findOne(query);
 
       if (!entity) {
+        this.logger.log(
+          `❌ No se encontró visitante con fingerprint: ${fingerprint.value} y siteId: ${siteId.value}`,
+        );
+
+        // Verificar si existen visitantes con este fingerprint en otros sitios
+        const allWithFingerprint = await this.visitorModel.find({
+          fingerprint: fingerprint.value,
+        });
+        this.logger.log(
+          `🔍 Visitantes con este fingerprint en otros sitios: ${allWithFingerprint.length}`,
+        );
+        allWithFingerprint.forEach((v) => {
+          this.logger.log(
+            `   - ID: ${v.id}, siteId: ${v.siteId}, fingerprint: ${v.fingerprint}`,
+          );
+        });
+
         return err(
           new VisitorV2PersistenceError(
             `Visitante no encontrado con fingerprint: ${fingerprint.value} y siteId: ${siteId.value}`,
           ),
         );
       }
+
+      this.logger.log(
+        `✅ Visitante encontrado: ID=${entity.id}, fingerprint=${entity.fingerprint}, siteId=${entity.siteId}`,
+      );
 
       const visitor = VisitorV2Mapper.fromPersistence(entity);
       return ok(visitor);
@@ -106,11 +200,19 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     sessionId: SessionId,
   ): Promise<Result<VisitorV2, DomainError>> {
     try {
-      const entity = await this.visitorModel.findOne({
-        'sessions.id': sessionId.value,
-      });
+      const query = { 'sessions.id': sessionId.value };
+      this.logger.debug(`🔍 MongoDB query: ${JSON.stringify(query)}`);
+      this.logger.debug(`🔍 Buscando sessionId: ${sessionId.value}`);
+
+      const entity = await this.visitorModel.findOne(query);
+      this.logger.debug(
+        `🔍 MongoDB resultado: ${entity ? 'ENCONTRADO' : 'NO ENCONTRADO'}`,
+      );
 
       if (!entity) {
+        this.logger.warn(
+          `❌ Visitante no encontrado con sessionId: ${sessionId.value}`,
+        );
         return err(
           new VisitorV2PersistenceError(
             `Visitante no encontrado con sessionId: ${sessionId.value}`,
@@ -118,6 +220,7 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
         );
       }
 
+      this.logger.debug(`✅ Entidad encontrada: ${String(entity._id)}`);
       const visitor = VisitorV2Mapper.fromPersistence(entity);
       return ok(visitor);
     } catch (error) {
@@ -234,6 +337,439 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       }`;
       this.logger.error(errorMessage);
       return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  async findWithActiveSessions(options?: {
+    tenantId?: TenantId;
+    limit?: number;
+  }): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      const filter: Record<string, unknown> = {
+        // Buscar visitantes que tienen al menos una sesión sin endedAt
+        'sessions.0': { $exists: true }, // Tiene al menos una sesión
+        sessions: {
+          $elemMatch: {
+            // Sesión activa: endedAt es null o no existe
+            $or: [{ endedAt: null }, { endedAt: { $exists: false } }],
+          },
+        },
+      };
+
+      if (options?.tenantId) {
+        filter.tenantId = options.tenantId.value;
+      }
+
+      this.logger.debug(
+        `🔍 Buscando visitantes con sesiones activas. Filtro: ${JSON.stringify(filter)}`,
+      );
+
+      const query = this.visitorModel.find(filter);
+
+      if (options?.limit) {
+        query.limit(options.limit);
+      }
+
+      const entities = await query.exec();
+
+      this.logger.debug(
+        `📊 Encontrados ${entities.length} visitantes con sesiones activas`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok(visitors);
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con sesiones activas: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  async findBySiteIdWithDetails(
+    siteId: SiteId,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
+    try {
+      const filter: Record<string, unknown> = {
+        siteId: siteId.value,
+      };
+
+      // Si no incluir offline, solo visitantes con sesiones activas
+      if (!options?.includeOffline) {
+        filter.sessions = {
+          $elemMatch: {
+            endedAt: { $exists: false }, // Al menos una sesión activa
+          },
+        };
+      }
+
+      this.logger.debug(
+        `🔍 Buscando visitantes para sitio ${siteId.value}, includeOffline: ${options?.includeOffline}, filtro: ${JSON.stringify(filter)}`,
+      );
+
+      // Obtener el count total SIN paginación
+      const totalCount = await this.visitorModel.countDocuments(filter).exec();
+
+      this.logger.debug(
+        `📊 Total de visitantes encontrados para sitio ${siteId.value}: ${totalCount}`,
+      );
+
+      // Aplicar paginación para obtener los datos
+      const query = this.visitorModel.find(filter);
+
+      if (options?.offset) {
+        query.skip(options.offset);
+      }
+
+      if (options?.limit) {
+        query.limit(options.limit);
+      }
+
+      const entities = await query.exec();
+
+      this.logger.debug(
+        `� Devolviendo ${entities.length} visitantes de ${totalCount} totales para sitio ${siteId.value}`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok({ visitors, totalCount });
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes del sitio ${siteId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  findWithUnassignedChatsBySiteId(
+    siteId: SiteId,
+    _options?: {
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      // TODO: Este es un placeholder para cuando se integre con conversations-v2
+      // Por ahora retornamos una lista vacía ya que no tenemos la relación con chats
+      this.logger.debug(
+        `🔍 Buscando visitantes con chats sin asignar para sitio ${siteId.value}`,
+      );
+
+      // Cuando se implemente la relación con chats, este filtro debería buscar:
+      // - Visitantes del sitio especificado
+      // - Que tengan chats con status 'UNASSIGNED'
+      // - Opcional: joinear con la colección de chats
+
+      const emptyResult: VisitorV2[] = [];
+      return Promise.resolve(ok(emptyResult));
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con chats sin asignar del sitio ${siteId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
+    }
+  }
+
+  findWithQueuedChatsBySiteId(
+    siteId: SiteId,
+    _options?: {
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      // TODO: Este es un placeholder para cuando se integre con conversations-v2
+      // Por ahora retornamos una lista vacía ya que no tenemos la relación con chats
+      this.logger.debug(
+        `🔍 Buscando visitantes con chats en cola para sitio ${siteId.value}`,
+      );
+
+      // Cuando se implemente la relación con chats, este filtro debería buscar:
+      // - Visitantes del sitio especificado
+      // - Que tengan chats con status 'QUEUED' o 'WAITING'
+      // - Opcional: joinear con la colección de chats
+
+      const emptyResult: VisitorV2[] = [];
+      return Promise.resolve(ok(emptyResult));
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con chats en cola del sitio ${siteId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
+    }
+  }
+
+  async findByTenantIdWithDetails(
+    tenantId: TenantId,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+      sortBy?: string;
+      sortOrder?: string;
+    },
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
+    try {
+      const filter: Record<string, unknown> = {
+        tenantId: tenantId.value,
+      };
+
+      // Si no incluir offline, solo visitantes con sesiones activas
+      if (!options?.includeOffline) {
+        filter.sessions = {
+          $elemMatch: {
+            endedAt: { $exists: false }, // Al menos una sesión activa
+          },
+        };
+      }
+
+      this.logger.debug(
+        `🔍 Buscando visitantes para tenant ${tenantId.value}, includeOffline: ${options?.includeOffline}, filtro: ${JSON.stringify(filter)}`,
+      );
+
+      // Si ordenamos por connectionStatus, usamos aggregation pipeline
+      if (options?.sortBy === 'connectionStatus') {
+        return this.findByTenantIdWithConnectionStatusSort(
+          tenantId,
+          filter,
+          options,
+        );
+      }
+
+      // Obtener el count total SIN paginación
+      const totalCount = await this.visitorModel.countDocuments(filter).exec();
+
+      this.logger.debug(
+        `📊 Total de visitantes encontrados para tenant ${tenantId.value}: ${totalCount}`,
+      );
+
+      // Aplicar paginación y ordenamiento para obtener los datos
+      const query = this.visitorModel.find(filter);
+
+      // Aplicar ordenamiento
+      if (options?.sortBy && options?.sortOrder) {
+        const sortField = this.mapSortFieldToMongoField(options.sortBy);
+        const sortDirection = options.sortOrder === 'asc' ? 1 : -1;
+
+        this.logger.debug(
+          `📋 Ordenando por ${sortField} (${options.sortOrder})`,
+        );
+
+        // Para lastActivity, ordenamos por updatedAt como proxy
+        // ya que el cálculo real de lastActivity se hace en el handler
+        query.sort({ [sortField]: sortDirection });
+      } else {
+        // Ordenamiento por defecto: updatedAt descendente (más recientes primero)
+        query.sort({ updatedAt: -1 });
+      }
+
+      if (options?.offset) {
+        query.skip(options.offset);
+      }
+
+      if (options?.limit) {
+        query.limit(options.limit);
+      }
+
+      const entities = await query.exec();
+
+      this.logger.debug(
+        `📦 Devolviendo ${entities.length} visitantes de ${totalCount} totales para tenant ${tenantId.value}`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok({ visitors, totalCount });
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes del tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  /**
+   * Busca visitantes ordenados por estado de conexión usando aggregation pipeline
+   */
+  private async findByTenantIdWithConnectionStatusSort(
+    _tenantId: TenantId,
+    baseFilter: Record<string, unknown>,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+      sortOrder?: string;
+    },
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>> {
+    try {
+      const sortDirection = options?.sortOrder === 'asc' ? 1 : -1;
+
+      this.logger.debug(
+        `🔄 Usando aggregation pipeline para ordenar por connectionStatus (${options?.sortOrder})`,
+      );
+
+      // Pipeline de agregación que calcula el estado de conexión
+      const aggregationPipeline: unknown[] = [
+        // 1. Filtrar por tenant y sesiones activas si aplica
+        { $match: baseFilter },
+
+        // 2. Agregar campo calculado para estado de conexión
+        {
+          $addFields: {
+            hasActiveSessions: {
+              $anyElementTrue: {
+                $map: {
+                  input: { $ifNull: ['$sessions', []] },
+                  as: 'session',
+                  in: {
+                    $or: [
+                      { $eq: ['$$session.endedAt', null] },
+                      { $not: { $ifNull: ['$$session.endedAt', false] } },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        // 3. Ordenar por el campo calculado
+        { $sort: { hasActiveSessions: sortDirection, updatedAt: -1 } },
+      ];
+
+      // Primero obtener el total sin paginación
+      const countPipeline = [
+        ...aggregationPipeline,
+        { $count: 'total' } as any,
+      ];
+      const countResult = await this.visitorModel.aggregate(
+        countPipeline as any,
+      );
+      const totalCount = countResult.length > 0 ? countResult[0].total : 0;
+
+      this.logger.debug(
+        `📊 Total de visitantes con connectionStatus sort: ${totalCount}`,
+      );
+
+      // Aplicar paginación para los datos
+      if (options?.offset) {
+        aggregationPipeline.push({ $skip: options.offset });
+      }
+
+      if (options?.limit) {
+        aggregationPipeline.push({ $limit: options.limit });
+      }
+
+      const entities = await this.visitorModel.aggregate(
+        aggregationPipeline as any,
+      );
+
+      this.logger.debug(
+        `📦 Devolviendo ${entities.length} visitantes de ${totalCount} totales con connectionStatus sort`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+
+      return ok({ visitors, totalCount });
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con ordenamiento por connectionStatus: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  /**
+   * Mapea el campo de ordenamiento del DTO al campo de MongoDB
+   */
+  private mapSortFieldToMongoField(sortBy: string): string {
+    const fieldMap: Record<string, string> = {
+      lastActivity: 'updatedAt', // Usamos updatedAt como proxy de lastActivity
+      createdAt: 'createdAt',
+      connectionStatus: 'hasActiveSessions', // Campo calculado para estado de conexión
+    };
+
+    return fieldMap[sortBy] || 'updatedAt';
+  }
+
+  findWithUnassignedChatsByTenantId(
+    tenantId: TenantId,
+    _options?: {
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      // TODO: Este es un placeholder para cuando se integre con conversations-v2
+      // Por ahora retornamos una lista vacía ya que no tenemos la relación con chats
+      this.logger.debug(
+        `🔍 Buscando visitantes con chats sin asignar para tenant ${tenantId.value}`,
+      );
+
+      // Cuando se implemente la relación con chats, este filtro debería buscar:
+      // - Visitantes del tenant especificado
+      // - Que tengan chats con status 'UNASSIGNED'
+      // - Opcional: joinear con la colección de chats
+
+      const emptyResult: VisitorV2[] = [];
+      return Promise.resolve(ok(emptyResult));
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con chats sin asignar del tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
+    }
+  }
+
+  findWithQueuedChatsByTenantId(
+    tenantId: TenantId,
+    _options?: {
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      // TODO: Este es un placeholder para cuando se integre con conversations-v2
+      // Por ahora retornamos una lista vacía ya que no tenemos la relación con chats
+      this.logger.debug(
+        `🔍 Buscando visitantes con chats en cola para tenant ${tenantId.value}`,
+      );
+
+      // Cuando se implemente la relación con chats, este filtro debería buscar:
+      // - Visitantes del tenant especificado
+      // - Que tengan chats con status 'QUEUED' o 'WAITING'
+      // - Opcional: joinear con la colección de chats
+
+      const emptyResult: VisitorV2[] = [];
+      return Promise.resolve(ok(emptyResult));
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes con chats en cola del tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
     }
   }
 }

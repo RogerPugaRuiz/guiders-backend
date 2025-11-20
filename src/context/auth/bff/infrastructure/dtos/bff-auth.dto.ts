@@ -3,8 +3,14 @@ import { IsString, IsNotEmpty } from 'class-validator';
 
 export interface UserInfo {
   sub: string;
-  email?: string;
+  email: string;
   roles: string[];
+  companyId: string;
+}
+
+export interface SessionInfo {
+  exp?: number;
+  iat?: number;
 }
 
 export class BFFLoginRequestDto {
@@ -79,18 +85,44 @@ export class BFFLogoutResponseDto {
 
 export class BFFMeResponseDto {
   @ApiProperty({
-    description: 'Indica si la petición fue exitosa',
-    example: true,
+    description: 'ID del usuario en Keycloak (subject claim del JWT)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
-  success: boolean;
+  sub: string;
 
   @ApiProperty({
-    description: 'Información del usuario autenticado',
-    example: {
-      sub: '12345',
-      email: 'usuario@ejemplo.com',
-      roles: ['admin', 'user'],
-    },
+    description: 'Email del usuario',
+    example: 'usuario@ejemplo.com',
   })
-  user: UserInfo;
+  email: string;
+
+  @ApiProperty({
+    description: 'Roles del usuario',
+    example: ['admin', 'commercial'],
+    type: [String],
+  })
+  roles: string[];
+
+  @ApiProperty({
+    description: 'ID de la compañía a la que pertenece el usuario',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  companyId: string;
+
+  @ApiProperty({
+    description: 'Aplicación desde la que se autenticó',
+    example: 'console',
+    enum: ['console', 'admin'],
+  })
+  app: string;
+
+  @ApiProperty({
+    description:
+      'Información de la sesión (timestamps de expiración y emisión)',
+    example: { exp: 1735923600, iat: 1735920000 },
+  })
+  session: {
+    exp?: number;
+    iat?: number;
+  };
 }

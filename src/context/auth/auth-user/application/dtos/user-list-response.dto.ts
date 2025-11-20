@@ -10,6 +10,9 @@ export class UserListItemDto {
   email: string;
 
   @ApiProperty()
+  name: string;
+
+  @ApiProperty()
   roles: string[];
 
   @ApiProperty()
@@ -17,9 +20,21 @@ export class UserListItemDto {
 
   @ApiProperty({ default: true })
   isActive: boolean;
+
+  @ApiProperty({ required: false, nullable: true })
+  keycloakId: string | null;
+
+  @ApiProperty()
+  createdAt: Date;
+
+  @ApiProperty({ required: false, nullable: true })
+  lastLoginAt: Date | null;
 }
 
 export class UserListResponseDto {
   @ApiProperty({ type: [UserListItemDto] })
   users: UserListItemDto[];
 }
+
+// DTO para respuesta de usuario individual
+export type UserResponseDto = UserListItemDto;

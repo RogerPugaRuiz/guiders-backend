@@ -2,7 +2,6 @@ import { Company } from '../../../domain/company.aggregate';
 import { CompanyTypeOrmEntity } from '../entity/company-typeorm.entity';
 import { CompanySiteMapper } from './company-site.mapper';
 import { Site } from '../../../domain/entities/site';
-import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 
 // Mapper para convertir entre entidad de dominio y persistencia de Company
 export class CompanyMapper {
@@ -26,7 +25,7 @@ export class CompanyMapper {
           .map((site) => site.domain);
 
         sites.push({
-          id: Uuid.random().value,
+          id: canonicalSite.id, // Usar el ID real del sitio desde la DB
           name: `Sitio ${index + 1}`,
           canonicalDomain: canonicalSite.domain,
           domainAliases: aliases,

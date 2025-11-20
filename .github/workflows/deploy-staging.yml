@@ -16,12 +16,13 @@ jobs:
     timeout-minutes: 15
     
     services:
-      # PostgreSQL para tests de integración
+      # PostgreSQL para tests de integración y E2E
       postgres:
         image: postgres:15
         env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test
+          POSTGRES_DB: guiders_test
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -29,6 +30,35 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      
+      # Redis para sesiones y cache
+      redis:
+        image: redis:6
+        env:
+          REDIS_PASSWORD: ""
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+          --health-start-period 10s
+        ports:
+          - 6379:6379
+      
+      # MongoDB para tests E2E
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin_test
+          MONGO_INITDB_ROOT_PASSWORD: test_password
+          MONGO_INITDB_DATABASE: guiders_test
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 5
+        ports:
+          - 27017:27017
     
     steps:
       - name: Checkout code
@@ -78,8 +108,58 @@ jobs:
           echo "✅ MongoDB instalado (si procede):"
           (command -v mongod && mongod --version | head -2) || echo "❌ mongod no disponible"
       
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Redis tools and configure system
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools
+          
+          # Configurar sistema para Redis
+          sudo sysctl -w vm.overcommit_memory=1
+          sudo sysctl -w net.core.somaxconn=1024
+          echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
+      
+      - name: Wait for services to be ready
+        run: |
+          echo "🔄 Esperando a que los servicios estén listos..."
+          
+          # Esperar PostgreSQL
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
+              echo "✅ PostgreSQL listo"
+              break
+            fi
+            echo "⏳ Esperando PostgreSQL... ($i/30)"
+            sleep 2
+          done
+          
+          # Esperar Redis
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+              echo "✅ Redis listo"
+              break
+            fi
+            echo "⏳ Esperando Redis... ($i/30)"
+            sleep 2
+          done
+          
+          # Esperar MongoDB
+          for i in {1..30}; do
+            if mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+              echo "✅ MongoDB listo"
+              break
+            fi
+            echo "⏳ Esperando MongoDB... ($i/30)"
+            sleep 2
+          done
+          
+          echo "✅ Todos los servicios están listos"
+      
+      - name: Install dependencies with retry
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm ci
       
       - name: Run lint
         run: npm run lint
@@ -92,6 +172,15 @@ jobs:
         
   # Eliminado: verificación con MongoDB Memory Server, se verificará conectividad con mongosh posteriormente
         
+      - name: Clean dist folder to avoid Jest conflicts
+        run: rm -rf dist/
+      
+      - name: Build project for tests
+        run: npm run build
+      
+      - name: Ensure coverage directory exists
+        run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
+        
       - name: Run integration tests
         run: npm run test:int
         env:
@@ -101,13 +190,79 @@ jobs:
           DATABASE_PORT: 5432
           DATABASE_USERNAME: postgres
           DATABASE_PASSWORD: postgres
-          DATABASE: test
+          DATABASE: guiders_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guiders_test
+          REDIS_URL: redis://localhost:6379
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          MONGODB_USERNAME: admin_test
+          MONGODB_PASSWORD: test_password
+          MONGODB_DATABASE: guiders_test
+          TEST_MONGODB_ROOT_USERNAME: admin_test
+          TEST_MONGODB_ROOT_PASSWORD: test_password
+          TEST_MONGODB_DATABASE: guiders_test
+          MONGODB_URL: mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin
+          ENCRYPTION_KEY: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
           # MongoDB Memory Server configuración
-          MONGOMS_VERSION: '5.0.13'
+          MONGOMS_VERSION: '7.0.14'
           MONGOMS_DISABLE_POSTINSTALL: '1'
           MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
+          MONGOMS_SKIP_MD5: 'true'
+          CI: 'true'
           # Configuración de timeout extendido para CI
           JEST_TIMEOUT: 120000
+
+      - name: Clean dist folder before E2E tests
+        run: rm -rf dist/
+
+      - name: Build project for E2E tests
+        run: npm run build
+
+      - name: Ensure coverage directory exists for E2E
+        run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          # Variables para tests E2E
+          NODE_ENV: test
+          CI: true
+          GITHUB_ACTIONS: true
+          # PostgreSQL para E2E
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE: guiders_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guiders_test
+          TEST_DATABASE_HOST: localhost
+          TEST_DATABASE_PORT: 5432
+          TEST_DATABASE_USERNAME: postgres
+          TEST_DATABASE_PASSWORD: postgres
+          TEST_DATABASE: guiders_test
+          # MongoDB para E2E (servicio real)
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          MONGODB_USERNAME: admin_test
+          MONGODB_PASSWORD: test_password
+          MONGODB_DATABASE: guiders_test
+          MONGODB_URL: mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin
+          TEST_MONGODB_HOST: localhost
+          TEST_MONGODB_PORT: 27017
+          TEST_MONGODB_DATABASE: guiders_test
+          TEST_MONGODB_ROOT_USERNAME: admin_test
+          TEST_MONGODB_ROOT_PASSWORD: test_password
+          # Redis
+          REDIS_URL: redis://localhost:6379
+          # Variables de aplicación requeridas
+          ENCRYPTION_KEY: 'test-encryption-key-32-chars-long!!'
+          GLOBAL_TOKEN_SECRET: 'test-secret-key'
+          ACCESS_TOKEN_EXPIRATION: '15m'
+          REFRESH_TOKEN_EXPIRATION: '7d'
+          # MongoDB Memory Server (para casos que lo requieran)
+          MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
+          # Configuración de timeout extendido para CI
+          JEST_TIMEOUT: 180000
 
   # Deploy real a staging (estructura similar a producción)
   deploy-staging:
@@ -293,11 +448,7 @@ jobs:
           DATABASE=${{ secrets.STAGING_DATABASE }}
           APP_URL=${{ secrets.STAGING_APP_URL }}
           # JWKS_BASE_URL opcional: si no está definido en secrets se usará STAGING_APP_URL
-          JWKS_BASE_URL_PLACEHOLDER="${{ secrets.STAGING_APP_URL }}"
-          # GitHub Actions no permite fallback inline con secretos potencialmente no existentes sin marcar warning.
-          # Por simplicidad, siempre usamos STAGING_APP_URL; si se define un secreto separado se podrá ajustar este bloque.
-          JWKS_BASE_URL=$JWKS_BASE_URL_PLACEHOLDER
-          echo "Usando JWKS_BASE_URL=$JWKS_BASE_URL"
+          JWKS_BASE_URL=${{ secrets.STAGING_APP_URL }}
           ENCRYPTION_KEY=${{ secrets.STAGING_ENCRYPTION_KEY }}
           GLOBAL_TOKEN_SECRET=${{ secrets.STAGING_GLOBAL_TOKEN_SECRET }}
           ACCESS_TOKEN_EXPIRATION=${{ secrets.STAGING_ACCESS_TOKEN_EXPIRATION }}
@@ -306,7 +457,7 @@ jobs:
           REDIS_URL=${{ secrets.STAGING_REDIS_URL }}
           MONGODB_HOST=localhost
           MONGODB_DATABASE=${{ secrets.STAGING_MONGODB_DATABASE }}
-          MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT }}
+          MONGODB_PORT=${{ secrets.STAGING_MONGODB_PORT || '27017' }}
           MONGODB_ROOT_USERNAME=${{ secrets.STAGING_MONGODB_ROOT_USERNAME }}
           MONGODB_ROOT_PASSWORD=${{ secrets.STAGING_MONGODB_ROOT_PASSWORD }}
           MONGODB_USERNAME=${{ secrets.STAGING_MONGODB_USERNAME || 'staging_user' }}
@@ -323,9 +474,9 @@ jobs:
           # Configuración BFF
           OIDC_ISSUER=${{ secrets.STAGING_KEYCLOAK_ISSUER }}
           OIDC_CONSOLE_CLIENT_ID=console
-          OIDC_CONSOLE_REDIRECT_URI=${{ secrets.STAGING_APP_URL }}/api/bff/auth/callback/console
+          OIDC_CONSOLE_REDIRECT_URI=${{ secrets.OIDC_CONSOLE_REDIRECT_URI || 'https://guiders.es/api/bff/auth/callback/console' }}
           OIDC_ADMIN_CLIENT_ID=admin
-          OIDC_ADMIN_REDIRECT_URI=${{ secrets.STAGING_APP_URL }}/api/bff/auth/callback/admin
+          OIDC_ADMIN_REDIRECT_URI=${{ secrets.OIDC_ADMIN_REDIRECT_URI || 'https://guiders.es/api/bff/auth/callback/admin' }}
           # Configuración de cookies BFF para staging (HTTPS en producción)
           SAMESITE=lax
           COOKIE_SECURE=true
@@ -340,7 +491,27 @@ jobs:
           ALLOW_RETURN_TO=${{ secrets.STAGING_CONSOLE_URL }},${{ secrets.STAGING_ADMIN_URL }}
           # Control temporal de sincronización de TypeORM (usar solo puntualmente y volver a false)
           TYPEORM_SYNC=${{ vars.TYPEORM_SYNC || 'false' }}
+          # Configuración de versión de consentimiento (opcional - fallback a v1.4.0)
+          CONSENT_VERSION_CURRENT=${{ secrets.STAGING_CONSENT_VERSION || 'v1.4.0' }}
+          # Habilitar compatibilidad semántica por defecto (acepta MINOR y PATCH superiores)
+          ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}
+          # Configuración de limpieza automática de sesiones
+          SESSION_CLEANUP_ENABLED=${{ vars.SESSION_CLEANUP_ENABLED || 'true' }}
+          SESSION_CLEANUP_BATCH_SIZE=${{ vars.SESSION_CLEANUP_BATCH_SIZE || '100' }}
+          SESSION_TIMEOUT_SHORT_MS=${{ vars.SESSION_TIMEOUT_SHORT_MS || '300000' }}
+          SESSION_TIMEOUT_MEDIUM_MS=${{ vars.SESSION_TIMEOUT_MEDIUM_MS || '900000' }}
+          SESSION_TIMEOUT_LONG_MS=${{ vars.SESSION_TIMEOUT_LONG_MS || '1800000' }}
+          SESSION_TIMEOUT_EXTENDED_MS=${{ vars.SESSION_TIMEOUT_EXTENDED_MS || '3600000' }}
+          # Configuración de AWS S3 para avatares
+          AWS_ACCESS_KEY_ID=${{ secrets.STAGING_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.STAGING_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.STAGING_AWS_REGION || 'eu-north-1' }}
+          AWS_S3_BUCKET_NAME=${{ secrets.STAGING_AWS_S3_BUCKET_NAME || 'guiders-avatars-prod' }}
+          AWS_S3_AVATAR_FOLDER=${{ secrets.STAGING_AWS_S3_AVATAR_FOLDER || 'avatars' }}
           EOF
+
+          echo "✅ Archivo .env.staging creado exitosamente"
+          echo "🔍 Usando JWKS_BASE_URL=${{ secrets.STAGING_APP_URL }}"
 
       - name: 1. Prepare deployment info
         run: |
@@ -377,7 +548,7 @@ jobs:
         run: |
           echo "📤 Subiendo scripts y utilidades..."
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "mkdir -p /var/www/guiders-backend-staging/scripts/"
-          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js ecosystem.staging.config.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js bin/verify-mongo-express.js ecosystem.staging.config.js ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }}:/var/www/guiders-backend-staging/
           echo "✅ Scripts subidos exitosamente"
 
       - name: 5. Extract and prepare application
@@ -474,6 +645,32 @@ jobs:
             done
           '
 
+      - name: 8.5. Verify MongoDB network connectivity
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Verificando conectividad de red con MongoDB..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            echo "🔍 Verificando conectividad de red con MongoDB..."
+            
+            # Verificar resolución de nombres dentro de la red Docker
+            echo "📋 Resolución de nombres en la red Docker:"
+            docker exec mongodb-staging ping -c 2 redis-staging || echo "❌ No se puede alcanzar redis-staging desde mongodb-staging"
+            docker exec mongodb-staging nslookup mongodb-staging || echo "❌ No se puede resolver mongodb-staging"
+            
+            # Verificar conectividad desde el host
+            echo "📋 Conectividad desde el host:"
+            docker exec mongodb-staging mongosh --quiet --eval "db.adminCommand(\\\"ping\\\")" || echo "❌ MongoDB no responde desde dentro del contenedor"
+            
+            # Verificar logs recientes de MongoDB
+            echo "📋 Logs recientes de MongoDB:"
+            docker logs mongodb-staging --tail 10
+            
+            echo "✅ Verificación de red MongoDB completada"
+          '
+
       - name: 9. Run database migrations
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
@@ -542,6 +739,23 @@ jobs:
             export NODE_ENV=staging
             node test-mongodb-connection.js
             echo "✅ Conexión a MongoDB verificada"
+          '
+
+      - name: 12.5. Verify Mongo Express connectivity (optional)
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "🔍 Verificando conectividad de Mongo Express (opcional)..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            # Solo verificar si el profile tools está activo
+            if docker ps --filter "name=mongo-express-staging" --format "table {{.Names}}" | grep -q mongo-express-staging; then
+              echo "🔍 Contenedor mongo-express-staging encontrado, verificando conectividad..."
+              node verify-mongo-express.js || echo "⚠️ Verificación de Mongo Express falló (no crítico)"
+            else
+              echo "ℹ️ Contenedor mongo-express-staging no está corriendo (profile tools no activo)"
+            fi
           '
 
       - name: 13. Final deployment verification

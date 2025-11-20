@@ -19,6 +19,8 @@ export class UserAccountMapper {
       roles: userAccountEntity.roles ?? [],
       companyId: userAccountEntity.companyId,
       isActive: userAccountEntity.isActive ?? true,
+      keycloakId: userAccountEntity.keycloakId,
+      avatarUrl: userAccountEntity.avatarUrl,
     });
   }
 
@@ -33,7 +35,10 @@ export class UserAccountMapper {
     userAccountEntity.lastLoginAt = userAccount.lastLoginAt.getOrNull();
     userAccountEntity.roles = userAccount.roles.toPrimitives();
     userAccountEntity.companyId = userAccount.companyId.getValue();
-    userAccountEntity.isActive = userAccount.isActive; // Getter devuelve el booleano
+    userAccountEntity.isActive = userAccount.isActive;
+    userAccountEntity.keycloakId =
+      userAccount.keycloakId.getOrNull()?.value ?? null;
+    userAccountEntity.avatarUrl = userAccount.avatarUrl.getOrNull();
     return userAccountEntity;
   }
 }

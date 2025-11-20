@@ -8,6 +8,7 @@ export interface SessionPrimitives {
   startedAt: string;
   lastActivityAt: string;
   endedAt?: string;
+  currentUrl?: string;
 }
 
 /**
@@ -18,17 +19,20 @@ export class Session {
   private readonly startedAt: Date;
   private lastActivityAt: Date;
   private endedAt?: Date;
+  private currentUrl?: string;
 
   constructor(props: {
     id: SessionId;
     startedAt: Date;
     lastActivityAt: Date;
     endedAt?: Date;
+    currentUrl?: string;
   }) {
     this.id = props.id;
     this.startedAt = props.startedAt;
     this.lastActivityAt = props.lastActivityAt;
     this.endedAt = props.endedAt;
+    this.currentUrl = props.currentUrl;
   }
 
   /**
@@ -52,6 +56,7 @@ export class Session {
       startedAt: new Date(primitives.startedAt),
       lastActivityAt: new Date(primitives.lastActivityAt),
       endedAt: primitives.endedAt ? new Date(primitives.endedAt) : undefined,
+      currentUrl: primitives.currentUrl,
     });
   }
 
@@ -64,6 +69,7 @@ export class Session {
       startedAt: this.startedAt.toISOString(),
       lastActivityAt: this.lastActivityAt.toISOString(),
       endedAt: this.endedAt?.toISOString(),
+      currentUrl: this.currentUrl,
     };
   }
 
@@ -113,5 +119,17 @@ export class Session {
 
   public getEndedAt(): Date | undefined {
     return this.endedAt;
+  }
+
+  public getCurrentUrl(): string | undefined {
+    return this.currentUrl;
+  }
+
+  /**
+   * Actualiza la URL actual de la sesión
+   */
+  public updateCurrentUrl(url: string): void {
+    this.currentUrl = url;
+    this.lastActivityAt = new Date();
   }
 }

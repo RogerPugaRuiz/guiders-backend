@@ -304,6 +304,7 @@ describe('Message', () => {
         type: 'TEXT',
         isInternal: false,
         isFirstResponse: false,
+        isRead: false,
         createdAt: now,
         updatedAt: now,
       };

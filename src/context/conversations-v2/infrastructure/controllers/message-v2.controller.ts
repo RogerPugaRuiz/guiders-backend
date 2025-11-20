@@ -11,6 +11,7 @@ import {
   Logger,
   UseGuards,
   Req,
+  Header,
 } from '@nestjs/common';
 import { QueryBus, CommandBus } from '@nestjs/cqrs';
 import {
@@ -19,11 +20,15 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiHeader,
 } from '@nestjs/swagger';
 import {
   AuthenticatedRequest,
   AuthGuard,
 } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import {
   RolesGuard,
   RequiredRoles,
@@ -42,14 +47,19 @@ import {
   ConversationStatsResponseDto,
   MessageMetricsResponseDto,
 } from '../../application/dtos/message-response.dto';
+import { SendMessageCommand } from '../../application/commands/send-message.command';
+import { GetChatMessagesQuery } from '../../application/queries/get-chat-messages.query';
+import { GetUnreadMessagesQuery } from '../../application/queries/get-unread-messages.query';
+import { MarkMessagesAsReadCommand } from '../../application/commands/mark-messages-as-read.command';
 
 /**
  * Controller para la gestión de mensajes v2
  * Proporciona endpoints para enviar, obtener y gestionar mensajes en chats
+ * Soporta autenticación JWT (Bearer token) y sesiones de visitante (cookies)
  */
 @ApiTags('Messages V2')
+@ApiBearerAuth()
 @Controller('v2/messages')
-@UseGuards(AuthGuard, RolesGuard)
 export class MessageV2Controller {
   private readonly logger = new Logger(MessageV2Controller.name);
 
@@ -60,13 +70,28 @@ export class MessageV2Controller {
 
   /**
    * Envía un nuevo mensaje a un chat
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Post()
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Enviar un nuevo mensaje',
     description:
-      'Envía un mensaje de texto, imagen o archivo a un chat específico',
+      'Envía un mensaje de texto, imagen o archivo a un chat específico. ' +
+      'Soporta múltiples tipos de autenticación:\n' +
+      '1. **Bearer Token (JWT)**: Para comerciales, administradores y supervisores\n' +
+      '2. **Cookie de sesión (sid)**: Para visitantes autenticados\n' +
+      '3. **Header X-Guiders-Sid**: Cabecera HTTP alternativa para enviar el session ID\n' +
+      '4. **Cookies adicionales**: x-guiders-sid, guiders_session_id (accesibles desde JavaScript)\n' +
+      'La validación de permisos se realiza automáticamente según el tipo de autenticación.',
   })
   @ApiResponse({
     status: 201,
@@ -76,6 +101,11 @@ export class MessageV2Controller {
   @ApiResponse({
     status: 400,
     description: 'Datos de entrada inválidos',
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
   })
   @ApiResponse({
     status: 403,
@@ -89,49 +119,82 @@ export class MessageV2Controller {
     @Body() sendMessageDto: SendMessageDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageResponseDto> {
-    try {
-      this.logger.log(
-        `Enviando mensaje al chat ${sendMessageDto.chatId} desde usuario: ${req.user.id}`,
-      );
+    return (async () => {
+      try {
+        // Validar que el usuario esté autenticado (JWT o sesión de visitante)
+        if (!req.user || !req.user.id) {
+          throw new HttpException(
+            'Se requiere autenticación para enviar un mensaje',
+            HttpStatus.UNAUTHORIZED,
+          );
+        }
 
-      // TODO: Implementar command handler
-      // const command = new SendMessageCommand({
-      //   chatId: sendMessageDto.chatId,
-      //   senderId: req.user.id,
-      //   content: sendMessageDto.content,
-      //   type: sendMessageDto.type || 'text',
-      //   isInternal: sendMessageDto.isInternal || false,
-      //   attachment: sendMessageDto.attachment,
-      // });
+        this.logger.log(
+          `Enviando mensaje al chat ${sendMessageDto.chatId} desde usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
+        );
 
-      // const result = await this.commandBus.execute(command);
+        // Crear y ejecutar el command
+        const command = new SendMessageCommand(
+          sendMessageDto.chatId,
+          req.user.id,
+          {
+            content: sendMessageDto.content,
+            type: sendMessageDto.type || 'text',
+            isInternal: sendMessageDto.isInternal || false,
+            attachment: sendMessageDto.attachment,
+          },
+        );
 
-      // Respuesta temporal
-      throw new HttpException(
-        'Funcionalidad no implementada',
-        HttpStatus.NOT_IMPLEMENTED,
-      );
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
+        const result = await this.commandBus.execute<
+          SendMessageCommand,
+          MessageResponseDto
+        >(command);
+
+        this.logger.log(
+          `Mensaje enviado exitosamente: ${result.id} en chat: ${sendMessageDto.chatId}`,
+        );
+
+        return result;
+      } catch (error) {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+        this.logger.error('Error al enviar mensaje:', error);
+        throw new HttpException(
+          'Error interno del servidor',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
       }
-      this.logger.error('Error al enviar mensaje:', error);
-      throw new HttpException(
-        'Error interno del servidor',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+    })();
   }
 
   /**
    * Obtiene los mensajes de un chat específico
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Get('chat/:chatId')
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
+  @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Obtener mensajes de un chat',
     description:
-      'Retorna los mensajes de un chat con filtros y paginación basada en cursor',
+      'Retorna los mensajes de un chat con filtros y paginación basada en cursor. ' +
+      'Soporta múltiples tipos de autenticación:\n' +
+      '1. **Bearer Token (JWT)**: Para comerciales, administradores y supervisores que pueden acceder a mensajes de cualquier chat\n' +
+      '2. **Cookie de sesión (sid)**: Para visitantes que solo pueden acceder a sus propios chats\n' +
+      '3. **Header X-Guiders-Sid**: Cabecera HTTP alternativa para enviar el session ID\n' +
+      '4. **Cookies adicionales**: x-guiders-sid, guiders_session_id (accesibles desde JavaScript)\n' +
+      'La validación de permisos se realiza automáticamente según el tipo de autenticación.',
   })
   @ApiParam({
     name: 'chatId',
@@ -192,6 +255,11 @@ export class MessageV2Controller {
     },
   })
   @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
+  })
+  @ApiResponse({
     status: 403,
     description: 'Sin permisos para acceder a este chat',
   })
@@ -204,51 +272,84 @@ export class MessageV2Controller {
     @Query() queryParams: GetMessagesDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageListResponseDto> {
-    try {
-      this.logger.log(
-        `Obteniendo mensajes del chat ${chatId} para usuario: ${req.user.id}`,
-      );
+    return (async () => {
+      try {
+        // Validar que el usuario esté autenticado (JWT o sesión de visitante)
+        if (!req.user || !req.user.id) {
+          throw new HttpException(
+            'Se requiere autenticación para acceder a los mensajes',
+            HttpStatus.UNAUTHORIZED,
+          );
+        }
 
-      // Log the query parameters for debugging
-      this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
+        this.logger.log(
+          `Obteniendo mensajes del chat ${chatId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
+        );
 
-      // TODO: Implementar query handler
-      // const query = new GetChatMessagesQuery({
-      //   chatId,
-      //   userId: req.user.id,
-      //   userRole: req.user.roles[0],
-      //   filters: queryParams.filters,
-      //   sort: queryParams.sort,
-      //   cursor: queryParams.cursor,
-      //   limit: queryParams.limit || 50,
-      // });
+        // Log the query parameters for debugging
+        this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
 
-      // const result = await this.queryBus.execute(query);
+        // Crear y ejecutar el query
+        const query = new GetChatMessagesQuery({
+          chatId,
+          userId: req.user.id,
+          userRole: req.user.roles[0],
+          filters: {
+            messageType: queryParams.filters?.types?.[0], // Mapear el primer tipo si existe
+            isInternal: queryParams.filters?.isRead,
+            senderId: queryParams.filters?.senderId,
+            dateFrom: queryParams.filters?.dateFrom,
+            dateTo: queryParams.filters?.dateTo,
+            hasAttachment: queryParams.filters?.hasAttachments,
+          },
+          sort: queryParams.sort
+            ? {
+                field: queryParams.sort.field,
+                direction: queryParams.sort.direction,
+              }
+            : undefined,
+          cursor: queryParams.cursor,
+          limit: queryParams.limit || 50,
+        });
 
-      // Respuesta temporal
-      return Promise.resolve({
-        messages: [],
-        total: 0,
-        hasMore: false,
-        nextCursor: undefined,
-      });
-    } catch (error) {
-      this.logger.error(`Error al obtener mensajes del chat ${chatId}:`, error);
-      throw new HttpException(
-        'Error interno del servidor',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+        const result = await this.queryBus.execute<
+          GetChatMessagesQuery,
+          MessageListResponseDto
+        >(query);
+
+        return result;
+      } catch (error) {
+        this.logger.error(
+          `Error al obtener mensajes del chat ${chatId}:`,
+          error,
+        );
+        throw new HttpException(
+          'Error interno del servidor',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    })();
   }
 
   /**
    * Obtiene un mensaje específico por ID
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Get(':messageId')
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Obtener mensaje por ID',
-    description: 'Retorna los detalles de un mensaje específico',
+    description:
+      'Retorna los detalles de un mensaje específico. ' +
+      'Soporta autenticación JWT y sesiones de visitante.',
   })
   @ApiParam({
     name: 'messageId',
@@ -259,6 +360,11 @@ export class MessageV2Controller {
     status: 200,
     description: 'Mensaje encontrado exitosamente',
     type: MessageResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
   })
   @ApiResponse({
     status: 403,
@@ -273,8 +379,16 @@ export class MessageV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageResponseDto> {
     try {
+      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
+      if (!req.user || !req.user.id) {
+        throw new HttpException(
+          'Se requiere autenticación para acceder al mensaje',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       this.logger.log(
-        `Obteniendo mensaje ${messageId} para usuario: ${req.user.id}`,
+        `Obteniendo mensaje ${messageId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
 
       // TODO: Implementar query handler
@@ -302,13 +416,23 @@ export class MessageV2Controller {
 
   /**
    * Marca mensajes como leídos
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Put('mark-as-read')
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Marcar mensajes como leídos',
     description:
-      'Marca una lista de mensajes como leídos por el usuario actual',
+      'Marca una lista de mensajes como leídos por el usuario actual. ' +
+      'Soporta autenticación JWT y sesiones de visitante.',
   })
   @ApiResponse({
     status: 200,
@@ -318,29 +442,40 @@ export class MessageV2Controller {
     status: 400,
     description: 'Lista de mensajes inválida',
   })
-  markAsRead(
+  @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
+  })
+  async markAsRead(
     @Body() markAsReadDto: MarkAsReadDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<{ success: boolean; markedCount: number }> {
     try {
+      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
+      if (!req.user || !req.user.id) {
+        throw new HttpException(
+          'Se requiere autenticación para marcar mensajes como leídos',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       this.logger.log(
-        `Marcando ${markAsReadDto.messageIds.length} mensajes como leídos para usuario: ${req.user.id}`,
+        `Marcando ${markAsReadDto.messageIds.length} mensajes como leídos para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
 
-      // TODO: Implementar command handler
-      // const command = new MarkMessagesAsReadCommand({
-      //   messageIds: markAsReadDto.messageIds,
-      //   readBy: req.user.id,
-      //   userRole: req.user.roles[0],
-      // });
+      const command = new MarkMessagesAsReadCommand(
+        markAsReadDto.messageIds,
+        req.user.id,
+        req.user.roles[0],
+      );
 
-      // const result = await this.commandBus.execute(command);
+      const result = await this.commandBus.execute<
+        MarkMessagesAsReadCommand,
+        { success: boolean; markedCount: number }
+      >(command);
 
-      // Respuesta temporal
-      return Promise.resolve({
-        success: true,
-        markedCount: markAsReadDto.messageIds.length,
-      });
+      return result;
     } catch (error) {
       this.logger.error('Error al marcar mensajes como leídos:', error);
       throw new HttpException(
@@ -352,12 +487,26 @@ export class MessageV2Controller {
 
   /**
    * Obtiene mensajes no leídos de un chat
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Get('chat/:chatId/unread')
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
+  @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Obtener mensajes no leídos de un chat',
-    description: 'Retorna los mensajes no leídos de un chat específico',
+    description:
+      'Retorna los mensajes no leídos de un chat específico. ' +
+      'Soporta autenticación JWT y sesiones de visitante.',
   })
   @ApiParam({
     name: 'chatId',
@@ -370,6 +519,11 @@ export class MessageV2Controller {
     type: [MessageResponseDto],
   })
   @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
+  })
+  @ApiResponse({
     status: 403,
     description: 'Sin permisos para acceder a este chat',
   })
@@ -377,26 +531,35 @@ export class MessageV2Controller {
     status: 404,
     description: 'Chat no encontrado',
   })
-  getUnreadMessages(
+  async getUnreadMessages(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageResponseDto[]> {
     try {
+      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
+      if (!req.user || !req.user.id) {
+        throw new HttpException(
+          'Se requiere autenticación para acceder a mensajes no leídos',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       this.logger.log(
-        `Obteniendo mensajes no leídos del chat ${chatId} para usuario: ${req.user.id}`,
+        `Obteniendo mensajes no leídos del chat ${chatId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
 
-      // TODO: Implementar query handler
-      // const query = new GetUnreadMessagesQuery({
-      //   chatId,
-      //   userId: req.user.id,
-      //   userRole: req.user.roles[0],
-      // });
+      const query = new GetUnreadMessagesQuery(
+        chatId,
+        req.user.id,
+        req.user.roles[0],
+      );
 
-      // const result = await this.queryBus.execute(query);
+      const result = await this.queryBus.execute<
+        GetUnreadMessagesQuery,
+        MessageResponseDto[]
+      >(query);
 
-      // Respuesta temporal
-      return Promise.resolve([]);
+      return result;
     } catch (error) {
       this.logger.error(
         `Error al obtener mensajes no leídos del chat ${chatId}:`,
@@ -411,9 +574,14 @@ export class MessageV2Controller {
 
   /**
    * Busca mensajes por contenido
+   * Requiere autenticación JWT (solo comerciales, admin, supervisores)
    */
   @Get('search')
+  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({
     summary: 'Buscar mensajes por contenido',
     description: 'Busca mensajes que contengan palabras clave específicas',
@@ -493,8 +661,10 @@ export class MessageV2Controller {
 
   /**
    * Obtiene estadísticas de conversación
+   * Requiere autenticación JWT (solo comerciales, admin, supervisores)
    */
   @Get('chat/:chatId/stats')
+  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener estadísticas de conversación',
@@ -571,8 +741,10 @@ export class MessageV2Controller {
 
   /**
    * Obtiene métricas de mensajería por período
+   * Requiere autenticación JWT (solo comerciales, admin, supervisores)
    */
   @Get('metrics')
+  @UseGuards(AuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor')
   @ApiOperation({
     summary: 'Obtener métricas de mensajería',
@@ -659,12 +831,26 @@ export class MessageV2Controller {
 
   /**
    * Obtiene mensajes con archivos adjuntos
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
    */
   @Get('attachments')
+  @UseGuards(OptionalAuthGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
+  @ApiCookieAuth('sid')
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante como cabecera HTTP alternativa',
+    required: false,
+    example: 'temp_1758226307441_5bjqvmz1vf3',
+  })
   @ApiOperation({
     summary: 'Obtener mensajes con archivos adjuntos',
-    description: 'Retorna mensajes que contienen archivos adjuntos',
+    description:
+      'Retorna mensajes que contienen archivos adjuntos. ' +
+      'Soporta autenticación JWT y sesiones de visitante.',
   })
   @ApiQuery({
     name: 'chatId',

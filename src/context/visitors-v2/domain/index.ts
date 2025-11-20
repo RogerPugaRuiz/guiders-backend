@@ -2,11 +2,25 @@
 export * from './value-objects/visitor-id';
 export * from './value-objects/domain-id';
 export * from './value-objects/visitor-fingerprint';
-export * from './value-objects/visitor-state';
+export * from './value-objects/visitor-connection';
+export * from './value-objects/visitor-lifecycle';
+export * from './value-objects/tenant-id';
+export * from './value-objects/site-id';
+export * from './value-objects/session-id';
+export * from './value-objects/session-timeout';
 
 // Events
 export * from './events/visitor-created.event';
 export * from './events/visitor-state-changed.event';
+export * from './events/visitor-connection-changed.event';
+export * from './events/session.events';
+
+// Domain Services
+export * from './visitor-connection.domain-service';
+export * from './session-management.domain-service';
+
+// Entities
+export * from './session.entity';
 
 // Errors
 export * from './errors/visitor-v2.error';

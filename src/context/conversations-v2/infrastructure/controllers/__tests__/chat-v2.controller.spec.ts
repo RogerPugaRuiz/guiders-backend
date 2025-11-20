@@ -6,6 +6,9 @@ import { CreateChatRequestDto } from '../../../application/dtos/create-chat-requ
 import { AuthenticatedRequest } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { VisitorSessionAuthService } from 'src/context/shared/infrastructure/services/visitor-session-auth.service';
+import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
 
 describe('ChatV2Controller', () => {
   let controller: ChatV2Controller;
@@ -27,6 +30,19 @@ describe('ChatV2Controller', () => {
     canActivate: jest.fn().mockReturnValue(true),
   };
 
+  const mockTokenVerifyService = {
+    verifyToken: jest.fn(),
+  };
+
+  const mockVisitorSessionAuthService = {
+    authenticateVisitor: jest.fn(),
+  };
+
+  const mockBffSessionAuthService = {
+    extractBffSessionTokens: jest.fn(),
+    validateBffSession: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatV2Controller],
@@ -38,6 +54,18 @@ describe('ChatV2Controller', () => {
         {
           provide: QueryBus,
           useValue: mockQueryBus,
+        },
+        {
+          provide: TokenVerifyService,
+          useValue: mockTokenVerifyService,
+        },
+        {
+          provide: VisitorSessionAuthService,
+          useValue: mockVisitorSessionAuthService,
+        },
+        {
+          provide: BffSessionAuthService,
+          useValue: mockBffSessionAuthService,
         },
       ],
     })

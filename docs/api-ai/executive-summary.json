@@ -1,0 +1,121 @@
+{
+  "overview": {
+    "totalEndpoints": 75,
+    "totalControllers": 18,
+    "contexts": 9,
+    "generated": "2025-09-26T07:50:22.742Z"
+  },
+  "contexts": [
+    {
+      "name": "auth",
+      "description": "Autenticación y autorización avanzada",
+      "controllers": 5,
+      "endpoints": 25
+    },
+    {
+      "name": "commercial",
+      "description": "Gestión de comerciales y conectividad",
+      "controllers": 1,
+      "endpoints": 7
+    },
+    {
+      "name": "company",
+      "description": "Gestión de empresas y sitios",
+      "controllers": 1,
+      "endpoints": 4
+    },
+    {
+      "name": "conversations",
+      "description": "Contexto conversations",
+      "controllers": 1,
+      "endpoints": 0
+    },
+    {
+      "name": "conversations-v2",
+      "description": "Sistema de chat V2 optimizado (MongoDB)",
+      "controllers": 3,
+      "endpoints": 23
+    },
+    {
+      "name": "shared",
+      "description": "Contexto shared",
+      "controllers": 1,
+      "endpoints": 2
+    },
+    {
+      "name": "tracking",
+      "description": "Seguimiento de intenciones y métricas",
+      "controllers": 2,
+      "endpoints": 2
+    },
+    {
+      "name": "visitors",
+      "description": "Gestión de visitantes V1 (legacy)",
+      "controllers": 1,
+      "endpoints": 5
+    },
+    {
+      "name": "visitors-v2",
+      "description": "Gestión de visitantes V2 optimizada",
+      "controllers": 3,
+      "endpoints": 7
+    }
+  ],
+  "endpoints": {
+    "byMethod": {
+      "GET": 38,
+      "POST": 28,
+      "PUT": 7,
+      "DELETE": 2
+    },
+    "byContext": [
+      {
+        "context": "auth",
+        "count": 25
+      },
+      {
+        "context": "commercial",
+        "count": 7
+      },
+      {
+        "context": "company",
+        "count": 4
+      },
+      {
+        "context": "conversations",
+        "count": 0
+      },
+      {
+        "context": "conversations-v2",
+        "count": 23
+      },
+      {
+        "context": "shared",
+        "count": 2
+      },
+      {
+        "context": "tracking",
+        "count": 2
+      },
+      {
+        "context": "visitors",
+        "count": 5
+      },
+      {
+        "context": "visitors-v2",
+        "count": 7
+      }
+    ]
+  },
+  "authentication": {
+    "methods": [
+      "Bearer JWT",
+      "OIDC"
+    ],
+    "roles": [
+      "admin",
+      "commercial",
+      "visitor"
+    ]
+  }
+}

@@ -20,9 +20,9 @@ export class MessageMapper {
     schema.senderId = messagePrimitives.senderId;
     schema.senderType = this.determineSenderType(messagePrimitives.senderId);
     schema.sentAt = messagePrimitives.createdAt;
-    schema.readAt = undefined; // Se actualizará cuando se marque como leído
-    schema.readBy = undefined;
-    schema.isRead = false;
+    schema.readAt = messagePrimitives.readAt;
+    schema.readBy = messagePrimitives.readBy;
+    schema.isRead = messagePrimitives.isRead;
     schema.isEdited = false;
     schema.editedAt = undefined;
     schema.isDeleted = false;
@@ -116,6 +116,9 @@ export class MessageMapper {
         : undefined,
       isInternal: schema.isInternal,
       isFirstResponse: false, // Se determinará en la lógica de negocio
+      isRead: schema.isRead,
+      readAt: schema.readAt,
+      readBy: schema.readBy,
       createdAt: schema.sentAt,
       updatedAt: schema.updatedAt || schema.sentAt,
     });

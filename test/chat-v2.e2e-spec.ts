@@ -19,8 +19,15 @@ import {
   ICommandHandler,
 } from '@nestjs/cqrs';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { OptionalAuthGuard } from '../src/context/shared/infrastructure/guards/optional-auth.guard';
 import { GetChatsWithFiltersQuery } from '../src/context/conversations-v2/application/queries/get-chats-with-filters.query';
+import { GetPendingQueueQueryHandler } from '../src/context/conversations-v2/application/queries/get-pending-queue.query-handler';
+import { CHAT_V2_REPOSITORY } from '../src/context/conversations-v2/domain/chat.repository';
+import { CHAT_QUEUE_CONFIG_SERVICE } from '../src/context/conversations-v2/domain/services/chat-queue-config.service';
+import { AssignChatToCommercialCommand } from '../src/context/conversations-v2/application/commands/assign-chat-to-commercial.command';
+import { GetChatByIdQuery as RealGetChatByIdQuery } from '../src/context/conversations-v2/application/queries/get-chat-by-id.query';
 
 // Tipos para evitar problemas de importación
 interface ChatListResponse {
@@ -76,13 +83,7 @@ interface MockRequest {
 }
 
 // Queries y Commands mock para testing
-class GetChatByIdQuery {
-  constructor(
-    public chatId: string,
-    public userId: string,
-    public userRole: string,
-  ) {}
-}
+// GetChatByIdQuery no usado - se usa RealGetChatByIdQuery directamente
 
 class GetCommercialChatsQuery {
   constructor(
@@ -102,13 +103,6 @@ class GetVisitorChatsQuery {
   ) {}
 }
 
-class GetPendingQueueQuery {
-  constructor(
-    public department?: string,
-    public limit?: number,
-  ) {}
-}
-
 class GetCommercialMetricsQuery {
   constructor(
     public commercialId: string,
@@ -122,14 +116,6 @@ class GetResponseTimeStatsQuery {
     public dateFrom: Date,
     public dateTo: Date,
     public groupBy: 'hour' | 'day' | 'week',
-  ) {}
-}
-
-class AssignChatToCommercialCommand {
-  constructor(
-    public chatId: string,
-    public commercialId: string,
-    public assignedBy: string,
   ) {}
 }
 
@@ -181,24 +167,59 @@ class GetChatsWithFiltersQueryHandler
   }
 }
 
+// Estado compartido para simular persistencia entre commands y queries
+const mockChatAssignments = new Map<string, string>();
+
 @Injectable()
-@QueryHandler(GetChatByIdQuery)
-class GetChatByIdQueryHandler implements IQueryHandler<GetChatByIdQuery> {
-  execute(query: GetChatByIdQuery): Promise<ChatResponse | null> {
+@QueryHandler(RealGetChatByIdQuery)
+class GetChatByIdQueryHandler implements IQueryHandler<RealGetChatByIdQuery> {
+  execute(query: RealGetChatByIdQuery): Promise<any> {
     if (query.chatId === 'nonexistent') {
-      return Promise.resolve(null); // Simular no encontrado
+      return Promise.resolve({
+        isOk: () => false,
+        isErr: () => true,
+        error: { message: 'Chat no encontrado' },
+      });
     }
+    // Usar assignedCommercialId del Map o valor por defecto
+    const assignedCommercialId =
+      mockChatAssignments.get(query.chatId) || 'commercial-1';
+
+    // Mock retorna Result.ok(chat) con método toPrimitives
     return Promise.resolve({
-      id: query.chatId,
-      status: 'ACTIVE',
-      visitorInfo: {
-        id: 'visitor-1',
-        name: 'Visitante Test',
-        email: 'visitor@test.com',
-      },
-      lastMessage: {
-        content: 'Mensaje de prueba',
-        timestamp: new Date().toISOString(),
+      isOk: () => true,
+      isErr: () => false,
+      value: {
+        toPrimitives: () => ({
+          id: query.chatId,
+          status: 'ASSIGNED',
+          priority: 'NORMAL',
+          visitorId: 'visitor-1',
+          assignedCommercialId,
+          availableCommercialIds: [],
+          createdAt: new Date().toISOString(),
+          firstResponseTime: new Date().toISOString(),
+          closedAt: null,
+          lastMessageDate: new Date().toISOString(),
+          totalMessages: 1,
+          updatedAt: new Date().toISOString(),
+          metadata: {
+            department: 'ventas',
+            source: 'website',
+            customFields: {},
+          },
+          visitorInfo: {
+            name: 'Visitante Test',
+            email: 'visitor@test.com',
+            phone: '+1234567890',
+            location: { city: 'Madrid', country: 'España' },
+            company: 'Acme Corp',
+            ipAddress: '192.168.1.1',
+            referrer: 'https://google.com',
+            userAgent: 'Mozilla/5.0',
+          },
+          tags: ['urgent'],
+        }),
       },
     });
   }
@@ -252,26 +273,99 @@ class GetVisitorChatsQueryHandler
   }
 }
 
-@Injectable()
-@QueryHandler(GetPendingQueueQuery)
-class GetPendingQueueQueryHandler
-  implements IQueryHandler<GetPendingQueueQuery>
-{
-  execute(query: GetPendingQueueQuery): Promise<ChatResponse[]> {
-    const limit = query.limit || 10;
+// Mock para el repositorio de chats
+class MockChatRepository {
+  async getPendingQueue(department?: string, limit?: number) {
+    const { ok } = await import('../src/context/shared/domain/result');
 
-    return Promise.resolve(
-      Array(Math.min(limit, 2))
-        .fill(0)
-        .map((_, index) => ({
-          id: `pending-chat-${index + 1}`,
+    // Simular objetos con la estructura que espera el controlador
+    const mockChats = [
+      {
+        id: { getValue: () => 'pending-chat-1' },
+        status: { value: 'PENDING' },
+        priority: { value: 'NORMAL' },
+        visitorId: { getValue: () => 'visitor-1' },
+        assignedCommercialId: null,
+        totalMessages: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+        department: department || 'general',
+        visitorInfo: {
+          toPrimitives: () => ({
+            id: 'visitor-1',
+            name: 'Visitante Test 1',
+            email: 'visitor1@test.com',
+          }),
+        },
+        metadata: {
+          toPrimitives: () => ({
+            department: department || 'general',
+            source: 'test',
+          }),
+        },
+        toPrimitives: () => ({
+          id: 'pending-chat-1',
           status: 'PENDING',
-          visitorInfo: {
-            id: `visitor-${index + 1}`,
-            name: `Visitante Pendiente ${index + 1}`,
-          },
-        })),
-    );
+          priority: 'NORMAL',
+          visitorId: 'visitor-1',
+          assignedCommercialId: null,
+          totalMessages: 1,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastMessageAt: new Date(),
+          department: department || 'general',
+        }),
+      },
+      {
+        id: { getValue: () => 'pending-chat-2' },
+        status: { value: 'PENDING' },
+        priority: { value: 'HIGH' },
+        visitorId: { getValue: () => 'visitor-2' },
+        assignedCommercialId: null,
+        totalMessages: 2,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+        department: department || 'general',
+        visitorInfo: {
+          toPrimitives: () => ({
+            id: 'visitor-2',
+            name: 'Visitante Test 2',
+            email: 'visitor2@test.com',
+          }),
+        },
+        metadata: {
+          toPrimitives: () => ({
+            department: department || 'general',
+            source: 'test',
+          }),
+        },
+        toPrimitives: () => ({
+          id: 'pending-chat-2',
+          status: 'PENDING',
+          priority: 'HIGH',
+          visitorId: 'visitor-2',
+          assignedCommercialId: null,
+          totalMessages: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastMessageAt: new Date(),
+          department: department || 'general',
+        }),
+      },
+    ];
+
+    // Aplicar límite si se especifica
+    const results = limit ? mockChats.slice(0, limit) : mockChats;
+    return ok(results);
+  }
+}
+
+// Mock para el servicio de configuración de cola
+class MockChatQueueConfigService {
+  isQueueModeEnabled(): boolean {
+    return true; // Simular que el modo cola está activado
   }
 }
 
@@ -328,18 +422,22 @@ class GetResponseTimeStatsQueryHandler
 class AssignChatToCommercialCommandHandler
   implements ICommandHandler<AssignChatToCommercialCommand>
 {
-  execute(command: AssignChatToCommercialCommand): Promise<ChatResponse> {
+  execute(command: AssignChatToCommercialCommand): Promise<any> {
     if (command.chatId === 'nonexistent') {
-      throw new Error('Chat no encontrado');
+      return Promise.resolve({
+        isOk: () => false,
+        isErr: () => true,
+        error: { message: 'Chat no encontrado' },
+      });
     }
+    // Guardar la asignación en el estado compartido
+    mockChatAssignments.set(command.chatId, command.commercialId);
 
+    // Mock retorna Result.ok({ assignedCommercialId })
     return Promise.resolve({
-      id: command.chatId,
-      status: 'ACTIVE',
-      visitorInfo: {
-        id: 'visitor-1',
-        name: 'Visitante Test',
-      },
+      isOk: () => true,
+      isErr: () => false,
+      value: { assignedCommercialId: command.commercialId },
     });
   }
 }
@@ -409,6 +507,38 @@ class MockRolesGuard {
   }
 }
 
+class MockOptionalAuthGuard {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<MockRequest>();
+    const authHeader = request.headers.authorization;
+
+    // Si no hay auth, permitir acceso (opcional)
+    if (!authHeader) {
+      return true;
+    }
+
+    // Si hay auth, validar y asignar usuario
+    let roles = ['commercial'];
+    if (authHeader.includes('visitor-token')) {
+      roles = ['visitor'];
+    } else if (authHeader.includes('admin-token')) {
+      roles = ['admin'];
+    } else if (authHeader.includes('supervisor-token')) {
+      roles = ['supervisor'];
+    }
+
+    request.user = {
+      id: 'test-user-id',
+      sub: 'test-user-sub',
+      roles,
+      username: 'test-user',
+      email: 'test@example.com',
+    };
+
+    return true;
+  }
+}
+
 describe('ChatV2Controller (e2e)', () => {
   let app: INestApplication<App>;
   let queryBus: QueryBus;
@@ -430,12 +560,25 @@ describe('ChatV2Controller (e2e)', () => {
         // Command handlers
         AssignChatToCommercialCommandHandler,
         CloseChatCommandHandler,
+        // Mock repositories and services
+        {
+          provide: CHAT_V2_REPOSITORY,
+          useClass: MockChatRepository,
+        },
+        {
+          provide: CHAT_QUEUE_CONFIG_SERVICE,
+          useClass: MockChatQueueConfigService,
+        },
       ],
     })
       .overrideGuard(AuthGuard)
       .useClass(MockAuthGuard)
+      .overrideGuard(DualAuthGuard)
+      .useClass(MockAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
+      .overrideGuard(OptionalAuthGuard)
+      .useClass(MockOptionalAuthGuard)
       .compile();
 
     app = module.createNestApplication();
@@ -627,7 +770,11 @@ describe('ChatV2Controller (e2e)', () => {
       return request(app.getHttpServer())
         .put(`/v2/chats/${chatId}/assign/${commercialId}`)
         .set('Authorization', `Bearer ${mockToken}`)
-        .expect(501); // NOT_IMPLEMENTED según el controller actual
+        .expect(200)
+        .expect((res) => {
+          expect(res.body).toHaveProperty('id', chatId);
+          expect(res.body).toHaveProperty('assignedCommercialId', commercialId);
+        });
     });
   });
 
@@ -668,28 +815,36 @@ describe('ChatV2Controller (e2e)', () => {
     });
 
     it('debe ejecutar GetChatByIdQuery correctamente', async () => {
-      const query = new GetChatByIdQuery('chat-123', 'user-id', 'commercial');
+      const query = new RealGetChatByIdQuery('chat-123');
 
       const result = await queryBus.execute(query);
 
       expect(result).toBeDefined();
-      expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('status');
-      expect(result).toHaveProperty('visitorInfo');
+      expect(result.isOk()).toBe(true);
+      const chat = result.value;
+      expect(chat.toPrimitives).toBeDefined();
+      const primitives = chat.toPrimitives();
+      expect(primitives).toHaveProperty('id');
+      expect(primitives).toHaveProperty('status');
+      expect(primitives).toHaveProperty('visitorInfo');
     });
 
     it('debe ejecutar AssignChatToCommercialCommand correctamente', async () => {
-      const command = new AssignChatToCommercialCommand(
-        'chat-123',
-        'commercial-456',
-        'admin-user',
-      );
+      const command = new AssignChatToCommercialCommand({
+        chatId: 'chat-123',
+        commercialId: 'commercial-456',
+        assignedBy: 'admin-user',
+        reason: 'manual',
+      });
 
       const result = await commandBus.execute(command);
 
       expect(result).toBeDefined();
-      expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('status');
+      expect(result.isOk()).toBe(true);
+      expect(result.value).toHaveProperty(
+        'assignedCommercialId',
+        'commercial-456',
+      );
     });
 
     it('debe ejecutar CloseChatCommand correctamente', async () => {

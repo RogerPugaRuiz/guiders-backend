@@ -8,11 +8,15 @@ import * as request from 'supertest';
 import { AuthUserController } from '../src/context/auth/auth-user/infrastructure/controllers/auth-user.controller';
 import { AuthUserService } from '../src/context/auth/auth-user/infrastructure/services/auth-user.service';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
 import { CqrsModule, QueryBus } from '@nestjs/cqrs';
 import { FindOneUserByIdQuery } from '../src/context/auth/auth-user/application/read/find-one-user-by-id.query';
+import { FindUserByKeycloakIdQuery } from '../src/context/auth/auth-user/application/queries/find-user-by-keycloak-id.query';
 import { Optional } from '../src/context/shared/domain/optional';
 import { UserAccountPrimitives } from '../src/context/auth/auth-user/domain/user-account.aggregate';
+import { err } from '../src/context/shared/domain/result';
+import { RepositoryError } from '../src/context/shared/domain/errors/repository.error';
 
 // Mock AuthUserService (solo métodos usados indirectamente por el controlador en otros endpoints)
 const mockAuthUserService: Partial<AuthUserService> = {
@@ -35,6 +39,8 @@ const baseUser: UserAccountPrimitives = {
   roles: ['admin'],
   companyId: 'company-xyz',
   isActive: true,
+  keycloakId: null,
+  avatarUrl: null,
 };
 
 const commercialUser: UserAccountPrimitives = {
@@ -48,14 +54,25 @@ const commercialUser: UserAccountPrimitives = {
   roles: ['commercial'],
   companyId: 'company-xyz',
   isActive: true,
+  keycloakId: null,
+  avatarUrl: null,
 };
 
 // Mock QueryBus
 class MockQueryBus {
   // Tipado laxo para emular QueryBus genérico evitando any
-  execute(query: unknown): Promise<Optional<{ user: UserAccountPrimitives }>> {
-    // Verificamos estructura mínima
+  execute(query: unknown): Promise<any> {
     const q: any = query;
+
+    // Handle FindUserByKeycloakIdQuery (returns Result)
+    if (q instanceof FindUserByKeycloakIdQuery) {
+      // No tenemos usuarios con Keycloak ID en este test, retornar error
+      return Promise.resolve(
+        err(new RepositoryError('User not found by Keycloak ID')),
+      );
+    }
+
+    // Handle FindOneUserByIdQuery (returns Optional)
     if (q instanceof FindOneUserByIdQuery) {
       if (q.userId === baseUser.id) {
         return Promise.resolve(Optional.of({ user: baseUser }));
@@ -67,12 +84,13 @@ class MockQueryBus {
         return Promise.resolve(Optional.of({ user: commercialUser }));
       }
     }
+
     return Promise.resolve(Optional.empty());
   }
 }
 
 // Mock Guards
-class MockAuthGuard {
+class MockDualAuthGuard {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
     const auth = req.headers.authorization as string | undefined;
@@ -140,7 +158,9 @@ describe('AuthUserController /user/auth/me (e2e)', () => {
       ],
     })
       .overrideGuard(AuthGuard)
-      .useClass(MockAuthGuard)
+      .useClass(MockDualAuthGuard)
+      .overrideGuard(DualAuthGuard)
+      .useClass(MockDualAuthGuard)
       .overrideGuard(RolesGuard)
       .useClass(MockRolesGuard)
       .compile();

@@ -46,6 +46,32 @@ export class VisitorInfoResponseDto {
 }
 
 /**
+ * DTO de respuesta para información del comercial asignado
+ */
+export class AssignedCommercialResponseDto {
+  @ApiProperty({
+    description: 'ID único del comercial',
+    example: '6430f3f5-0095-4057-9fdf-dba045b9a46c',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Nombre del comercial',
+    example: 'Juan Pérez',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'URL del avatar del comercial en S3',
+    example:
+      'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
+    required: false,
+    nullable: true,
+  })
+  avatarUrl?: string | null;
+}
+
+/**
  * DTO de respuesta para metadatos del chat
  */
 export class ChatMetadataResponseDto {
@@ -135,11 +161,21 @@ export class ChatResponseDto {
   visitorInfo: VisitorInfoResponseDto;
 
   @ApiProperty({
-    description: 'ID del comercial asignado',
+    description:
+      'ID del comercial asignado (DEPRECATED: usar assignedCommercial.id)',
     example: '550e8400-e29b-41d4-a716-446655440001',
     required: false,
+    deprecated: true,
   })
   assignedCommercialId?: string;
+
+  @ApiProperty({
+    description: 'Información del comercial asignado al chat',
+    type: AssignedCommercialResponseDto,
+    required: false,
+    nullable: true,
+  })
+  assignedCommercial?: AssignedCommercialResponseDto | null;
 
   @ApiProperty({
     description: 'IDs de comerciales disponibles para asignación',
@@ -262,9 +298,16 @@ export class ChatResponseDto {
   satisfactionRating?: number;
 
   // Construye DTO desde entidad dominio (tipos flexibles durante integración)
-  static fromDomain(chat: {
-    toPrimitives: () => ChatPrimitives;
-  }): ChatResponseDto {
+  static fromDomain(
+    chat: {
+      toPrimitives: () => ChatPrimitives;
+    },
+    assignedCommercialData?: {
+      id: string;
+      name: string;
+      avatarUrl?: string | null;
+    } | null,
+  ): ChatResponseDto {
     const p = chat.toPrimitives();
     const dto = new ChatResponseDto();
     dto.id = p.id;
@@ -272,6 +315,18 @@ export class ChatResponseDto {
     dto.priority = p.priority;
     dto.visitorId = p.visitorId;
     dto.assignedCommercialId = p.assignedCommercialId;
+
+    // Enriquecer con datos del comercial si están disponibles
+    if (p.assignedCommercialId && assignedCommercialData) {
+      dto.assignedCommercial = {
+        id: assignedCommercialData.id,
+        name: assignedCommercialData.name,
+        avatarUrl: assignedCommercialData.avatarUrl ?? null,
+      };
+    } else {
+      dto.assignedCommercial = null;
+    }
+
     dto.availableCommercialIds = [...p.availableCommercialIds];
     dto.createdAt = p.createdAt;
     dto.assignedAt = p.firstResponseTime;

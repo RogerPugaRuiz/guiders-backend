@@ -1,74 +1,362 @@
-## Guiders Backend · Instrucciones Clave para Agentes
+# Guiders Backend - Instrucciones para Agentes AI
 
-Objetivo: cambios seguros y rápidos en backend NestJS 11 con DDD + CQRS, multi‑persistencia (PostgreSQL + Mongo) y WebSockets.
+Backend NestJS 11 con arquitectura DDD+CQRS, multi-persistencia (PostgreSQL + MongoDB) y comunicación real-time.
 
-### 1. Estructura & Fronteras
-`src/context/<ctx>/{domain,application,infrastructure}`. Contextos: auth, company, conversations (V1 SQL legacy), conversations-v2 (Mongo), real-time, visitors, tracking, shared. Reglas de dependencia: domain ⇒ (nada interno), application ⇒ domain, infrastructure ⇒ application/domain. Nunca importar infraestructura dentro de dominio. `shared` contiene value objects, `Result`, criteria/utilidades.
+## Arquitectura Core
 
-### 2. Modelado de Dominio
-Aggregates = clases que extienden `AggregateRoot`, campos `private readonly`. Fábricas: `create()` (emite evento) vs `fromPrimitives()` (rehidrata sin eventos). Reutiliza VO existentes en `shared/domain/value-objects` antes de crear nuevos. Validaciones esperadas devuelven `Result.failure`, evita lanzar excepciones salvo casos realmente excepcionales.
+### Estructura de Contextos
+```
+src/context/<contexto>/
+  ├── domain/              # Lógica de negocio pura (sin deps externas)
+  │   ├── entities/        # Aggregates (extienden AggregateRoot)
+  │   ├── value-objects/   # Inmutables con validación
+  │   ├── events/          # Eventos de dominio
+  │   └── <entity>.repository.ts  # Interface + Symbol
+  ├── application/         # Orquestación
+  │   ├── commands/        # Write operations (@CommandHandler)
+  │   ├── queries/         # Read operations (@QueryHandler)  
+  │   ├── events/          # Side-effects (<Action>On<Event>EventHandler)
+  │   └── dtos/           # Contratos API
+  └── infrastructure/      # Adaptadores externos
+      ├── controllers/     # HTTP/WebSocket endpoints
+      ├── persistence/     # Repos (TypeORM/Mongoose)
+      │   ├── impl/       # Implementaciones
+      │   └── entity/     # Entidades ORM
+      └── services/       # Integraciones externas
+```
 
-### 3. Eventos de Dominio
-Handler side‑effect: `<AccionNueva>On<OriginalEvent>EventHandler` (ej: `CreateApiKeyOnCompanyCreatedEventHandler`). Publicación correcta en command handler: `const aggCtx = publisher.mergeObjectContext(agg); await repo.save(aggCtx); aggCtx.commit();` (sin `commit()` no se despacha el evento). Nuevos eventos en `domain/events`, no en infraestructura.
+**Regla de dependencia**: `domain` ⇏ nada, `application` → `domain`, `infrastructure` → `application` + `domain`.
 
-### 4. Persistencia & Repositorios
-En dominio: interface + símbolo `export const X_REPOSITORY = Symbol('XRepository');`. Métodos base: `save, findById, findAll, delete, update, findOne, match` + semánticos. Infraestructura implementa en `infrastructure/persistence/impl`. Usar mappers dominio↔persistencia (nunca retornar entidades TypeORM/Mongoose fuera). Filtros complejos encapsulados (no reconstruir en controllers/gateways). En Mongo usar proyecciones para minimizar carga.
+### Contextos Activos
+- **V2 (MongoDB)**: `conversations-v2`, `visitors-v2` → Nuevas features aquí
+- **V1 (PostgreSQL)**: `conversations`, `visitors` → Solo mantenimiento
+- **Core**: `auth` (users/visitors/api-keys/bff), `company`, `tracking`, `real-time`
+- **Shared**: Value objects comunes, `Result`, `Criteria`, utilidades
 
-### 5. Multi‑Persistencia & Versiones de Chat
-PostgreSQL (TypeORM) para auth/company/visitors/tracking/conversations (V1). Mongo (Mongoose) para conversations-v2 (alto volumen + métricas). Al añadir campo: (1) VO/aggregate (2) migración SQL o schema + índice Mongo (3) mapper (4) repo (5) tests (unit + int si afecta queries) (6) actualizar README + Swagger si cambia contrato. Preferir V2 para nuevas features de chat; V1 sólo mantenimiento.
+## Patrones Fundamentales
 
-### 6. Real-Time (WebSockets)
-Gateway en `real-time/infrastructure/websocket.gateway.ts`. Siempre guards: `WsAuthGuard`, `WsRolesGuard` + `@Roles(['visitor']|['commercial','admin'])`. Gateway = orquestador: delega a CommandBus/QueryBus/servicios. Respuestas uniformes con `ResponseBuilder.create().addSuccess(true).addMessage('..').addData({}).build()`. No lógica de dominio ni queries manuales dentro del gateway. Reconexión con timeout de 3s para evitar desconexiones temporales.
+### 1. Modelado de Dominio
+```typescript
+// Aggregate Root
+export class Chat extends AggregateRoot {
+  private constructor(
+    private readonly _id: ChatId,
+    private readonly _status: ChatStatus,
+    // ... más campos private readonly
+  ) { super(); }
 
-### 7. CQRS & Handlers
-Commands: `@CommandHandler(XCommand)` en `application/commands/`. Queries: `@QueryHandler(XQuery)` en `application/queries/`. Inyección repos via `@Inject(X_REPOSITORY)`. Command handlers usan `EventPublisher.mergeObjectContext(agg)` + `commit()`. Query handlers optimizan lectura con criterios/filtros encapsulados. EventHandlers en `application/events/` con patrón `<NewAction>On<OldEvent>EventHandler`.
+  // Factory que emite evento
+  static create(visitorId: VisitorId, companyId: CompanyId): Chat {
+    const chat = new Chat(ChatId.generate(), ChatStatus.pending(), /* ... */);
+    chat.apply(new ChatCreatedEvent(chat.toPrimitives()));
+    return chat;
+  }
 
-### 8. Patrón Result & Error Handling
-Usar `Result<T, E extends DomainError>` de `shared/domain/result.ts` para validaciones esperadas. `ok(value)`, `err(error)`, `okVoid()`. Métodos: `isOk()`, `isErr()`, `map()`, `fold()`, `unwrap()`. No lanzar excepciones en flujo normal, solo para casos realmente excepcionales. Controllers convierten Result en HTTP responses apropiados.
+  // Rehidratación sin eventos
+  static fromPrimitives(data: ChatPrimitives): Chat {
+    return new Chat(
+      ChatId.create(data.id),
+      ChatStatus.create(data.status),
+      // ...
+    );
+  }
 
-### 9. Testing & Calidad
-Unit (`npm run test:unit`) usa SQLite en memoria. Integración (`npm run test:int`) y E2E (`npm run test:e2e`) levantan Postgres + Mongo. Cobertura verificada por `scripts/check-coverage-threshold.js`. Patrón tests: mock CommandBus/QueryBus, override guards con MockAuthGuard/MockRolesGuard, usar `Test.createTestingModule()`. Para aggregates: caso éxito + VO inválido + evento emitido. Usar generadores (`Uuid.random().value`).
+  toPrimitives(): ChatPrimitives {
+    return { id: this._id.value, status: this._status.value, /* ... */ };
+  }
+}
+```
 
-### 10. CLI Interna
-`bin/guiders-cli.js`: `clean-database --force`, `create-company`, `create-company-with-admin`. Útil para preparar datos en E2E o reproducir escenarios.
+**Value Objects**: Extender `PrimitiveValueObject` o reutilizar de `shared/domain/value-objects`. No crear método `create()` si ya está en la base.
 
-### 11. Anti‑Patrones (bloquear)
-Lógica de negocio en controllers/gateways; excepciones para flujo validable; concatenar SQL manual; exponer entidades ORM/Mongoose; duplicar filtros fuera del repo; lógica en schemas Mongo; olvidar `commit()`; mezclar concerns dominio<->infraestructura; handlers que no siguen convención de nombres.
+### 2. Result Pattern (Error Handling)
+```typescript
+import { Result, ok, err, okVoid } from 'shared/domain/result';
 
-### 12. Checklist PR Express
-[] VO/Result aplicados correctamente
-[] Eventos publicados con `mergeObjectContext` + `commit()`
-[] Repos esconden detalles de filtrado / devuelven dominio puro
-[] Migración o índice creado si campo nuevo filtrable
-[] Tests (unit + int/E2E si procede) verdes y cobertura ok
-[] Lint/format ok
-[] Swagger + README(s) actualizados si cambia contrato
+async findById(id: ChatId): Promise<Result<Chat, DomainError>> {
+  try {
+    const entity = await this.repository.findOne({ where: { id: id.value } });
+    if (!entity) {
+      return err(new ChatNotFoundError(`Chat ${id.value} no encontrado`));
+    }
+    return ok(ChatMapper.fromPersistence(entity));
+  } catch (error) {
+    return err(new ChatPersistenceError(error.message));
+  }
+}
 
-### 13. Decisiones Clave (Why)
-Mongo para chats (latencia + agregaciones); separación CQRS para optimizar reads/writes; eventos desacoplan side‑effects (ej: API Key tras CompanyCreated); VO + Result centralizan invariantes reduciendo ruido; WebSocket guards garantizan autorización por rol.
+// En controller
+const result = await this.queryBus.execute(new GetChatQuery(id));
+if (result.isErr()) {
+  throw new NotFoundException(result.error.message);
+}
+return result.unwrap(); // Safe después de isErr check
+```
 
-### 14. Flujo Rápido de Nueva Feature
-1. Definir Command/Query + DTO. 2. Implementar handler orquestando repos + dominio. 3. Ajustar aggregate/VO y emitir evento si aplica. 4. Persistir + `commit()`. 5. Exponer vía controller o WS. 6. Añadir tests mínimos. 7. Actualizar docs si cambia contrato.
+**Regla**: No lanzar excepciones para flujos validables. Usar `Result` para errores esperados.
 
-¿Algo poco claro o falta un patrón? Pide aclaración antes de introducir uno nuevo.
+### 3. Eventos de Dominio (CRÍTICO)
+```typescript
+@CommandHandler(CreateChatCommand)
+export class CreateChatCommandHandler {
+  constructor(
+    @Inject(CHAT_REPOSITORY) private repo: ChatRepository,
+    private publisher: EventPublisher
+  ) {}
+
+  async execute(cmd: CreateChatCommand): Promise<Result<string, DomainError>> {
+    const chat = Chat.create(cmd.visitorId, cmd.companyId);
+    
+    // CRÍTICO: mergeObjectContext + commit()
+    const chatCtx = this.publisher.mergeObjectContext(chat);
+    const saveResult = await this.repo.save(chatCtx);
+    if (saveResult.isErr()) return saveResult;
+    
+    chatCtx.commit(); // ⚠️ Sin esto, eventos NO se publican
+    return ok(chat.getId().value);
+  }
+}
+
+// Event Handler (side-effects)
+@EventsHandler(ChatCreatedEvent)
+export class NotifyCommercialOnChatCreatedEventHandler {
+  // Nombre: <AcciónNueva>On<EventoOriginal>EventHandler
+}
+```
+
+### 4. Repositorios & Persistencia
+```typescript
+// Domain interface
+export interface ChatRepository {
+  save(chat: Chat): Promise<Result<void, DomainError>>;
+  findById(id: ChatId): Promise<Result<Chat, DomainError>>;
+  match(criteria: Criteria<Chat>): Promise<Result<Chat[], DomainError>>;
+}
+export const CHAT_REPOSITORY = Symbol('ChatRepository');
+
+// Infrastructure implementation
+@Injectable()
+export class MongoChatRepositoryImpl implements ChatRepository {
+  constructor(
+    @InjectModel(ChatMongoEntity.name) private model: Model<ChatDocument>
+  ) {}
+
+  async match(criteria: Criteria<Chat>): Promise<Result<Chat[], DomainError>> {
+    const fieldMap = { id: '_id', status: 'status', createdAt: 'createdAt' };
+    const query = CriteriaConverter.toMongoQuery(criteria, fieldMap);
+    const docs = await this.model.find(query).exec();
+    return ok(docs.map(ChatMapper.fromPersistence));
+  }
+}
+
+// En módulo
+providers: [
+  { provide: CHAT_REPOSITORY, useClass: MongoChatRepositoryImpl }
+]
+```
+
+**Mappers**: `toPersistence(aggregate)` / `fromPersistence(entity)`. Nunca exponer entidades ORM/Mongoose fuera de infra.
+
+### 5. CQRS Handlers
+```typescript
+// Command (write)
+@CommandHandler(SendMessageCommand)
+export class SendMessageCommandHandler {
+  async execute(cmd: SendMessageCommand): Promise<Result<void, DomainError>> {
+    // Orquestar: validar, modificar aggregate, persistir, publicar eventos
+  }
+}
+
+// Query (read)
+@QueryHandler(GetChatsWithFiltersQuery)
+export class GetChatsWithFiltersQueryHandler {
+  async execute(query: GetChatsWithFiltersQuery): Promise<ChatListResult> {
+    // Optimizar lectura con proyecciones, índices, criterios encapsulados
+  }
+}
+```
+
+## Testing Patterns
+
+### Unit Tests
+```typescript
+describe('AssignChatToCommercialCommandHandler', () => {
+  let handler: AssignChatToCommercialCommandHandler;
+  let mockRepo: jest.Mocked<ChatRepository>;
+
+  beforeEach(async () => {
+    mockRepo = { findById: jest.fn(), update: jest.fn(), /* ... */ };
+    const module = await Test.createTestingModule({
+      providers: [
+        AssignChatToCommercialCommandHandler,
+        { provide: CHAT_REPOSITORY, useValue: mockRepo },
+        { provide: EventPublisher, useValue: { mergeObjectContext: jest.fn() } }
+      ]
+    }).compile();
+    handler = module.get(AssignChatToCommercialCommandHandler);
+  });
+
+  it('debe asignar exitosamente con UUIDs válidos', async () => {
+    const chatId = Uuid.random().value; // ⚠️ Usar UUIDs reales
+    const commercialId = Uuid.random().value;
+    
+    mockRepo.findById.mockResolvedValue(ok(mockChat));
+    mockRepo.update.mockResolvedValue(okVoid());
+    
+    const result = await handler.execute(new AssignCommand({ chatId, commercialId }));
+    expect(result.isOk()).toBe(true);
+    expect(result.unwrap()).toEqual({ assignedCommercialId: commercialId });
+  });
+});
+```
+
+**Comandos**:
+- Unit: `npm run test:unit` (SQLite en memoria, fast)
+- Integración: `npm run test:int` (Postgres + Mongo reales)
+- E2E: `npm run test:e2e` (servidor completo)
+
+**Patrón E2E**:
+- Usar servicios reales (docker-compose con perfiles `test`)
+- Mock guards: `MockAuthGuard`, `MockOptionalAuthGuard`
+- Mock domain objects con `toPrimitives()` y `getValue()`
+- Timeout: 120s (configurado en jest)
+
+### 6. WebSockets (Real-Time)
+```typescript
+@WebSocketGateway()
+@UseGuards(WsAuthGuard, WsRolesGuard)
+export class ChatGateway {
+  @SubscribeMessage('chat:send-message')
+  @Roles(['visitor', 'commercial'])
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: SendMessageDto) {
+    // ⚠️ Siempre delegar a CommandBus/QueryBus
+    const result = await this.commandBus.execute(new SendMessageCommand(payload));
+    
+    // Respuesta uniforme
+    return ResponseBuilder.create()
+      .addSuccess(result.isOk())
+      .addMessage(result.isOk() ? 'Mensaje enviado' : result.error.message)
+      .addData(result.isOk() ? result.unwrap() : null)
+      .build();
+  }
+}
+```
+
+**Guards**: `WsAuthGuard` + `WsRolesGuard` obligatorios. Gateway = orquestador, sin lógica de dominio.
+
+## Multi-Persistencia
+
+### PostgreSQL (TypeORM)
+- Contextos: `auth`, `company`, `tracking`, `conversations` (V1), `visitors` (V1)
+- Uso: Datos transaccionales, relaciones complejas, integridad referencial
+
+```typescript
+// CriteriaConverter para queries seguras
+const { sql, parameters } = CriteriaConverter.toPostgresSql(
+  criteria,
+  'visitors',
+  { id: 'id', name: 'name', email: 'email' }
+);
+const entities = await this.repository
+  .createQueryBuilder('visitors')
+  .where(sql.replace(/^WHERE /, ''))
+  .setParameters(parameters)
+  .getMany();
+```
+
+### MongoDB (Mongoose)
+- Contextos: `conversations-v2`, `visitors-v2`, `commercial`
+- Uso: Alto volumen, agregaciones, métricas, queries complejas de lectura
+
+```typescript
+// Proyecciones para performance
+const chats = await this.model
+  .find(query)
+  .select('_id status createdAt') // Solo campos necesarios
+  .lean() // Plain JS objects, no Mongoose overhead
+  .exec();
+```
+
+**Migración V1→V2**: Coexistencia temporal. Nuevas features solo en V2.
+
+## API Key Flow (Public APIs)
+
+```typescript
+// 1. Frontend envía domain + apiKey (externos)
+POST /api/visitors/identify
+{ "domain": "example.com", "apiKey": "abc123", ... }
+
+// 2. Handler auto-resuelve tenant/site
+const validation = await this.validateApiKey.execute(command.domain, command.apiKey);
+if (validation.isErr()) return validation;
+
+const companyResult = await this.companyRepo.findByDomain(command.domain);
+const company = companyResult.unwrap();
+
+const sites = company.getSites().toPrimitives();
+const targetSite = sites.find(s => 
+  s.canonicalDomain === command.domain || 
+  s.domainAliases.includes(command.domain)
+);
+
+// 3. Generar UUIDs internos
+const tenantId = new TenantId(company.getId().getValue());
+const siteId = new SiteId(targetSite.id);
+```
+
+## Desarrollo Rápido
+
+### CLI Interna
+```bash
+node bin/guiders-cli.js clean-database --force
+node bin/guiders-cli.js create-company-with-admin \
+  --name "Test Co" --domain "test.com" \
+  --adminName "Admin" --adminEmail "admin@test.com"
+```
+
+### Workflow Nueva Feature
+1. **Domain**: VO → Aggregate → Events → Repository interface
+2. **Application**: Command/Query → Handler → DTO
+3. **Infrastructure**: Controller → Repository impl → Mappers
+4. **Persistencia**: Migración SQL / Schema Mongo + índices
+5. **Tests**: Unit (domain logic) + Integration (repos) + E2E (endpoints)
+6. **Docs**: Swagger + README si cambia contrato
+
+### Autenticación Dual
+- **DualAuthGuard**: JWT Bearer || BFF cookies (Keycloak) || Visitor session → Falla si ninguno válido
+- **OptionalAuthGuard**: Mismos métodos pero NO falla → Poblar `request.user` si hay auth
+
+## Anti-Patrones (Bloquear)
+
+❌ Lógica de negocio en controllers/gateways  
+❌ Excepciones para flujo validable (usar `Result`)  
+❌ SQL manual concatenado (usar `CriteriaConverter` + QueryBuilder)  
+❌ Exponer entidades TypeORM/Mongoose fuera de infra  
+❌ Olvidar `commit()` en command handlers → eventos no se publican  
+❌ Importar infra desde domain  
+❌ Handlers sin patrón de nombres `<Action>On<Event>EventHandler`  
+❌ UUIDs fake en tests (usar `Uuid.random().value`)
+
+## Checklist PR
+
+- [ ] VO/Result aplicados correctamente
+- [ ] Eventos publicados con `mergeObjectContext` + `commit()`
+- [ ] Repos usan mappers y esconden detalles ORM
+- [ ] Migración/índice creado si campo filtrable nuevo
+- [ ] Tests verdes (unit + int/E2E si aplica) y cobertura OK
+- [ ] `npm run lint` y `npm run format` sin errores
+- [ ] Swagger + READMEs actualizados si cambia contrato
+
+## Idioma
+
+**Código**: Identificadores en inglés  
+**Documentación**: Comentarios, Swagger, mensajes de error en español técnico neutro  
+**Excepción**: APIs externas / protocolos estándar (OAuth, etc.) requieren inglés
 
 ---
-### 14. Política de Idioma
-Comentarios de código, descripciones Swagger y mensajes de error/validación deben utilizar español técnico neutro (mismo criterio que commits y revisiones). Excepciones:
-- Integraciones externas o SDK públicos que ya exponen contratos/documentación en inglés.
-- Mensajes que formen parte de un protocolo estandarizado (p.ej. errores OAuth) donde el inglés sea requerido.
-En ausencia de estas excepciones, prioriza español claro, conciso y consistente. Evita traducciones literales innecesarias y mantén nombres de tipos/clases/identificadores en inglés (convención habitual) mientras la explicación contextual (comentarios, docs, mensajes) va en español.
 
-Resumen rápido:
-- Código (identificadores): inglés.
-- Comentarios // y /* */: español técnico neutro.
-- Swagger `summary` / `description`: español técnico neutro.
-- Mensajes de Error (exceptions, validation pipes): español técnico neutro salvo se requiera inglés por contrato externo.
-- Commits y Revisiones: ya definido (español técnico neutro).
-
-Esta política evita mezcla arbitraria y facilita lectura al equipo actual; si cambia la composición lingüística del equipo, se podrá revisar.
-
----
+**Contextos específicos**: Ver `src/context/<ctx>/README.md` para detalles por contexto.  
+**Instrucciones específicas**: `.github/instructions/{domain,infrastructure,tests}.instructions.md` aplican automáticamente por patrón de archivo.
 ### Context7 (cuándo leer docs externas)
 Usar solo si falta en repo y afecta decisión (APIs Angular 20, signals avanzados, DI tree-shakable, Jest timers). Proceso: buscar local → si falta `resolve-library-id` → `get-library-docs(topic)` tokens ≤6000 → resumir y aplicar citando ("Context7: signals"). No para sintaxis básica.
 

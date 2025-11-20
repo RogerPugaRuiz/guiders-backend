@@ -10,6 +10,14 @@ import { DomainError } from '../../shared/domain/domain.error';
 export const VISITOR_V2_REPOSITORY = Symbol('VisitorV2Repository');
 
 /**
+ * Resultado paginado con count total para queries con paginación
+ */
+export interface PaginatedVisitorsResult {
+  visitors: VisitorV2[];
+  totalCount: number;
+}
+
+/**
  * Repositorio de dominio para VisitorV2
  * Define los métodos principales del repositorio de visitantes V2
  */
@@ -63,4 +71,88 @@ export interface VisitorV2Repository {
    * Actualiza un visitante existente
    */
   update(visitor: VisitorV2): Promise<Result<void, DomainError>>;
+
+  /**
+   * Busca visitantes que tienen sesiones activas (sin endedAt)
+   */
+  findWithActiveSessions(options?: {
+    tenantId?: TenantId;
+    limit?: number;
+  }): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un sitio con información extendida para reportes
+   * Retorna los visitantes paginados y el count total de registros
+   */
+  findBySiteIdWithDetails(
+    siteId: SiteId,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>>;
+
+  /**
+   * Busca visitantes de un sitio que tienen chats no asignados
+   */
+  findWithUnassignedChatsBySiteId(
+    siteId: SiteId,
+    options?: {
+      maxWaitTimeMinutes?: number;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un sitio que tienen chats en cola (PENDING)
+   */
+  findWithQueuedChatsBySiteId(
+    siteId: SiteId,
+    options?: {
+      priorityFilter?: string[];
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un tenant con información extendida para reportes
+   * Retorna los visitantes paginados y el count total de registros
+   */
+  findByTenantIdWithDetails(
+    tenantId: TenantId,
+    options?: {
+      includeOffline?: boolean;
+      limit?: number;
+      offset?: number;
+      sortBy?: string;
+      sortOrder?: string;
+    },
+  ): Promise<Result<PaginatedVisitorsResult, DomainError>>;
+
+  /**
+   * Busca visitantes de un tenant que tienen chats no asignados
+   */
+  findWithUnassignedChatsByTenantId(
+    tenantId: TenantId,
+    options?: {
+      maxWaitTimeMinutes?: number;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes de un tenant que tienen chats en cola (PENDING)
+   */
+  findWithQueuedChatsByTenantId(
+    tenantId: TenantId,
+    options?: {
+      priorityFilter?: string[];
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<Result<VisitorV2[], DomainError>>;
 }

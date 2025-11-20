@@ -1,12 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import RedisStore from 'connect-redis';
 import { createClient, type RedisClientType } from 'redis';
 import * as fs from 'fs';
+import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+
+// Tipo reducido para evitar callbacks (que introducen any en tipos externos) y pasar lint estricto.
+interface SafeCorsOptions {
+  origin?: boolean | string | RegExp | (string | RegExp)[];
+  credentials?: boolean;
+  methods?: string | string[];
+  allowedHeaders?: string | string[];
+  exposedHeaders?: string | string[];
+}
 
 async function bootstrap() {
   // HTTPS opcional en desarrollo/entornos locales
@@ -79,8 +89,12 @@ async function bootstrap() {
   // No permitir SameSite=None sin Secure en cookies de sesión (Chrome las rechaza)
   const sessionSecure = process.env.NODE_ENV === 'production';
   let sessionSameSite: SameSiteOption = resolveSameSite(process.env.SAMESITE);
-  if (!sessionSecure && sessionSameSite === 'none') {
-    // En desarrollo, forzamos Lax para que el navegador no la rechace
+  if (
+    !sessionSecure &&
+    sessionSameSite === 'none' &&
+    process.env.ALLOW_DEV_SAMESITE_NONE_SESSION !== 'true'
+  ) {
+    // En desarrollo, forzamos Lax salvo que se habilite override explícito
     sessionSameSite = 'lax';
   }
 
@@ -105,9 +119,90 @@ async function bootstrap() {
   // Excluimos docs y jwks; health queda bajo /api/health
   app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json', '/jwks'] });
 
-  // CORS deshabilitado en NestJS - NGINX se encarga de manejar CORS
-  // Configuración movida a NGINX para mejor rendimiento y centralización
-  // app.enableCors() removido intencionalmente
+  // Configurar validación global para DTOs
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Remueve propiedades no definidas en el DTO
+      forbidNonWhitelisted: true, // Lanza error si hay propiedades no permitidas
+      transform: true, // Transforma tipos automáticamente
+      transformOptions: {
+        enableImplicitConversion: true, // Convierte tipos implícitamente
+      },
+    }),
+  );
+
+  // CORS: configuración explícita para soportar cookies (credentials: true) sin abrir todo (*)
+  // Problema original: uso directo de app.use(cors({...})) o origin:true podía provocar orígenes no deseados.
+  // Estrategia: variable de entorno CORS_ALLOWED_ORIGINS = lista separada por comas.
+  // Ejemplo: CORS_ALLOWED_ORIGINS="http://localhost:8082,http://localhost:8080,https://app.frontend.com"
+  const parseAllowedOrigins = (raw: unknown): string[] => {
+    if (typeof raw !== 'string') return [];
+    const parts = raw.split(',');
+    const result: string[] = [];
+    for (const p of parts) {
+      const t = p.trim();
+      if (t) result.push(t);
+    }
+    return result;
+  };
+  const parsedAllowed: string[] = parseAllowedOrigins(
+    process.env.CORS_ALLOWED_ORIGINS,
+  );
+
+  const isDevLike =
+    process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const corsMethods: ReadonlyArray<string> = [
+    'GET',
+    'POST',
+    'PUT',
+    'DELETE',
+    'PATCH',
+    'OPTIONS',
+  ];
+  const corsAllowedHeaders: ReadonlyArray<string> = [
+    'Content-Type',
+    'Authorization',
+    'Cookie',
+    'X-Requested-With',
+    'X-API-Key',
+    'X-Guiders-Sid',
+  ];
+  const corsExposedHeaders: ReadonlyArray<string> = ['Set-Cookie'];
+  const baseCors: SafeCorsOptions = {
+    credentials: true,
+    methods: [...corsMethods],
+    allowedHeaders: [...corsAllowedHeaders],
+    exposedHeaders: [...corsExposedHeaders],
+  };
+
+  if (parsedAllowed.length > 0) {
+    // Validación estricta con callback tipado (necesario para entornos cross-origin con cookies)
+    const corsDebug = process.env.CORS_DEBUG === 'true';
+    const originFn: NonNullable<CorsOptions['origin']> = (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin) {
+        if (corsDebug) console.log('[CORS] Sin header Origin -> permitido');
+        callback(null, true); // peticiones sin header Origin (curl / SSR interno)
+        return;
+      }
+      if (parsedAllowed.includes(origin)) {
+        if (corsDebug) console.log(`[CORS] Origen permitido: ${origin}`);
+        callback(null, true);
+        return;
+      }
+      if (corsDebug) console.warn(`[CORS] Origen denegado: ${origin}`);
+      callback(new Error(`Origen no permitido por CORS: ${origin}`));
+    };
+    app.enableCors({
+      ...baseCors,
+      origin: originFn,
+    } as CorsOptions);
+  } else if (isDevLike) {
+    // Desarrollo abierto (solo para DX). NO usar en producción con cookies cross-site.
+    app.enableCors({ ...baseCors, origin: true } as CorsOptions);
+  }
 
   // Configuración de Swagger
   const config = new DocumentBuilder()
@@ -135,12 +230,12 @@ async function bootstrap() {
     `Application is running in ${process.env.NODE_ENV || 'development'} mode`,
   );
   logger.log(`Global prefix: api (excluded: /docs, /docs-json, /jwks)`);
-  logger.log(`CORS handled by NGINX proxy`);
-  logger.log(
-    `Application is running on ${useHttps ? 'https' : 'http'}://0.0.0.0:${
-      process.env.PORT ?? 3000
-    }`,
-  );
+
+  const port = process.env.PORT ?? 3000;
+  const protocol = useHttps ? 'https' : 'http';
+
+  logger.log(`Application is running on ${protocol}://0.0.0.0:${port}`);
+  logger.log(`Swagger docs available at: ${protocol}://localhost:${port}/docs`);
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }

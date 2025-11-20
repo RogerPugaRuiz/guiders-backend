@@ -17,7 +17,7 @@ import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { CommercialId } from '../../../domain/value-objects/commercial-id';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-// import { Criteria } from 'src/context/shared/domain/criteria';
+import { Criteria } from 'src/context/shared/domain/criteria';
 import { MessageSchema } from '../../schemas/message.schema';
 import { MessageMapper } from '../../mappers/message.mapper';
 
@@ -36,7 +36,7 @@ export class MessagePersistenceError extends DomainError {
  * Implementación básica para tests de integración
  */
 @Injectable()
-export class MongoMessageRepositoryImpl implements IMessageRepository {
+export class MongoMessageRepositorySimple implements IMessageRepository {
   constructor(
     @InjectModel(MessageSchema.name)
     private readonly messageModel: Model<MessageSchema>,
@@ -169,7 +169,10 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   /**
    * Busca un mensaje que cumple con criterios específicos
    */
-  async findOne(): Promise<Result<Message, DomainError>> {
+  async findOne(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    criteria?: Criteria<Message>,
+  ): Promise<Result<Message, DomainError>> {
     try {
       // Implementación básica - buscar por cualquier filtro básico
       const schema = await this.messageModel.findOne({ isDeleted: false });
@@ -196,7 +199,10 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   /**
    * Busca múltiples mensajes que cumplen con criterios específicos
    */
-  async match(): Promise<Result<Message[], DomainError>> {
+  async match(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    criteria?: Criteria<Message>,
+  ): Promise<Result<Message[], DomainError>> {
     try {
       // Implementación básica
       const schemas = await this.messageModel.find({ isDeleted: false });
@@ -374,27 +380,29 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
   }
 
   /**
-   * Marca mensajes como leídos
+   * Marca mensajes como leídos (actualizado para simplificar)
+   * @param messageIds - Array de IDs de mensajes en formato string
+   * @param readBy - ID del usuario que marca como leído (string)
+   * @returns Number de mensajes marcados como leídos
    */
   async markAsRead(
-    messageIds: MessageId[],
-    readBy: VisitorId | CommercialId,
-  ): Promise<Result<void, DomainError>> {
+    messageIds: string[],
+    readBy: string,
+  ): Promise<Result<number, DomainError>> {
     try {
-      const ids = messageIds.map((id) => id.value);
       const now = new Date();
 
-      await this.messageModel.updateMany(
-        { id: { $in: ids }, isDeleted: false },
+      const result = await this.messageModel.updateMany(
+        { id: { $in: messageIds }, isDeleted: false },
         {
           isRead: true,
-          readBy: readBy.value,
+          readBy: readBy,
           readAt: now,
           updatedAt: now,
         },
       );
 
-      return okVoid();
+      return ok(result.modifiedCount);
     } catch (error) {
       return err(
         new MessagePersistenceError(
@@ -605,5 +613,13 @@ export class MongoMessageRepositoryImpl implements IMessageRepository {
     toMessageId?: MessageId,
   ): Promise<Result<Message[], DomainError>> {
     return ok([]);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async count(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    criteria?: Criteria<Message>,
+  ): Promise<Result<number, DomainError>> {
+    return ok(0);
   }
 }

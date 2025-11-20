@@ -1,8 +1,18 @@
 // src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts
 import { Controller, Get, Post, Req, Res, Logger, Param } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { QueryBus } from '@nestjs/cqrs';
+import { FindUserByKeycloakIdQuery } from '../../../auth-user/application/queries/find-user-by-keycloak-id.query';
+import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 
 // Helpers de configuración en runtime para evitar valores congelados al cargar el módulo
 function parseSameSite(value?: string): 'strict' | 'lax' | 'none' {
@@ -106,12 +116,16 @@ function sanitizeReturnTo(input?: string) {
   }
 }
 
+@ApiTags('BFF Auth')
 @Controller('bff/auth')
 export class BffController {
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
   private readonly logger = new Logger(BffController.name);
 
-  constructor(private readonly oidc: OidcService) {}
+  constructor(
+    private readonly oidc: OidcService,
+    private readonly queryBus: QueryBus,
+  ) {}
 
   // Inicializa/memoiza JWKS desde OIDC_JWKS_URI o derivado de OIDC_ISSUER
   private getJWKS() {
@@ -132,6 +146,19 @@ export class BffController {
     throw new Error('OIDC_ISSUER u OIDC_JWKS_URI no configurados');
   }
 
+  @ApiOperation({
+    summary: 'Iniciar login OIDC (console)',
+    description:
+      'Inicia el flujo OIDC con PKCE. Guarda returnTo en sesión y redirige al proveedor OIDC. Uso por defecto para la app console.',
+  })
+  @ApiQuery({
+    name: 'redirect',
+    required: false,
+    description:
+      'URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
+  @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
   @Get('login')
   async login(
     @Req()
@@ -161,6 +188,20 @@ export class BffController {
     return res.redirect(authUrl);
   }
 
+  @ApiOperation({
+    summary: 'Iniciar login OIDC para app',
+    description:
+      'Inicia el flujo OIDC para una app específica (console|admin). Guarda returnTo y redirige al proveedor OIDC.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiQuery({
+    name: 'redirect',
+    required: false,
+    description:
+      'URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
+  @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
   @Get('login/:app')
   async loginForApp(
     @Param('app') app: string,
@@ -190,6 +231,21 @@ export class BffController {
     return res.redirect(authUrl);
   }
 
+  @ApiOperation({
+    summary: 'Callback OIDC',
+    description:
+      'Procesa el callback OIDC, emite cookies HttpOnly (session/refresh) y redirige a returnTo. Si hay error de sesión, reintenta login.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirección a returnTo tras login',
+  })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirección a login en caso de error',
+  })
+  @ApiResponse({ status: 400, description: 'Callback inválido' })
   @Get('callback/:app')
   async callback(
     @Param('app') app: string,
@@ -204,6 +260,7 @@ export class BffController {
     let tokens: {
       access_token: string;
       refresh_token?: string;
+      id_token?: string;
       expires_in?: number;
     };
     try {
@@ -229,7 +286,7 @@ export class BffController {
     // Cookies HttpOnly - usando configuración específica por app
     const cenv = readCookieEnv(app);
     this.logger.debug(
-      `[BFF /callback/${app}] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
+      `[BFF /callback/${app}] tokens: access=present refresh=${tokens.refresh_token ? 'present' : 'none'} id_token=${tokens.id_token ? 'present' : 'none'} exp_in=${tokens.expires_in ?? 'n/a'}`,
     );
 
     // Log detallado de la configuración de cookies antes de establecerlas
@@ -282,6 +339,26 @@ export class BffController {
 
       res.cookie(cenv.refreshName, tokens.refresh_token, refreshCookieOptions);
     }
+
+    // Guardar id_token para usarlo en el logout (requerido por Keycloak)
+    if (tokens.id_token) {
+      const idTokenCookieName = `${cenv.sessionName}_id`;
+      const idTokenCookieOptions = {
+        httpOnly: true,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+        domain: cenv.domain,
+        path: cenv.path,
+        maxAge: (tokens.expires_in ? tokens.expires_in : 600) * 1000,
+      };
+
+      this.logger.debug(
+        `[BFF /callback/${app}] Setting id_token cookie with options: ${JSON.stringify(idTokenCookieOptions)}`,
+      );
+
+      res.cookie(idTokenCookieName, tokens.id_token, idTokenCookieOptions);
+    }
+
     const ret = req.session.returnTo || '/';
     req.session.returnTo = undefined;
     this.logger.debug(`[BFF /callback/${app}] redirect to returnTo=${ret}`);
@@ -289,6 +366,21 @@ export class BffController {
   }
 
   // Devuelve claims mínimas
+  @ApiOperation({
+    summary: 'Obtener información del usuario autenticado (console)',
+    description:
+      'Devuelve información del usuario autenticado obtenida desde la base de datos, incluyendo companyId. Requiere cookie de sesión válida.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Información del usuario',
+    type: BFFMeResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado, JWT inválido o usuario no encontrado',
+  })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me')
   async me(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -297,6 +389,22 @@ export class BffController {
     return this.getMeForApp(req, res, 'console'); // Por defecto console
   }
 
+  @ApiOperation({
+    summary: 'Obtener información del usuario autenticado (app)',
+    description:
+      'Devuelve información del usuario autenticado obtenida desde la base de datos para la app indicada (console|admin), incluyendo companyId. Requiere cookie de sesión válida.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Información del usuario',
+    type: BFFMeResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado, JWT inválido o usuario no encontrado',
+  })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me/:app')
   async meForApp(
     @Param('app') app: string,
@@ -362,23 +470,61 @@ export class BffController {
         .status(401)
         .send({ error: 'unauthenticated', reason: 'jwt_verify_failed' });
     }
-    const pl = payload as JWTPayload & {
-      email?: string;
-      realm_access?: { roles?: string[] };
-    };
+
     this.logger.debug(
       `[BFF /me/${app}] JWT OK: sub=${payload.sub ?? 'n/a'}, exp=${payload.exp ?? 'n/a'}`,
     );
-    return res.send({
+
+    // Obtener información del usuario desde la base de datos
+    if (!payload.sub) {
+      this.logger.error(`[BFF /me/${app}] JWT sin claim 'sub'`);
+      return res
+        .status(401)
+        .send({ error: 'unauthenticated', reason: 'invalid_jwt_sub' });
+    }
+
+    const userResult = await this.queryBus.execute(
+      new FindUserByKeycloakIdQuery(payload.sub),
+    );
+
+    if (userResult.isErr()) {
+      this.logger.warn(
+        `[BFF /me/${app}] Usuario con sub=${payload.sub} no encontrado en BD: ${userResult.error.message}`,
+      );
+      return res
+        .status(401)
+        .send({ error: 'unauthenticated', reason: 'user_not_found' });
+    }
+
+    const user = userResult.unwrap();
+    this.logger.debug(
+      `[BFF /me/${app}] Usuario encontrado: id=${user.id}, email=${user.email}, companyId=${user.companyId}`,
+    );
+
+    const response = {
       sub: payload.sub,
-      email: pl.email,
-      roles: pl.realm_access?.roles ?? [],
-      app: app, // Incluir información de la app
-      // Opcional: informa al cliente del TTL que queda
+      email: user.email,
+      roles: user.roles,
+      companyId: user.companyId,
+      app: app,
       session: { exp: payload.exp, iat: payload.iat },
-    });
+    };
+
+    this.logger.log(
+      `📤 [BFF /me/${app}] Respuesta final: ${JSON.stringify(response)}`,
+    );
+
+    return res.send(response);
   }
 
+  @ApiOperation({
+    summary: 'Refrescar sesión (console)',
+    description:
+      'Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.',
+  })
+  @ApiResponse({ status: 204, description: 'Sesión renovada' })
+  @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('refresh')
   async refresh(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -387,6 +533,15 @@ export class BffController {
     return this.doRefresh(req, res, 'console'); // Por defecto console
   }
 
+  @ApiOperation({
+    summary: 'Refrescar sesión (app)',
+    description:
+      'Renueva la cookie de sesión para la app indicada (console|admin) usando el refresh token HttpOnly. Responde 204 si OK.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({ status: 204, description: 'Sesión renovada' })
+  @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('refresh/:app')
   async refreshForApp(
     @Param('app') app: string,
@@ -425,10 +580,29 @@ export class BffController {
         maxAge: 30 * 24 * 3600 * 1000,
       });
     }
+    // Renovar id_token si viene en el refresh (también requerido para logout futuro)
+    if (t.id_token) {
+      const idTokenCookieName = `${cenv.sessionName}_id`;
+      res.cookie(idTokenCookieName, t.id_token, {
+        httpOnly: true,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+        domain: cenv.domain,
+        path: cenv.path,
+        maxAge: (t.expires_in ? t.expires_in : 600) * 1000,
+      });
+    }
     return res.sendStatus(204);
   }
 
-  @Post('logout')
+  @ApiOperation({
+    summary: 'Cerrar sesión (console)',
+    description:
+      'Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.',
+  })
+  @ApiResponse({ status: 302, description: 'Redirige a /login/console' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @Get('logout')
   async logout(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
@@ -436,7 +610,15 @@ export class BffController {
     return this.doLogout(req, res, 'console'); // Por defecto console
   }
 
-  @Post('logout/:app')
+  @ApiOperation({
+    summary: 'Cerrar sesión (app)',
+    description:
+      'Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/:app.',
+  })
+  @ApiParam({ name: 'app', enum: ['console', 'admin'] })
+  @ApiResponse({ status: 302, description: 'Redirige a /login/:app' })
+  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @Get('logout/:app')
   async logoutForApp(
     @Param('app') app: string,
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -452,18 +634,57 @@ export class BffController {
   ) {
     const cenv = readCookieEnv(app);
     const rt = req.cookies?.[cenv.refreshName] as string | undefined;
+    const idTokenCookieName = `${cenv.sessionName}_id`;
+    const idToken = req.cookies?.[idTokenCookieName] as string | undefined;
+
+    // Revocar refresh token si existe
     if (rt) {
       await this.oidc.revoke(rt);
     }
 
+    // Limpiar cookies de la aplicación (incluyendo id_token)
     res.clearCookie(cenv.sessionName, {
       path: cenv.path,
       domain: cenv.domain,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
     });
     res.clearCookie(cenv.refreshName, {
       path: cenv.refreshPath,
       domain: cenv.domain,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
     });
-    return res.redirect(`/api/bff/auth/login/${app}`);
+    res.clearCookie(idTokenCookieName, {
+      path: cenv.path,
+      domain: cenv.domain,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
+    });
+
+    // Construir URL de logout de Keycloak con id_token_hint
+    // Después del logout, redirigir al frontend (no al backend /login)
+    // Usa la primera URL de ALLOW_RETURN_TO como destino post-logout
+    const allowedOrigins = getAllowedReturnTo();
+    const postLogoutRedirectUri = allowedOrigins[0] || 'http://localhost:4200';
+
+    try {
+      const keycloakLogoutUrl = this.oidc.buildLogoutUrl({
+        postLogoutRedirectUri,
+        idTokenHint: idToken, // Keycloak requiere id_token_hint para logout
+      });
+
+      this.logger.debug(
+        `[BFF /logout/${app}] Redirigiendo a logout de Keycloak con id_token_hint=${idToken ? 'present' : 'missing'}, post_logout_redirect=${postLogoutRedirectUri}`,
+      );
+
+      return res.redirect(keycloakLogoutUrl);
+    } catch (error) {
+      // Fallback: si falla construir URL de Keycloak, ir directo al frontend
+      this.logger.warn(
+        `[BFF /logout/${app}] No se pudo construir URL de logout de Keycloak: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return res.redirect(postLogoutRedirectUri);
+    }
   }
 }

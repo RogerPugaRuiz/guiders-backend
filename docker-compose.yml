@@ -17,28 +17,30 @@ services:
       - postgres-net
 
   postgres-test:
-    image: postgres:14-alpine
+    image: postgres:15
     container_name: postgres-test
     restart: always
     environment:
-      POSTGRES_USER: ${TEST_DATABASE_USERNAME}
-      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD}
-      POSTGRES_DB: ${TEST_DATABASE}
+      POSTGRES_USER: ${TEST_DATABASE_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${TEST_DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: ${TEST_DATABASE:-guiders_test}
     ports:
-      - "${TEST_DATABASE_PORT}:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql_test/data
+      - "${TEST_DATABASE_PORT:-5433}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data:rw,noexec,nosuid,size=512m
+    command: ["postgres", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"]
     networks:
       - postgres-net
 
   redis:
-    image: redis:7-alpine
+    image: redis:6
     container_name: redis
     restart: always
     ports:
       - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis-data:/data
+    tmpfs:
+      - /data:rw,noexec,nosuid,size=256m
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     networks:
       - redis-net
 
@@ -56,22 +58,32 @@ services:
       - mongodb-data:/data/db
     networks:
       - mongodb-net
+    # Configuraciones adicionales para prevenir corrupción
+    command: ["mongod", "--storageEngine", "wiredTiger", "--wiredTigerCacheSizeGB", "1", "--oplogSize", "128"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   mongodb-test:
     image: mongo:7.0
     container_name: mongodb-test
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${TEST_MONGODB_ROOT_USERNAME:-admin_test}
-      MONGO_INITDB_ROOT_PASSWORD: ${TEST_MONGODB_ROOT_PASSWORD:-admin123}
-      MONGO_INITDB_DATABASE: ${TEST_MONGODB_DATABASE:-guiders-test}
     ports:
       - "${TEST_MONGODB_PORT:-27018}:27017"
     tmpfs:
       - /data/db:rw,noexec,nosuid,size=1024m
-    command: ["mongod", "--storageEngine", "wiredTiger", "--wiredTigerCacheSizeGB", "0.25"]
+    command: ["mongod", "--storageEngine", "wiredTiger", "--wiredTigerCacheSizeGB", "0.25", "--noauth"]
     networks:
       - mongodb-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   keycloak-postgres:
     image: postgres:14-alpine
@@ -89,7 +101,7 @@ services:
       - keycloak-net
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: keycloak
     restart: always
     environment:
@@ -112,15 +124,34 @@ services:
       
       # Configuración adicional
       KC_LOG_LEVEL: ${KEYCLOAK_LOG_LEVEL:-INFO}
+      
+      # Habilitar funcionalidades preview (incluyendo Organizations)
+      KC_FEATURES: organization
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
-    command: ["start-dev"]
+    command: ["start-dev", "--features=organization"]
     depends_on:
       - keycloak-postgres
     networks:
       - keycloak-net
     volumes:
       - keycloak-data:/opt/keycloak/data
+
+  # Servicios específicos para testing E2E
+  test-services:
+    profiles:
+      - test
+    image: alpine:latest
+    container_name: test-services
+    command: ["sh", "-c", "echo 'Test services ready' && tail -f /dev/null"]
+    depends_on:
+      - postgres-test
+      - mongodb-test
+      - redis
+    networks:
+      - postgres-net
+      - mongodb-net
+      - redis-net
 
 volumes:
   pgdata:

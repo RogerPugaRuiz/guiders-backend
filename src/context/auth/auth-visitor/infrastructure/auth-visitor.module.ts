@@ -20,11 +20,13 @@ import { ApiKeyOrmAdapter } from '../../api-key/infrastructure/api-key-orm-adapt
 import { ValidateDomainApiKeyAdapter } from './services/validate-domain-api-key-adapter';
 import { VALIDATE_DOMAIN_API_KEY } from '../application/services/validate-domain-api-key';
 import { ApiKeyMapper } from '../../api-key/infrastructure/api-key.mapper';
+import { CompanyModule } from '../../../company/company.module';
 
 @Module({
   imports: [
     HttpModule,
     TypeOrmModule.forFeature([VisitorAccountEntity, ApiKeyEntity]),
+    CompanyModule,
   ],
   controllers: [AuthVisitorController],
   providers: [
@@ -42,5 +44,6 @@ import { ApiKeyMapper } from '../../api-key/infrastructure/api-key.mapper';
     EncryptAdapter,
     TokenVerifyService,
   ],
+  exports: [VALIDATE_DOMAIN_API_KEY, API_KEY_REPOSITORY],
 })
 export class AuthVisitorModule {}
