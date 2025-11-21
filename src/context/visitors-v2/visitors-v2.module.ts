@@ -8,10 +8,19 @@ import {
   VisitorV2MongoEntity,
   VisitorV2MongoEntitySchema,
 } from './infrastructure/persistence/entity/visitor-v2-mongo.entity';
+import {
+  VisitorSearchHistory,
+  VisitorSearchHistorySchema,
+} from './infrastructure/persistence/entity/visitor-search-history.entity';
+import {
+  VisitorSavedSearch,
+  VisitorSavedSearchSchema,
+} from './infrastructure/persistence/entity/visitor-saved-search.entity';
 import { VisitorV2Controller } from './infrastructure/controllers/visitor-v2.controller';
 import { SitesController } from './infrastructure/controllers/sites.controller';
 import { SiteVisitorsController } from './infrastructure/controllers/site-visitors.controller';
 import { TenantVisitorsController } from './infrastructure/controllers/tenant-visitors.controller';
+import { VisitorSearchController } from './infrastructure/controllers/visitor-search.controller';
 import { IdentifyVisitorCommandHandler } from './application/commands/identify-visitor.command-handler';
 import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
@@ -37,6 +46,14 @@ import { GetVisitorsWithUnassignedChatsByTenantQueryHandler } from './applicatio
 import { GetVisitorsWithQueuedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-tenant.query-handler';
 import { GetVisitorCurrentPageQueryHandler } from './application/queries/get-visitor-current-page.query-handler';
 import { GetVisitorActivityQueryHandler } from './application/queries/get-visitor-activity.query-handler';
+import { GetVisitorSearchSchemaQueryHandler } from './application/queries/get-visitor-search-schema.query';
+import { GetVisitorSearchSuggestionsQueryHandler } from './application/queries/get-visitor-search-suggestions.query';
+import { ExecuteVisitorSearchQueryHandler } from './application/queries/execute-visitor-search.query';
+import { GetVisitorSearchHistoryQueryHandler } from './application/queries/get-visitor-search-history.query';
+import { GetVisitorSavedSearchesQueryHandler } from './application/queries/get-visitor-saved-searches.query';
+import { CreateSavedSearchCommandHandler } from './application/commands/create-saved-search.command';
+import { DeleteSavedSearchCommandHandler } from './application/commands/delete-saved-search.command';
+import { VisitorSearchParserService } from './infrastructure/services/visitor-search-parser.service';
 import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
 import { EmitPresenceChangedOnVisitorConnectionChangedEventHandler } from './application/events/emit-presence-changed-on-visitor-connection-changed.event-handler';
 import { ChangeVisitorToOfflineOnSessionEndedEventHandler } from './application/events/change-visitor-to-offline-on-session-ended.event-handler';
@@ -59,6 +76,8 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
   imports: [
     MongooseModule.forFeature([
       { name: VisitorV2MongoEntity.name, schema: VisitorV2MongoEntitySchema },
+      { name: VisitorSearchHistory.name, schema: VisitorSearchHistorySchema },
+      { name: VisitorSavedSearch.name, schema: VisitorSavedSearchSchema },
     ]),
     CqrsModule,
     HttpModule, // Para TokenVerifyService
@@ -77,6 +96,7 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     SitesController,
     SiteVisitorsController,
     TenantVisitorsController,
+    VisitorSearchController,
   ],
   providers: [
     {
@@ -103,6 +123,14 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     GetVisitorsWithQueuedChatsByTenantQueryHandler,
     GetVisitorCurrentPageQueryHandler,
     GetVisitorActivityQueryHandler,
+    GetVisitorSearchSchemaQueryHandler,
+    GetVisitorSearchSuggestionsQueryHandler,
+    ExecuteVisitorSearchQueryHandler,
+    GetVisitorSearchHistoryQueryHandler,
+    GetVisitorSavedSearchesQueryHandler,
+    CreateSavedSearchCommandHandler,
+    DeleteSavedSearchCommandHandler,
+    VisitorSearchParserService,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
     EmitPresenceChangedOnVisitorConnectionChangedEventHandler,
     ChangeVisitorToOfflineOnSessionEndedEventHandler,
