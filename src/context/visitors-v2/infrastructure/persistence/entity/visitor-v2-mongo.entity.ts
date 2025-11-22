@@ -81,3 +81,13 @@ VisitorV2MongoEntitySchema.index({ 'sessions.endedAt': 1 });
 // Índice para consultas de consentimiento
 VisitorV2MongoEntitySchema.index({ hasAcceptedPrivacyPolicy: 1 });
 VisitorV2MongoEntitySchema.index({ privacyPolicyAcceptedAt: 1 });
+
+// Índices compuestos para filtros complejos
+VisitorV2MongoEntitySchema.index({
+  tenantId: 1,
+  lifecycle: 1,
+  connectionStatus: 1,
+});
+VisitorV2MongoEntitySchema.index({ tenantId: 1, createdAt: -1 });
+VisitorV2MongoEntitySchema.index({ tenantId: 1, updatedAt: -1 });
+VisitorV2MongoEntitySchema.index({ tenantId: 1, siteId: 1, lifecycle: 1 });

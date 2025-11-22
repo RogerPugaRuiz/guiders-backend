@@ -4,6 +4,10 @@ import { Model } from 'mongoose';
 import {
   VisitorV2Repository,
   PaginatedVisitorsResult,
+  VisitorSearchFilters,
+  VisitorSearchSort,
+  VisitorSearchPagination,
+  VisitorSearchResult,
 } from '../../../domain/visitor-v2.repository';
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
@@ -771,5 +775,173 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       this.logger.error(errorMessage);
       return Promise.resolve(err(new VisitorV2PersistenceError(errorMessage)));
     }
+  }
+
+  async searchWithFilters(
+    tenantId: TenantId,
+    filters: VisitorSearchFilters,
+    sort: VisitorSearchSort,
+    pagination: VisitorSearchPagination,
+  ): Promise<Result<VisitorSearchResult, DomainError>> {
+    try {
+      const query = this.buildSearchQuery(tenantId, filters);
+      const sortQuery = this.buildSortQuery(sort);
+      const skip = (pagination.page - 1) * pagination.limit;
+
+      // Ejecutar query con paginación
+      const [visitors, total] = await Promise.all([
+        this.visitorModel
+          .find(query)
+          .sort(sortQuery)
+          .skip(skip)
+          .limit(pagination.limit)
+          .exec(),
+        this.visitorModel.countDocuments(query).exec(),
+      ]);
+
+      const domainVisitors = visitors.map((doc) =>
+        VisitorV2Mapper.fromPersistence(doc),
+      );
+
+      const totalPages = Math.ceil(total / pagination.limit);
+
+      return ok({
+        visitors: domainVisitors,
+        total,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages,
+      });
+    } catch (error) {
+      const errorMessage = `Error en búsqueda con filtros para tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  async countWithFilters(
+    tenantId: TenantId,
+    filters: VisitorSearchFilters,
+  ): Promise<Result<number, DomainError>> {
+    try {
+      const query = this.buildSearchQuery(tenantId, filters);
+      const count = await this.visitorModel.countDocuments(query).exec();
+      return ok(count);
+    } catch (error) {
+      const errorMessage = `Error al contar visitantes con filtros para tenant ${tenantId.value}: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
+  /**
+   * Construye la query MongoDB a partir de los filtros
+   */
+  private buildSearchQuery(
+    tenantId: TenantId,
+    filters: VisitorSearchFilters,
+  ): Record<string, unknown> {
+    const query: Record<string, unknown> = {
+      tenantId: tenantId.value,
+    };
+
+    // Filtro por lifecycle
+    if (filters.lifecycle && filters.lifecycle.length > 0) {
+      query['lifecycle'] = { $in: filters.lifecycle };
+    }
+
+    // Filtro por connectionStatus
+    if (filters.connectionStatus && filters.connectionStatus.length > 0) {
+      query['connectionStatus'] = { $in: filters.connectionStatus };
+    }
+
+    // Filtro por aceptación de privacidad
+    if (filters.hasAcceptedPrivacyPolicy !== undefined) {
+      query['hasAcceptedPrivacyPolicy'] = filters.hasAcceptedPrivacyPolicy;
+    }
+
+    // Filtro por fecha de creación
+    if (filters.createdFrom || filters.createdTo) {
+      query['createdAt'] = {};
+      if (filters.createdFrom) {
+        (query['createdAt'] as Record<string, unknown>)['$gte'] =
+          filters.createdFrom;
+      }
+      if (filters.createdTo) {
+        (query['createdAt'] as Record<string, unknown>)['$lte'] =
+          filters.createdTo;
+      }
+    }
+
+    // Filtro por última actividad (updatedAt)
+    if (filters.lastActivityFrom || filters.lastActivityTo) {
+      query['updatedAt'] = {};
+      if (filters.lastActivityFrom) {
+        (query['updatedAt'] as Record<string, unknown>)['$gte'] =
+          filters.lastActivityFrom;
+      }
+      if (filters.lastActivityTo) {
+        (query['updatedAt'] as Record<string, unknown>)['$lte'] =
+          filters.lastActivityTo;
+      }
+    }
+
+    // Filtro por siteIds
+    if (filters.siteIds && filters.siteIds.length > 0) {
+      query['siteId'] = { $in: filters.siteIds };
+    }
+
+    // Filtro por URL actual (búsqueda parcial)
+    if (filters.currentUrlContains) {
+      query['currentUrl'] = {
+        $regex: this.escapeRegex(filters.currentUrlContains),
+        $options: 'i',
+      };
+    }
+
+    // Filtro por sesiones activas
+    if (filters.hasActiveSessions !== undefined) {
+      if (filters.hasActiveSessions) {
+        query['sessions'] = {
+          $elemMatch: {
+            endedAt: null,
+          },
+        };
+      } else {
+        query['$or'] = [
+          { sessions: { $size: 0 } },
+          { 'sessions.endedAt': { $ne: null } },
+        ];
+      }
+    }
+
+    return query;
+  }
+
+  /**
+   * Construye la query de ordenamiento
+   */
+  private buildSortQuery(sort: VisitorSearchSort): Record<string, 1 | -1> {
+    const direction = sort.direction === 'ASC' ? 1 : -1;
+    const fieldMap: Record<string, string> = {
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
+      lifecycle: 'lifecycle',
+      connectionStatus: 'connectionStatus',
+    };
+
+    const mongoField = fieldMap[sort.field] || 'updatedAt';
+    return { [mongoField]: direction };
+  }
+
+  /**
+   * Escapa caracteres especiales para uso en regex
+   */
+  private escapeRegex(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }

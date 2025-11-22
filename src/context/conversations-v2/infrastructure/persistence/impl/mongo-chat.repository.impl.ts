@@ -846,4 +846,35 @@ export class MongoChatRepositoryImpl implements IChatRepository {
       );
     }
   }
+
+  /**
+   * Cuenta chats agrupados por visitante para un conjunto de IDs de visitantes
+   */
+  async countByVisitorIds(
+    visitorIds: string[],
+  ): Promise<Result<Map<string, number>, DomainError>> {
+    try {
+      if (visitorIds.length === 0) {
+        return ok(new Map<string, number>());
+      }
+
+      const aggregation = await this.chatModel.aggregate([
+        { $match: { visitorId: { $in: visitorIds } } },
+        { $group: { _id: '$visitorId', count: { $sum: 1 } } },
+      ]);
+
+      const countMap = new Map<string, number>();
+      aggregation.forEach((item: { _id: string; count: number }) => {
+        countMap.set(item._id, item.count);
+      });
+
+      return ok(countMap);
+    } catch (error) {
+      return err(
+        new ChatPersistenceError(
+          `Error al contar chats por visitantes: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
 }
