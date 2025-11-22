@@ -5,6 +5,10 @@ import {
   VisitorV2Repository,
   VISITOR_V2_REPOSITORY,
 } from '../../../domain/visitor-v2.repository';
+import {
+  IChatRepository,
+  CHAT_V2_REPOSITORY,
+} from '../../../../../context/conversations-v2/domain/chat.repository';
 import { ok, err } from '../../../../shared/domain/result';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 import { VisitorV2PersistenceError } from '../../../domain/errors/visitor-v2.error';
@@ -16,6 +20,7 @@ import {
 describe('SearchVisitorsQueryHandler', () => {
   let handler: SearchVisitorsQueryHandler;
   let visitorRepository: jest.Mocked<VisitorV2Repository>;
+  let chatRepository: jest.Mocked<IChatRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,6 +32,12 @@ describe('SearchVisitorsQueryHandler', () => {
             searchWithFilters: jest.fn(),
           },
         },
+        {
+          provide: CHAT_V2_REPOSITORY,
+          useValue: {
+            countByVisitorIds: jest.fn().mockResolvedValue(ok(new Map())),
+          },
+        },
       ],
     }).compile();
 
@@ -34,6 +45,7 @@ describe('SearchVisitorsQueryHandler', () => {
       SearchVisitorsQueryHandler,
     );
     visitorRepository = module.get(VISITOR_V2_REPOSITORY);
+    chatRepository = module.get(CHAT_V2_REPOSITORY);
   });
 
   describe('execute', () => {
@@ -43,6 +55,7 @@ describe('SearchVisitorsQueryHandler', () => {
     const createMockVisitor = () => {
       const id = Uuid.random().value;
       return {
+        getId: () => ({ getValue: () => id }),
         toPrimitives: () => ({
           id,
           tenantId,
