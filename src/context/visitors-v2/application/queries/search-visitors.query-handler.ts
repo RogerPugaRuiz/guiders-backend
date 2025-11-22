@@ -64,9 +64,7 @@ export class SearchVisitorsQueryHandler
       const searchResult = result.unwrap();
 
       // Obtener IDs de visitantes para consultar chats
-      const visitorIds = searchResult.visitors.map((v) =>
-        v.getId().getValue(),
-      );
+      const visitorIds = searchResult.visitors.map((v) => v.getId().getValue());
 
       // Obtener conteo de chats por visitante
       let chatCountsMap = new Map<string, number>();
