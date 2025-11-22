@@ -968,24 +968,25 @@ jobs:
           
           # Determinar el estado general
           critical_failures=0
-          
+
           # Todos son críticos EXCEPTO coverage
-          if [[ "${{ needs.lint.result }}" == "failure" ]]; then
+          # También contamos "skipped" como fallo para jobs críticos
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
-          if [[ "${{ needs.build.result }}" == "failure" ]]; then
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
-          if [[ "${{ needs.test-unit.result }}" == "failure" ]]; then
+          if [[ "${{ needs.test-unit.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
-          if [[ "${{ needs.test-integration.result }}" == "failure" ]]; then
+          if [[ "${{ needs.test-integration.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
-          if [[ "${{ needs.test-e2e.result }}" == "failure" ]]; then
+          if [[ "${{ needs.test-e2e.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
-          if [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+          if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
           # check-coverage NO es crítico
