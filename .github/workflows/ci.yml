@@ -986,7 +986,8 @@ jobs:
           if [[ "${{ needs.test-e2e.result }}" != "success" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
-          if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
+          # security-scan es condicional; skipped no debe fallar el pipeline
+          if [[ "${{ needs.security-scan.result }}" == "failure" || "${{ needs.security-scan.result }}" == "cancelled" ]]; then
             critical_failures=$((critical_failures + 1))
           fi
           # check-coverage NO es crítico
