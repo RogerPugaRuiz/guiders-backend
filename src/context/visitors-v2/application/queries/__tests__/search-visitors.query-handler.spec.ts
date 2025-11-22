@@ -20,7 +20,7 @@ import {
 describe('SearchVisitorsQueryHandler', () => {
   let handler: SearchVisitorsQueryHandler;
   let visitorRepository: jest.Mocked<VisitorV2Repository>;
-  let chatRepository: jest.Mocked<IChatRepository>;
+  let _chatRepository: jest.Mocked<IChatRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -45,7 +45,7 @@ describe('SearchVisitorsQueryHandler', () => {
       SearchVisitorsQueryHandler,
     );
     visitorRepository = module.get(VISITOR_V2_REPOSITORY);
-    chatRepository = module.get(CHAT_V2_REPOSITORY);
+    _chatRepository = module.get(CHAT_V2_REPOSITORY);
   });
 
   describe('execute', () => {
