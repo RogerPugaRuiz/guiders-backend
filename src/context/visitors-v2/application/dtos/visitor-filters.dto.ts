@@ -192,6 +192,28 @@ export class VisitorFiltersDto {
     return Boolean(value);
   })
   hasActiveSessions?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Número mínimo de sesiones totales del visitante',
+    minimum: 0,
+    example: 2,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  minTotalSessionsCount?: number;
+
+  @ApiPropertyOptional({
+    description: 'Número máximo de sesiones totales del visitante',
+    minimum: 0,
+    example: 10,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  maxTotalSessionsCount?: number;
 }
 
 /**

@@ -23,6 +23,8 @@ export interface VisitorSearchFilters {
   siteIds?: string[];
   currentUrlContains?: string;
   hasActiveSessions?: boolean;
+  minTotalSessionsCount?: number;
+  maxTotalSessionsCount?: number;
 }
 
 /**

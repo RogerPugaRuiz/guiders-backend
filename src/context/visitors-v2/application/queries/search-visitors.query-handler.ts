@@ -154,6 +154,8 @@ export class SearchVisitorsQueryHandler
       siteIds: dto.siteIds,
       currentUrlContains: dto.currentUrlContains,
       hasActiveSessions: dto.hasActiveSessions,
+      minTotalSessionsCount: dto.minTotalSessionsCount,
+      maxTotalSessionsCount: dto.maxTotalSessionsCount,
     };
   }
 

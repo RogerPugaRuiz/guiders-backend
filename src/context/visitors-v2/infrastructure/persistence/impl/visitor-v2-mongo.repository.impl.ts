@@ -919,6 +919,29 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       }
     }
 
+    // Filtro por cantidad total de sesiones
+    const sessionCountConditions: Record<string, unknown>[] = [];
+
+    if (filters.minTotalSessionsCount !== undefined) {
+      sessionCountConditions.push({
+        $gte: [{ $size: '$sessions' }, filters.minTotalSessionsCount],
+      });
+    }
+
+    if (filters.maxTotalSessionsCount !== undefined) {
+      sessionCountConditions.push({
+        $lte: [{ $size: '$sessions' }, filters.maxTotalSessionsCount],
+      });
+    }
+
+    if (sessionCountConditions.length > 0) {
+      if (sessionCountConditions.length === 1) {
+        query['$expr'] = sessionCountConditions[0];
+      } else {
+        query['$expr'] = { $and: sessionCountConditions };
+      }
+    }
+
     return query;
   }
 
