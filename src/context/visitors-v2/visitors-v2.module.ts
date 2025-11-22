@@ -8,6 +8,10 @@ import {
   VisitorV2MongoEntity,
   VisitorV2MongoEntitySchema,
 } from './infrastructure/persistence/entity/visitor-v2-mongo.entity';
+import {
+  SavedFilterMongoEntity,
+  SavedFilterMongoEntitySchema,
+} from './infrastructure/persistence/entity/saved-filter-mongo.entity';
 import { VisitorV2Controller } from './infrastructure/controllers/visitor-v2.controller';
 import { SitesController } from './infrastructure/controllers/sites.controller';
 import { SiteVisitorsController } from './infrastructure/controllers/site-visitors.controller';
@@ -37,6 +41,13 @@ import { GetVisitorsWithUnassignedChatsByTenantQueryHandler } from './applicatio
 import { GetVisitorsWithQueuedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-tenant.query-handler';
 import { GetVisitorCurrentPageQueryHandler } from './application/queries/get-visitor-current-page.query-handler';
 import { GetVisitorActivityQueryHandler } from './application/queries/get-visitor-activity.query-handler';
+import { SearchVisitorsQueryHandler } from './application/queries/search-visitors.query-handler';
+import { GetQuickFiltersConfigQueryHandler } from './application/queries/get-quick-filters-config.query-handler';
+import { GetSavedFiltersQueryHandler } from './application/queries/get-saved-filters.query-handler';
+import { SaveFilterCommandHandler } from './application/commands/save-filter.command-handler';
+import { DeleteSavedFilterCommandHandler } from './application/commands/delete-saved-filter.command-handler';
+import { SavedFilterMongoRepositoryImpl } from './infrastructure/persistence/impl/saved-filter-mongo.repository.impl';
+import { SAVED_FILTER_REPOSITORY } from './domain/saved-filter.repository';
 import { SyncConnectionOnVisitorConnectionChangedEventHandler } from './application/events/visitor-connection-changed.event-handler';
 import { EmitPresenceChangedOnVisitorConnectionChangedEventHandler } from './application/events/emit-presence-changed-on-visitor-connection-changed.event-handler';
 import { ChangeVisitorToOfflineOnSessionEndedEventHandler } from './application/events/change-visitor-to-offline-on-session-ended.event-handler';
@@ -59,6 +70,10 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
   imports: [
     MongooseModule.forFeature([
       { name: VisitorV2MongoEntity.name, schema: VisitorV2MongoEntitySchema },
+      {
+        name: SavedFilterMongoEntity.name,
+        schema: SavedFilterMongoEntitySchema,
+      },
     ]),
     CqrsModule,
     HttpModule, // Para TokenVerifyService
@@ -83,6 +98,10 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
       provide: VISITOR_V2_REPOSITORY,
       useClass: VisitorV2MongoRepositoryImpl,
     },
+    {
+      provide: SAVED_FILTER_REPOSITORY,
+      useClass: SavedFilterMongoRepositoryImpl,
+    },
     IdentifyVisitorCommandHandler,
     UpdateSessionHeartbeatCommandHandler,
     EndSessionCommandHandler,
@@ -103,6 +122,11 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     GetVisitorsWithQueuedChatsByTenantQueryHandler,
     GetVisitorCurrentPageQueryHandler,
     GetVisitorActivityQueryHandler,
+    SearchVisitorsQueryHandler,
+    GetQuickFiltersConfigQueryHandler,
+    GetSavedFiltersQueryHandler,
+    SaveFilterCommandHandler,
+    DeleteSavedFilterCommandHandler,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
     EmitPresenceChangedOnVisitorConnectionChangedEventHandler,
     ChangeVisitorToOfflineOnSessionEndedEventHandler,

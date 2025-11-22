@@ -206,6 +206,14 @@ export interface IChatRepository {
    * Devuelve la cantidad de chats eliminados
    */
   deleteByVisitorId(visitorId: VisitorId): Promise<Result<number, DomainError>>;
+
+  /**
+   * Cuenta chats agrupados por visitante para un conjunto de IDs de visitantes
+   * Retorna un mapa de visitorId -> cantidad de chats
+   */
+  countByVisitorIds(
+    visitorIds: string[],
+  ): Promise<Result<Map<string, number>, DomainError>>;
 }
 
 /**
