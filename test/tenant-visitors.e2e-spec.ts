@@ -6,7 +6,9 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
-import { CqrsModule, QueryBus } from '@nestjs/cqrs';
+import { CqrsModule, QueryBus, CommandBus } from '@nestjs/cqrs';
+import { ok, err } from '../src/context/shared/domain/result';
+import { SavedFilterLimitExceededError } from '../src/context/visitors-v2/domain/errors/saved-filter.error';
 import * as request from 'supertest';
 import { TenantVisitorsController } from '../src/context/visitors-v2/infrastructure/controllers/tenant-visitors.controller';
 import { AuthGuard } from '../src/context/shared/infrastructure/guards/auth.guard';
@@ -75,6 +77,7 @@ describe('TenantVisitorsController (e2e)', () => {
   let app: INestApplication;
   let moduleFixture: TestingModule;
   let queryBusMock: jest.Mocked<QueryBus>;
+  let commandBusMock: jest.Mocked<CommandBus>;
 
   const validTenantId = '123e4567-e89b-12d3-a456-426614174000';
   const invalidTenantId = 'invalid-uuid';
@@ -107,6 +110,11 @@ describe('TenantVisitorsController (e2e)', () => {
       execute: jest.fn(),
     } as any;
 
+    // Mock del CommandBus
+    commandBusMock = {
+      execute: jest.fn(),
+    } as any;
+
     moduleFixture = await Test.createTestingModule({
       controllers: [TenantVisitorsController],
       imports: [CqrsModule],
@@ -114,6 +122,10 @@ describe('TenantVisitorsController (e2e)', () => {
         {
           provide: QueryBus,
           useValue: queryBusMock,
+        },
+        {
+          provide: CommandBus,
+          useValue: commandBusMock,
         },
       ],
     })
@@ -914,6 +926,367 @@ describe('TenantVisitorsController (e2e)', () => {
           offset: 15,
         }),
       );
+    });
+  });
+
+  // ========== FILTROS COMPLEJOS ==========
+
+  describe('POST /tenant-visitors/:tenantId/visitors/search', () => {
+    const authenticatedPostRequest = (path: string, body: object) => {
+      return request(app.getHttpServer())
+        .post(path)
+        .set('Authorization', 'Bearer commercial-token')
+        .send(body);
+    };
+
+    describe('Validación de parámetros', () => {
+      it('debe rechazar tenantId inválido', async () => {
+        const response = await authenticatedPostRequest(
+          `/tenant-visitors/${invalidTenantId}/visitors/search`,
+          {},
+        );
+
+        expect(response.status).toBe(400);
+      });
+
+      it('debe aceptar body vacío con valores por defecto', async () => {
+        queryBusMock.execute.mockResolvedValue(
+          ok({
+            visitors: [],
+            pagination: {
+              total: 0,
+              page: 1,
+              limit: 20,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          }),
+        );
+
+        const response = await authenticatedPostRequest(
+          `/tenant-visitors/${validTenantId}/visitors/search`,
+          {},
+        );
+
+        expect(response.status).toBe(200);
+      });
+    });
+
+    describe('Búsqueda con filtros', () => {
+      it('debe buscar visitantes con filtro de lifecycle', async () => {
+        queryBusMock.execute.mockResolvedValue(
+          ok({
+            visitors: [
+              {
+                id: 'visitor-1',
+                tenantId: validTenantId,
+                lifecycle: 'LEAD',
+                connectionStatus: 'online',
+              },
+            ],
+            pagination: {
+              total: 1,
+              page: 1,
+              limit: 20,
+              totalPages: 1,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          }),
+        );
+
+        const response = await authenticatedPostRequest(
+          `/tenant-visitors/${validTenantId}/visitors/search`,
+          {
+            filters: { lifecycle: ['LEAD'] },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.visitors).toHaveLength(1);
+        expect(queryBusMock.execute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            tenantId: validTenantId,
+            filters: expect.objectContaining({ lifecycle: ['LEAD'] }),
+          }),
+        );
+      });
+
+      it('debe aplicar ordenamiento personalizado', async () => {
+        queryBusMock.execute.mockResolvedValue(
+          ok({
+            visitors: [],
+            pagination: {
+              total: 0,
+              page: 1,
+              limit: 20,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPreviousPage: false,
+            },
+          }),
+        );
+
+        const response = await authenticatedPostRequest(
+          `/tenant-visitors/${validTenantId}/visitors/search`,
+          {
+            sort: { field: 'createdAt', direction: 'ASC' },
+          },
+        );
+
+        expect(response.status).toBe(200);
+        expect(queryBusMock.execute).toHaveBeenCalledWith(
+          expect.objectContaining({
+            sort: expect.objectContaining({
+              field: 'createdAt',
+              direction: 'ASC',
+            }),
+          }),
+        );
+      });
+
+      it('debe aplicar paginación correctamente', async () => {
+        queryBusMock.execute.mockResolvedValue(
+          ok({
+            visitors: [],
+            pagination: {
+              total: 100,
+              page: 3,
+              limit: 10,
+              totalPages: 10,
+              hasNextPage: true,
+              hasPreviousPage: true,
+            },
+          }),
+        );
+
+        const response = await authenticatedPostRequest(
+          `/tenant-visitors/${validTenantId}/visitors/search`,
+          {
+            page: 3,
+            limit: 10,
+          },
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.pagination.page).toBe(3);
+        expect(response.body.pagination.hasNextPage).toBe(true);
+        expect(response.body.pagination.hasPreviousPage).toBe(true);
+      });
+    });
+
+    describe('Autenticación', () => {
+      it('debe rechazar requests sin autenticación', async () => {
+        const response = await request(app.getHttpServer())
+          .post(`/tenant-visitors/${validTenantId}/visitors/search`)
+          .send({});
+
+        expect(response.status).toBe(401);
+      });
+    });
+  });
+
+  describe('GET /tenant-visitors/:tenantId/visitors/filters/quick', () => {
+    it('debe retornar configuración de filtros rápidos', async () => {
+      queryBusMock.execute.mockResolvedValue(
+        ok({
+          filters: [
+            { id: 'online', label: 'En línea', count: 10, isActive: false },
+            { id: 'leads', label: 'Leads', count: 5, isActive: false },
+          ],
+        }),
+      );
+
+      const response = await authenticatedRequest(
+        `/tenant-visitors/${validTenantId}/visitors/filters/quick`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.filters).toHaveLength(2);
+      expect(response.body.filters[0]).toHaveProperty('id');
+      expect(response.body.filters[0]).toHaveProperty('label');
+      expect(response.body.filters[0]).toHaveProperty('count');
+    });
+
+    it('debe rechazar tenantId inválido', async () => {
+      const response = await authenticatedRequest(
+        `/tenant-visitors/${invalidTenantId}/visitors/filters/quick`,
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it('debe rechazar requests sin autenticación', async () => {
+      const response = await request(app.getHttpServer()).get(
+        `/tenant-visitors/${validTenantId}/visitors/filters/quick`,
+      );
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('GET /tenant-visitors/:tenantId/visitors/filters/saved', () => {
+    it('debe retornar filtros guardados del usuario', async () => {
+      queryBusMock.execute.mockResolvedValue(
+        ok({
+          filters: [
+            {
+              id: 'filter-1',
+              name: 'Mis leads',
+              description: 'Filtro de leads',
+              filters: { lifecycle: ['lead'] },
+              userId: 'test-user-id',
+              tenantId: validTenantId,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          total: 1,
+        }),
+      );
+
+      const response = await authenticatedRequest(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.filters).toHaveLength(1);
+      expect(response.body.filters[0].name).toBe('Mis leads');
+      expect(response.body.total).toBe(1);
+    });
+
+    it('debe retornar lista vacía cuando no hay filtros', async () => {
+      queryBusMock.execute.mockResolvedValue(
+        ok({
+          filters: [],
+          total: 0,
+        }),
+      );
+
+      const response = await authenticatedRequest(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved`,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body.filters).toHaveLength(0);
+      expect(response.body.total).toBe(0);
+    });
+
+    it('debe rechazar requests sin autenticación', async () => {
+      const response = await request(app.getHttpServer()).get(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved`,
+      );
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('POST /tenant-visitors/:tenantId/visitors/filters/saved', () => {
+    const authenticatedPostRequest = (path: string, body: object) => {
+      return request(app.getHttpServer())
+        .post(path)
+        .set('Authorization', 'Bearer commercial-token')
+        .send(body);
+    };
+
+    it('debe guardar un filtro correctamente', async () => {
+      const filterId = '123e4567-e89b-12d3-a456-426614174001';
+      commandBusMock.execute.mockResolvedValue(ok(filterId));
+
+      const response = await authenticatedPostRequest(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved`,
+        {
+          name: 'Mi filtro',
+          description: 'Descripción del filtro',
+          filters: { lifecycle: ['LEAD'] },
+        },
+      );
+
+      expect(response.status).toBe(201);
+      expect(response.body.id).toBe(filterId);
+    });
+
+    it('debe manejar error cuando se excede el límite de filtros', async () => {
+      commandBusMock.execute.mockResolvedValue(
+        err(new SavedFilterLimitExceededError(20)),
+      );
+
+      const response = await authenticatedPostRequest(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved`,
+        {
+          name: 'Mi filtro',
+          filters: { lifecycle: ['LEAD'] },
+        },
+      );
+
+      // El error de dominio se lanza pero no tiene handler HTTP específico
+      expect(response.status).toBe(500);
+    });
+
+    it('debe rechazar cuando falta el nombre', async () => {
+      const response = await authenticatedPostRequest(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved`,
+        {
+          filters: { lifecycle: ['LEAD'] },
+        },
+      );
+
+      expect(response.status).toBe(400);
+    });
+
+    it('debe rechazar requests sin autenticación', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`/tenant-visitors/${validTenantId}/visitors/filters/saved`)
+        .send({
+          name: 'Mi filtro',
+          filters: { lifecycle: ['LEAD'] },
+        });
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('DELETE /tenant-visitors/:tenantId/visitors/filters/saved/:filterId', () => {
+    const validFilterId = '123e4567-e89b-12d3-a456-426614174002';
+
+    it('debe eliminar un filtro correctamente', async () => {
+      commandBusMock.execute.mockResolvedValue(ok(undefined));
+
+      const response = await request(app.getHttpServer())
+        .delete(
+          `/tenant-visitors/${validTenantId}/visitors/filters/saved/${validFilterId}`,
+        )
+        .set('Authorization', 'Bearer commercial-token');
+
+      expect(response.status).toBe(204);
+    });
+
+    it('debe rechazar tenantId inválido', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(
+          `/tenant-visitors/${invalidTenantId}/visitors/filters/saved/${validFilterId}`,
+        )
+        .set('Authorization', 'Bearer commercial-token');
+
+      expect(response.status).toBe(400);
+    });
+
+    it('debe rechazar filterId inválido', async () => {
+      const response = await request(app.getHttpServer())
+        .delete(
+          `/tenant-visitors/${validTenantId}/visitors/filters/saved/invalid-uuid`,
+        )
+        .set('Authorization', 'Bearer commercial-token');
+
+      expect(response.status).toBe(400);
+    });
+
+    it('debe rechazar requests sin autenticación', async () => {
+      const response = await request(app.getHttpServer()).delete(
+        `/tenant-visitors/${validTenantId}/visitors/filters/saved/${validFilterId}`,
+      );
+
+      expect(response.status).toBe(401);
     });
   });
 });

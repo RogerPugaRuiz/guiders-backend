@@ -10,6 +10,49 @@ import { DomainError } from '../../shared/domain/domain.error';
 export const VISITOR_V2_REPOSITORY = Symbol('VisitorV2Repository');
 
 /**
+ * Opciones de filtrado para búsqueda avanzada de visitantes
+ */
+export interface VisitorSearchFilters {
+  lifecycle?: string[];
+  connectionStatus?: string[];
+  hasAcceptedPrivacyPolicy?: boolean;
+  createdFrom?: Date;
+  createdTo?: Date;
+  lastActivityFrom?: Date;
+  lastActivityTo?: Date;
+  siteIds?: string[];
+  currentUrlContains?: string;
+  hasActiveSessions?: boolean;
+}
+
+/**
+ * Opciones de ordenamiento
+ */
+export interface VisitorSearchSort {
+  field: 'createdAt' | 'updatedAt' | 'lifecycle' | 'connectionStatus';
+  direction: 'ASC' | 'DESC';
+}
+
+/**
+ * Opciones de paginación
+ */
+export interface VisitorSearchPagination {
+  page: number;
+  limit: number;
+}
+
+/**
+ * Resultado de búsqueda con metadatos de paginación
+ */
+export interface VisitorSearchResult {
+  visitors: VisitorV2[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
  * Resultado paginado con count total para queries con paginación
  */
 export interface PaginatedVisitorsResult {
@@ -155,4 +198,22 @@ export interface VisitorV2Repository {
       offset?: number;
     },
   ): Promise<Result<VisitorV2[], DomainError>>;
+
+  /**
+   * Busca visitantes con filtros complejos, ordenamiento y paginación
+   */
+  searchWithFilters(
+    tenantId: TenantId,
+    filters: VisitorSearchFilters,
+    sort: VisitorSearchSort,
+    pagination: VisitorSearchPagination,
+  ): Promise<Result<VisitorSearchResult, DomainError>>;
+
+  /**
+   * Cuenta visitantes que coinciden con los filtros (para estadísticas de filtros rápidos)
+   */
+  countWithFilters(
+    tenantId: TenantId,
+    filters: VisitorSearchFilters,
+  ): Promise<Result<number, DomainError>>;
 }
