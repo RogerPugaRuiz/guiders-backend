@@ -112,6 +112,18 @@ export class VisitorSummaryDto {
     example: 5,
   })
   totalSessionsCount: number;
+
+  @ApiProperty({
+    description: 'Duración total de todas las sesiones en milisegundos',
+    example: 3600000,
+  })
+  totalSessionDuration: number;
+
+  @ApiProperty({
+    description: 'Número total de chats asociados al visitante',
+    example: 3,
+  })
+  totalChatsCount: number;
 }
 
 /**

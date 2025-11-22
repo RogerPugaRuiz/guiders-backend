@@ -1,5 +1,6 @@
 import { AggregateRoot } from '@nestjs/cqrs';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
+import { SavedFilterUpdatedEvent } from '../events/saved-filter-updated.event';
 
 /**
  * Primitivos para serialización del filtro guardado
@@ -120,6 +121,7 @@ export class SavedFilter extends AggregateRoot {
   public updateName(name: string): void {
     this.name = name;
     this.updatedAt = new Date();
+    this.emitUpdatedEvent(['name']);
   }
 
   /**
@@ -128,6 +130,7 @@ export class SavedFilter extends AggregateRoot {
   public updateDescription(description: string | null): void {
     this.description = description;
     this.updatedAt = new Date();
+    this.emitUpdatedEvent(['description']);
   }
 
   /**
@@ -136,6 +139,7 @@ export class SavedFilter extends AggregateRoot {
   public updateFilters(filters: Record<string, unknown>): void {
     this.filters = filters;
     this.updatedAt = new Date();
+    this.emitUpdatedEvent(['filters']);
   }
 
   /**
@@ -144,6 +148,22 @@ export class SavedFilter extends AggregateRoot {
   public updateSort(sort: Record<string, unknown> | null): void {
     this.sort = sort;
     this.updatedAt = new Date();
+    this.emitUpdatedEvent(['sort']);
+  }
+
+  /**
+   * Emite evento de actualización del filtro guardado
+   */
+  private emitUpdatedEvent(updatedFields: string[]): void {
+    this.apply(
+      new SavedFilterUpdatedEvent({
+        id: this.id.value,
+        userId: this.userId.value,
+        tenantId: this.tenantId.value,
+        updatedFields,
+        updatedAt: this.updatedAt.toISOString(),
+      }),
+    );
   }
 
   // Getters

@@ -70,12 +70,19 @@ export class TenantVisitorsController {
     private readonly commandBus: CommandBus,
   ) {}
 
+  /**
+   * @deprecated Este endpoint está deprecado. Usar POST /:tenantId/visitors/search en su lugar,
+   * que ofrece filtros complejos, mejor rendimiento y más opciones de ordenamiento.
+   */
   @Get(':tenantId/visitors')
   @Roles(['commercial', 'admin'])
   @ApiOperation({
-    summary: 'Obtener visitantes del tenant (empresa)',
+    summary: '[DEPRECADO] Obtener visitantes del tenant (empresa)',
     description:
-      'Retorna una lista de visitantes conectados o todos los visitantes de todos los sitios del tenant especificado',
+      '⚠️ DEPRECADO: Usar POST /:tenantId/visitors/search en su lugar. ' +
+      'Este endpoint será eliminado en futuras versiones. ' +
+      'Retorna una lista de visitantes conectados o todos los visitantes de todos los sitios del tenant especificado.',
+    deprecated: true,
   })
   @ApiParam({
     name: 'tenantId',

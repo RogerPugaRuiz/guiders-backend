@@ -8,6 +8,10 @@ import {
   VisitorSearchSort,
   VisitorSearchPagination,
 } from '../../domain/visitor-v2.repository';
+import {
+  IChatRepository,
+  CHAT_V2_REPOSITORY,
+} from 'src/context/conversations-v2/domain/chat.repository';
 import { TenantId } from '../../domain/value-objects/tenant-id';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
@@ -28,6 +32,8 @@ export class SearchVisitorsQueryHandler
   constructor(
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
+    @Inject(CHAT_V2_REPOSITORY)
+    private readonly chatRepository: IChatRepository,
   ) {}
 
   async execute(
@@ -57,10 +63,38 @@ export class SearchVisitorsQueryHandler
 
       const searchResult = result.unwrap();
 
+      // Obtener IDs de visitantes para consultar chats
+      const visitorIds = searchResult.visitors.map((v) =>
+        v.getId().getValue(),
+      );
+
+      // Obtener conteo de chats por visitante
+      let chatCountsMap = new Map<string, number>();
+      if (visitorIds.length > 0) {
+        const chatCountsResult =
+          await this.chatRepository.countByVisitorIds(visitorIds);
+        if (chatCountsResult.isOk()) {
+          chatCountsMap = chatCountsResult.unwrap();
+        }
+      }
+
       // Mapear a DTOs de respuesta
       const visitors: VisitorSummaryDto[] = searchResult.visitors.map(
         (visitor) => {
           const primitives = visitor.toPrimitives();
+
+          // Calcular duración total de sesiones en milisegundos
+          const totalSessionDuration = primitives.sessions.reduce(
+            (total, session) => {
+              const startTime = new Date(session.startedAt).getTime();
+              const endTime = session.endedAt
+                ? new Date(session.endedAt).getTime()
+                : Date.now();
+              return total + (endTime - startTime);
+            },
+            0,
+          );
+
           return {
             id: primitives.id,
             tenantId: primitives.tenantId,
@@ -75,6 +109,8 @@ export class SearchVisitorsQueryHandler
               (s) => s.endedAt === null,
             ).length,
             totalSessionsCount: primitives.sessions.length,
+            totalSessionDuration,
+            totalChatsCount: chatCountsMap.get(primitives.id) || 0,
           };
         },
       );
