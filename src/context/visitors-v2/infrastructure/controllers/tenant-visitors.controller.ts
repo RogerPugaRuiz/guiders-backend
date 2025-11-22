@@ -236,10 +236,8 @@ export class TenantVisitorsController {
     };
 
     const query = new SearchVisitorsQuery(tenantId, filters, sort, pagination);
-    const result = (await this.queryBus.execute(query)) as Result<
-      SearchVisitorsResponseDto,
-      DomainError
-    >;
+    const result: Result<SearchVisitorsResponseDto, DomainError> =
+      await this.queryBus.execute(query);
 
     if (result.isErr()) {
       throw result.error;
@@ -272,10 +270,8 @@ export class TenantVisitorsController {
     );
 
     const query = new GetQuickFiltersConfigQuery(tenantId);
-    const result = (await this.queryBus.execute(query)) as Result<
-      QuickFiltersConfigResponseDto,
-      DomainError
-    >;
+    const result: Result<QuickFiltersConfigResponseDto, DomainError> =
+      await this.queryBus.execute(query);
 
     if (result.isErr()) {
       throw result.error;
@@ -309,10 +305,8 @@ export class TenantVisitorsController {
     );
 
     const query = new GetSavedFiltersQuery(user.id, tenantId);
-    const result = (await this.queryBus.execute(query)) as Result<
-      SavedFiltersListResponseDto,
-      DomainError
-    >;
+    const result: Result<SavedFiltersListResponseDto, DomainError> =
+      await this.queryBus.execute(query);
 
     if (result.isErr()) {
       throw result.error;
