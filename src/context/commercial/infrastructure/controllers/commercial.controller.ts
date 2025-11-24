@@ -55,7 +55,6 @@ import { GetCommercialAvailabilityBySiteQuery } from '../../application/queries/
 // Commands
 import { ConnectCommercialCommand } from '../../application/commands/connect-commercial.command';
 import { DisconnectCommercialCommand } from '../../application/commands/disconnect-commercial.command';
-import { UpdateCommercialActivityCommand } from '../../application/commands/update-commercial-activity.command';
 import { ChangeCommercialConnectionStatusCommand } from '../../application/commands/change-commercial-connection-status.command';
 
 // Services

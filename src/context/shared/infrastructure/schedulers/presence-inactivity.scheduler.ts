@@ -133,7 +133,9 @@ export class PresenceInactivityScheduler {
       }
 
       if (awayCount > 0) {
-        this.logger.log(`Verificación completada: ${awayCount} visitante(s) → AWAY`);
+        this.logger.log(
+          `Verificación completada: ${awayCount} visitante(s) → AWAY`,
+        );
       }
     } catch (error) {
       this.logger.error(

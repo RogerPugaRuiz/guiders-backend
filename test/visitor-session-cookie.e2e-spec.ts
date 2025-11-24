@@ -312,9 +312,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       fingerprint: new VisitorFingerprint('fp_cookie_test'),
       lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
     });
-    mockVisitorRepository.findBySessionId.mockResolvedValue(
-      ok(visitorForEnd),
-    );
+    mockVisitorRepository.findBySessionId.mockResolvedValue(ok(visitorForEnd));
 
     // 2. endSession sin sessionId en body (usa cookie)
     const mockContextEnd = {

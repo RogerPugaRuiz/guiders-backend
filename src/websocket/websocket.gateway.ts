@@ -1054,7 +1054,10 @@ export class WebSocketGatewayBasic
         );
 
         // Reactivar a ONLINE si está AWAY u OFFLINE
-        if ((currentStatus.isAway() || currentStatus.isOffline()) && this.commandBus) {
+        if (
+          (currentStatus.isAway() || currentStatus.isOffline()) &&
+          this.commandBus
+        ) {
           // Ejecutar comando para persistir en MongoDB y publicar eventos
           await this.commandBus.execute(
             new ChangeVisitorConnectionStatusCommand(user.userId, 'online'),
@@ -1063,7 +1066,10 @@ export class WebSocketGatewayBasic
           this.logger.log(
             `✅ Visitante ${user.userId} reactivado de ${currentStatus.value.toUpperCase()} a ONLINE por actividad`,
           );
-        } else if ((currentStatus.isAway() || currentStatus.isOffline()) && !this.commandBus) {
+        } else if (
+          (currentStatus.isAway() || currentStatus.isOffline()) &&
+          !this.commandBus
+        ) {
           this.logger.warn(
             `⚠️ Visitante ${user.userId} está ${currentStatus.value.toUpperCase()} pero no hay commandBus disponible`,
           );
@@ -1213,7 +1219,9 @@ export class WebSocketGatewayBasic
     let previousStatus = 'offline';
     try {
       const currentStatus =
-        await this.commercialConnectionService.getConnectionStatus(commercialId);
+        await this.commercialConnectionService.getConnectionStatus(
+          commercialId,
+        );
       previousStatus = currentStatus.value;
     } catch {
       // Si no existe, asumimos offline
@@ -1264,7 +1272,9 @@ export class WebSocketGatewayBasic
     let previousStatus = 'online';
     try {
       const currentStatus =
-        await this.commercialConnectionService.getConnectionStatus(commercialId);
+        await this.commercialConnectionService.getConnectionStatus(
+          commercialId,
+        );
       previousStatus = currentStatus.value;
     } catch {
       // Si no existe, asumimos online
