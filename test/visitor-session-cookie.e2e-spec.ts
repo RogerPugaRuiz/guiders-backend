@@ -5,7 +5,6 @@ import { CqrsModule } from '@nestjs/cqrs';
 import * as cookieParser from 'cookie-parser';
 import { VisitorV2Controller } from '../src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller';
 import { IdentifyVisitorCommandHandler } from '../src/context/visitors-v2/application/commands/identify-visitor.command-handler';
-import { UpdateSessionHeartbeatCommandHandler } from '../src/context/visitors-v2/application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from '../src/context/visitors-v2/application/commands/end-session.command-handler';
 import { ResolveSiteCommandHandler } from '../src/context/visitors-v2/application/commands/resolve-site.command-handler';
 import {
@@ -209,7 +208,6 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       controllers: [VisitorV2Controller],
       providers: [
         IdentifyVisitorCommandHandler,
-        UpdateSessionHeartbeatCommandHandler,
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
         RecordConsentCommandHandler,
@@ -259,7 +257,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
     await app.close();
   });
 
-  it('debe permitir heartbeat y endSession usando solo cookie sid', async () => {
+  it('debe permitir endSession usando solo cookie sid', async () => {
     // 1. identify crea visitante nuevo
     mockVisitorRepository.findByFingerprintAndSite.mockResolvedValue(
       err(new VisitorV2PersistenceError('Visitante no encontrado')),
@@ -306,8 +304,8 @@ describe('Visitor Session Cookie Fallback E2E', () => {
     const sidCookie = cookiesArray.find((c) => c.startsWith('sid='));
     expect(sidCookie).toBeDefined();
 
-    // Preparar mock findBySessionId para heartbeat / end
-    const visitorForHeartbeat = VisitorV2.create({
+    // Preparar mock findBySessionId para end
+    const visitorForEnd = VisitorV2.create({
       id: new VisitorId(identifyRes.body.visitorId),
       tenantId: new TenantId(mockTenantId),
       siteId: new SiteId(mockSiteId),
@@ -315,31 +313,12 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
     });
     mockVisitorRepository.findBySessionId.mockResolvedValue(
-      ok(visitorForHeartbeat),
+      ok(visitorForEnd),
     );
 
-    const mockContextHeartbeat = {
-      ...visitorForHeartbeat,
-      commit: jest.fn(),
-      updateSessionActivity: jest.fn(),
-      getId: jest
-        .fn()
-        .mockReturnValue(new VisitorId(identifyRes.body.visitorId)),
-    };
-    mockEventPublisher.mergeObjectContext.mockReturnValueOnce(
-      mockContextHeartbeat as any,
-    );
-
-    // 2. heartbeat sin sessionId en body (usa cookie)
-    await request(app.getHttpServer())
-      .post('/visitors/session/heartbeat')
-      .set('Cookie', sidCookie as string)
-      .send({ visitorId: identifyRes.body.visitorId })
-      .expect(200);
-
-    // 3. endSession sin sessionId en body (usa cookie)
+    // 2. endSession sin sessionId en body (usa cookie)
     const mockContextEnd = {
-      ...visitorForHeartbeat,
+      ...visitorForEnd,
       commit: jest.fn(),
       endCurrentSession: jest.fn(),
       getId: jest
@@ -355,17 +334,6 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       .set('Cookie', sidCookie as string)
       .send({ visitorId: identifyRes.body.visitorId, reason: 'cookie-flow' })
       .expect(200);
-
-    // 4. (Opcional) intentar heartbeat de nuevo -> puede ser 404 (sesión terminada) o 200 si mocks no reflejan cierre
-    await request(app.getHttpServer())
-      .post('/visitors/session/heartbeat')
-      .set('Cookie', sidCookie as string)
-      .send({ visitorId: identifyRes.body.visitorId })
-      .expect((res) => {
-        if (![200, 404, 500].includes(res.status)) {
-          throw new Error(`Unexpected status ${res.status}`);
-        }
-      });
 
     // Aserciones clave
     expect(mockVisitorRepository.findBySessionId).toHaveBeenCalled();

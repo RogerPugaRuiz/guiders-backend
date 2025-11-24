@@ -334,6 +334,7 @@ export class IdentifyVisitorCommandHandler
 
       return new IdentifyVisitorResponseDto({
         visitorId: visitor.getId().value,
+        tenantId: tenantId.value,
         sessionId: currentSession.getId().value,
         lifecycle: visitor.getLifecycle().getValue(),
         isNewVisitor,

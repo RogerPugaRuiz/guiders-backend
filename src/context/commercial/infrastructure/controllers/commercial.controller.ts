@@ -34,7 +34,6 @@ import {
 // DTOs
 import {
   ConnectCommercialDto,
-  CommercialHeartbeatDto,
   DisconnectCommercialDto,
   CheckCommercialAvailabilityDto,
   ChangeCommercialStatusDto,
@@ -189,68 +188,6 @@ export class CommercialController {
         error,
       );
       throw new InternalServerErrorException('Error al desconectar comercial');
-    }
-  }
-
-  /**
-   * Actualiza la actividad de un comercial (heartbeat)
-   */
-  @Put('heartbeat')
-  @HttpCode(HttpStatus.OK)
-  // @Roles(['commercial', 'admin'])
-  @ApiOperation({
-    summary: 'Actualizar heartbeat comercial',
-    description:
-      'Actualiza la última actividad de un comercial para mantener la sesión activa',
-  })
-  @ApiBody({ type: CommercialHeartbeatDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Actividad actualizada exitosamente',
-    type: CommercialOperationResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
-  async updateHeartbeat(
-    @Body() heartbeatDto: CommercialHeartbeatDto,
-  ): Promise<CommercialOperationResponseDto> {
-    try {
-      this.logger.log(`Actualizando heartbeat comercial: ${heartbeatDto.id}`);
-
-      // Ejecutar comando para actualizar actividad
-      const command = new UpdateCommercialActivityCommand(heartbeatDto.id);
-      await this.commandBus.execute(command);
-
-      return {
-        success: true,
-        message: 'Actividad actualizada exitosamente',
-        commercial: {
-          id: heartbeatDto.id,
-          name: 'Commercial',
-          connectionStatus: 'CONNECTED',
-          lastActivity: new Date(),
-          isActive: true,
-        },
-      };
-    } catch (error: unknown) {
-      this.logger.error(
-        `Error al actualizar heartbeat comercial ${heartbeatDto.id}:`,
-        error,
-      );
-
-      if (error instanceof Error && error.message?.includes('no encontrado')) {
-        throw new NotFoundException('Comercial no encontrado');
-      }
-
-      throw new InternalServerErrorException(
-        'Error al actualizar heartbeat comercial',
-      );
     }
   }
 

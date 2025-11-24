@@ -17,7 +17,6 @@ import { SitesController } from './infrastructure/controllers/sites.controller';
 import { SiteVisitorsController } from './infrastructure/controllers/site-visitors.controller';
 import { TenantVisitorsController } from './infrastructure/controllers/tenant-visitors.controller';
 import { IdentifyVisitorCommandHandler } from './application/commands/identify-visitor.command-handler';
-import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
 import { ResolveSiteCommandHandler } from './application/commands/resolve-site.command-handler';
 import { CleanExpiredSessionsCommandHandler } from './application/commands/clean-expired-sessions.command-handler';
@@ -30,6 +29,7 @@ import { GoOnlineVisitorCommandHandler } from './application/commands/go-online-
 import { StartChattingVisitorCommandHandler } from './application/commands/start-chatting-visitor.command-handler';
 import { GoOfflineVisitorCommandHandler } from './application/commands/go-offline-visitor.command-handler';
 import { ChangeVisitorConnectionStatusCommandHandler } from './application/commands/change-visitor-connection-status.command-handler';
+import { UpdateVisitorSessionActivityCommandHandler } from './application/commands/update-visitor-session-activity.command-handler';
 import { GetOnlineVisitorsQueryHandler } from './application/queries/get-online-visitors.query-handler';
 import { GetChattingVisitorsQueryHandler } from './application/queries/get-chatting-visitors.query-handler';
 import { GetVisitorConnectionStatusQueryHandler } from './application/queries/get-visitor-connection-status.query-handler';
@@ -103,7 +103,6 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
       useClass: SavedFilterMongoRepositoryImpl,
     },
     IdentifyVisitorCommandHandler,
-    UpdateSessionHeartbeatCommandHandler,
     EndSessionCommandHandler,
     ResolveSiteCommandHandler,
     CleanExpiredSessionsCommandHandler,
@@ -111,6 +110,7 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     StartChattingVisitorCommandHandler,
     GoOfflineVisitorCommandHandler,
     ChangeVisitorConnectionStatusCommandHandler,
+    UpdateVisitorSessionActivityCommandHandler,
     GetOnlineVisitorsQueryHandler,
     GetChattingVisitorsQueryHandler,
     GetVisitorConnectionStatusQueryHandler,
