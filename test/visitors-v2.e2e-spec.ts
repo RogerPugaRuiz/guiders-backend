@@ -235,7 +235,6 @@ describe('Visitors E2E', () => {
       controllers: [VisitorV2Controller, SitesController],
       providers: [
         IdentifyVisitorCommandHandler,
-        UpdateSessionHeartbeatCommandHandler,
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
         RecordConsentCommandHandler,
