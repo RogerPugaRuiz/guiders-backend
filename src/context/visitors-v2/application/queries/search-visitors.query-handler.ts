@@ -76,19 +76,26 @@ export class SearchVisitorsQueryHandler
         }
       }
 
-      // Obtener chats pendientes (sin asignar) del tenant
-      let pendingChatIds: string[] = [];
+      // Obtener chats pendientes por visitante
+      const pendingChatsByVisitor = new Map<string, string[]>();
       try {
         const unassignedChatsResult = await this.chatRepository.getAvailableChats(
           [], // commercialIds vacío para obtener chats no asignados
           { status: ['PENDING'] }, // Solo chats pendientes
-          100, // límite de chats a obtener
+          1000, // límite de chats a obtener
         );
 
         if (unassignedChatsResult.isOk()) {
-          pendingChatIds = unassignedChatsResult.value.map((chat) =>
-            chat.id.getValue(),
-          );
+          // Agrupar chats pendientes por visitorId
+          for (const chat of unassignedChatsResult.value) {
+            const visitorId = chat.visitorId.getValue();
+            const chatId = chat.id.getValue();
+
+            if (!pendingChatsByVisitor.has(visitorId)) {
+              pendingChatsByVisitor.set(visitorId, []);
+            }
+            pendingChatsByVisitor.get(visitorId)!.push(chatId);
+          }
         }
       } catch (error) {
         this.logger.warn(
@@ -129,6 +136,7 @@ export class SearchVisitorsQueryHandler
             totalSessionsCount: primitives.sessions.length,
             totalSessionDuration,
             totalChatsCount: chatCountsMap.get(primitives.id) || 0,
+            pendingChatIds: pendingChatsByVisitor.get(primitives.id) || [],
           };
         },
       );
@@ -146,7 +154,6 @@ export class SearchVisitorsQueryHandler
         visitors,
         pagination: paginationInfo,
         appliedFilters: query.filters as unknown as Record<string, unknown>,
-        pendingChatIds,
       });
     } catch (error) {
       const errorMessage = `Error en búsqueda de visitantes: ${
