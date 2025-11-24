@@ -147,6 +147,13 @@ export class SearchVisitorsResponseDto {
     example: { lifecycle: ['LEAD'], connectionStatus: ['online'] },
   })
   appliedFilters?: Record<string, unknown>;
+
+  @ApiProperty({
+    description: 'IDs de chats pendientes (sin asignar) del tenant',
+    type: [String],
+    example: ['chat-uuid-1', 'chat-uuid-2'],
+  })
+  pendingChatIds: string[];
 }
 
 /**

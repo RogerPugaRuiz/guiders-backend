@@ -76,6 +76,26 @@ export class SearchVisitorsQueryHandler
         }
       }
 
+      // Obtener chats pendientes (sin asignar) del tenant
+      let pendingChatIds: string[] = [];
+      try {
+        const unassignedChatsResult = await this.chatRepository.getAvailableChats(
+          [], // commercialIds vacío para obtener chats no asignados
+          { status: ['PENDING'] }, // Solo chats pendientes
+          100, // límite de chats a obtener
+        );
+
+        if (unassignedChatsResult.isOk()) {
+          pendingChatIds = unassignedChatsResult.value.map((chat) =>
+            chat.id.getValue(),
+          );
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Error obteniendo chats pendientes: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+
       // Mapear a DTOs de respuesta
       const visitors: VisitorSummaryDto[] = searchResult.visitors.map(
         (visitor) => {
@@ -126,6 +146,7 @@ export class SearchVisitorsQueryHandler
         visitors,
         pagination: paginationInfo,
         appliedFilters: query.filters as unknown as Record<string, unknown>,
+        pendingChatIds,
       });
     } catch (error) {
       const errorMessage = `Error en búsqueda de visitantes: ${
