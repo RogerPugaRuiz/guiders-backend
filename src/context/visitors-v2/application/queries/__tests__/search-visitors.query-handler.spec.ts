@@ -187,5 +187,85 @@ describe('SearchVisitorsQueryHandler', () => {
         expect.anything(),
       );
     });
+
+    it('should auto-adjust page when requested page exceeds totalPages', async () => {
+      const visitors = [createMockVisitor()];
+
+      // Primera llamada: página 4 pero solo hay 1 página total
+      visitorRepository.searchWithFilters.mockResolvedValueOnce(
+        ok({
+          visitors: [],
+          total: 15,
+          page: 4,
+          limit: 100,
+          totalPages: 1,
+        }),
+      );
+
+      // Segunda llamada: página ajustada a 1
+      visitorRepository.searchWithFilters.mockResolvedValueOnce(
+        ok({
+          visitors: visitors as any,
+          total: 15,
+          page: 1,
+          limit: 100,
+          totalPages: 1,
+        }),
+      );
+
+      const query = createQuery({}, {}, { page: 4, limit: 100 });
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+
+      // Verificar que se llamó dos veces al repositorio
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledTimes(2);
+
+      // Primera llamada con página 4
+      expect(visitorRepository.searchWithFilters).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ page: 4, limit: 100 }),
+      );
+
+      // Segunda llamada con página ajustada a 1
+      expect(visitorRepository.searchWithFilters).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ page: 1, limit: 100 }),
+      );
+
+      // Verificar que la respuesta tiene datos (no vacía)
+      expect(response.visitors).toHaveLength(1);
+      expect(response.pagination.page).toBe(1);
+      expect(response.pagination.totalPages).toBe(1);
+    });
+
+    it('should not auto-adjust when page is within valid range', async () => {
+      const visitors = [createMockVisitor(), createMockVisitor()];
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: visitors as any,
+          total: 100,
+          page: 2,
+          limit: 20,
+          totalPages: 5,
+        }),
+      );
+
+      const query = createQuery({}, {}, { page: 2, limit: 20 });
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+
+      // Solo debe llamarse una vez, sin ajuste
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledTimes(1);
+    });
   });
 });

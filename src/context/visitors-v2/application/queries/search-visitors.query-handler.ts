@@ -61,7 +61,38 @@ export class SearchVisitorsQueryHandler
         return err(result.error);
       }
 
-      const searchResult = result.unwrap();
+      let searchResult = result.unwrap();
+
+      // Validar y auto-ajustar página si excede el total de páginas
+      // Esto puede ocurrir cuando se aplican filtros que reducen drásticamente los resultados
+      // mientras el usuario está en una página alta
+      if (
+        searchResult.page > searchResult.totalPages &&
+        searchResult.totalPages > 0
+      ) {
+        this.logger.warn(
+          `⚠️ Página solicitada (${searchResult.page}) excede totalPages (${searchResult.totalPages}). Auto-ajustando a página ${searchResult.totalPages}`,
+        );
+
+        // Re-ejecutar búsqueda con página ajustada
+        const adjustedPagination = {
+          ...pagination,
+          page: searchResult.totalPages,
+        };
+
+        const adjustedResult = await this.visitorRepository.searchWithFilters(
+          new TenantId(query.tenantId),
+          filters,
+          sort,
+          adjustedPagination,
+        );
+
+        if (adjustedResult.isErr()) {
+          return err(adjustedResult.error);
+        }
+
+        searchResult = adjustedResult.unwrap();
+      }
 
       // Obtener IDs de visitantes para consultar chats
       const visitorIds = searchResult.visitors.map((v) => v.getId().getValue());
