@@ -301,7 +301,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       : setCookieHeader
         ? [setCookieHeader]
         : [];
-    const sidCookie = cookiesArray.find((c) => c.startsWith('sid='));
+    const sidCookie = cookiesArray.find((c) => c.startsWith('x-guiders-sid='));
     expect(sidCookie).toBeDefined();
 
     // Preparar mock findBySessionId para end
@@ -335,6 +335,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
 
     // Aserciones clave
     expect(mockVisitorRepository.findBySessionId).toHaveBeenCalled();
-    expect(sidCookie).toContain('HttpOnly');
+    // La cookie x-guiders-sid ya no es httpOnly para permitir acceso desde JavaScript
+    expect(sidCookie).not.toContain('HttpOnly');
   });
 });

@@ -204,7 +204,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
 
       const response = await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
-        .set('Cookie', [`sid=${sessionId}`])
+        .set('Cookie', [`x-guiders-sid=${sessionId}`])
         .expect(200);
 
       expect(response.body).toHaveProperty('chats');
@@ -229,7 +229,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
 
       await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
-        .set('Cookie', [`sid=${sessionId}`])
+        .set('Cookie', [`x-guiders-sid=${sessionId}`])
         .expect(500); // Error interno cuando el visitante intenta acceder a chats de otro visitante
 
       expect(
@@ -246,7 +246,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
 
       await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
-        .set('Cookie', [`sid=${sessionId}`])
+        .set('Cookie', [`x-guiders-sid=${sessionId}`])
         .expect(200); // OptionalAuthGuard permite acceso cuando sesión es inválida (acceso público)
 
       expect(
@@ -364,7 +364,7 @@ describe('ChatV2Controller - Dual Authentication E2E', () => {
       await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
         .set('Authorization', `Bearer ${mockToken}`)
-        .set('Cookie', [`sid=${sessionId}`])
+        .set('Cookie', [`x-guiders-sid=${sessionId}`])
         .expect(200);
 
       // Debe usar JWT, no la cookie
