@@ -12,6 +12,11 @@ import {
   IChatRepository,
   CHAT_V2_REPOSITORY,
 } from 'src/context/conversations-v2/domain/chat.repository';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from 'src/context/commercial/domain/commercial.repository';
+import { CommercialId } from 'src/context/commercial/domain/value-objects/commercial-id';
 import { TenantId } from '../../domain/value-objects/tenant-id';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
@@ -34,6 +39,8 @@ export class SearchVisitorsQueryHandler
     private readonly visitorRepository: VisitorV2Repository,
     @Inject(CHAT_V2_REPOSITORY)
     private readonly chatRepository: IChatRepository,
+    @Inject(COMMERCIAL_REPOSITORY)
+    private readonly commercialRepository: CommercialRepository,
   ) {}
 
   async execute(
@@ -94,6 +101,27 @@ export class SearchVisitorsQueryHandler
         searchResult = adjustedResult.unwrap();
       }
 
+      // Obtener fingerprints conocidos del comercial si commercialId está presente
+      let commercialKnownFingerprints: string[] = [];
+      if (query.commercialId) {
+        try {
+          const commercialResult = await this.commercialRepository.findById(
+            new CommercialId(query.commercialId),
+          );
+          if (commercialResult.isOk() && commercialResult.unwrap()) {
+            commercialKnownFingerprints =
+              commercialResult.unwrap()!.getKnownFingerprints();
+            this.logger.debug(
+              `Comercial ${query.commercialId} tiene ${commercialKnownFingerprints.length} fingerprints conocidos`,
+            );
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Error obteniendo fingerprints del comercial ${query.commercialId}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
       // Obtener IDs de visitantes para consultar chats
       const visitorIds = searchResult.visitors.map((v) => v.getId().getValue());
 
@@ -110,11 +138,12 @@ export class SearchVisitorsQueryHandler
       // Obtener chats pendientes por visitante
       const pendingChatsByVisitor = new Map<string, string[]>();
       try {
-        const unassignedChatsResult = await this.chatRepository.getAvailableChats(
-          [], // commercialIds vacío para obtener chats no asignados
-          { status: ['PENDING'] }, // Solo chats pendientes
-          1000, // límite de chats a obtener
-        );
+        const unassignedChatsResult =
+          await this.chatRepository.getAvailableChats(
+            [], // commercialIds vacío para obtener chats no asignados
+            { status: ['PENDING'] }, // Solo chats pendientes
+            1000, // límite de chats a obtener
+          );
 
         if (unassignedChatsResult.isOk()) {
           // Agrupar chats pendientes por visitorId
@@ -159,12 +188,50 @@ export class SearchVisitorsQueryHandler
           });
 
           // Buscar la IP más reciente disponible (fallback a sesiones anteriores si la última no tiene)
-          const lastIpAddress =
-            sortedSessions.find((session) => session.ipAddress)?.ipAddress;
+          const lastIpAddress = sortedSessions.find(
+            (session) => session.ipAddress,
+          )?.ipAddress;
 
           // Buscar el UserAgent más reciente disponible (fallback a sesiones anteriores si la última no tiene)
-          const lastUserAgent =
-            sortedSessions.find((session) => session.userAgent)?.userAgent;
+          const lastUserAgent = sortedSessions.find(
+            (session) => session.userAgent,
+          )?.userAgent;
+
+          // Lógica híbrida para determinar si este visitante es el comercial que hace la búsqueda
+          // Opción 1: Match por fingerprint (más preciso)
+          // Opción 2: Match por IP + UserAgent (fallback para evitar falsos positivos)
+          // Opción 3: Match por IP sola (backward compatibility cuando no hay UserAgent ni commercialId)
+          let isMe = false;
+
+          // Verificar match por fingerprint si el comercial tiene fingerprints registrados
+          if (commercialKnownFingerprints.length > 0 && primitives.fingerprint) {
+            isMe = commercialKnownFingerprints.includes(primitives.fingerprint);
+          }
+
+          // Si no hubo match por fingerprint, intentar match por IP + UserAgent
+          if (
+            !isMe &&
+            query.requestIpAddress &&
+            query.requestUserAgent
+          ) {
+            isMe = primitives.sessions.some(
+              (session) =>
+                session.ipAddress === query.requestIpAddress &&
+                session.userAgent === query.requestUserAgent,
+            );
+          }
+
+          // Backward compatibility: si no hay commercialId ni requestUserAgent, usar solo IP
+          if (
+            !isMe &&
+            query.requestIpAddress &&
+            !query.commercialId &&
+            !query.requestUserAgent
+          ) {
+            isMe = primitives.sessions.some(
+              (session) => session.ipAddress === query.requestIpAddress,
+            );
+          }
 
           return {
             id: primitives.id,
@@ -186,6 +253,7 @@ export class SearchVisitorsQueryHandler
             pendingChatIds: pendingChatsByVisitor.get(primitives.id) || [],
             lastIpAddress,
             lastUserAgent,
+            isMe,
           };
         },
       );
@@ -233,6 +301,7 @@ export class SearchVisitorsQueryHandler
       hasActiveSessions: dto.hasActiveSessions,
       minTotalSessionsCount: dto.minTotalSessionsCount,
       maxTotalSessionsCount: dto.maxTotalSessionsCount,
+      ipAddress: dto.ipAddress,
       // Excluir automáticamente visitantes internos (comerciales) de las búsquedas
       isInternal: false,
     };

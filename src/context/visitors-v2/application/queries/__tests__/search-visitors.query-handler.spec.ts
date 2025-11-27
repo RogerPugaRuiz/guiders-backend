@@ -9,6 +9,10 @@ import {
   IChatRepository,
   CHAT_V2_REPOSITORY,
 } from '../../../../../context/conversations-v2/domain/chat.repository';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../../../../commercial/domain/commercial.repository';
 import { ok, err } from '../../../../shared/domain/result';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 import { VisitorV2PersistenceError } from '../../../domain/errors/visitor-v2.error';
@@ -21,6 +25,7 @@ describe('SearchVisitorsQueryHandler', () => {
   let handler: SearchVisitorsQueryHandler;
   let visitorRepository: jest.Mocked<VisitorV2Repository>;
   let _chatRepository: jest.Mocked<IChatRepository>;
+  let commercialRepository: jest.Mocked<CommercialRepository>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -36,6 +41,13 @@ describe('SearchVisitorsQueryHandler', () => {
           provide: CHAT_V2_REPOSITORY,
           useValue: {
             countByVisitorIds: jest.fn().mockResolvedValue(ok(new Map())),
+            getAvailableChats: jest.fn().mockResolvedValue(ok([])),
+          },
+        },
+        {
+          provide: COMMERCIAL_REPOSITORY,
+          useValue: {
+            findById: jest.fn().mockResolvedValue(ok(null)),
           },
         },
       ],
@@ -46,13 +58,14 @@ describe('SearchVisitorsQueryHandler', () => {
     );
     visitorRepository = module.get(VISITOR_V2_REPOSITORY);
     _chatRepository = module.get(CHAT_V2_REPOSITORY);
+    commercialRepository = module.get(COMMERCIAL_REPOSITORY);
   });
 
   describe('execute', () => {
     const tenantId = Uuid.random().value;
     const siteId = Uuid.random().value;
 
-    const createMockVisitor = () => {
+    const createMockVisitor = (sessions: any[] = [], fingerprint?: string) => {
       const id = Uuid.random().value;
       return {
         getId: () => ({ getValue: () => id }),
@@ -60,19 +73,27 @@ describe('SearchVisitorsQueryHandler', () => {
           id,
           tenantId,
           siteId,
-          fingerprint: `fp_${id}`,
+          fingerprint: fingerprint || `fp_${id}`,
           lifecycle: 'visitor',
           connectionStatus: 'online',
           hasAcceptedPrivacyPolicy: true,
+          isInternal: false,
           currentUrl: 'https://example.com',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          sessions: [],
+          sessions,
         }),
       };
     };
 
-    const createQuery = (filters = {}, sort = {}, pagination = {}) => {
+    const createQuery = (
+      filters = {},
+      sort = {},
+      pagination = {},
+      requestIpAddress?: string,
+      requestUserAgent?: string,
+      commercialId?: string,
+    ) => {
       return new SearchVisitorsQuery(
         tenantId,
         filters,
@@ -82,6 +103,9 @@ describe('SearchVisitorsQueryHandler', () => {
           ...sort,
         },
         { page: 1, limit: 20, ...pagination },
+        requestIpAddress,
+        requestUserAgent,
+        commercialId,
       );
     };
 
@@ -323,6 +347,475 @@ describe('SearchVisitorsQueryHandler', () => {
         expect.anything(),
         expect.anything(),
       );
+    });
+
+    it('should set isMe to true when request IP matches visitor session IP', async () => {
+      const requestIp = '192.168.1.100';
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: requestIp, // Coincide con la IP del request
+          userAgent: 'Mozilla/5.0',
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions);
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery({}, {}, {}, requestIp);
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(true);
+    });
+
+    it('should set isMe to false when request IP does not match any visitor session IP', async () => {
+      const requestIp = '192.168.1.100';
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: '10.0.0.1', // NO coincide con la IP del request
+          userAgent: 'Mozilla/5.0',
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions);
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery({}, {}, {}, requestIp);
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(false);
+    });
+
+    it('should set isMe to false when requestIpAddress is not provided', async () => {
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: '192.168.1.100',
+          userAgent: 'Mozilla/5.0',
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions);
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(); // Sin requestIpAddress
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(false);
+    });
+
+    it('should set isMe to true when request IP matches any session (not just the most recent)', async () => {
+      const requestIp = '192.168.1.100';
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date(Date.now() - 3600000).toISOString(), // Más antigua
+          lastActivityAt: new Date(Date.now() - 3600000).toISOString(),
+          endedAt: new Date(Date.now() - 3000000).toISOString(),
+          currentUrl: 'https://example.com/old',
+          ipAddress: requestIp, // Sesión antigua con IP coincidente
+          userAgent: 'Mozilla/5.0',
+        },
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(), // Más reciente
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com/new',
+          ipAddress: '10.0.0.1', // Sesión reciente con IP diferente
+          userAgent: 'Mozilla/5.0',
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions);
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery({}, {}, {}, requestIp);
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(true); // Aunque la IP coincida solo con una sesión antigua
+    });
+
+    // ===== TESTS PARA LÓGICA HÍBRIDA (FINGERPRINT + IP+USERAGENT) =====
+
+    it('should set isMe to true when visitor fingerprint matches commercial known fingerprints', async () => {
+      const commercialId = Uuid.random().value;
+      const visitorFingerprint = 'fp_commercial_browser';
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: '192.168.1.100',
+          userAgent: 'Mozilla/5.0',
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions, visitorFingerprint);
+
+      // Mock del comercial con el fingerprint conocido
+      const mockCommercial = {
+        getKnownFingerprints: jest
+          .fn()
+          .mockReturnValue([visitorFingerprint, 'fp_other']),
+      } as any;
+      commercialRepository.findById.mockResolvedValue(ok(mockCommercial));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(
+        {},
+        {},
+        {},
+        '192.168.1.100',
+        'Mozilla/5.0',
+        commercialId,
+      );
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(true); // Match por fingerprint
+      expect(commercialRepository.findById).toHaveBeenCalledWith(
+        expect.objectContaining({ value: commercialId }),
+      );
+    });
+
+    it('should set isMe to true when IP and UserAgent both match (fallback from fingerprint)', async () => {
+      const commercialId = Uuid.random().value;
+      const requestIp = '192.168.1.100';
+      const requestUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+      const visitorFingerprint = 'fp_different_visitor';
+
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: requestIp, // IP coincide
+          userAgent: requestUserAgent, // UserAgent coincide
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions, visitorFingerprint);
+
+      // Mock del comercial con fingerprints diferentes
+      const mockCommercial = {
+        getKnownFingerprints: jest
+          .fn()
+          .mockReturnValue(['fp_commercial_other', 'fp_commercial_other2']),
+      } as any;
+      commercialRepository.findById.mockResolvedValue(ok(mockCommercial));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(
+        {},
+        {},
+        {},
+        requestIp,
+        requestUserAgent,
+        commercialId,
+      );
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(true); // Match por IP + UserAgent
+    });
+
+    it('should set isMe to false when only IP matches but UserAgent does not', async () => {
+      const commercialId = Uuid.random().value;
+      const requestIp = '192.168.1.100';
+      const requestUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: requestIp, // IP coincide
+          userAgent: 'Chrome/91.0 Different UserAgent', // UserAgent NO coincide
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions, 'fp_different');
+
+      // Mock del comercial sin fingerprint match
+      const mockCommercial = {
+        getKnownFingerprints: jest.fn().mockReturnValue(['fp_commercial_only']),
+      } as any;
+      commercialRepository.findById.mockResolvedValue(ok(mockCommercial));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(
+        {},
+        {},
+        {},
+        requestIp,
+        requestUserAgent,
+        commercialId,
+      );
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(false); // NO match (solo IP no es suficiente)
+    });
+
+    it('should set isMe to false when only UserAgent matches but IP does not', async () => {
+      const commercialId = Uuid.random().value;
+      const requestIp = '192.168.1.100';
+      const requestUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: '10.0.0.1', // IP NO coincide
+          userAgent: requestUserAgent, // UserAgent coincide
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions, 'fp_different');
+
+      // Mock del comercial sin fingerprint match
+      const mockCommercial = {
+        getKnownFingerprints: jest.fn().mockReturnValue(['fp_commercial_only']),
+      } as any;
+      commercialRepository.findById.mockResolvedValue(ok(mockCommercial));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(
+        {},
+        {},
+        {},
+        requestIp,
+        requestUserAgent,
+        commercialId,
+      );
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(false); // NO match (solo UserAgent no es suficiente)
+    });
+
+    it('should set isMe to false when neither fingerprint nor IP+UserAgent match', async () => {
+      const commercialId = Uuid.random().value;
+      const requestIp = '192.168.1.100';
+      const requestUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)';
+
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: '10.0.0.1', // IP diferente
+          userAgent: 'Chrome/91.0 Different', // UserAgent diferente
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions, 'fp_visitor_unique');
+
+      // Mock del comercial con fingerprints diferentes
+      const mockCommercial = {
+        getKnownFingerprints: jest.fn().mockReturnValue(['fp_commercial_diff']),
+      } as any;
+      commercialRepository.findById.mockResolvedValue(ok(mockCommercial));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(
+        {},
+        {},
+        {},
+        requestIp,
+        requestUserAgent,
+        commercialId,
+      );
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(false); // Ningún criterio coincide
+    });
+
+    it('should prioritize fingerprint match over IP+UserAgent match', async () => {
+      const commercialId = Uuid.random().value;
+      const visitorFingerprint = 'fp_commercial_browser';
+      const requestIp = '10.0.0.1'; // IP diferente
+      const requestUserAgent = 'Different UserAgent'; // UserAgent diferente
+
+      const sessions = [
+        {
+          id: Uuid.random().value,
+          startedAt: new Date().toISOString(),
+          lastActivityAt: new Date().toISOString(),
+          endedAt: null,
+          currentUrl: 'https://example.com',
+          ipAddress: requestIp,
+          userAgent: requestUserAgent,
+        },
+      ];
+
+      const visitor = createMockVisitor(sessions, visitorFingerprint);
+
+      // Mock del comercial con el fingerprint coincidente
+      const mockCommercial = {
+        getKnownFingerprints: jest.fn().mockReturnValue([visitorFingerprint]),
+      } as any;
+      commercialRepository.findById.mockResolvedValue(ok(mockCommercial));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [visitor] as any,
+          total: 1,
+          page: 1,
+          limit: 20,
+          totalPages: 1,
+        }),
+      );
+      _chatRepository.countByVisitorIds.mockResolvedValue(ok(new Map()));
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      const query = createQuery(
+        {},
+        {},
+        {},
+        requestIp,
+        requestUserAgent,
+        commercialId,
+      );
+      const result = await handler.execute(query);
+
+      expect(result.isOk()).toBe(true);
+      const response = result.unwrap();
+      expect(response.visitors[0].isMe).toBe(true); // Match por fingerprint tiene prioridad
     });
   });
 });
