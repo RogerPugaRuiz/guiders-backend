@@ -267,5 +267,62 @@ describe('SearchVisitorsQueryHandler', () => {
       // Solo debe llamarse una vez, sin ajuste
       expect(visitorRepository.searchWithFilters).toHaveBeenCalledTimes(1);
     });
+
+    it('should automatically exclude internal visitors (commercials) from search', async () => {
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery(); // Sin filtros explícitos
+      await handler.execute(query);
+
+      // Verificar que se agregó automáticamente isInternal: false al filtro
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          isInternal: false, // Filtro automático para excluir visitantes internos
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should maintain isInternal: false filter even with other filters', async () => {
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({
+        lifecycle: ['lead'],
+        connectionStatus: ['online'],
+        hasAcceptedPrivacyPolicy: true,
+      });
+      await handler.execute(query);
+
+      // Verificar que isInternal: false se agregó junto con los otros filtros
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          lifecycle: ['lead'],
+          connectionStatus: ['online'],
+          hasAcceptedPrivacyPolicy: true,
+          isInternal: false, // Filtro automático siempre presente
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
   });
 });

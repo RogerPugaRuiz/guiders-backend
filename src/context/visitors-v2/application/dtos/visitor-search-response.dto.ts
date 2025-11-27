@@ -1,6 +1,65 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
+ * DTO para información de sesión en búsqueda de visitantes
+ */
+export class SessionInfoDto {
+  @ApiProperty({
+    description: 'ID de la sesión',
+    example: '550e8400-e29b-41d4-a716-446655440099',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Fecha de inicio de la sesión',
+    example: '2024-01-15T10:30:00.000Z',
+  })
+  startedAt: string;
+
+  @ApiProperty({
+    description: 'Última actividad en la sesión',
+    example: '2024-01-15T14:45:00.000Z',
+  })
+  lastActivityAt: string;
+
+  @ApiPropertyOptional({
+    description: 'Fecha de finalización de la sesión',
+    example: '2024-01-15T15:00:00.000Z',
+  })
+  endedAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL actual de la sesión',
+    example: 'https://example.com/pricing',
+  })
+  currentUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Dirección IP desde la que se inició la sesión',
+    example: '192.168.1.100',
+  })
+  ipAddress?: string;
+
+  @ApiPropertyOptional({
+    description: 'User-Agent del navegador',
+    example: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  })
+  userAgent?: string;
+
+  @ApiProperty({
+    description: 'Indica si la sesión está activa',
+    example: true,
+  })
+  isActive: boolean;
+
+  @ApiProperty({
+    description: 'Duración de la sesión en milisegundos',
+    example: 1800000,
+  })
+  duration: number;
+}
+
+/**
  * Información de paginación en la respuesta
  */
 export class PaginationInfoDto {
@@ -83,6 +142,12 @@ export class VisitorSummaryDto {
   })
   hasAcceptedPrivacyPolicy: boolean;
 
+  @ApiProperty({
+    description: 'Indica si el visitante es interno (comercial/empleado)',
+    example: false,
+  })
+  isInternal: boolean;
+
   @ApiPropertyOptional({
     description: 'URL actual del visitante',
     example: 'https://example.com/pricing',
@@ -131,6 +196,18 @@ export class VisitorSummaryDto {
     example: ['chat-uuid-1', 'chat-uuid-2'],
   })
   pendingChatIds: string[];
+
+  @ApiPropertyOptional({
+    description: 'Dirección IP de la última sesión del visitante',
+    example: '192.168.1.100',
+  })
+  lastIpAddress?: string;
+
+  @ApiPropertyOptional({
+    description: 'User-Agent de la última sesión del visitante',
+    example: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+  })
+  lastUserAgent?: string;
 }
 
 /**

@@ -129,6 +129,8 @@ export class VisitorV2Controller {
         'unknown';
       const userAgent = request.headers['user-agent'];
 
+      const cookieHeader = request.headers.cookie;
+
       const command = new IdentifyVisitorCommand(
         identifyVisitorDto.fingerprint,
         identifyVisitorDto.domain,
@@ -136,6 +138,7 @@ export class VisitorV2Controller {
         identifyVisitorDto.hasAcceptedPrivacyPolicy,
         ipAddress,
         userAgent,
+        cookieHeader,
         identifyVisitorDto.currentUrl,
         identifyVisitorDto.consentVersion,
       );

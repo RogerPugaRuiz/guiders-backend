@@ -15,6 +15,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   Inject,
+  Req,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -38,6 +39,7 @@ import {
   CheckCommercialAvailabilityDto,
   ChangeCommercialStatusDto,
   CommercialStatusEnum,
+  RegisterFingerprintDto,
 } from '../../application/dtos/commercial-request.dto';
 import {
   CommercialConnectionStatusResponseDto,
@@ -56,6 +58,7 @@ import { GetCommercialAvailabilityBySiteQuery } from '../../application/queries/
 import { ConnectCommercialCommand } from '../../application/commands/connect-commercial.command';
 import { DisconnectCommercialCommand } from '../../application/commands/disconnect-commercial.command';
 import { ChangeCommercialConnectionStatusCommand } from '../../application/commands/change-commercial-connection-status.command';
+import { RegisterCommercialFingerprintCommand } from '../../application/commands/register-commercial-fingerprint.command';
 
 // Services
 import {
@@ -564,6 +567,80 @@ export class CommercialController {
       }
 
       throw new InternalServerErrorException('Error al eliminar comercial');
+    }
+  }
+
+  /**
+   * Registra un fingerprint de navegador para un comercial
+   * Permite que el sistema identifique automáticamente al comercial cuando visite sitios con SDK
+   */
+  @Post('register-fingerprint')
+  @HttpCode(HttpStatus.OK)
+  // @UseGuards(AuthGuard, RoleGuard)
+  // @Roles(['commercial', 'admin'])
+  @ApiOperation({
+    summary: 'Registrar fingerprint de comercial',
+    description:
+      'Registra un fingerprint de navegador para que el comercial sea identificado automáticamente al visitar sitios con el SDK instalado',
+  })
+  @ApiBody({ type: RegisterFingerprintDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Fingerprint registrado exitosamente',
+    type: CommercialOperationResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Comercial no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async registerFingerprint(
+    @Body() dto: RegisterFingerprintDto,
+  ): Promise<CommercialOperationResponseDto> {
+    try {
+      this.logger.log(
+        `Registrando fingerprint ${dto.fingerprint} para comercial ${dto.commercialId}`,
+      );
+
+      const command = new RegisterCommercialFingerprintCommand(
+        dto.commercialId,
+        dto.fingerprint,
+      );
+
+      const result = await this.commandBus.execute(command);
+
+      if (result.isErr()) {
+        const error = result.error;
+        if (error.message.includes('no encontrado')) {
+          throw new NotFoundException('Comercial no encontrado');
+        }
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Fingerprint registrado exitosamente',
+      };
+    } catch (error: unknown) {
+      this.logger.error(
+        `Error al registrar fingerprint para comercial ${dto.commercialId}:`,
+        error,
+      );
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        'Error al registrar fingerprint',
+      );
     }
   }
 }

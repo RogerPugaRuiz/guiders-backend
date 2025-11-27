@@ -33,6 +33,7 @@ export interface VisitorPrimitives {
   privacyPolicyAcceptedAt: string | null;
   consentVersion: string | null;
   currentUrl?: string; // URL actual del visitante
+  isInternal: boolean; // Marca si el visitante es un comercial/empleado
   createdAt: string;
   updatedAt: string;
   sessions: ReturnType<Session['toPrimitives']>[];
@@ -54,6 +55,7 @@ export class VisitorV2 extends AggregateRoot {
   private privacyPolicyAcceptedAt: Date | null;
   private consentVersion: string | null;
   private currentUrl?: string;
+  private isInternal: boolean;
   private readonly createdAt: Date;
   private updatedAt: Date;
   private sessions: Session[];
@@ -69,6 +71,7 @@ export class VisitorV2 extends AggregateRoot {
     privacyPolicyAcceptedAt: Date | null;
     consentVersion: string | null;
     currentUrl?: string;
+    isInternal: boolean;
     createdAt: Date;
     updatedAt: Date;
     sessions: Session[];
@@ -84,6 +87,7 @@ export class VisitorV2 extends AggregateRoot {
     this.privacyPolicyAcceptedAt = props.privacyPolicyAcceptedAt;
     this.consentVersion = props.consentVersion;
     this.currentUrl = props.currentUrl;
+    this.isInternal = props.isInternal;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     this.sessions = props.sessions;
@@ -100,11 +104,19 @@ export class VisitorV2 extends AggregateRoot {
     lifecycle?: VisitorLifecycleVO;
     hasAcceptedPrivacyPolicy?: boolean;
     consentVersion?: string;
+    isInternal?: boolean;
+    ipAddress?: string;
+    userAgent?: string;
   }): VisitorV2 {
     const now = new Date();
     const lifecycle = props.lifecycle || VisitorLifecycleVO.anon();
-    const initialSession = Session.create(SessionId.random());
+    const initialSession = Session.create(
+      SessionId.random(),
+      props.ipAddress,
+      props.userAgent,
+    );
     const hasAccepted = props.hasAcceptedPrivacyPolicy || false;
+    const isInternal = props.isInternal || false;
 
     const visitor = new VisitorV2({
       id: props.id,
@@ -116,6 +128,7 @@ export class VisitorV2 extends AggregateRoot {
       hasAcceptedPrivacyPolicy: hasAccepted,
       privacyPolicyAcceptedAt: hasAccepted ? now : null,
       consentVersion: props.consentVersion || null,
+      isInternal,
       createdAt: now,
       updatedAt: now,
       sessions: [initialSession],
@@ -153,6 +166,7 @@ export class VisitorV2 extends AggregateRoot {
         : null,
       consentVersion: primitives.consentVersion,
       currentUrl: primitives.currentUrl,
+      isInternal: primitives.isInternal || false,
       createdAt: new Date(primitives.createdAt),
       updatedAt: new Date(primitives.updatedAt),
       sessions: primitives.sessions.map((sessionPrimitives) =>
@@ -178,6 +192,7 @@ export class VisitorV2 extends AggregateRoot {
         : null,
       consentVersion: this.consentVersion,
       currentUrl: this.currentUrl,
+      isInternal: this.isInternal,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
       sessions: this.sessions.map((session) => session.toPrimitives()),
@@ -239,8 +254,8 @@ export class VisitorV2 extends AggregateRoot {
   /**
    * Inicia una nueva sesión para el visitante
    */
-  public startNewSession(): void {
-    const newSession = Session.create(SessionId.random());
+  public startNewSession(ipAddress?: string, userAgent?: string): void {
+    const newSession = Session.create(SessionId.random(), ipAddress, userAgent);
     this.sessions.push(newSession);
     this.updatedAt = new Date();
 
@@ -559,6 +574,10 @@ export class VisitorV2 extends AggregateRoot {
 
   public getCurrentUrl(): string | undefined {
     return this.currentUrl;
+  }
+
+  public getIsInternal(): boolean {
+    return this.isInternal;
   }
 
   /**

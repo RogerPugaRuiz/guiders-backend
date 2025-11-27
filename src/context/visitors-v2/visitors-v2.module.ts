@@ -23,6 +23,7 @@ import { CleanExpiredSessionsCommandHandler } from './application/commands/clean
 import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 import { CompanyModule } from '../company/company.module';
+import { CommercialModule } from '../commercial/commercial.module';
 import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
 import { ConversationsV2Module } from '../conversations-v2/conversations-v2.module';
 import { GoOnlineVisitorCommandHandler } from './application/commands/go-online-visitor.command-handler';
@@ -80,6 +81,7 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     JwtModule.register({}), // Para TokenVerifyService
     ConfigModule, // Para TokenVerifyService
     CompanyModule,
+    CommercialModule, // ← Importar para acceder a CommercialRepository
     AuthVisitorModule,
     ConsentModule, // ← Importar para que RecordConsentCommand esté disponible
     forwardRef(() => ConversationsV2Module),

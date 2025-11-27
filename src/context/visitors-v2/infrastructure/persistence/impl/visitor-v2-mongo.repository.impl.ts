@@ -864,6 +864,11 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       query['hasAcceptedPrivacyPolicy'] = filters.hasAcceptedPrivacyPolicy;
     }
 
+    // Filtro por visitantes internos (comerciales/empleados)
+    if (filters.isInternal !== undefined) {
+      query['isInternal'] = filters.isInternal;
+    }
+
     // Filtro por fecha de creación
     if (filters.createdFrom || filters.createdTo) {
       query['createdAt'] = {};

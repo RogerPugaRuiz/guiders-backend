@@ -34,6 +34,10 @@ import { DenyConsentCommand } from '../../../consent/application/commands/deny-c
 import { BadRequestException } from '@nestjs/common';
 import { getCurrentConsentVersion } from '../../../consent/domain/config/consent-version.config';
 import { GoOnlineVisitorCommand } from './go-online-visitor.command';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../../../commercial/domain/commercial.repository';
 
 @CommandHandler(IdentifyVisitorCommand)
 export class IdentifyVisitorCommandHandler
@@ -48,9 +52,59 @@ export class IdentifyVisitorCommandHandler
     private readonly companyRepository: CompanyRepository,
     @Inject(VALIDATE_DOMAIN_API_KEY)
     private readonly apiKeyValidator: ValidateDomainApiKey,
+    @Inject(COMMERCIAL_REPOSITORY)
+    private readonly commercialRepository: CommercialRepository,
     private readonly publisher: EventPublisher,
     private readonly commandBus: CommandBus,
   ) {}
+
+  /**
+   * Detecta si el visitante es en realidad un comercial autenticado
+   * Verifica si el fingerprint pertenece a un comercial pre-registrado
+   * Esto funciona incluso si el SDK y la consola están en dominios diferentes
+   */
+  private async isCommercialByFingerprint(
+    fingerprint: string,
+    tenantId: string,
+  ): Promise<boolean> {
+    try {
+      this.logger.debug(
+        `Verificando si fingerprint ${fingerprint} pertenece a comercial en tenant ${tenantId}`,
+      );
+
+      const result =
+        await this.commercialRepository.findByFingerprintAndTenant(
+          fingerprint,
+          tenantId,
+        );
+
+      if (result.isErr()) {
+        this.logger.debug(
+          `Error al buscar comercial por fingerprint: ${result.error.message}`,
+        );
+        return false;
+      }
+
+      const commercial = result.unwrap();
+
+      if (!commercial) {
+        this.logger.debug(
+          `Fingerprint ${fingerprint} no pertenece a ningún comercial`,
+        );
+        return false;
+      }
+
+      this.logger.log(
+        `✅ Fingerprint ${fingerprint} pertenece a comercial: ${commercial.id.value}`,
+      );
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Error al verificar fingerprint de comercial: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
 
   async execute(
     command: IdentifyVisitorCommand,
@@ -138,6 +192,12 @@ export class IdentifyVisitorCommandHandler
           `🚫 Procesando rechazo de consentimiento para fingerprint=${fingerprint.value}`,
         );
 
+        // Detectar si es un comercial autenticado mediante fingerprint pre-registrado
+        const isInternal = await this.isCommercialByFingerprint(
+          command.fingerprint,
+          tenantId.value,
+        );
+
         // Crear visitante anónimo SIN sesión
         const visitor = VisitorV2.create({
           id: VisitorId.random(),
@@ -145,6 +205,9 @@ export class IdentifyVisitorCommandHandler
           siteId,
           fingerprint,
           lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
+          isInternal,
+          ipAddress: command.ipAddress,
+          userAgent: command.userAgent,
         });
 
         // Guardar visitante
@@ -225,8 +288,8 @@ export class IdentifyVisitorCommandHandler
           `✅ Visitante existente encontrado: ${visitor.getId().value}`,
         );
 
-        // Iniciar nueva sesión
-        visitor.startNewSession();
+        // Iniciar nueva sesión con IP y userAgent
+        visitor.startNewSession(command.ipAddress, command.userAgent);
 
         // RGPD: Actualizar consentimiento si no existe o si la versión cambió
         if (!visitor.hasValidConsent()) {
@@ -243,12 +306,26 @@ export class IdentifyVisitorCommandHandler
         );
         this.logger.log('🆕 Creando nuevo visitante anónimo');
 
+        // Detectar si es un comercial autenticado mediante fingerprint pre-registrado
+        const isInternal = await this.isCommercialByFingerprint(
+          command.fingerprint,
+          tenantId.value,
+        );
+        if (isInternal) {
+          this.logger.log(
+            '🔒 Visitante marcado como interno (comercial detectado vía fingerprint)',
+          );
+        }
+
         visitor = VisitorV2.create({
           id: VisitorId.random(),
           tenantId,
           siteId,
           fingerprint,
           lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
+          isInternal,
+          ipAddress: command.ipAddress,
+          userAgent: command.userAgent,
         });
 
         // RGPD: Registrar consentimiento para visitante nuevo

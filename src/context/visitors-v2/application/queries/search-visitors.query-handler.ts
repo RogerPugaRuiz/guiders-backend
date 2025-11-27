@@ -151,6 +151,21 @@ export class SearchVisitorsQueryHandler
             0,
           );
 
+          // Ordenar sesiones por fecha de inicio (más reciente primero)
+          const sortedSessions = [...primitives.sessions].sort((a, b) => {
+            const timeA = new Date(a.startedAt).getTime();
+            const timeB = new Date(b.startedAt).getTime();
+            return timeB - timeA; // Descendente: más reciente primero
+          });
+
+          // Buscar la IP más reciente disponible (fallback a sesiones anteriores si la última no tiene)
+          const lastIpAddress =
+            sortedSessions.find((session) => session.ipAddress)?.ipAddress;
+
+          // Buscar el UserAgent más reciente disponible (fallback a sesiones anteriores si la última no tiene)
+          const lastUserAgent =
+            sortedSessions.find((session) => session.userAgent)?.userAgent;
+
           return {
             id: primitives.id,
             tenantId: primitives.tenantId,
@@ -158,6 +173,7 @@ export class SearchVisitorsQueryHandler
             lifecycle: primitives.lifecycle,
             connectionStatus: primitives.connectionStatus || 'offline',
             hasAcceptedPrivacyPolicy: primitives.hasAcceptedPrivacyPolicy,
+            isInternal: primitives.isInternal,
             currentUrl: primitives.currentUrl,
             createdAt: primitives.createdAt,
             updatedAt: primitives.updatedAt,
@@ -168,6 +184,8 @@ export class SearchVisitorsQueryHandler
             totalSessionDuration,
             totalChatsCount: chatCountsMap.get(primitives.id) || 0,
             pendingChatIds: pendingChatsByVisitor.get(primitives.id) || [],
+            lastIpAddress,
+            lastUserAgent,
           };
         },
       );
@@ -215,6 +233,8 @@ export class SearchVisitorsQueryHandler
       hasActiveSessions: dto.hasActiveSessions,
       minTotalSessionsCount: dto.minTotalSessionsCount,
       maxTotalSessionsCount: dto.maxTotalSessionsCount,
+      // Excluir automáticamente visitantes internos (comerciales) de las búsquedas
+      isInternal: false,
     };
   }
 

@@ -25,6 +25,7 @@ export interface VisitorSearchFilters {
   hasActiveSessions?: boolean;
   minTotalSessionsCount?: number;
   maxTotalSessionsCount?: number;
+  isInternal?: boolean;
 }
 
 /**
