@@ -208,6 +208,19 @@ export class VisitorSummaryDto {
     example: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
   })
   lastUserAgent?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fingerprint único del navegador del visitante',
+    example: 'fp_a1b2c3d4e5f6g7h8i9j0',
+  })
+  fingerprint?: string;
+
+  @ApiProperty({
+    description:
+      'Indica si este visitante tiene la misma IP que quien hace la búsqueda (útil para detectar comerciales que navegaron por el sitio)',
+    example: true,
+  })
+  isMe: boolean;
 }
 
 /**

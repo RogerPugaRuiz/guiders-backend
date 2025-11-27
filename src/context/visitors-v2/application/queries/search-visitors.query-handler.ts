@@ -253,6 +253,7 @@ export class SearchVisitorsQueryHandler
             pendingChatIds: pendingChatsByVisitor.get(primitives.id) || [],
             lastIpAddress,
             lastUserAgent,
+            fingerprint: primitives.fingerprint,
             isMe,
           };
         },
