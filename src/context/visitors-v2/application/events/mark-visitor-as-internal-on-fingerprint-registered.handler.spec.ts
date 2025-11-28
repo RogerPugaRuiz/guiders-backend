@@ -12,7 +12,6 @@ import { TenantId } from '../../domain/value-objects/tenant-id';
 import { SiteId } from '../../domain/value-objects/site-id';
 import { VisitorFingerprint } from '../../domain/value-objects/visitor-fingerprint';
 import { Uuid } from '../../../shared/domain/value-objects/uuid';
-import { DomainError } from '../../../shared/domain/domain.error';
 import { VisitorV2PersistenceError } from '../../infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 
 describe('MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler', () => {
@@ -36,9 +35,10 @@ describe('MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler', (
       ],
     }).compile();
 
-    handler = module.get<MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler>(
-      MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler,
-    );
+    handler =
+      module.get<MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler>(
+        MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler,
+      );
   });
 
   describe('handle', () => {
@@ -213,7 +213,9 @@ describe('MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler', (
 
       // Primer update falla, segundo tiene éxito
       mockRepository.update
-        .mockResolvedValueOnce(err(new VisitorV2PersistenceError('Update failed')))
+        .mockResolvedValueOnce(
+          err(new VisitorV2PersistenceError('Update failed')),
+        )
         .mockResolvedValueOnce(okVoid());
 
       // Act

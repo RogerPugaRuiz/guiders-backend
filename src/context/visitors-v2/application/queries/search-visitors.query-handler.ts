@@ -109,8 +109,9 @@ export class SearchVisitorsQueryHandler
             new CommercialId(query.commercialId),
           );
           if (commercialResult.isOk() && commercialResult.unwrap()) {
-            commercialKnownFingerprints =
-              commercialResult.unwrap()!.getKnownFingerprints();
+            commercialKnownFingerprints = commercialResult
+              .unwrap()!
+              .getKnownFingerprints();
             this.logger.debug(
               `Comercial ${query.commercialId} tiene ${commercialKnownFingerprints.length} fingerprints conocidos`,
             );
@@ -204,16 +205,15 @@ export class SearchVisitorsQueryHandler
           let isMe = false;
 
           // Verificar match por fingerprint si el comercial tiene fingerprints registrados
-          if (commercialKnownFingerprints.length > 0 && primitives.fingerprint) {
+          if (
+            commercialKnownFingerprints.length > 0 &&
+            primitives.fingerprint
+          ) {
             isMe = commercialKnownFingerprints.includes(primitives.fingerprint);
           }
 
           // Si no hubo match por fingerprint, intentar match por IP + UserAgent
-          if (
-            !isMe &&
-            query.requestIpAddress &&
-            query.requestUserAgent
-          ) {
+          if (!isMe && query.requestIpAddress && query.requestUserAgent) {
             isMe = primitives.sessions.some(
               (session) =>
                 session.ipAddress === query.requestIpAddress &&

@@ -225,7 +225,8 @@ export class VisitorFiltersDto {
   ipAddress?: string;
 
   @ApiPropertyOptional({
-    description: 'Filtrar por tipo de visitante (interno/comercial vs. externo)',
+    description:
+      'Filtrar por tipo de visitante (interno/comercial vs. externo)',
     example: false,
   })
   @IsOptional()

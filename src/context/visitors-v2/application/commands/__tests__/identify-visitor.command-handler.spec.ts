@@ -63,7 +63,8 @@ describe('IdentifyVisitorCommandHandler', () => {
         {
           provide: EventPublisher,
           useValue: {
-            mergeObjectContext: jest.fn((obj) => ({
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+            mergeObjectContext: jest.fn((obj: any) => ({
               ...obj,
               commit: jest.fn(),
             })),
@@ -90,7 +91,9 @@ describe('IdentifyVisitorCommandHandler', () => {
     );
     visitorRepository = module.get<VisitorV2Repository>(VISITOR_V2_REPOSITORY);
     companyRepository = module.get<CompanyRepository>(COMPANY_REPOSITORY);
-    commercialRepository = module.get<CommercialRepository>(COMMERCIAL_REPOSITORY);
+    commercialRepository = module.get<CommercialRepository>(
+      COMMERCIAL_REPOSITORY,
+    );
     validateDomainApiKey = module.get<ValidateDomainApiKey>(
       VALIDATE_DOMAIN_API_KEY,
     );
@@ -99,7 +102,9 @@ describe('IdentifyVisitorCommandHandler', () => {
     );
 
     // Mock por defecto: no se encuentra comercial por fingerprint (visitante normal)
-    (commercialRepository.findByFingerprintAndTenant as jest.Mock).mockResolvedValue(ok(null));
+    (
+      commercialRepository.findByFingerprintAndTenant as jest.Mock
+    ).mockResolvedValue(ok(null));
   });
 
   describe('execute', () => {

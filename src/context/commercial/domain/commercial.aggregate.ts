@@ -262,10 +262,7 @@ export class Commercial extends AggregateRoot {
 
     // Emitir evento para que otros contextos reaccionen
     updated.apply(
-      new CommercialFingerprintRegisteredEvent(
-        this._id.value,
-        fingerprint,
-      ),
+      new CommercialFingerprintRegisteredEvent(this._id.value, fingerprint),
     );
 
     return updated;

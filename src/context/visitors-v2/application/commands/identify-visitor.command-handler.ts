@@ -73,9 +73,7 @@ export class IdentifyVisitorCommandHandler
     }
 
     try {
-      this.logger.debug(
-        `Verificando si visitante es comercial vía sesión BFF`,
-      );
+      this.logger.debug(`Verificando si visitante es comercial vía sesión BFF`);
 
       const tokens =
         this.bffSessionAuthService.extractBffSessionTokens(cookieHeader);

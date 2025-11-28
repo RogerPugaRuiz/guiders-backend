@@ -113,7 +113,7 @@ describe('GetVisitorActivityQueryHandler', () => {
         tenantId,
         siteId,
         lifecycle: VisitorLifecycle.ENGAGED,
-        connectionStatus: ConnectionStatus.ONLINE,
+            isInternal: false,        connectionStatus: ConnectionStatus.ONLINE,
         hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
         consentVersion: 'v1.0',
@@ -199,7 +199,7 @@ describe('GetVisitorActivityQueryHandler', () => {
         tenantId,
         siteId,
         lifecycle: VisitorLifecycle.ANON,
-        hasAcceptedPrivacyPolicy: true,
+            isInternal: false,        hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
         consentVersion: 'v1.0',
         sessions: [
@@ -237,7 +237,7 @@ describe('GetVisitorActivityQueryHandler', () => {
         tenantId,
         siteId,
         lifecycle: VisitorLifecycle.ANON,
-        hasAcceptedPrivacyPolicy: true,
+            isInternal: false,        hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
         consentVersion: 'v1.0',
         sessions: [
@@ -288,7 +288,7 @@ describe('GetVisitorActivityQueryHandler', () => {
         tenantId,
         siteId,
         lifecycle: VisitorLifecycle.LEAD,
-        hasAcceptedPrivacyPolicy: true,
+            isInternal: false,        hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
         consentVersion: 'v1.0',
         sessions: [
