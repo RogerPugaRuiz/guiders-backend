@@ -200,6 +200,31 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
     }
   }
 
+  async findByFingerprint(
+    fingerprint: string,
+  ): Promise<Result<VisitorV2[], DomainError>> {
+    try {
+      const entities = await this.visitorModel.find({
+        fingerprint,
+      });
+
+      this.logger.log(
+        `🔍 Encontrados ${entities.length} visitantes con fingerprint: ${fingerprint}`,
+      );
+
+      const visitors = entities.map((entity) =>
+        VisitorV2Mapper.fromPersistence(entity),
+      );
+      return ok(visitors);
+    } catch (error) {
+      const errorMessage = `Error al buscar visitantes por fingerprint: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new VisitorV2PersistenceError(errorMessage));
+    }
+  }
+
   async findBySessionId(
     sessionId: SessionId,
   ): Promise<Result<VisitorV2, DomainError>> {
@@ -908,15 +933,34 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       };
     }
 
-    // Filtro por sesiones activas
-    if (filters.hasActiveSessions !== undefined) {
-      if (filters.hasActiveSessions) {
+    // Filtro por dirección IP y/o sesiones activas
+    // Combina ambos filtros si están presentes usando $elemMatch
+    if (filters.ipAddress || filters.hasActiveSessions !== undefined) {
+      const sessionConditions: Record<string, unknown> = {};
+
+      // Condición de IP
+      if (filters.ipAddress) {
+        sessionConditions['ipAddress'] = filters.ipAddress;
+      }
+
+      // Condición de sesión activa
+      if (filters.hasActiveSessions !== undefined) {
+        if (filters.hasActiveSessions) {
+          sessionConditions['endedAt'] = null;
+        }
+        // Si hasActiveSessions es false, se maneja de forma especial más abajo
+      }
+
+      // Si hasActiveSessions es true o hay filtro de IP, usar $elemMatch
+      if (
+        filters.hasActiveSessions === true ||
+        (filters.ipAddress && filters.hasActiveSessions === undefined)
+      ) {
         query['sessions'] = {
-          $elemMatch: {
-            endedAt: null,
-          },
+          $elemMatch: sessionConditions,
         };
-      } else {
+      } else if (filters.hasActiveSessions === false) {
+        // Solo visitantes SIN sesiones activas
         query['$or'] = [
           { sessions: { $size: 0 } },
           { 'sessions.endedAt': { $ne: null } },

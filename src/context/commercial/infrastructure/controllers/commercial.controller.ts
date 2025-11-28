@@ -15,7 +15,6 @@ import {
   BadRequestException,
   UnauthorizedException,
   Inject,
-  Req,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
@@ -638,9 +637,7 @@ export class CommercialController {
         throw error;
       }
 
-      throw new InternalServerErrorException(
-        'Error al registrar fingerprint',
-      );
+      throw new InternalServerErrorException('Error al registrar fingerprint');
     }
   }
 }

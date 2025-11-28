@@ -6,6 +6,7 @@ import { CommercialLastActivity } from './value-objects/commercial-last-activity
 import { CommercialConnectedEvent } from './events/commercial-connected.event';
 import { CommercialConnectionStatusChangedEvent } from './events/commercial-connection-status-changed.event';
 import { CommercialHeartbeatReceivedEvent } from './events/commercial-heartbeat-received.event';
+import { CommercialFingerprintRegisteredEvent } from './events/commercial-fingerprint-registered.event';
 
 /**
  * Primitivos para la serialización del agregado Commercial
@@ -247,7 +248,7 @@ export class Commercial extends AggregateRoot {
     const newFingerprints = new Set(this._knownFingerprints);
     newFingerprints.add(fingerprint);
 
-    return new Commercial(
+    const updated = new Commercial(
       this._id,
       this._name,
       this._connectionStatus,
@@ -258,6 +259,16 @@ export class Commercial extends AggregateRoot {
       this._metadata,
       newFingerprints,
     );
+
+    // Emitir evento para que otros contextos reaccionen
+    updated.apply(
+      new CommercialFingerprintRegisteredEvent(
+        this._id.value,
+        fingerprint,
+      ),
+    );
+
+    return updated;
   }
 
   /**

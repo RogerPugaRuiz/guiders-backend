@@ -60,9 +60,8 @@ export class CleanExpiredSessionsCommandHandler
         // Verificar si tiene sesiones expiradas
         if (this.sessionManagementService.hasExpiredSessions(visitor)) {
           // Verificar si el visitante tiene conexión WebSocket activa
-          const connectionStatus = await this.connectionService.getConnectionStatus(
-            visitor.getId(),
-          );
+          const connectionStatus =
+            await this.connectionService.getConnectionStatus(visitor.getId());
 
           // Si está conectado vía WebSocket (online, away o chatting), no cerrar sus sesiones
           if (connectionStatus.isOnline()) {

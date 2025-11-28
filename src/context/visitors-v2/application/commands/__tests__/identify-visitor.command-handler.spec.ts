@@ -15,6 +15,10 @@ import {
   CompanyRepository,
   COMPANY_REPOSITORY,
 } from '../../../../company/domain/company.repository';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../../../../commercial/domain/commercial.repository';
 import { CompanyNotFoundError } from '../../../../company/domain/errors/company.error';
 import { BffSessionAuthService } from '../../../../shared/infrastructure/services/bff-session-auth.service';
 import { Uuid } from '../../../../shared/domain/value-objects/uuid';
@@ -23,6 +27,7 @@ describe('IdentifyVisitorCommandHandler', () => {
   let handler: IdentifyVisitorCommandHandler;
   let visitorRepository: VisitorV2Repository;
   let companyRepository: CompanyRepository;
+  let commercialRepository: CommercialRepository;
   let validateDomainApiKey: ValidateDomainApiKey;
   let bffSessionAuthService: BffSessionAuthService;
 
@@ -47,6 +52,12 @@ describe('IdentifyVisitorCommandHandler', () => {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: {
             validate: jest.fn(),
+          },
+        },
+        {
+          provide: COMMERCIAL_REPOSITORY,
+          useValue: {
+            findByFingerprintAndTenant: jest.fn(),
           },
         },
         {
@@ -79,12 +90,16 @@ describe('IdentifyVisitorCommandHandler', () => {
     );
     visitorRepository = module.get<VisitorV2Repository>(VISITOR_V2_REPOSITORY);
     companyRepository = module.get<CompanyRepository>(COMPANY_REPOSITORY);
+    commercialRepository = module.get<CommercialRepository>(COMMERCIAL_REPOSITORY);
     validateDomainApiKey = module.get<ValidateDomainApiKey>(
       VALIDATE_DOMAIN_API_KEY,
     );
     bffSessionAuthService = module.get<BffSessionAuthService>(
       BffSessionAuthService,
     );
+
+    // Mock por defecto: no se encuentra comercial por fingerprint (visitante normal)
+    (commercialRepository.findByFingerprintAndTenant as jest.Mock).mockResolvedValue(ok(null));
   });
 
   describe('execute', () => {
@@ -208,11 +223,13 @@ describe('IdentifyVisitorCommandHandler', () => {
         .mockReturnValue(['eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...']);
 
       // Mock de validación de sesión exitosa
-      jest.spyOn(bffSessionAuthService, 'validateBffSession').mockResolvedValue({
-        sub: Uuid.random().value,
-        email: 'comercial@mytech.com',
-        roles: ['commercial', 'user'],
-      });
+      jest
+        .spyOn(bffSessionAuthService, 'validateBffSession')
+        .mockResolvedValue({
+          sub: Uuid.random().value,
+          email: 'comercial@mytech.com',
+          roles: ['commercial', 'user'],
+        });
 
       // Mock validación de API key
       jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
@@ -246,7 +263,9 @@ describe('IdentifyVisitorCommandHandler', () => {
       const result = await handler.execute(commandWithCommercialCookie);
 
       // Verificar que se llamó a la detección de comercial
-      expect(bffSessionAuthService.extractBffSessionTokens).toHaveBeenCalledWith(
+      expect(
+        bffSessionAuthService.extractBffSessionTokens,
+      ).toHaveBeenCalledWith(
         'console_session=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
       );
       expect(bffSessionAuthService.validateBffSession).toHaveBeenCalled();
@@ -306,7 +325,9 @@ describe('IdentifyVisitorCommandHandler', () => {
       const result = await handler.execute(commandWithoutCookie);
 
       // Verificar que NO se llamó a extractBffSessionTokens
-      expect(bffSessionAuthService.extractBffSessionTokens).not.toHaveBeenCalled();
+      expect(
+        bffSessionAuthService.extractBffSessionTokens,
+      ).not.toHaveBeenCalled();
 
       // Verificar que se guardó el visitante
       expect(visitorRepository.save).toHaveBeenCalled();
@@ -373,9 +394,9 @@ describe('IdentifyVisitorCommandHandler', () => {
       const result = await handler.execute(commandWithInvalidCookie);
 
       // Verificar que se llamó a la validación pero falló
-      expect(bffSessionAuthService.extractBffSessionTokens).toHaveBeenCalledWith(
-        'console_session=invalid_token',
-      );
+      expect(
+        bffSessionAuthService.extractBffSessionTokens,
+      ).toHaveBeenCalledWith('console_session=invalid_token');
       expect(bffSessionAuthService.validateBffSession).toHaveBeenCalledWith(
         'invalid_token',
       );

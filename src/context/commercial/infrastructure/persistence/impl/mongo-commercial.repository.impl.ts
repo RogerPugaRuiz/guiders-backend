@@ -276,9 +276,7 @@ export class MongoCommercialRepositoryImpl implements CommercialRepository {
     _tenantId: string,
   ): Promise<Result<Commercial | null, DomainError>> {
     try {
-      this.logger.debug(
-        `Buscando comercial con fingerprint: ${fingerprint}`,
-      );
+      this.logger.debug(`Buscando comercial con fingerprint: ${fingerprint}`);
 
       // Buscar comercial que tenga este fingerprint en su array
       const schema = await this.commercialModel

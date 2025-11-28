@@ -303,8 +303,7 @@ export class SearchVisitorsQueryHandler
       minTotalSessionsCount: dto.minTotalSessionsCount,
       maxTotalSessionsCount: dto.maxTotalSessionsCount,
       ipAddress: dto.ipAddress,
-      // Excluir automáticamente visitantes internos (comerciales) de las búsquedas
-      isInternal: false,
+      isInternal: dto.isInternal,
     };
   }
 

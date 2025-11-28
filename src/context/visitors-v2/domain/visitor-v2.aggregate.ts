@@ -581,6 +581,24 @@ export class VisitorV2 extends AggregateRoot {
   }
 
   /**
+   * Marca el visitante como interno (comercial/empleado)
+   * Retorna una nueva instancia con isInternal: true manteniendo inmutabilidad
+   */
+  public markAsInternal(): VisitorV2 {
+    if (this.isInternal) {
+      // Ya es interno, no hacer nada
+      return this;
+    }
+
+    // Crear nueva instancia con isInternal = true
+    const primitives = this.toPrimitives();
+    primitives.isInternal = true;
+    primitives.updatedAt = new Date().toISOString();
+
+    return VisitorV2.fromPrimitives(primitives);
+  }
+
+  /**
    * Actualiza la URL actual del visitante y de la sesión activa
    */
   public updateCurrentUrl(url: string): void {

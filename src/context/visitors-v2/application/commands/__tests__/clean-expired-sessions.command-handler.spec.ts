@@ -376,7 +376,9 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       );
       visitorRepository.save.mockResolvedValue(okVoid());
       sessionManagementService.hasExpiredSessions.mockReturnValue(true);
-      sessionManagementService.cleanExpiredSessions.mockReturnValue(visitorOffline);
+      sessionManagementService.cleanExpiredSessions.mockReturnValue(
+        visitorOffline,
+      );
 
       // Mock connection service - primer visitante online, segundo offline
       const onlineStatus = new VisitorConnectionVO(ConnectionStatus.ONLINE);
@@ -405,7 +407,9 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       expect(connectionService.getConnectionStatus).toHaveBeenCalledTimes(2);
 
       // Solo se limpió el visitante offline
-      expect(sessionManagementService.cleanExpiredSessions).toHaveBeenCalledTimes(1);
+      expect(
+        sessionManagementService.cleanExpiredSessions,
+      ).toHaveBeenCalledTimes(1);
       expect(visitorRepository.save).toHaveBeenCalledTimes(1);
       expect(mockCommit).toHaveBeenCalledTimes(1);
     });

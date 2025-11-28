@@ -214,6 +214,28 @@ export class VisitorFiltersDto {
   @IsInt()
   @Min(0)
   maxTotalSessionsCount?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Filtrar por dirección IP (busca en todas las sesiones del visitante)',
+    example: '192.168.1.1',
+  })
+  @IsOptional()
+  @IsString()
+  ipAddress?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filtrar por tipo de visitante (interno/comercial vs. externo)',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }: { value: string | boolean }): boolean => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return Boolean(value);
+  })
+  isInternal?: boolean;
 }
 
 /**

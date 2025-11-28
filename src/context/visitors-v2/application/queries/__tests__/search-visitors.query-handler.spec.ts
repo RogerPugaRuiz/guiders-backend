@@ -153,6 +153,50 @@ describe('SearchVisitorsQueryHandler', () => {
       );
     });
 
+    it('should apply isInternal filter when filtering for internal visitors', async () => {
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({ isInternal: true });
+      await handler.execute(query);
+
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ isInternal: true }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should apply isInternal filter when filtering for external visitors', async () => {
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({ isInternal: false });
+      await handler.execute(query);
+
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ isInternal: false }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
     it('should return error when repository fails', async () => {
       visitorRepository.searchWithFilters.mockResolvedValue(
         err(new VisitorV2PersistenceError('Error de conexión')),
@@ -292,7 +336,7 @@ describe('SearchVisitorsQueryHandler', () => {
       expect(visitorRepository.searchWithFilters).toHaveBeenCalledTimes(1);
     });
 
-    it('should automatically exclude internal visitors (commercials) from search', async () => {
+    it('should NOT filter by isInternal (show both regular and internal visitors)', async () => {
       visitorRepository.searchWithFilters.mockResolvedValue(
         ok({
           visitors: [],
@@ -306,18 +350,13 @@ describe('SearchVisitorsQueryHandler', () => {
       const query = createQuery(); // Sin filtros explícitos
       await handler.execute(query);
 
-      // Verificar que se agregó automáticamente isInternal: false al filtro
-      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          isInternal: false, // Filtro automático para excluir visitantes internos
-        }),
-        expect.anything(),
-        expect.anything(),
-      );
+      // Verificar que NO se aplica filtro isInternal (debe ser undefined)
+      const callArgs = visitorRepository.searchWithFilters.mock.calls[0];
+      const filtersArg = callArgs[1];
+      expect(filtersArg.isInternal).toBeUndefined();
     });
 
-    it('should maintain isInternal: false filter even with other filters', async () => {
+    it('should NOT add isInternal filter even when other filters are present', async () => {
       visitorRepository.searchWithFilters.mockResolvedValue(
         ok({
           visitors: [],
@@ -335,18 +374,13 @@ describe('SearchVisitorsQueryHandler', () => {
       });
       await handler.execute(query);
 
-      // Verificar que isInternal: false se agregó junto con los otros filtros
-      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          lifecycle: ['lead'],
-          connectionStatus: ['online'],
-          hasAcceptedPrivacyPolicy: true,
-          isInternal: false, // Filtro automático siempre presente
-        }),
-        expect.anything(),
-        expect.anything(),
-      );
+      // Verificar que isInternal NO está presente, solo los filtros explícitos
+      const callArgs = visitorRepository.searchWithFilters.mock.calls[0];
+      const filtersArg = callArgs[1];
+      expect(filtersArg.lifecycle).toEqual(['lead']);
+      expect(filtersArg.connectionStatus).toEqual(['online']);
+      expect(filtersArg.hasAcceptedPrivacyPolicy).toBe(true);
+      expect(filtersArg.isInternal).toBeUndefined(); // NO debe estar presente
     });
 
     it('should set isMe to true when request IP matches visitor session IP', async () => {

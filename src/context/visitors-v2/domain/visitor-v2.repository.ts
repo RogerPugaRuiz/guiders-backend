@@ -26,6 +26,7 @@ export interface VisitorSearchFilters {
   minTotalSessionsCount?: number;
   maxTotalSessionsCount?: number;
   isInternal?: boolean;
+  ipAddress?: string;
 }
 
 /**
@@ -85,6 +86,13 @@ export interface VisitorV2Repository {
     fingerprint: VisitorFingerprint,
     siteId: SiteId,
   ): Promise<Result<VisitorV2, DomainError>>;
+
+  /**
+   * Busca todos los visitantes con un fingerprint específico
+   */
+  findByFingerprint(
+    fingerprint: string,
+  ): Promise<Result<VisitorV2[], DomainError>>;
 
   /**
    * Busca un visitante por sessionId
