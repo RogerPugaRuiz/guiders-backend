@@ -74,6 +74,11 @@ import {
   LeadScoringService,
 } from '../src/context/lead-scoring/domain/lead-scoring.service';
 import { EventBus } from '@nestjs/cqrs';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../src/context/commercial/domain/commercial.repository';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
 
 // Mock RolesGuard for E2E tests
 class MockRolesGuard {
@@ -86,7 +91,9 @@ describe('Visitors E2E', () => {
   let app: INestApplication;
   let mockVisitorRepository: jest.Mocked<VisitorV2Repository>;
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
+  let mockCommercialRepository: jest.Mocked<CommercialRepository>;
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
+  let mockBffSessionAuthService: jest.Mocked<BffSessionAuthService>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
@@ -138,6 +145,7 @@ describe('Visitors E2E', () => {
     // Mock repositories
     mockVisitorRepository = {
       findByFingerprintAndSite: jest.fn(),
+      findByFingerprint: jest.fn(),
       findBySessionId: jest.fn(),
       save: jest.fn(),
       findById: jest.fn(),
@@ -164,6 +172,20 @@ describe('Visitors E2E', () => {
       delete: jest.fn(),
       findAll: jest.fn(),
     };
+
+    mockCommercialRepository = {
+      findByFingerprint: jest.fn(),
+      save: jest.fn(),
+      findById: jest.fn(),
+      delete: jest.fn(),
+      findAll: jest.fn(),
+    } as any;
+
+    mockBffSessionAuthService = {
+      validateSession: jest.fn(),
+      createSession: jest.fn(),
+      invalidateSession: jest.fn(),
+    } as any;
 
     mockValidateDomainApiKey = {
       validate: jest.fn(),
@@ -248,9 +270,14 @@ describe('Visitors E2E', () => {
           useValue: mockCompanyRepository,
         },
         {
+          provide: COMMERCIAL_REPOSITORY,
+          useValue: mockCommercialRepository,
+        },
+        {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: mockValidateDomainApiKey,
         },
+        { provide: BffSessionAuthService, useValue: mockBffSessionAuthService },
         {
           provide: CONSENT_REPOSITORY,
           useValue: mockConsentRepository,
@@ -798,6 +825,7 @@ describe('Visitors E2E', () => {
         tenantId: mockTenantId,
         siteId: mockSiteId,
         lifecycle: VisitorLifecycle.ENGAGED,
+        isInternal: false,
         connectionStatus: ConnectionStatus.ONLINE,
         hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
@@ -885,6 +913,7 @@ describe('Visitors E2E', () => {
         tenantId: mockTenantId,
         siteId: mockSiteId,
         lifecycle: VisitorLifecycle.ANON,
+        isInternal: false,
         hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
         consentVersion: 'v1.0',

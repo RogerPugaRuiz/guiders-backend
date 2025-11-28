@@ -65,6 +65,11 @@ import {
 import { EventBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../src/context/commercial/domain/commercial.repository';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
 
 class MockDualAuthGuard {
   canActivate() {
@@ -85,7 +90,9 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   let app: INestApplication;
   let mockVisitorRepository: jest.Mocked<VisitorV2Repository>;
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
+  let mockCommercialRepository: jest.Mocked<CommercialRepository>;
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
+  let mockBffSessionAuthService: jest.Mocked<BffSessionAuthService>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
@@ -123,6 +130,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   beforeEach(async () => {
     mockVisitorRepository = {
       findByFingerprintAndSite: jest.fn(),
+      findByFingerprint: jest.fn(),
       findBySessionId: jest.fn(),
       save: jest.fn(),
       findById: jest.fn(),
@@ -149,6 +157,20 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       delete: jest.fn(),
       findAll: jest.fn(),
     };
+
+    mockCommercialRepository = {
+      findByFingerprint: jest.fn(),
+      save: jest.fn(),
+      findById: jest.fn(),
+      delete: jest.fn(),
+      findAll: jest.fn(),
+    } as any;
+
+    mockBffSessionAuthService = {
+      validateSession: jest.fn(),
+      createSession: jest.fn(),
+      invalidateSession: jest.fn(),
+    } as any;
 
     mockValidateDomainApiKey = { validate: jest.fn() } as any;
     mockEventPublisher = { mergeObjectContext: jest.fn() } as any;
@@ -214,10 +236,12 @@ describe('Visitor Session Cookie Fallback E2E', () => {
         DenyConsentCommandHandler,
         { provide: VISITOR_V2_REPOSITORY, useValue: mockVisitorRepository },
         { provide: COMPANY_REPOSITORY, useValue: mockCompanyRepository },
+        { provide: COMMERCIAL_REPOSITORY, useValue: mockCommercialRepository },
         {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: mockValidateDomainApiKey,
         },
+        { provide: BffSessionAuthService, useValue: mockBffSessionAuthService },
         { provide: CONSENT_REPOSITORY, useValue: mockConsentRepository },
         {
           provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
