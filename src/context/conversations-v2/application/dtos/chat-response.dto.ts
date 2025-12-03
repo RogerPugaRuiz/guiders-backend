@@ -222,10 +222,18 @@ export class ChatResponseDto {
   lastMessageDate?: Date;
 
   @ApiProperty({
+    description: 'Vista previa del último mensaje (truncado)',
+    example: 'Hola, me gustaría saber más sobre...',
+    required: false,
+  })
+  lastMessagePreview?: string;
+
+  @ApiProperty({
     description: 'Número total de mensajes en el chat',
     example: 15,
+    required: false,
   })
-  totalMessages: number;
+  totalMessages?: number;
 
   @ApiProperty({
     description: 'Número de mensajes no leídos',
@@ -332,6 +340,7 @@ export class ChatResponseDto {
     dto.assignedAt = p.firstResponseTime;
     dto.closedAt = p.closedAt;
     dto.lastMessageDate = p.lastMessageDate;
+    dto.lastMessagePreview = p.lastMessageContent;
     dto.totalMessages = p.totalMessages;
     dto.unreadMessagesCount = 0; // TODO: calcular según mensajes no leídos
     dto.isActive = !p.closedAt;

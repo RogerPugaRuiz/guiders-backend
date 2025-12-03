@@ -55,6 +55,9 @@ import { AssignChatToCommercialCommandHandler } from './application/commands/ass
 import { MarkMessagesAsReadCommandHandler } from './application/commands/mark-messages-as-read.command-handler';
 import { StartTypingCommandHandler } from './application/commands/start-typing.command-handler';
 import { StopTypingCommandHandler } from './application/commands/stop-typing.command-handler';
+import { RequestAgentCommandHandler } from './application/commands/request-agent.command-handler';
+import { OpenChatViewCommandHandler } from './application/commands/open-chat-view.command-handler';
+import { CloseChatViewCommandHandler } from './application/commands/close-chat-view.command-handler';
 
 // Query Handlers
 import { GetChatsWithFiltersQueryHandler } from './application/queries/get-chats-with-filters.query-handler';
@@ -69,9 +72,13 @@ import { GetChatPresenceQueryHandler } from './application/queries/get-chat-pres
 // Event Handlers
 import { ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler } from './application/events/process-auto-assignment-on-chat-auto-assignment-requested.event-handler';
 import { NotifyMessageSentOnMessageSentEventHandler } from './application/events/notify-message-sent-on-message-sent.event-handler';
+import { UpdateChatOnMessageSentEventHandler } from './application/events/update-chat-on-message-sent.event-handler';
 import { NotifyChatCreatedOnChatCreatedEventHandler } from './application/events/notify-chat-created-on-chat-created.event-handler';
 import { NotifyTypingStartedOnTypingStartedEventHandler } from './application/events/notify-typing-started-on-typing-started.event-handler';
 import { NotifyTypingStoppedOnTypingStoppedEventHandler } from './application/events/notify-typing-stopped-on-typing-stopped.event-handler';
+import { NotifyAgentRequestedOnAgentRequestedEventHandler } from './application/events/notify-agent-requested-on-agent-requested.event-handler';
+import { NotifyViewOpenedOnChatViewOpenedEventHandler } from './application/events/notify-view-opened-on-chat-view-opened.event-handler';
+import { NotifyViewClosedOnChatViewClosedEventHandler } from './application/events/notify-view-closed-on-chat-view-closed.event-handler';
 
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
@@ -158,6 +165,9 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     MarkMessagesAsReadCommandHandler,
     StartTypingCommandHandler,
     StopTypingCommandHandler,
+    RequestAgentCommandHandler,
+    OpenChatViewCommandHandler,
+    CloseChatViewCommandHandler,
     // CloseChatCommandHandler,
     // CreateChatCommandHandler,
 
@@ -174,9 +184,13 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     // Event Handlers
     ProcessAutoAssignmentOnChatAutoAssignmentRequestedEventHandler,
     NotifyMessageSentOnMessageSentEventHandler,
+    UpdateChatOnMessageSentEventHandler,
     NotifyChatCreatedOnChatCreatedEventHandler,
     NotifyTypingStartedOnTypingStartedEventHandler,
     NotifyTypingStoppedOnTypingStoppedEventHandler,
+    NotifyAgentRequestedOnAgentRequestedEventHandler,
+    NotifyViewOpenedOnChatViewOpenedEventHandler,
+    NotifyViewClosedOnChatViewClosedEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,
