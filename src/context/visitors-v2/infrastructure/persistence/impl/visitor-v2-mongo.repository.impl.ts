@@ -991,6 +991,24 @@ export class VisitorV2MongoRepositoryImpl implements VisitorV2Repository {
       }
     }
 
+    // Filtro por lista de IDs (inclusión) - para filtros cross-collection
+    if (filters.visitorIds && filters.visitorIds.length > 0) {
+      query['id'] = { $in: filters.visitorIds };
+    }
+
+    // Filtro por exclusión de IDs - para filtros cross-collection inversos
+    if (filters.excludeVisitorIds && filters.excludeVisitorIds.length > 0) {
+      if (query['id']) {
+        // Si ya hay un filtro de inclusión, combinar con $nin
+        query['id'] = {
+          ...(query['id'] as Record<string, unknown>),
+          $nin: filters.excludeVisitorIds,
+        };
+      } else {
+        query['id'] = { $nin: filters.excludeVisitorIds };
+      }
+    }
+
     return query;
   }
 

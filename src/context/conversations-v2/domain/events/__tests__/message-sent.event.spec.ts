@@ -13,6 +13,7 @@ describe('MessageSentEvent', () => {
         type: 'text',
         isFirstResponse: false,
         isInternal: false,
+        isAI: false,
         sentAt: new Date(),
       };
 
@@ -38,6 +39,7 @@ describe('MessageSentEvent', () => {
         type: 'file',
         isFirstResponse: false,
         isInternal: false,
+        isAI: false,
         sentAt: new Date(),
         attachment: {
           url: 'https://example.com/file.pdf',
@@ -66,6 +68,7 @@ describe('MessageSentEvent', () => {
         type: 'text',
         isFirstResponse: true,
         isInternal: false,
+        isAI: false,
         sentAt: new Date(),
       };
 
@@ -87,6 +90,7 @@ describe('MessageSentEvent', () => {
         type: 'note',
         isFirstResponse: false,
         isInternal: true,
+        isAI: false,
         sentAt: new Date(),
       };
 
@@ -96,6 +100,81 @@ describe('MessageSentEvent', () => {
       // Assert
       expect(event.isInternal()).toBe(true);
       expect(event.isFirstResponse()).toBe(false);
+    });
+
+    it('debería crear un evento de mensaje de IA con metadata completa', () => {
+      // Arrange
+      const messageData: MessageSentData = {
+        messageId: Uuid.random().value,
+        chatId: Uuid.random().value,
+        senderId: 'ai',
+        content: 'Hola, soy un asistente de IA',
+        type: 'ai',
+        isFirstResponse: false,
+        isInternal: false,
+        sentAt: new Date(),
+        isAI: true,
+        aiMetadata: {
+          model: 'gpt-4',
+          confidence: 0.95,
+          suggestedActions: ['Ver productos', 'Contactar soporte'],
+          processingTimeMs: 150,
+          context: { topic: 'ventas' },
+        },
+      };
+
+      // Act
+      const event = new MessageSentEvent({ message: messageData });
+
+      // Assert
+      expect(event.isAIMessage()).toBe(true);
+      expect(event.getAIMetadata()).toEqual(messageData.aiMetadata);
+      expect(event.getAIMetadata()?.model).toBe('gpt-4');
+      expect(event.getAIMetadata()?.confidence).toBe(0.95);
+    });
+
+    it('debería crear un evento de mensaje de IA sin metadata', () => {
+      // Arrange
+      const messageData: MessageSentData = {
+        messageId: Uuid.random().value,
+        chatId: Uuid.random().value,
+        senderId: 'ai',
+        content: 'Respuesta automática',
+        type: 'ai',
+        isFirstResponse: false,
+        isInternal: false,
+        sentAt: new Date(),
+        isAI: true,
+      };
+
+      // Act
+      const event = new MessageSentEvent({ message: messageData });
+
+      // Assert
+      expect(event.isAIMessage()).toBe(true);
+      expect(event.getAIMetadata()).toBeUndefined();
+    });
+
+    it('debería retornar false para isAIMessage en mensaje de texto', () => {
+      // Arrange
+      const messageData: MessageSentData = {
+        messageId: Uuid.random().value,
+        chatId: Uuid.random().value,
+        senderId: Uuid.random().value,
+        content: 'Mensaje normal de texto',
+        type: 'text',
+        isFirstResponse: false,
+        isInternal: false,
+        isAI: false,
+        sentAt: new Date(),
+      };
+
+      // Act
+      const event = new MessageSentEvent({ message: messageData });
+
+      // Assert
+      expect(event.isAIMessage()).toBe(false);
+      expect(event.getAIMetadata()).toBeUndefined();
     });
   });
 
@@ -117,6 +196,7 @@ describe('MessageSentEvent', () => {
         type: 'text',
         isFirstResponse: true,
         isInternal: false,
+        isAI: false,
         sentAt: new Date(),
       };
 
@@ -142,6 +222,7 @@ describe('MessageSentEvent', () => {
         type: 'file',
         isFirstResponse: false,
         isInternal: false,
+        isAI: false,
         sentAt: new Date(),
         attachment: {
           url: 'https://example.com/image.jpg',
@@ -159,6 +240,7 @@ describe('MessageSentEvent', () => {
         type: 'text',
         isFirstResponse: false,
         isInternal: false,
+        isAI: false,
         sentAt: new Date(),
       };
 

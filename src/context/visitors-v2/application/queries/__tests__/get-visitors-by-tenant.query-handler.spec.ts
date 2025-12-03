@@ -496,7 +496,8 @@ describe('GetVisitorsByTenantQueryHandler', () => {
           tenantId,
           siteId,
           lifecycle: VisitorLifecycle.ANON,
-            isInternal: false,          hasAcceptedPrivacyPolicy: true,
+          isInternal: false,
+          hasAcceptedPrivacyPolicy: true,
           privacyPolicyAcceptedAt: new Date().toISOString(),
           consentVersion: 'v1.0',
           sessions: [
@@ -565,7 +566,8 @@ describe('GetVisitorsByTenantQueryHandler', () => {
           tenantId,
           siteId,
           lifecycle: VisitorLifecycle.ANON,
-            isInternal: false,          hasAcceptedPrivacyPolicy: true,
+          isInternal: false,
+          hasAcceptedPrivacyPolicy: true,
           privacyPolicyAcceptedAt: new Date().toISOString(),
           consentVersion: 'v1.0',
           sessions: [
@@ -645,7 +647,8 @@ describe('GetVisitorsByTenantQueryHandler', () => {
           tenantId,
           siteId,
           lifecycle: VisitorLifecycle.ANON,
-            isInternal: false,          hasAcceptedPrivacyPolicy: true,
+          isInternal: false,
+          hasAcceptedPrivacyPolicy: true,
           privacyPolicyAcceptedAt: new Date().toISOString(),
           consentVersion: 'v1.0',
           sessions: [
@@ -722,7 +725,8 @@ describe('GetVisitorsByTenantQueryHandler', () => {
           tenantId,
           siteId,
           lifecycle: VisitorLifecycle.ANON,
-            isInternal: false,          hasAcceptedPrivacyPolicy: true,
+          isInternal: false,
+          hasAcceptedPrivacyPolicy: true,
           privacyPolicyAcceptedAt: new Date().toISOString(),
           consentVersion: 'v1.0',
           sessions: [

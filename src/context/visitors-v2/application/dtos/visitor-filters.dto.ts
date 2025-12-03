@@ -237,6 +237,20 @@ export class VisitorFiltersDto {
     return Boolean(value);
   })
   isInternal?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Filtrar por visitantes con chats pendientes (sin asignar). true = solo con chats pendientes, false = sin chats pendientes',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }: { value: string | boolean }): boolean => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return Boolean(value);
+  })
+  hasPendingChats?: boolean;
 }
 
 /**

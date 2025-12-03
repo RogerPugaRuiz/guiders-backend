@@ -23,6 +23,7 @@ export class ChatMapper {
     schema.assignedAt = chatPrimitives.firstResponseTime || undefined;
     schema.closedAt = chatPrimitives.closedAt;
     schema.lastMessageDate = chatPrimitives.lastMessageDate;
+    schema.lastMessageContent = chatPrimitives.lastMessageContent;
     schema.totalMessages = chat.totalMessages;
     schema.unreadMessagesCount = 0; // Se calculará desde los mensajes
     schema.isActive = !chatPrimitives.closedAt;
@@ -80,7 +81,7 @@ export class ChatMapper {
       assignedCommercialId: schema.assignedCommercialId,
       availableCommercialIds: schema.availableCommercialIds || [], // Se cargarán por separado si es necesario
       lastMessageDate: schema.lastMessageDate,
-      lastMessageContent: undefined,
+      lastMessageContent: schema.lastMessageContent,
       lastMessageSenderId: undefined,
       totalMessages: schema.totalMessages,
       firstResponseTime: schema.assignedAt,
@@ -136,6 +137,7 @@ export class ChatMapper {
     existingSchema.assignedAt = chatPrimitives.firstResponseTime || undefined;
     existingSchema.closedAt = chatPrimitives.closedAt;
     existingSchema.lastMessageDate = chatPrimitives.lastMessageDate;
+    existingSchema.lastMessageContent = chatPrimitives.lastMessageContent;
     existingSchema.totalMessages = chat.totalMessages;
     existingSchema.isActive = !chatPrimitives.closedAt;
     existingSchema.updatedAt = new Date();

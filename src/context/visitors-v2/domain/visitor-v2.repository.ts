@@ -27,6 +27,10 @@ export interface VisitorSearchFilters {
   maxTotalSessionsCount?: number;
   isInternal?: boolean;
   ipAddress?: string;
+  /** Incluir solo visitantes con estos IDs (para filtros cross-collection) */
+  visitorIds?: string[];
+  /** Excluir visitantes con estos IDs (para filtros cross-collection inversos) */
+  excludeVisitorIds?: string[];
 }
 
 /**

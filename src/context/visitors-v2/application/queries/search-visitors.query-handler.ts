@@ -56,6 +56,34 @@ export class SearchVisitorsQueryHandler
       const sort = this.mapSort(query.sort);
       const pagination = this.mapPagination(query.pagination);
 
+      // Pre-filtrar por hasPendingChats si está definido
+      if (query.filters.hasPendingChats !== undefined) {
+        const pendingChatsResult = await this.chatRepository.getAvailableChats(
+          [],
+          { status: ['PENDING'] },
+          10000,
+        );
+
+        if (pendingChatsResult.isOk()) {
+          const visitorIdsWithPendingChats = [
+            ...new Set(
+              pendingChatsResult.value.map((chat) => chat.visitorId.getValue()),
+            ),
+          ];
+
+          if (query.filters.hasPendingChats === true) {
+            // Si no hay chats pendientes, forzar resultado vacío con ID imposible
+            filters.visitorIds =
+              visitorIdsWithPendingChats.length > 0
+                ? visitorIdsWithPendingChats
+                : ['00000000-0000-0000-0000-000000000000'];
+          } else {
+            // Excluir visitantes con chats pendientes
+            filters.excludeVisitorIds = visitorIdsWithPendingChats;
+          }
+        }
+      }
+
       // Ejecutar búsqueda
       const result = await this.visitorRepository.searchWithFilters(
         new TenantId(query.tenantId),

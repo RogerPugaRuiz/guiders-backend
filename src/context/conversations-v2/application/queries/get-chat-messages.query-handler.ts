@@ -100,6 +100,8 @@ export class GetChatMessagesQueryHandler
           isRead: message.isRead,
           readAt: message.readAt?.toISOString(),
           readBy: message.readBy || undefined,
+          isAI: message.isAI,
+          aiMetadata: message.aiMetadata || undefined,
           createdAt: message.createdAt.toISOString(),
           updatedAt: message.updatedAt.toISOString(),
         }),

@@ -851,5 +851,205 @@ describe('SearchVisitorsQueryHandler', () => {
       const response = result.unwrap();
       expect(response.visitors[0].isMe).toBe(true); // Match por fingerprint tiene prioridad
     });
+
+    // ===== TESTS PARA FILTRO hasPendingChats =====
+
+    it('should filter by visitorIds when hasPendingChats is true and there are pending chats', async () => {
+      const visitorId1 = Uuid.random().value;
+      const visitorId2 = Uuid.random().value;
+
+      // Mock chats pendientes con visitorIds específicos
+      const mockPendingChats = [
+        { visitorId: { getValue: () => visitorId1 } },
+        { visitorId: { getValue: () => visitorId2 } },
+      ];
+      _chatRepository.getAvailableChats.mockResolvedValue(
+        ok(mockPendingChats as any),
+      );
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({ hasPendingChats: true });
+      await handler.execute(query);
+
+      // Verificar que se llamó con visitorIds
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          visitorIds: expect.arrayContaining([visitorId1, visitorId2]),
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should use impossible ID when hasPendingChats is true but no pending chats exist', async () => {
+      // Mock sin chats pendientes
+      _chatRepository.getAvailableChats.mockResolvedValue(ok([]));
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({ hasPendingChats: true });
+      await handler.execute(query);
+
+      // Verificar que se llamó con ID imposible para forzar resultado vacío
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          visitorIds: ['00000000-0000-0000-0000-000000000000'],
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should filter by excludeVisitorIds when hasPendingChats is false', async () => {
+      const visitorId1 = Uuid.random().value;
+      const visitorId2 = Uuid.random().value;
+
+      // Mock chats pendientes
+      const mockPendingChats = [
+        { visitorId: { getValue: () => visitorId1 } },
+        { visitorId: { getValue: () => visitorId2 } },
+      ];
+      _chatRepository.getAvailableChats.mockResolvedValue(
+        ok(mockPendingChats as any),
+      );
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({ hasPendingChats: false });
+      await handler.execute(query);
+
+      // Verificar que se llamó con excludeVisitorIds
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          excludeVisitorIds: expect.arrayContaining([visitorId1, visitorId2]),
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should not apply visitorIds filter when hasPendingChats is undefined', async () => {
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({}); // Sin hasPendingChats
+      await handler.execute(query);
+
+      // Verificar que NO se aplicó visitorIds ni excludeVisitorIds
+      const callArgs = visitorRepository.searchWithFilters.mock.calls[0];
+      const filtersArg = callArgs[1];
+      expect(filtersArg.visitorIds).toBeUndefined();
+      expect(filtersArg.excludeVisitorIds).toBeUndefined();
+    });
+
+    it('should deduplicate visitorIds when same visitor has multiple pending chats', async () => {
+      const visitorId = Uuid.random().value;
+
+      // Mock con múltiples chats del mismo visitante
+      const mockPendingChats = [
+        { visitorId: { getValue: () => visitorId } },
+        { visitorId: { getValue: () => visitorId } },
+        { visitorId: { getValue: () => visitorId } },
+      ];
+      _chatRepository.getAvailableChats.mockResolvedValue(
+        ok(mockPendingChats as any),
+      );
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({ hasPendingChats: true });
+      await handler.execute(query);
+
+      // Verificar que solo hay un visitorId (deduplicado)
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          visitorIds: [visitorId], // Solo uno, no tres
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it('should combine hasPendingChats with other filters', async () => {
+      const visitorId = Uuid.random().value;
+
+      const mockPendingChats = [{ visitorId: { getValue: () => visitorId } }];
+      _chatRepository.getAvailableChats.mockResolvedValue(
+        ok(mockPendingChats as any),
+      );
+
+      visitorRepository.searchWithFilters.mockResolvedValue(
+        ok({
+          visitors: [],
+          total: 0,
+          page: 1,
+          limit: 20,
+          totalPages: 0,
+        }),
+      );
+
+      const query = createQuery({
+        hasPendingChats: true,
+        lifecycle: ['LEAD'],
+        connectionStatus: ['online'],
+      });
+      await handler.execute(query);
+
+      // Verificar que se combinan todos los filtros
+      expect(visitorRepository.searchWithFilters).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          visitorIds: [visitorId],
+          lifecycle: ['LEAD'],
+          connectionStatus: ['online'],
+        }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
   });
 });
