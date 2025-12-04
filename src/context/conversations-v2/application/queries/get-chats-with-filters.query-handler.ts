@@ -383,8 +383,10 @@ export class GetChatsWithFiltersQueryHandler
           createdAt: primitives.createdAt,
           assignedAt: undefined, // No disponible en primitives
           closedAt: primitives.closedAt,
-          lastMessageDate: lastMessageData?.sentAt || primitives.lastMessageDate,
-          lastMessagePreview: lastMessageData?.content || primitives.lastMessageContent,
+          lastMessageDate:
+            lastMessageData?.sentAt || primitives.lastMessageDate,
+          lastMessagePreview:
+            lastMessageData?.content || primitives.lastMessageContent,
           unreadMessagesCount: 0, // No disponible en primitives
           isActive: primitives.status !== 'CLOSED',
           visitorId: primitives.visitorId,
