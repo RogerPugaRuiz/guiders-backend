@@ -100,6 +100,8 @@ jobs:
           echo 'AWS_REGION=${{ secrets.PROD_AWS_REGION || 'eu-north-1' }}' >> .env.production
           echo 'AWS_S3_BUCKET_NAME=${{ secrets.PROD_AWS_S3_BUCKET_NAME }}' >> .env.production
           echo 'AWS_S3_AVATAR_FOLDER=${{ secrets.PROD_AWS_S3_AVATAR_FOLDER || 'avatars' }}' >> .env.production
+          # Configuración de LLM (Groq)
+          echo 'GROQ_API_KEY=${{ secrets.PROD_GROQ_API_KEY }}' >> .env.production
 
           # Subir archivos al servidor
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"

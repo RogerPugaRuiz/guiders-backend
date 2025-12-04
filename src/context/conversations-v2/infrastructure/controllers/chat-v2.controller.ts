@@ -1111,6 +1111,7 @@ export class ChatV2Controller {
    * Requiere autenticación y permisos apropiados
    */
   @Get(':chatId')
+  @UseGuards(DualAuthGuard, RolesGuard)
   @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')

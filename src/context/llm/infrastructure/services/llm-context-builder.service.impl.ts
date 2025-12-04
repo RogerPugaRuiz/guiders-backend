@@ -13,7 +13,6 @@ import {
 import {
   LlmContext,
   VisitorContextData,
-  CompanyContextData,
 } from '../../domain/value-objects/llm-context';
 import { LlmMessage } from '../../domain/services/llm-provider.service';
 import {

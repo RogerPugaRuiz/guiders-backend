@@ -3,7 +3,7 @@
  */
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 /**
  * DTO de respuesta de mensaje de IA

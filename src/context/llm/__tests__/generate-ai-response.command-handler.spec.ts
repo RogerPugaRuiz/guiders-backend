@@ -96,10 +96,12 @@ describe('GenerateAIResponseCommandHandler', () => {
     } as jest.Mocked<IMessageRepository>;
 
     mockEventPublisher = {
-      mergeObjectContext: jest.fn().mockImplementation((obj) => ({
-        ...obj,
-        commit: jest.fn(),
-      })),
+      mergeObjectContext: jest
+        .fn()
+        .mockImplementation((obj: Record<string, unknown>) => ({
+          ...obj,
+          commit: jest.fn(),
+        })),
       mergeClassContext: jest.fn(),
     } as unknown as jest.Mocked<EventPublisher>;
 
@@ -132,9 +134,7 @@ describe('GenerateAIResponseCommandHandler', () => {
 
     const mockContext = LlmContext.create({
       systemPrompt: 'Eres un asistente',
-      conversationHistory: [
-        { role: 'user', content: 'Hola' },
-      ],
+      conversationHistory: [{ role: 'user', content: 'Hola' }],
     });
 
     const mockLlmResponse = LlmResponse.create({
@@ -241,7 +241,9 @@ describe('GenerateAIResponseCommandHandler', () => {
         responseDelayMs: 0,
       });
 
-      mockConfigRepository.findBySiteId.mockResolvedValue(ok(configWithCustomPrompt));
+      mockConfigRepository.findBySiteId.mockResolvedValue(
+        ok(configWithCustomPrompt),
+      );
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
       mockLlmProvider.generateCompletion.mockResolvedValue(ok(mockLlmResponse));
       mockMessageRepository.save.mockResolvedValue(okVoid());

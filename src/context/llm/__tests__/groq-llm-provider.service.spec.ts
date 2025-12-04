@@ -80,7 +80,8 @@ describe('GroqLlmProviderService', () => {
         choices: [
           {
             message: {
-              content: '¡Hola! Estaré encantado de ayudarte. ¿En qué puedo asistirte?',
+              content:
+                '¡Hola! Estaré encantado de ayudarte. ¿En qué puedo asistirte?',
             },
           },
         ],
@@ -96,7 +97,9 @@ describe('GroqLlmProviderService', () => {
 
       expect(result.isOk()).toBe(true);
       const response = result.unwrap();
-      expect(response.content).toBe('¡Hola! Estaré encantado de ayudarte. ¿En qué puedo asistirte?');
+      expect(response.content).toBe(
+        '¡Hola! Estaré encantado de ayudarte. ¿En qué puedo asistirte?',
+      );
       expect(response.model).toBe('llama-3.3-70b-versatile');
       expect(response.tokensUsed).toBe(42);
     });
