@@ -18,6 +18,7 @@ import { ConnectCommercialCommandHandler } from './application/commands/connect-
 import { DisconnectCommercialCommandHandler } from './application/commands/disconnect-commercial.command-handler';
 import { UpdateCommercialActivityCommandHandler } from './application/commands/update-commercial-activity.command-handler';
 import { ChangeCommercialConnectionStatusCommandHandler } from './application/commands/change-commercial-connection-status.command-handler';
+import { RegisterCommercialFingerprintCommandHandler } from './application/commands/register-commercial-fingerprint.command-handler';
 
 // Application - Events
 import { CreateApiKeyOnCommercialConnectedEventHandler } from './application/events/create-api-key-on-commercial-connected.event-handler';
@@ -78,6 +79,7 @@ import { CompanyModule } from '../company/company.module';
     DisconnectCommercialCommandHandler,
     UpdateCommercialActivityCommandHandler,
     ChangeCommercialConnectionStatusCommandHandler,
+    RegisterCommercialFingerprintCommandHandler,
 
     // Event Handlers
     CreateApiKeyOnCommercialConnectedEventHandler,

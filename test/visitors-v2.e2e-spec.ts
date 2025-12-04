@@ -13,7 +13,6 @@ class MockDualAuthGuard {
   }
 }
 import { IdentifyVisitorCommandHandler } from '../src/context/visitors-v2/application/commands/identify-visitor.command-handler';
-import { UpdateSessionHeartbeatCommandHandler } from '../src/context/visitors-v2/application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from '../src/context/visitors-v2/application/commands/end-session.command-handler';
 import { ResolveSiteCommandHandler } from '../src/context/visitors-v2/application/commands/resolve-site.command-handler';
 import {
@@ -75,6 +74,11 @@ import {
   LeadScoringService,
 } from '../src/context/lead-scoring/domain/lead-scoring.service';
 import { EventBus } from '@nestjs/cqrs';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../src/context/commercial/domain/commercial.repository';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
 
 // Mock RolesGuard for E2E tests
 class MockRolesGuard {
@@ -87,7 +91,9 @@ describe('Visitors E2E', () => {
   let app: INestApplication;
   let mockVisitorRepository: jest.Mocked<VisitorV2Repository>;
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
+  let mockCommercialRepository: jest.Mocked<CommercialRepository>;
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
+  let mockBffSessionAuthService: jest.Mocked<BffSessionAuthService>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
@@ -139,6 +145,7 @@ describe('Visitors E2E', () => {
     // Mock repositories
     mockVisitorRepository = {
       findByFingerprintAndSite: jest.fn(),
+      findByFingerprint: jest.fn(),
       findBySessionId: jest.fn(),
       save: jest.fn(),
       findById: jest.fn(),
@@ -165,6 +172,20 @@ describe('Visitors E2E', () => {
       delete: jest.fn(),
       findAll: jest.fn(),
     };
+
+    mockCommercialRepository = {
+      findByFingerprint: jest.fn(),
+      save: jest.fn(),
+      findById: jest.fn(),
+      delete: jest.fn(),
+      findAll: jest.fn(),
+    } as any;
+
+    mockBffSessionAuthService = {
+      validateSession: jest.fn(),
+      createSession: jest.fn(),
+      invalidateSession: jest.fn(),
+    } as any;
 
     mockValidateDomainApiKey = {
       validate: jest.fn(),
@@ -236,7 +257,6 @@ describe('Visitors E2E', () => {
       controllers: [VisitorV2Controller, SitesController],
       providers: [
         IdentifyVisitorCommandHandler,
-        UpdateSessionHeartbeatCommandHandler,
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
         RecordConsentCommandHandler,
@@ -250,9 +270,14 @@ describe('Visitors E2E', () => {
           useValue: mockCompanyRepository,
         },
         {
+          provide: COMMERCIAL_REPOSITORY,
+          useValue: mockCommercialRepository,
+        },
+        {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: mockValidateDomainApiKey,
         },
+        { provide: BffSessionAuthService, useValue: mockBffSessionAuthService },
         {
           provide: CONSENT_REPOSITORY,
           useValue: mockConsentRepository,
@@ -501,81 +526,6 @@ describe('Visitors E2E', () => {
     });
   });
 
-  describe('POST /visitors/session/heartbeat', () => {
-    const validHeartbeatDto = {
-      sessionId: mockSessionId,
-      visitorId: mockVisitorId,
-    };
-
-    it('debe actualizar el heartbeat de sesión correctamente', async () => {
-      // Arrange
-      const mockVisitor = createMockVisitor();
-      mockVisitorRepository.findBySessionId.mockResolvedValue(ok(mockVisitor));
-
-      const mockContext = {
-        ...mockVisitor,
-        commit: jest.fn(),
-        updateSessionActivity: jest.fn(),
-        getId: jest.fn().mockReturnValue(new VisitorId(mockVisitorId)),
-      };
-
-      mockEventPublisher.mergeObjectContext.mockReturnValue(mockContext as any);
-
-      // Act & Assert
-      await request(app.getHttpServer())
-        .post('/visitors/session/heartbeat')
-        .send(validHeartbeatDto)
-        .expect(200);
-
-      // Verificar que se llamó al repositorio para buscar la sesión
-      expect(mockVisitorRepository.findBySessionId).toHaveBeenCalledWith(
-        expect.any(SessionId),
-      );
-    });
-
-    it('debe funcionar sin visitorId (opcional)', async () => {
-      // Arrange
-      const mockVisitor = createMockVisitor();
-      mockVisitorRepository.findBySessionId.mockResolvedValue(ok(mockVisitor));
-
-      const mockContext = {
-        ...mockVisitor,
-        commit: jest.fn(),
-        updateSessionActivity: jest.fn(),
-        getId: jest.fn().mockReturnValue(new VisitorId(mockVisitorId)),
-      };
-
-      mockEventPublisher.mergeObjectContext.mockReturnValue(mockContext as any);
-
-      // Act & Assert
-      await request(app.getHttpServer())
-        .post('/visitors/session/heartbeat')
-        .send({ sessionId: mockSessionId })
-        .expect(200);
-    });
-
-    it('debe fallar cuando no encuentra la sesión', async () => {
-      // Arrange
-      mockVisitorRepository.findBySessionId.mockResolvedValue(
-        err(new VisitorV2PersistenceError('Sesión no encontrada')),
-      );
-
-      // Act & Assert
-      await request(app.getHttpServer())
-        .post('/visitors/session/heartbeat')
-        .send(validHeartbeatDto)
-        .expect(404);
-    });
-
-    it('debe fallar con sessionId inválido', async () => {
-      // Act & Assert
-      await request(app.getHttpServer())
-        .post('/visitors/session/heartbeat')
-        .send({})
-        .expect(400);
-    });
-  });
-
   describe('POST /visitors/session/end', () => {
     const validEndSessionDto = {
       sessionId: mockSessionId,
@@ -677,7 +627,7 @@ describe('Visitors E2E', () => {
   });
 
   describe('Casos de integración completos', () => {
-    it('debe manejar flujo completo: resolve site → identify → heartbeat → end session', async () => {
+    it('debe manejar flujo completo: resolve site → identify → end session', async () => {
       // Configurar mocks para el flujo completo
       const mockCompany = createMockCompany();
       mockCompanyRepository.findByDomain.mockResolvedValue(ok(mockCompany));
@@ -735,36 +685,7 @@ describe('Visitors E2E', () => {
       const generatedVisitorId = identifyResponse.body.visitorId;
       const generatedSessionId = identifyResponse.body.sessionId;
 
-      // 3. Simular que el visitor y session existen para el heartbeat
-      const mockVisitorForHeartbeat = VisitorV2.create({
-        id: new VisitorId(generatedVisitorId),
-        tenantId: new TenantId(resolveSiteResponse.body.tenantId),
-        siteId: new SiteId(resolveSiteResponse.body.siteId),
-        fingerprint: new VisitorFingerprint('fp_integration_test'),
-        lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
-      });
-
-      // Mock para que encuentre el visitante por sessionId
-      mockVisitorRepository.findBySessionId.mockResolvedValue(
-        ok(mockVisitorForHeartbeat),
-      );
-
-      // 3. Enviar heartbeat - solo verificar que la estructura de la API funciona
-      await request(app.getHttpServer())
-        .post('/visitors/session/heartbeat')
-        .send({
-          sessionId: generatedSessionId,
-          visitorId: generatedVisitorId,
-        })
-        .expect((res) => {
-          // Aceptar tanto 200 (éxito) como 500 (error esperado por mocks)
-          // Lo importante es que la estructura de la API está funcionando
-          if (res.status !== 200 && res.status !== 500) {
-            throw new Error(`Expected 200 or 500, got ${res.status}`);
-          }
-        });
-
-      // 4. Cerrar sesión - misma lógica, verificar estructura de API
+      // 3. Cerrar sesión - verificar estructura de API
       await request(app.getHttpServer())
         .post('/visitors/session/end')
         .send({
@@ -904,6 +825,7 @@ describe('Visitors E2E', () => {
         tenantId: mockTenantId,
         siteId: mockSiteId,
         lifecycle: VisitorLifecycle.ENGAGED,
+        isInternal: false,
         connectionStatus: ConnectionStatus.ONLINE,
         hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
@@ -991,6 +913,7 @@ describe('Visitors E2E', () => {
         tenantId: mockTenantId,
         siteId: mockSiteId,
         lifecycle: VisitorLifecycle.ANON,
+        isInternal: false,
         hasAcceptedPrivacyPolicy: true,
         privacyPolicyAcceptedAt: new Date().toISOString(),
         consentVersion: 'v1.0',

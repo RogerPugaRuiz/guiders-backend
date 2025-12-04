@@ -50,6 +50,18 @@ describe('MessageType', () => {
       expect(messageType.value).toBe(validType);
     });
 
+    it('debería crear un MessageType válido con tipo AI', () => {
+      // Arrange
+      const validType = MessageTypeEnum.AI;
+
+      // Act
+      const messageType = new MessageType(validType);
+
+      // Assert
+      expect(messageType).toBeInstanceOf(MessageType);
+      expect(messageType.value).toBe(validType);
+    });
+
     it('debería lanzar error con tipo inválido', () => {
       // Arrange
       const invalidType = 'invalid-type';
@@ -159,6 +171,32 @@ describe('MessageType', () => {
     });
   });
 
+  describe('isAI', () => {
+    it('debería retornar true para tipo AI', () => {
+      // Arrange
+      const messageType = new MessageType(MessageTypeEnum.AI);
+
+      // Act & Assert
+      expect(messageType.isAI()).toBe(true);
+    });
+
+    it('debería retornar false para tipo TEXT', () => {
+      // Arrange
+      const messageType = new MessageType(MessageTypeEnum.TEXT);
+
+      // Act & Assert
+      expect(messageType.isAI()).toBe(false);
+    });
+
+    it('debería retornar false para tipo SYSTEM', () => {
+      // Arrange
+      const messageType = new MessageType(MessageTypeEnum.SYSTEM);
+
+      // Act & Assert
+      expect(messageType.isAI()).toBe(false);
+    });
+  });
+
   describe('requiresContent', () => {
     it('debería retornar true para tipo TEXT', () => {
       // Arrange
@@ -187,6 +225,14 @@ describe('MessageType', () => {
     it('debería retornar true para tipo SYSTEM', () => {
       // Arrange
       const messageType = new MessageType(MessageTypeEnum.SYSTEM);
+
+      // Act & Assert
+      expect(messageType.requiresContent()).toBe(true);
+    });
+
+    it('debería retornar true para tipo AI', () => {
+      // Arrange
+      const messageType = new MessageType(MessageTypeEnum.AI);
 
       // Act & Assert
       expect(messageType.requiresContent()).toBe(true);
@@ -254,6 +300,7 @@ describe('MessageType', () => {
       expect(MessageType.FILE.value).toBe(MessageTypeEnum.FILE);
       expect(MessageType.IMAGE.value).toBe(MessageTypeEnum.IMAGE);
       expect(MessageType.SYSTEM.value).toBe(MessageTypeEnum.SYSTEM);
+      expect(MessageType.AI.value).toBe(MessageTypeEnum.AI);
     });
   });
 });

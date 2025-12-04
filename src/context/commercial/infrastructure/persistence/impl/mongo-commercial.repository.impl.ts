@@ -265,4 +265,44 @@ export class MongoCommercialRepositoryImpl implements CommercialRepository {
       return err(new CommercialPersistenceError(errorMessage));
     }
   }
+
+  /**
+   * Busca un comercial por fingerprint y tenant
+   * NOTA: Por ahora ignora tenantId ya que Commercial no tiene campo tenant
+   * El filtering por tenant se manejará a nivel de aplicación si es necesario
+   */
+  async findByFingerprintAndTenant(
+    fingerprint: string,
+    _tenantId: string,
+  ): Promise<Result<Commercial | null, DomainError>> {
+    try {
+      this.logger.debug(`Buscando comercial con fingerprint: ${fingerprint}`);
+
+      // Buscar comercial que tenga este fingerprint en su array
+      const schema = await this.commercialModel
+        .findOne({
+          knownFingerprints: fingerprint,
+        })
+        .exec();
+
+      if (!schema) {
+        this.logger.debug(
+          `No se encontró comercial con fingerprint: ${fingerprint}`,
+        );
+        return ok(null);
+      }
+
+      const commercial = CommercialMapper.toDomain(schema);
+      this.logger.log(
+        `✅ Fingerprint ${fingerprint} pertenece a comercial: ${commercial.id.value}`,
+      );
+      return ok(commercial);
+    } catch (error) {
+      const errorMessage = `Error al buscar comercial por fingerprint: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      this.logger.error(errorMessage);
+      return err(new CommercialPersistenceError(errorMessage));
+    }
+  }
 }

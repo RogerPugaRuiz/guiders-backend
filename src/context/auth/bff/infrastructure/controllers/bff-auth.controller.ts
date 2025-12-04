@@ -560,7 +560,49 @@ export class BffController {
     const rt = req.cookies?.[cenv.refreshName] as string | undefined;
     if (!rt) return res.status(401).send({ error: 'no_refresh' });
     // (recomendado) valida CSRF header aquí
-    const t = await this.oidc.refresh(rt);
+
+    let t: {
+      access_token: string;
+      refresh_token?: string;
+      id_token?: string;
+      expires_in?: number;
+    };
+    try {
+      t = await this.oidc.refresh(rt);
+    } catch (e) {
+      // El refresh token puede estar expirado, revocado o ser inválido
+      const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+      this.logger.warn(
+        `[BFF /refresh/${app}] Error al refrescar token: ${errorMessage}`,
+      );
+
+      // Limpiar cookies inválidas
+      res.clearCookie(cenv.sessionName, {
+        path: cenv.path,
+        domain: cenv.domain,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+      });
+      res.clearCookie(cenv.refreshName, {
+        path: cenv.refreshPath,
+        domain: cenv.domain,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+      });
+      res.clearCookie(`${cenv.sessionName}_id`, {
+        path: cenv.path,
+        domain: cenv.domain,
+        secure: cenv.secure,
+        sameSite: cenv.sameSite,
+      });
+
+      return res.status(401).send({
+        error: 'refresh_failed',
+        reason: errorMessage.includes('invalid_grant')
+          ? 'token_expired'
+          : 'refresh_error',
+      });
+    }
 
     res.cookie(cenv.sessionName, t.access_token, {
       httpOnly: true,

@@ -7,6 +7,11 @@ import {
   CHAT_V2_REPOSITORY,
   IChatRepository,
 } from '../../domain/chat.repository';
+import {
+  MESSAGE_V2_REPOSITORY,
+  IMessageRepository,
+} from '../../domain/message.repository';
+import { ChatId } from '../../domain/value-objects/chat-id';
 import { base64ToCursor } from 'src/context/shared/domain/cursor/base64-to-cursor.util';
 import { cursorToBase64 } from 'src/context/shared/domain/cursor/cursor-to-base64.util';
 import { ChatListResponseDto } from '../dtos/chat-response.dto';
@@ -26,6 +31,8 @@ export class GetChatsWithFiltersQueryHandler
   constructor(
     @Inject(CHAT_V2_REPOSITORY)
     private readonly chatRepository: IChatRepository,
+    @Inject(MESSAGE_V2_REPOSITORY)
+    private readonly messageRepository: IMessageRepository,
     private readonly queryBus: QueryBus,
   ) {}
 
@@ -300,6 +307,33 @@ export class GetChatsWithFiltersQueryHandler
         }),
       );
 
+      // Obtener el último mensaje de cada chat en paralelo
+      const lastMessagesMap = new Map<
+        string,
+        { content: string; sentAt: Date }
+      >();
+      await Promise.all(
+        chats.map(async (chat) => {
+          const chatId = chat.id.getValue();
+          const lastMessageResult = await this.messageRepository.getLastMessage(
+            ChatId.create(chatId),
+          );
+          if (lastMessageResult.isOk()) {
+            const message = lastMessageResult.value;
+            const messagePrimitives = message.toPrimitives();
+            // Truncar contenido a 100 caracteres para preview
+            const contentPreview =
+              messagePrimitives.content.length > 100
+                ? `${messagePrimitives.content.substring(0, 100)}...`
+                : messagePrimitives.content;
+            lastMessagesMap.set(chatId, {
+              content: contentPreview,
+              sentAt: messagePrimitives.createdAt,
+            });
+          }
+        }),
+      );
+
       // Mapear a DTOs de respuesta
       this.logger.log(`Mapeando ${chats.length} chats a DTOs...`);
       const chatDtos = chats.map((chat) => {
@@ -307,6 +341,7 @@ export class GetChatsWithFiltersQueryHandler
         const commercialData = primitives.assignedCommercialId
           ? commercialsDataMap.get(primitives.assignedCommercialId)
           : null;
+        const lastMessageData = lastMessagesMap.get(primitives.id);
 
         return {
           id: primitives.id,
@@ -348,8 +383,10 @@ export class GetChatsWithFiltersQueryHandler
           createdAt: primitives.createdAt,
           assignedAt: undefined, // No disponible en primitives
           closedAt: primitives.closedAt,
-          lastMessageDate: primitives.lastMessageDate,
-          totalMessages: primitives.totalMessages,
+          lastMessageDate:
+            lastMessageData?.sentAt || primitives.lastMessageDate,
+          lastMessagePreview:
+            lastMessageData?.content || primitives.lastMessageContent,
           unreadMessagesCount: 0, // No disponible en primitives
           isActive: primitives.status !== 'CLOSED',
           visitorId: primitives.visitorId,
