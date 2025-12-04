@@ -10,7 +10,6 @@ export enum MessageTypeEnum {
   SYSTEM = 'SYSTEM', // Mensajes del sistema
   TRANSFER = 'TRANSFER', // Notificación de transferencia
   ASSIGNMENT = 'ASSIGNMENT', // Notificación de asignación
-  AI = 'AI', // Mensajes generados por IA
 }
 
 /**
@@ -24,7 +23,6 @@ export class MessageType extends PrimitiveValueObject<string> {
   static readonly SYSTEM = new MessageType(MessageTypeEnum.SYSTEM);
   static readonly TRANSFER = new MessageType(MessageTypeEnum.TRANSFER);
   static readonly ASSIGNMENT = new MessageType(MessageTypeEnum.ASSIGNMENT);
-  static readonly AI = new MessageType(MessageTypeEnum.AI);
 
   constructor(value: string) {
     super(
@@ -68,13 +66,6 @@ export class MessageType extends PrimitiveValueObject<string> {
   }
 
   /**
-   * Verifica si es un mensaje generado por IA
-   */
-  isAI(): boolean {
-    return this.value === MessageTypeEnum.AI.toString();
-  }
-
-  /**
    * Verifica si es un mensaje que el visitante puede ver
    */
   isVisibleToVisitor(): boolean {
@@ -100,8 +91,7 @@ export class MessageType extends PrimitiveValueObject<string> {
       this.value === MessageTypeEnum.TEXT.toString() ||
       this.value === MessageTypeEnum.SYSTEM.toString() ||
       this.value === MessageTypeEnum.TRANSFER.toString() ||
-      this.value === MessageTypeEnum.ASSIGNMENT.toString() ||
-      this.value === MessageTypeEnum.AI.toString()
+      this.value === MessageTypeEnum.ASSIGNMENT.toString()
     );
   }
 

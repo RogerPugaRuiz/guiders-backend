@@ -52,13 +52,4 @@ export interface CommercialRepository {
   findActiveCommercials(
     timeoutMinutes?: number,
   ): Promise<Result<Commercial[], DomainError>>;
-
-  /**
-   * Busca un comercial por fingerprint y tenant
-   * Retorna el primer comercial que tenga ese fingerprint registrado
-   */
-  findByFingerprintAndTenant(
-    fingerprint: string,
-    tenantId: string,
-  ): Promise<Result<Commercial | null, DomainError>>;
 }

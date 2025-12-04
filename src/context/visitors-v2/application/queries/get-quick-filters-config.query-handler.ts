@@ -100,16 +100,6 @@ export class GetQuickFiltersConfigQueryHandler
       result.lastActivityTo = new Date(filterConfig.lastActivityTo as string);
     }
 
-    if (filterConfig.minTotalSessionsCount !== undefined) {
-      result.minTotalSessionsCount =
-        filterConfig.minTotalSessionsCount as number;
-    }
-
-    if (filterConfig.maxTotalSessionsCount !== undefined) {
-      result.maxTotalSessionsCount =
-        filterConfig.maxTotalSessionsCount as number;
-    }
-
     return result;
   }
 }

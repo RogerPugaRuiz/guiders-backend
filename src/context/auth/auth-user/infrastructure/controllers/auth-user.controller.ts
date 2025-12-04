@@ -638,7 +638,9 @@ export class AuthUserController {
       );
 
       if (result && typeof result.isErr === 'function' && result.isErr()) {
-        throw new HttpException(result.error.message, HttpStatus.CONFLICT);
+        const error = result.unwrapErr();
+
+        throw new HttpException(error.message, HttpStatus.CONFLICT);
       }
 
       const { userId } =

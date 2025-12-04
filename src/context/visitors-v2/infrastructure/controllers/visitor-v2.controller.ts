@@ -34,6 +34,8 @@ import {
 import { IdentifyVisitorDto } from '../../application/dtos/identify-visitor.dto';
 import { IdentifyVisitorResponseDto } from '../../application/dtos/identify-visitor-response.dto';
 import { IdentifyVisitorCommand } from '../../application/commands/identify-visitor.command';
+import { UpdateSessionHeartbeatDto } from '../../application/dtos/update-session-heartbeat.dto';
+import { UpdateSessionHeartbeatCommand } from '../../application/commands/update-session-heartbeat.command';
 import { EndSessionDto } from '../../application/dtos/end-session.dto';
 import { EndSessionCommand } from '../../application/commands/end-session.command';
 import { ChangeVisitorStatusDto } from '../../application/dtos/change-visitor-status.dto';
@@ -129,8 +131,6 @@ export class VisitorV2Controller {
         'unknown';
       const userAgent = request.headers['user-agent'];
 
-      const cookieHeader = request.headers.cookie;
-
       const command = new IdentifyVisitorCommand(
         identifyVisitorDto.fingerprint,
         identifyVisitorDto.domain,
@@ -138,7 +138,6 @@ export class VisitorV2Controller {
         identifyVisitorDto.hasAcceptedPrivacyPolicy,
         ipAddress,
         userAgent,
-        cookieHeader,
         identifyVisitorDto.currentUrl,
         identifyVisitorDto.consentVersion,
       );
@@ -167,6 +166,98 @@ export class VisitorV2Controller {
       // Error genérico del servidor
       throw new InternalServerErrorException(
         'Error interno al identificar visitante',
+      );
+    }
+  }
+
+  @Post('session/heartbeat')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Actualizar heartbeat de sesión',
+    description:
+      'Mantiene viva la sesión abierta y opcionalmente reactiva el estado del visitante. ' +
+      'Actualiza el timestamp de última actividad (lastActivityAt).\n\n' +
+      '**Tipos de actividad (`activityType`):**\n' +
+      '- `heartbeat` (default): Heartbeat automático periódico. Solo mantiene la sesión viva, NO cambia el estado de conexión (AWAY/OFFLINE se mantienen).\n' +
+      '- `user-interaction`: Interacción real del usuario (click, teclado, scroll). Actualiza actividad Y reactiva a ONLINE si está AWAY/OFFLINE.\n\n' +
+      '**Uso recomendado desde el frontend:**\n' +
+      '1. **Heartbeat automático** (cada 30-60s): Enviar con `activityType: "heartbeat"` para mantener sesión viva sin cambiar estado.\n' +
+      '2. **Detección de actividad** (eventos de usuario): Enviar con `activityType: "user-interaction"` cuando se detecte interacción real (mousemove, click, keydown, etc.).\n\n' +
+      '**Frecuencia recomendada de heartbeat:**\n' +
+      '- Visitantes ANON: cada 30-60 segundos (timeout: 5 minutos)\n' +
+      '- Visitantes ENGAGED: cada 60-90 segundos (timeout: 15 minutos)\n' +
+      '- Visitantes LEAD: cada 2-3 minutos (timeout: 30 minutos)\n' +
+      '- Visitantes CONVERTED: cada 5 minutos (timeout: 60 minutos)\n\n' +
+      'El sistema verifica sesiones expiradas cada 5 minutos y marca como AWAY/OFFLINE según inactividad.',
+  })
+  @ApiOkResponse({
+    description: 'Heartbeat actualizado exitosamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o sesión no encontrada',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Sesión no encontrada',
+  })
+  async updateSessionHeartbeat(
+    @Body() updateHeartbeatDto: UpdateSessionHeartbeatDto,
+    @Req() request: ExpressRequest,
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Obtener sessionId centralizado (body precede a cookie)
+      const sessionId = resolveVisitorSessionId(
+        request,
+        updateHeartbeatDto.sessionId,
+      );
+
+      if (!sessionId) {
+        throw new BadRequestException('SessionId no proporcionado');
+      }
+
+      const command = new UpdateSessionHeartbeatCommand(
+        sessionId,
+        updateHeartbeatDto.visitorId,
+        updateHeartbeatDto.activityType, // Tipo de actividad: heartbeat o user-interaction
+      );
+
+      await this.commandBus.execute<UpdateSessionHeartbeatCommand, void>(
+        command,
+      );
+
+      return {
+        success: true,
+        message: 'Heartbeat actualizado exitosamente',
+      };
+    } catch (error) {
+      this.logger.error('Error al actualizar heartbeat:', error);
+
+      // Sesión no encontrada
+      if (
+        error instanceof Error &&
+        error.message?.includes('Sesión no encontrada')
+      ) {
+        throw new NotFoundException(error.message);
+      }
+
+      // Datos inválidos
+      if (
+        error instanceof BadRequestException ||
+        (error instanceof Error &&
+          (error.message?.includes('inválido') ||
+            error.message?.includes('invalid')))
+      ) {
+        throw new BadRequestException(
+          error instanceof BadRequestException
+            ? error.message
+            : error.message || 'Datos inválidos',
+        );
+      }
+
+      // Error genérico del servidor
+      throw new InternalServerErrorException(
+        'Error interno al actualizar heartbeat',
       );
     }
   }

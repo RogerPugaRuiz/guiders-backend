@@ -192,65 +192,6 @@ export class VisitorFiltersDto {
     return Boolean(value);
   })
   hasActiveSessions?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Número mínimo de sesiones totales del visitante',
-    minimum: 0,
-    example: 2,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  minTotalSessionsCount?: number;
-
-  @ApiPropertyOptional({
-    description: 'Número máximo de sesiones totales del visitante',
-    minimum: 0,
-    example: 10,
-  })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  maxTotalSessionsCount?: number;
-
-  @ApiPropertyOptional({
-    description:
-      'Filtrar por dirección IP (busca en todas las sesiones del visitante)',
-    example: '192.168.1.1',
-  })
-  @IsOptional()
-  @IsString()
-  ipAddress?: string;
-
-  @ApiPropertyOptional({
-    description:
-      'Filtrar por tipo de visitante (interno/comercial vs. externo)',
-    example: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }: { value: string | boolean }): boolean => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return Boolean(value);
-  })
-  isInternal?: boolean;
-
-  @ApiPropertyOptional({
-    description:
-      'Filtrar por visitantes con chats pendientes (sin asignar). true = solo con chats pendientes, false = sin chats pendientes',
-    example: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  @Transform(({ value }: { value: string | boolean }): boolean => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return Boolean(value);
-  })
-  hasPendingChats?: boolean;
 }
 
 /**

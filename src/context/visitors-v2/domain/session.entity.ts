@@ -9,8 +9,6 @@ export interface SessionPrimitives {
   lastActivityAt: string;
   endedAt?: string;
   currentUrl?: string;
-  ipAddress?: string; // IP desde la que se inició la sesión
-  userAgent?: string; // User-Agent del navegador
 }
 
 /**
@@ -22,8 +20,6 @@ export class Session {
   private lastActivityAt: Date;
   private endedAt?: Date;
   private currentUrl?: string;
-  private readonly ipAddress?: string; // IP desde la que se inició la sesión (inmutable)
-  private readonly userAgent?: string; // User-Agent del navegador (inmutable)
 
   constructor(props: {
     id: SessionId;
@@ -31,33 +27,23 @@ export class Session {
     lastActivityAt: Date;
     endedAt?: Date;
     currentUrl?: string;
-    ipAddress?: string;
-    userAgent?: string;
   }) {
     this.id = props.id;
     this.startedAt = props.startedAt;
     this.lastActivityAt = props.lastActivityAt;
     this.endedAt = props.endedAt;
     this.currentUrl = props.currentUrl;
-    this.ipAddress = props.ipAddress;
-    this.userAgent = props.userAgent;
   }
 
   /**
    * Crea una nueva sesión que acaba de comenzar
    */
-  public static create(
-    id: SessionId,
-    ipAddress?: string,
-    userAgent?: string,
-  ): Session {
+  public static create(id: SessionId): Session {
     const now = new Date();
     return new Session({
       id,
       startedAt: now,
       lastActivityAt: now,
-      ipAddress,
-      userAgent,
     });
   }
 
@@ -71,8 +57,6 @@ export class Session {
       lastActivityAt: new Date(primitives.lastActivityAt),
       endedAt: primitives.endedAt ? new Date(primitives.endedAt) : undefined,
       currentUrl: primitives.currentUrl,
-      ipAddress: primitives.ipAddress,
-      userAgent: primitives.userAgent,
     });
   }
 
@@ -86,8 +70,6 @@ export class Session {
       lastActivityAt: this.lastActivityAt.toISOString(),
       endedAt: this.endedAt?.toISOString(),
       currentUrl: this.currentUrl,
-      ipAddress: this.ipAddress,
-      userAgent: this.userAgent,
     };
   }
 

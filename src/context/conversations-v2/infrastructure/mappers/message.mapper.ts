@@ -83,18 +83,6 @@ export class MessageMapper {
       };
     }
 
-    // Para mensajes de IA
-    schema.isAI = messagePrimitives.isAI || false;
-    if (messagePrimitives.aiMetadata) {
-      schema.aiInfo = {
-        model: messagePrimitives.aiMetadata.model,
-        confidence: messagePrimitives.aiMetadata.confidence,
-        suggestedActions: messagePrimitives.aiMetadata.suggestedActions,
-        processingTimeMs: messagePrimitives.aiMetadata.processingTimeMs,
-        context: messagePrimitives.aiMetadata.context,
-      };
-    }
-
     // Texto de búsqueda
     schema.searchableText = messagePrimitives.content.toLowerCase();
 
@@ -131,16 +119,6 @@ export class MessageMapper {
       isRead: schema.isRead,
       readAt: schema.readAt,
       readBy: schema.readBy,
-      isAI: schema.isAI || false,
-      aiMetadata: schema.aiInfo
-        ? {
-            model: schema.aiInfo.model,
-            confidence: schema.aiInfo.confidence,
-            suggestedActions: schema.aiInfo.suggestedActions,
-            processingTimeMs: schema.aiInfo.processingTimeMs,
-            context: schema.aiInfo.context,
-          }
-        : undefined,
       createdAt: schema.sentAt,
       updatedAt: schema.updatedAt || schema.sentAt,
     });
@@ -205,11 +183,8 @@ export class MessageMapper {
     if (senderId === 'system') {
       return 'system';
     }
-    if (senderId === 'ai') {
-      return 'ai';
-    }
     // Aquí podríamos implementar lógica más sofisticada
-    // Por ahora asumimos que si no es 'system' o 'ai', es un visitante o comercial
+    // Por ahora asumimos que si no es 'system', es un visitante o comercial
     // En un caso real, consultaríamos la base de datos o tendríamos un prefijo en el ID
     return senderId.startsWith('commercial_') ? 'commercial' : 'visitor';
   }

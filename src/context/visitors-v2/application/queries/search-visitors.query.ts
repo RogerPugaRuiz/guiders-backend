@@ -14,8 +14,5 @@ export class SearchVisitorsQuery implements IQuery {
     public readonly filters: VisitorFiltersDto,
     public readonly sort: VisitorSortDto,
     public readonly pagination: VisitorPaginationDto,
-    public readonly requestIpAddress?: string,
-    public readonly requestUserAgent?: string,
-    public readonly commercialId?: string,
   ) {}
 }

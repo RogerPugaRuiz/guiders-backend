@@ -32,14 +32,7 @@ describe('MessageMapper', () => {
     schema.chatId = chatId;
     schema.type = type; // Usar el tipo tal como viene (en mayúsculas del dominio)
     schema.senderId = senderId;
-    // Determinar senderType basado en senderId
-    if (senderId === 'system') {
-      schema.senderType = 'system';
-    } else if (senderId === 'ai') {
-      schema.senderType = 'ai';
-    } else {
-      schema.senderType = 'visitor';
-    }
+    schema.senderType = senderId === 'system' ? 'system' : 'visitor';
     schema.content = { text: `Mensaje de prueba ${type}` };
     schema.sentAt = new Date();
     schema.isRead = false;
@@ -47,7 +40,6 @@ describe('MessageMapper', () => {
     schema.isDeleted = false;
     schema.sequenceNumber = 1;
     schema.isInternal = false;
-    schema.isAI = type === 'AI';
     schema.tags = [];
     return schema;
   };
@@ -188,58 +180,6 @@ describe('MessageMapper', () => {
       expect(schema.type).toBe('IMAGE'); // Para mimeType image/*
       expect(schema.fileInfo?.mimeType).toBe(fileType);
     });
-
-    it('debería manejar correctamente un mensaje de IA con metadata completa', () => {
-      // Arrange
-      const aiMetadata = {
-        model: 'gpt-4',
-        confidence: 0.95,
-        suggestedActions: ['Ver productos', 'Contactar soporte'],
-        processingTimeMs: 150,
-        context: { topic: 'ventas' },
-      };
-
-      const message = Message.createAIMessage({
-        chatId: mockChatId,
-        content: 'Hola, soy un asistente de IA',
-        aiMetadata,
-      });
-
-      // Act
-      const schema = mapper.toSchema(message);
-
-      // Assert
-      expect(schema).toBeInstanceOf(MessageSchema);
-      expect(schema.type).toBe('AI');
-      expect(schema.senderId).toBe('ai');
-      expect(schema.senderType).toBe('ai');
-      expect(schema.isAI).toBe(true);
-      expect(schema.aiInfo).toBeDefined();
-      expect(schema.aiInfo?.model).toBe('gpt-4');
-      expect(schema.aiInfo?.confidence).toBe(0.95);
-      expect(schema.aiInfo?.suggestedActions).toEqual([
-        'Ver productos',
-        'Contactar soporte',
-      ]);
-      expect(schema.aiInfo?.processingTimeMs).toBe(150);
-      expect(schema.aiInfo?.context).toEqual({ topic: 'ventas' });
-    });
-
-    it('debería manejar correctamente un mensaje de IA sin metadata', () => {
-      // Arrange
-      const message = Message.createAIMessage({
-        chatId: mockChatId,
-        content: 'Respuesta automática de IA',
-      });
-
-      // Act
-      const schema = mapper.toSchema(message);
-
-      // Assert
-      expect(schema.type).toBe('AI');
-      expect(schema.isAI).toBe(true);
-      expect(schema.aiInfo).toBeUndefined();
-    });
   });
 
   describe('toDomain', () => {
@@ -330,63 +270,6 @@ describe('MessageMapper', () => {
       expect(message.chatId.value).toBe(mockChatId);
       expect(message.systemData).toBeNull();
       expect(message.attachment).toBeNull();
-    });
-
-    it('debería manejar correctamente un schema de mensaje de IA con metadata', () => {
-      // Arrange
-      const schema = createMockMessageSchema(
-        mockMessageId,
-        mockChatId,
-        'AI',
-        'ai',
-      );
-      schema.senderType = 'ai';
-      schema.content.text = 'Respuesta generada por IA';
-      schema.isAI = true;
-      schema.aiInfo = {
-        model: 'gpt-4',
-        confidence: 0.92,
-        suggestedActions: ['Acción sugerida'],
-        processingTimeMs: 200,
-        context: { conversationTopic: 'soporte' },
-      };
-
-      // Act
-      const message = mapper.toDomain(schema);
-
-      // Assert
-      expect(message.type.value).toBe('AI');
-      expect(message.senderId).toBe('ai');
-      expect(message.isAI).toBe(true);
-      expect(message.aiMetadata).toBeDefined();
-      expect(message.aiMetadata?.model).toBe('gpt-4');
-      expect(message.aiMetadata?.confidence).toBe(0.92);
-      expect(message.aiMetadata?.suggestedActions).toEqual(['Acción sugerida']);
-      expect(message.aiMetadata?.processingTimeMs).toBe(200);
-      expect(message.aiMetadata?.context).toEqual({
-        conversationTopic: 'soporte',
-      });
-    });
-
-    it('debería manejar correctamente un schema de mensaje de IA sin aiInfo', () => {
-      // Arrange
-      const schema = createMockMessageSchema(
-        mockMessageId,
-        mockChatId,
-        'AI',
-        'ai',
-      );
-      schema.senderType = 'ai';
-      schema.isAI = true;
-      // Sin schema.aiInfo
-
-      // Act
-      const message = mapper.toDomain(schema);
-
-      // Assert
-      expect(message.type.value).toBe('AI');
-      expect(message.isAI).toBe(true);
-      expect(message.aiMetadata).toBeNull();
     });
   });
 

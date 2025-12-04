@@ -113,7 +113,7 @@ describe('ChatV2Controller - Dual Authentication Simple E2E', () => {
     it('debe devolver 200 con cookie de sesión inválida (acceso público)', async () => {
       await request(app.getHttpServer())
         .get(`/v2/chats/visitor/${visitorId}?limit=20`)
-        .set('Cookie', ['x-guiders-sid=invalid-session-id'])
+        .set('Cookie', ['sid=invalid-session-id'])
         .expect(200);
     });
 

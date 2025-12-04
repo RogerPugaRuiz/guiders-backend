@@ -10,20 +10,12 @@ import {
   SessionManagementDomainService,
   SESSION_MANAGEMENT_DOMAIN_SERVICE,
 } from '../../../domain/session-management.domain-service';
-import {
-  VisitorConnectionDomainService,
-  VISITOR_CONNECTION_DOMAIN_SERVICE,
-} from '../../../domain/visitor-connection.domain-service';
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorId } from '../../../domain/value-objects/visitor-id';
 import { TenantId } from '../../../domain/value-objects/tenant-id';
 import { SiteId } from '../../../domain/value-objects/site-id';
 import { SessionId } from '../../../domain/value-objects/session-id';
 import { VisitorLifecycle } from '../../../domain/value-objects/visitor-lifecycle';
-import {
-  VisitorConnectionVO,
-  ConnectionStatus,
-} from '../../../domain/value-objects/visitor-connection';
 import { ok, okVoid } from '../../../../shared/domain/result';
 
 interface VisitorWithCommit extends VisitorV2 {
@@ -34,7 +26,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
   let handler: CleanExpiredSessionsCommandHandler;
   let visitorRepository: jest.Mocked<VisitorV2Repository>;
   let sessionManagementService: jest.Mocked<SessionManagementDomainService>;
-  let connectionService: jest.Mocked<VisitorConnectionDomainService>;
   let eventPublisher: jest.Mocked<EventPublisher>;
 
   beforeEach(async () => {
@@ -58,12 +49,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
           },
         },
         {
-          provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
-          useValue: {
-            getConnectionStatus: jest.fn(),
-          },
-        },
-        {
           provide: EventPublisher,
           useValue: {
             mergeObjectContext: jest.fn(),
@@ -77,7 +62,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
     );
     visitorRepository = module.get(VISITOR_V2_REPOSITORY);
     sessionManagementService = module.get(SESSION_MANAGEMENT_DOMAIN_SERVICE);
-    connectionService = module.get(VISITOR_CONNECTION_DOMAIN_SERVICE);
     eventPublisher = module.get(EventPublisher);
   });
 
@@ -90,7 +74,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
         siteId: SiteId.random().getValue(),
         fingerprint: 'fp_test1',
         lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
         hasAcceptedPrivacyPolicy: false,
         privacyPolicyAcceptedAt: null,
         consentVersion: null,
@@ -111,7 +94,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
         siteId: SiteId.random().getValue(),
         fingerprint: 'fp_test2',
         lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
         hasAcceptedPrivacyPolicy: false,
         privacyPolicyAcceptedAt: null,
         consentVersion: null,
@@ -137,10 +119,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       sessionManagementService.cleanExpiredSessions
         .mockReturnValueOnce(visitor1)
         .mockReturnValueOnce(visitor2);
-
-      // Mock connection service - visitantes offline
-      const offlineStatus = new VisitorConnectionVO(ConnectionStatus.OFFLINE);
-      connectionService.getConnectionStatus.mockResolvedValue(offlineStatus);
 
       // Mock event publisher
       const mockCommit = jest.fn();
@@ -203,7 +181,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
         siteId: SiteId.random().getValue(),
         fingerprint: 'fp_test',
         lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
         hasAcceptedPrivacyPolicy: false,
         privacyPolicyAcceptedAt: null,
         consentVersion: null,
@@ -243,7 +220,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
         siteId: SiteId.random().getValue(),
         fingerprint: 'fp_test1',
         lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
         hasAcceptedPrivacyPolicy: false,
         privacyPolicyAcceptedAt: null,
         consentVersion: null,
@@ -264,7 +240,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
         siteId: SiteId.random().getValue(),
         fingerprint: 'fp_test2',
         lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
         hasAcceptedPrivacyPolicy: false,
         privacyPolicyAcceptedAt: null,
         consentVersion: null,
@@ -286,10 +261,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
       sessionManagementService.cleanExpiredSessions
         .mockReturnValueOnce(visitor1)
         .mockReturnValueOnce(visitor2);
-
-      // Mock connection service - visitantes offline
-      const offlineStatus = new VisitorConnectionVO(ConnectionStatus.OFFLINE);
-      connectionService.getConnectionStatus.mockResolvedValue(offlineStatus);
 
       // Primer guardado falla, segundo éxito
       visitorRepository.save
@@ -333,92 +304,6 @@ describe('CleanExpiredSessionsCommandHandler', () => {
         limit: 100, // default
         tenantId: undefined,
       });
-    });
-
-    it('no debe cerrar sesiones de visitantes con WebSocket conectado', async () => {
-      const visitorOnline = VisitorV2.fromPrimitives({
-        id: VisitorId.random().getValue(),
-        tenantId: TenantId.random().getValue(),
-        siteId: SiteId.random().getValue(),
-        fingerprint: 'fp_online',
-        lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
-        hasAcceptedPrivacyPolicy: false,
-        privacyPolicyAcceptedAt: null,
-        consentVersion: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        sessions: [
-          {
-            id: SessionId.random().getValue(),
-            startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-            lastActivityAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-          },
-        ],
-      });
-
-      const visitorOffline = VisitorV2.fromPrimitives({
-        id: VisitorId.random().getValue(),
-        tenantId: TenantId.random().getValue(),
-        siteId: SiteId.random().getValue(),
-        fingerprint: 'fp_offline',
-        lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
-        hasAcceptedPrivacyPolicy: false,
-        privacyPolicyAcceptedAt: null,
-        consentVersion: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        sessions: [
-          {
-            id: SessionId.random().getValue(),
-            startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-            lastActivityAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-          },
-        ],
-      });
-
-      visitorRepository.findWithActiveSessions.mockResolvedValue(
-        ok([visitorOnline, visitorOffline]),
-      );
-      visitorRepository.save.mockResolvedValue(okVoid());
-      sessionManagementService.hasExpiredSessions.mockReturnValue(true);
-      sessionManagementService.cleanExpiredSessions.mockReturnValue(
-        visitorOffline,
-      );
-
-      // Mock connection service - primer visitante online, segundo offline
-      const onlineStatus = new VisitorConnectionVO(ConnectionStatus.ONLINE);
-      const offlineStatus = new VisitorConnectionVO(ConnectionStatus.OFFLINE);
-      connectionService.getConnectionStatus
-        .mockResolvedValueOnce(onlineStatus)
-        .mockResolvedValueOnce(offlineStatus);
-
-      const mockCommit = jest.fn();
-      eventPublisher.mergeObjectContext.mockImplementation((visitor) => {
-        const merged = visitor as VisitorWithCommit;
-        merged.commit = mockCommit;
-        return merged;
-      });
-
-      const command = new CleanExpiredSessionsCommand(undefined, 100);
-      const result = await handler.execute(command);
-
-      // Solo debe limpiar 1 (el offline)
-      expect(result.isOk()).toBe(true);
-      if (result.isOk()) {
-        expect(result.unwrap()).toEqual({ cleanedCount: 1 });
-      }
-
-      // Se verificó estado de conexión para ambos
-      expect(connectionService.getConnectionStatus).toHaveBeenCalledTimes(2);
-
-      // Solo se limpió el visitante offline
-      expect(
-        sessionManagementService.cleanExpiredSessions,
-      ).toHaveBeenCalledTimes(1);
-      expect(visitorRepository.save).toHaveBeenCalledTimes(1);
-      expect(mockCommit).toHaveBeenCalledTimes(1);
     });
   });
 });

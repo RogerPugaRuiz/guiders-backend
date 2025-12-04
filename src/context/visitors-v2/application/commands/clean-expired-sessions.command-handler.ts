@@ -9,10 +9,6 @@ import {
   VISITOR_V2_REPOSITORY,
   VisitorV2Repository,
 } from '../../domain/visitor-v2.repository';
-import {
-  VISITOR_CONNECTION_DOMAIN_SERVICE,
-  VisitorConnectionDomainService,
-} from '../../domain/visitor-connection.domain-service';
 import { Result, ok, err } from '../../../shared/domain/result';
 import { VisitorV2PersistenceError } from '../../infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 
@@ -31,8 +27,6 @@ export class CleanExpiredSessionsCommandHandler
     private readonly sessionManagementService: SessionManagementDomainService,
     @Inject(VISITOR_V2_REPOSITORY)
     private readonly visitorRepository: VisitorV2Repository,
-    @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
-    private readonly connectionService: VisitorConnectionDomainService,
     private readonly publisher: EventPublisher,
   ) {}
 
@@ -59,18 +53,6 @@ export class CleanExpiredSessionsCommandHandler
       for (const visitor of visitors) {
         // Verificar si tiene sesiones expiradas
         if (this.sessionManagementService.hasExpiredSessions(visitor)) {
-          // Verificar si el visitante tiene conexión WebSocket activa
-          const connectionStatus =
-            await this.connectionService.getConnectionStatus(visitor.getId());
-
-          // Si está conectado vía WebSocket (online, away o chatting), no cerrar sus sesiones
-          if (connectionStatus.isOnline()) {
-            this.logger.debug(
-              `Visitante ${visitor.getId().getValue()} tiene WebSocket conectado (${connectionStatus.getValue()}), no se cierran sesiones`,
-            );
-            continue;
-          }
-
           // Limpiar sesiones expiradas
           const cleanedVisitor =
             this.sessionManagementService.cleanExpiredSessions(visitor);
