@@ -1,16 +1,8 @@
 import { DomainEvent } from 'src/context/shared/domain/domain-event';
 
 /**
- * Metadatos de IA para mensajes enviados
+ * Datos del mensaje enviado
  */
-export interface MessageSentAIMetadata {
-  model?: string;
-  confidence?: number;
-  suggestedActions?: string[];
-  processingTimeMs?: number;
-  context?: Record<string, unknown>;
-}
-
 export interface MessageSentData {
   messageId: string;
   chatId: string;
@@ -26,8 +18,6 @@ export interface MessageSentData {
     fileSize: number;
     mimeType: string;
   };
-  isAI: boolean;
-  aiMetadata?: MessageSentAIMetadata;
 }
 
 /**
@@ -92,21 +82,5 @@ export class MessageSentEvent extends DomainEvent<{
    */
   hasAttachment(): boolean {
     return Boolean(this.attributes.message.attachment);
-  }
-
-  /**
-   * Verifica si es un mensaje generado por IA
-   */
-  isAIMessage(): boolean {
-    return (
-      this.attributes.message.isAI || this.attributes.message.type === 'AI'
-    );
-  }
-
-  /**
-   * Obtiene los metadatos de IA si existen
-   */
-  getAIMetadata(): MessageSentAIMetadata | undefined {
-    return this.attributes.message.aiMetadata;
   }
 }

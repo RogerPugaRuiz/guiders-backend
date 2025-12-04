@@ -44,7 +44,7 @@ export class PresenceController {
    * Obtener estado de presencia de los participantes de un chat
    */
   @Get('chat/:chatId')
-  @Roles(['admin', 'commercial', 'visitor'])
+  @Roles(['commercial', 'visitor'])
   @ApiOperation({
     summary: 'Obtener estado de presencia de participantes de un chat',
     description:
@@ -66,7 +66,7 @@ export class PresenceController {
    * Indicar que el usuario está escribiendo
    */
   @Post('chat/:chatId/typing/start')
-  @Roles(['admin', 'commercial', 'visitor'])
+  @Roles(['commercial', 'visitor'])
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Indicar que el usuario está escribiendo',
@@ -80,10 +80,9 @@ export class PresenceController {
   ): Promise<void> {
     const userId = request.user.id;
     const userRoles = request.user.roles || [];
-    const userType =
-      userRoles.includes('commercial') || userRoles.includes('admin')
-        ? 'commercial'
-        : 'visitor';
+    const userType = userRoles.includes('commercial')
+      ? 'commercial'
+      : 'visitor';
 
     await this.commandBus.execute(
       new StartTypingCommand(chatId, userId, userType),
@@ -94,7 +93,7 @@ export class PresenceController {
    * Indicar que el usuario dejó de escribir
    */
   @Post('chat/:chatId/typing/stop')
-  @Roles(['admin', 'commercial', 'visitor'])
+  @Roles(['commercial', 'visitor'])
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Indicar que el usuario dejó de escribir',
@@ -108,10 +107,9 @@ export class PresenceController {
   ): Promise<void> {
     const userId = request.user.id;
     const userRoles = request.user.roles || [];
-    const userType =
-      userRoles.includes('commercial') || userRoles.includes('admin')
-        ? 'commercial'
-        : 'visitor';
+    const userType = userRoles.includes('commercial')
+      ? 'commercial'
+      : 'visitor';
 
     await this.commandBus.execute(
       new StopTypingCommand(chatId, userId, userType),

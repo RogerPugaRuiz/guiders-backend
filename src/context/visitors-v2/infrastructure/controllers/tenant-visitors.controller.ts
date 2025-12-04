@@ -229,22 +229,8 @@ export class TenantVisitorsController {
   async searchVisitors(
     @Param('tenantId', ParseUUIDPipe) tenantId: string,
     @Body() searchDto: SearchVisitorsDto,
-    @Req() request: Request,
   ): Promise<SearchVisitorsResponseDto> {
     this.logger.log(`Buscando visitantes con filtros para tenant ${tenantId}`);
-
-    // Extraer IP del comercial que hace la búsqueda
-    const requestIpAddress =
-      (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      request.socket.remoteAddress ||
-      'unknown';
-
-    // Extraer UserAgent del comercial
-    const requestUserAgent = request.headers['user-agent'];
-
-    // Extraer commercialId del usuario autenticado
-    const user = request.user as { id: string } | undefined;
-    const commercialId = user?.id;
 
     const filters = searchDto.filters || ({} as VisitorFiltersDto);
     const sort = searchDto.sort || {
@@ -256,15 +242,7 @@ export class TenantVisitorsController {
       limit: searchDto.limit || 20,
     };
 
-    const query = new SearchVisitorsQuery(
-      tenantId,
-      filters,
-      sort,
-      pagination,
-      requestIpAddress,
-      requestUserAgent,
-      commercialId,
-    );
+    const query = new SearchVisitorsQuery(tenantId, filters, sort, pagination);
     const result: Result<SearchVisitorsResponseDto, DomainError> =
       await this.queryBus.execute(query);
 

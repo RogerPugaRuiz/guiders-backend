@@ -5,7 +5,9 @@ import {
   Request as ExpressRequest,
 } from 'express';
 
-export const VISITOR_SESSION_COOKIE = 'x-guiders-sid'; // Cookie única para visitantes (accesible desde JavaScript para cross-domain)
+export const VISITOR_SESSION_COOKIE = 'sid'; // Cookie segura (httpOnly)
+export const VISITOR_SESSION_COOKIE_JS = 'guiders_session_id'; // Cookie accesible desde JavaScript
+export const VISITOR_SESSION_COOKIE_X_GUIDERS = 'x-guiders-sid'; // Cookie adicional para frontend
 
 // Deriva opciones de la cookie desde variables de entorno y entorno de ejecución
 export function buildVisitorSessionCookieOptions() {
@@ -30,7 +32,7 @@ export function buildVisitorSessionCookieOptions() {
   const maxAge = Number.isFinite(maxAgeMs) ? maxAgeMs : 24 * 60 * 60 * 1000; // por defecto 24h
 
   return {
-    httpOnly: false, // Accesible desde JavaScript para soporte cross-domain
+    httpOnly: true,
     secure: isProd,
     sameSite,
     maxAge,
@@ -39,26 +41,44 @@ export function buildVisitorSessionCookieOptions() {
   } as const;
 }
 
-// Escribe la cookie de sesión de visitante
+// Escribe las cookies de sesión (segura y accesibles)
 export function setVisitorSessionCookie(
   res: ExpressResponse,
   sessionId: string,
 ) {
+  // Cookie segura con httpOnly para autenticación de backend
   res.cookie(
     VISITOR_SESSION_COOKIE,
     sessionId,
     buildVisitorSessionCookieOptions(),
   );
+
+  // Cookie accesible desde JavaScript para frontend
+  const jsAccessibleOptions = {
+    ...buildVisitorSessionCookieOptions(),
+    httpOnly: false, // Accesible desde JavaScript
+  };
+  res.cookie(VISITOR_SESSION_COOKIE_JS, sessionId, jsAccessibleOptions);
+
+  // Cookie adicional x-guiders-sid (también accesible desde JavaScript)
+  res.cookie(VISITOR_SESSION_COOKIE_X_GUIDERS, sessionId, jsAccessibleOptions);
 }
 
-// Limpia la cookie de sesión de visitante
+// Limpia todas las cookies de sesión (segura y accesibles)
 export function clearVisitorSessionCookie(res: ExpressResponse) {
   const opts = buildVisitorSessionCookieOptions();
+
+  // Limpiar cookie segura (httpOnly)
   res.clearCookie(VISITOR_SESSION_COOKIE, { ...opts, maxAge: 0 });
+
+  // Limpiar cookies accesibles desde JavaScript
+  const jsAccessibleOpts = { ...opts, httpOnly: false, maxAge: 0 };
+  res.clearCookie(VISITOR_SESSION_COOKIE_JS, jsAccessibleOpts);
+  res.clearCookie(VISITOR_SESSION_COOKIE_X_GUIDERS, jsAccessibleOpts);
 }
 
-// Extrae el sessionId proporcionado por body, cabeceras HTTP o cookie.
-// Orden de prioridad: body > X-Guiders-Sid header > x-guiders-sid cookie
+// Extrae el sessionId proporcionado por body, cabeceras HTTP o cookies.
+// Orden de prioridad: body > X-Guiders-Sid header > sid cookie > x-guiders-sid cookie > guiders_session_id cookie
 export function resolveVisitorSessionId(
   req: ExpressRequest,
   bodySessionId?: string | null,
@@ -72,7 +92,7 @@ export function resolveVisitorSessionId(
     return headerSessionId;
   }
 
-  // 3. Buscar en cookie 'x-guiders-sid'
+  // 3. Buscar en cookies (múltiples opciones)
   const maybeCookies = (req as unknown as { cookies?: unknown }).cookies;
   if (
     maybeCookies &&
@@ -81,11 +101,28 @@ export function resolveVisitorSessionId(
   ) {
     const cookies = maybeCookies as Record<string, unknown>;
 
+    // 3a. Buscar en cookie 'sid' (principal, httpOnly)
     if (
       VISITOR_SESSION_COOKIE in cookies &&
       typeof cookies[VISITOR_SESSION_COOKIE] === 'string'
     ) {
       return cookies[VISITOR_SESSION_COOKIE];
+    }
+
+    // 3b. Buscar en cookie 'x-guiders-sid' (alternativa)
+    if (
+      VISITOR_SESSION_COOKIE_X_GUIDERS in cookies &&
+      typeof cookies[VISITOR_SESSION_COOKIE_X_GUIDERS] === 'string'
+    ) {
+      return cookies[VISITOR_SESSION_COOKIE_X_GUIDERS];
+    }
+
+    // 3c. Buscar en cookie 'guiders_session_id' (accesible por JS)
+    if (
+      VISITOR_SESSION_COOKIE_JS in cookies &&
+      typeof cookies[VISITOR_SESSION_COOKIE_JS] === 'string'
+    ) {
+      return cookies[VISITOR_SESSION_COOKIE_JS];
     }
   }
 

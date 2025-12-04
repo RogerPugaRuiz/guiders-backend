@@ -16,17 +16,6 @@ export interface SystemData {
 }
 
 /**
- * Metadatos para mensajes generados por IA
- */
-export interface AIMetadata {
-  model?: string; // Modelo de IA usado (ej: 'gpt-4', 'claude-3')
-  confidence?: number; // Nivel de confianza 0-1
-  suggestedActions?: string[]; // Acciones sugeridas al usuario
-  processingTimeMs?: number; // Tiempo de procesamiento
-  context?: Record<string, unknown>; // Contexto adicional
-}
-
-/**
  * Datos de adjuntos
  */
 export interface AttachmentData {
@@ -52,8 +41,6 @@ export interface MessagePrimitives {
   isRead: boolean;
   readAt?: Date;
   readBy?: string;
-  isAI: boolean;
-  aiMetadata?: AIMetadata;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,8 +61,6 @@ export interface MessageProperties {
   isRead?: boolean;
   readAt?: Date;
   readBy?: string;
-  isAI?: boolean;
-  aiMetadata?: AIMetadata;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -97,8 +82,6 @@ export class Message extends AggregateRoot {
     private readonly _isRead: boolean,
     private readonly _readAt: Date | null,
     private readonly _readBy: string | null,
-    private readonly _isAI: boolean,
-    private readonly _aiMetadata: AIMetadata | null,
     private readonly _createdAt: Date,
     private readonly _updatedAt: Date,
   ) {
@@ -122,8 +105,6 @@ export class Message extends AggregateRoot {
       props.isRead || false,
       props.readAt || null,
       props.readBy || null,
-      props.isAI || false,
-      props.aiMetadata || null,
       props.createdAt,
       props.updatedAt,
     );
@@ -141,8 +122,6 @@ export class Message extends AggregateRoot {
           isInternal: message._isInternal,
           sentAt: message._createdAt,
           attachment: message._attachment || undefined,
-          isAI: message._isAI,
-          aiMetadata: message._aiMetadata || undefined,
         },
       }),
     );
@@ -167,8 +146,6 @@ export class Message extends AggregateRoot {
       params.isRead || false,
       params.readAt || null,
       params.readBy || null,
-      params.isAI || false,
-      params.aiMetadata || null,
       params.createdAt,
       params.updatedAt,
     );
@@ -279,31 +256,6 @@ export class Message extends AggregateRoot {
   }
 
   /**
-   * Crea un mensaje generado por IA
-   */
-  public static createAIMessage(params: {
-    chatId: string;
-    content: string;
-    aiMetadata?: AIMetadata;
-  }): Message {
-    const now = new Date();
-
-    return Message.create({
-      id: MessageId.generate(),
-      chatId: ChatId.create(params.chatId),
-      senderId: 'ai',
-      content: new MessageContent(params.content),
-      type: MessageType.AI,
-      isInternal: false,
-      isFirstResponse: false,
-      isAI: true,
-      aiMetadata: params.aiMetadata,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
-  /**
    * Serializa la entidad a un objeto plano
    */
   public toPrimitives(): MessagePrimitives {
@@ -320,8 +272,6 @@ export class Message extends AggregateRoot {
       isRead: this._isRead,
       readAt: this._readAt || undefined,
       readBy: this._readBy || undefined,
-      isAI: this._isAI,
-      aiMetadata: this._aiMetadata || undefined,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -384,14 +334,6 @@ export class Message extends AggregateRoot {
     return this._readBy;
   }
 
-  get isAI(): boolean {
-    return this._isAI;
-  }
-
-  get aiMetadata(): AIMetadata | null {
-    return this._aiMetadata;
-  }
-
   /**
    * Verifica si es un mensaje del sistema
    */
@@ -433,12 +375,5 @@ export class Message extends AggregateRoot {
    */
   public isUnreadFor(userId: string): boolean {
     return !this._isRead && this._senderId !== userId;
-  }
-
-  /**
-   * Verifica si es un mensaje generado por IA
-   */
-  public isAIMessage(): boolean {
-    return this._isAI || this._type.isAI();
   }
 }

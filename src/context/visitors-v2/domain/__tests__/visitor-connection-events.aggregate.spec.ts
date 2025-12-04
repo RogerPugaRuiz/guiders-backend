@@ -118,7 +118,6 @@ describe('VisitorV2 conexión eventos', () => {
         siteId: '33333333-3333-4333-8333-333333333333',
         fingerprint: 'fp_test',
         lifecycle: VisitorLifecycle.ANON,
-        isInternal: false,
         connectionStatus: undefined as any, // Simular datos legacy sin connectionStatus
         hasAcceptedPrivacyPolicy: false,
         privacyPolicyAcceptedAt: null,

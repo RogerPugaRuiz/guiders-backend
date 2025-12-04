@@ -6,7 +6,7 @@ import {
   VisitorV2Repository,
   VISITOR_V2_REPOSITORY,
 } from '../../../domain/visitor-v2.repository';
-import { err, ok, okVoid } from '../../../../shared/domain/result';
+import { err } from '../../../../shared/domain/result';
 import {
   VALIDATE_DOMAIN_API_KEY,
   ValidateDomainApiKey,
@@ -15,21 +15,13 @@ import {
   CompanyRepository,
   COMPANY_REPOSITORY,
 } from '../../../../company/domain/company.repository';
-import {
-  CommercialRepository,
-  COMMERCIAL_REPOSITORY,
-} from '../../../../commercial/domain/commercial.repository';
 import { CompanyNotFoundError } from '../../../../company/domain/errors/company.error';
-import { BffSessionAuthService } from '../../../../shared/infrastructure/services/bff-session-auth.service';
-import { Uuid } from '../../../../shared/domain/value-objects/uuid';
 
 describe('IdentifyVisitorCommandHandler', () => {
   let handler: IdentifyVisitorCommandHandler;
   let visitorRepository: VisitorV2Repository;
   let companyRepository: CompanyRepository;
-  let commercialRepository: CommercialRepository;
   let validateDomainApiKey: ValidateDomainApiKey;
-  let bffSessionAuthService: BffSessionAuthService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -55,32 +47,15 @@ describe('IdentifyVisitorCommandHandler', () => {
           },
         },
         {
-          provide: COMMERCIAL_REPOSITORY,
-          useValue: {
-            findByFingerprintAndTenant: jest.fn(),
-          },
-        },
-        {
           provide: EventPublisher,
           useValue: {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-            mergeObjectContext: jest.fn((obj: any) => ({
-              ...obj,
-              commit: jest.fn(),
-            })),
+            mergeObjectContext: jest.fn(),
           },
         },
         {
           provide: CommandBus,
           useValue: {
             execute: jest.fn(),
-          },
-        },
-        {
-          provide: BffSessionAuthService,
-          useValue: {
-            extractBffSessionTokens: jest.fn(),
-            validateBffSession: jest.fn(),
           },
         },
       ],
@@ -91,20 +66,9 @@ describe('IdentifyVisitorCommandHandler', () => {
     );
     visitorRepository = module.get<VisitorV2Repository>(VISITOR_V2_REPOSITORY);
     companyRepository = module.get<CompanyRepository>(COMPANY_REPOSITORY);
-    commercialRepository = module.get<CommercialRepository>(
-      COMMERCIAL_REPOSITORY,
-    );
     validateDomainApiKey = module.get<ValidateDomainApiKey>(
       VALIDATE_DOMAIN_API_KEY,
     );
-    bffSessionAuthService = module.get<BffSessionAuthService>(
-      BffSessionAuthService,
-    );
-
-    // Mock por defecto: no se encuentra comercial por fingerprint (visitante normal)
-    (
-      commercialRepository.findByFingerprintAndTenant as jest.Mock
-    ).mockResolvedValue(ok(null));
   });
 
   describe('execute', () => {
@@ -115,7 +79,6 @@ describe('IdentifyVisitorCommandHandler', () => {
       true, // hasAcceptedPrivacyPolicy
       '192.168.1.1', // ipAddress
       'Mozilla/5.0', // userAgent
-      undefined, // cookieHeader
       'https://landing.mytech.com/home',
     );
 
@@ -156,7 +119,6 @@ describe('IdentifyVisitorCommandHandler', () => {
         true, // hasAcceptedPrivacyPolicy
         '192.168.1.1', // ipAddress
         'Mozilla/5.0', // userAgent
-        undefined, // cookieHeader
         'https://www.landing.mytech.com/home',
       );
 
@@ -201,279 +163,6 @@ describe('IdentifyVisitorCommandHandler', () => {
       expect(companyRepository.findByDomain).toHaveBeenCalledWith(
         'landing.mytech.com',
       );
-    });
-  });
-
-  describe('Detección de comerciales (isInternal)', () => {
-    it('debe marcar visitante como interno cuando detecta sesión de comercial válida', async () => {
-      // Generar UUIDs válidos para el test
-      const companyId = Uuid.random().value;
-      const siteId = Uuid.random().value;
-
-      // Mock de cookie con sesión de comercial
-      const commandWithCommercialCookie = new IdentifyVisitorCommand(
-        'fp_commercial123',
-        'landing.mytech.com',
-        'ak_live_1234567890',
-        true,
-        '192.168.1.1',
-        'Mozilla/5.0',
-        'console_session=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-        'https://landing.mytech.com/home',
-      );
-
-      // Mock de extracción de tokens
-      jest
-        .spyOn(bffSessionAuthService, 'extractBffSessionTokens')
-        .mockReturnValue(['eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...']);
-
-      // Mock de validación de sesión exitosa
-      jest
-        .spyOn(bffSessionAuthService, 'validateBffSession')
-        .mockResolvedValue({
-          sub: Uuid.random().value,
-          email: 'comercial@mytech.com',
-          roles: ['commercial', 'user'],
-        });
-
-      // Mock validación de API key
-      jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
-
-      // Mock de company y site
-      const mockCompany = {
-        getId: () => ({ getValue: () => companyId }),
-        getSites: () => ({
-          toPrimitives: () => [
-            {
-              id: siteId,
-              canonicalDomain: 'landing.mytech.com',
-              domainAliases: [],
-            },
-          ],
-        }),
-      };
-      jest
-        .spyOn(companyRepository, 'findByDomain')
-        .mockResolvedValue(ok(mockCompany as any));
-
-      // Mock visitante no existente (nuevo visitante)
-      jest
-        .spyOn(visitorRepository, 'findByFingerprintAndSite')
-        .mockResolvedValue(err({ message: 'Not found' } as any));
-
-      // Mock save
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(okVoid());
-
-      // Ejecutar comando
-      const result = await handler.execute(commandWithCommercialCookie);
-
-      // Verificar que se llamó a la detección de comercial
-      expect(
-        bffSessionAuthService.extractBffSessionTokens,
-      ).toHaveBeenCalledWith(
-        'console_session=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...',
-      );
-      expect(bffSessionAuthService.validateBffSession).toHaveBeenCalled();
-
-      // Verificar que se guardó el visitante
-      expect(visitorRepository.save).toHaveBeenCalled();
-      expect(result.visitorId).toBeDefined();
-      expect(result.isNewVisitor).toBe(true);
-    });
-
-    it('debe marcar visitante como NO interno cuando no hay cookie de comercial', async () => {
-      // Generar UUIDs válidos para el test
-      const companyId = Uuid.random().value;
-      const siteId = Uuid.random().value;
-
-      // Comando sin cookie
-      const commandWithoutCookie = new IdentifyVisitorCommand(
-        'fp_regular123',
-        'landing.mytech.com',
-        'ak_live_1234567890',
-        true,
-        '192.168.1.1',
-        'Mozilla/5.0',
-        undefined, // Sin cookie
-        'https://landing.mytech.com/home',
-      );
-
-      // Mock validación de API key
-      jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
-
-      // Mock de company y site
-      const mockCompany = {
-        getId: () => ({ getValue: () => companyId }),
-        getSites: () => ({
-          toPrimitives: () => [
-            {
-              id: siteId,
-              canonicalDomain: 'landing.mytech.com',
-              domainAliases: [],
-            },
-          ],
-        }),
-      };
-      jest
-        .spyOn(companyRepository, 'findByDomain')
-        .mockResolvedValue(ok(mockCompany as any));
-
-      // Mock visitante no existente
-      jest
-        .spyOn(visitorRepository, 'findByFingerprintAndSite')
-        .mockResolvedValue(err({ message: 'Not found' } as any));
-
-      // Mock save
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(okVoid());
-
-      // Ejecutar comando
-      const result = await handler.execute(commandWithoutCookie);
-
-      // Verificar que NO se llamó a extractBffSessionTokens
-      expect(
-        bffSessionAuthService.extractBffSessionTokens,
-      ).not.toHaveBeenCalled();
-
-      // Verificar que se guardó el visitante
-      expect(visitorRepository.save).toHaveBeenCalled();
-      expect(result.visitorId).toBeDefined();
-      expect(result.isNewVisitor).toBe(true);
-    });
-
-    it('debe marcar visitante como NO interno cuando la validación de sesión falla', async () => {
-      // Generar UUIDs válidos para el test
-      const companyId = Uuid.random().value;
-      const siteId = Uuid.random().value;
-
-      // Mock de cookie con token inválido
-      const commandWithInvalidCookie = new IdentifyVisitorCommand(
-        'fp_invalid123',
-        'landing.mytech.com',
-        'ak_live_1234567890',
-        true,
-        '192.168.1.1',
-        'Mozilla/5.0',
-        'console_session=invalid_token',
-        'https://landing.mytech.com/home',
-      );
-
-      // Mock de extracción de tokens
-      jest
-        .spyOn(bffSessionAuthService, 'extractBffSessionTokens')
-        .mockReturnValue(['invalid_token']);
-
-      // Mock de validación de sesión fallida
-      jest
-        .spyOn(bffSessionAuthService, 'validateBffSession')
-        .mockResolvedValue(null);
-
-      // Mock validación de API key
-      jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
-
-      // Mock de company y site
-      const mockCompany = {
-        getId: () => ({ getValue: () => companyId }),
-        getSites: () => ({
-          toPrimitives: () => [
-            {
-              id: siteId,
-              canonicalDomain: 'landing.mytech.com',
-              domainAliases: [],
-            },
-          ],
-        }),
-      };
-      jest
-        .spyOn(companyRepository, 'findByDomain')
-        .mockResolvedValue(ok(mockCompany as any));
-
-      // Mock visitante no existente
-      jest
-        .spyOn(visitorRepository, 'findByFingerprintAndSite')
-        .mockResolvedValue(err({ message: 'Not found' } as any));
-
-      // Mock save
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(okVoid());
-
-      // Ejecutar comando
-      const result = await handler.execute(commandWithInvalidCookie);
-
-      // Verificar que se llamó a la validación pero falló
-      expect(
-        bffSessionAuthService.extractBffSessionTokens,
-      ).toHaveBeenCalledWith('console_session=invalid_token');
-      expect(bffSessionAuthService.validateBffSession).toHaveBeenCalledWith(
-        'invalid_token',
-      );
-
-      // Verificar que se guardó el visitante
-      expect(visitorRepository.save).toHaveBeenCalled();
-      expect(result.visitorId).toBeDefined();
-      expect(result.isNewVisitor).toBe(true);
-    });
-
-    it('debe manejar errores en detección de comercial y continuar con isInternal=false', async () => {
-      // Generar UUIDs válidos para el test
-      const companyId = Uuid.random().value;
-      const siteId = Uuid.random().value;
-
-      // Mock de cookie
-      const commandWithCookie = new IdentifyVisitorCommand(
-        'fp_error123',
-        'landing.mytech.com',
-        'ak_live_1234567890',
-        true,
-        '192.168.1.1',
-        'Mozilla/5.0',
-        'console_session=some_token',
-        'https://landing.mytech.com/home',
-      );
-
-      // Mock de extracción que lanza error
-      jest
-        .spyOn(bffSessionAuthService, 'extractBffSessionTokens')
-        .mockImplementation(() => {
-          throw new Error('Token extraction failed');
-        });
-
-      // Mock validación de API key
-      jest.spyOn(validateDomainApiKey, 'validate').mockResolvedValue(true);
-
-      // Mock de company y site
-      const mockCompany = {
-        getId: () => ({ getValue: () => companyId }),
-        getSites: () => ({
-          toPrimitives: () => [
-            {
-              id: siteId,
-              canonicalDomain: 'landing.mytech.com',
-              domainAliases: [],
-            },
-          ],
-        }),
-      };
-      jest
-        .spyOn(companyRepository, 'findByDomain')
-        .mockResolvedValue(ok(mockCompany as any));
-
-      // Mock visitante no existente
-      jest
-        .spyOn(visitorRepository, 'findByFingerprintAndSite')
-        .mockResolvedValue(err({ message: 'Not found' } as any));
-
-      // Mock save
-      jest.spyOn(visitorRepository, 'save').mockResolvedValue(okVoid());
-
-      // Ejecutar comando - no debe fallar aunque la detección lance error
-      const result = await handler.execute(commandWithCookie);
-
-      // Verificar que se intentó la detección
-      expect(bffSessionAuthService.extractBffSessionTokens).toHaveBeenCalled();
-
-      // Verificar que se guardó el visitante a pesar del error
-      expect(visitorRepository.save).toHaveBeenCalled();
-      expect(result.visitorId).toBeDefined();
-      expect(result.isNewVisitor).toBe(true);
     });
   });
 });

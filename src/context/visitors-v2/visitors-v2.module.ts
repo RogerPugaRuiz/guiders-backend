@@ -17,20 +17,19 @@ import { SitesController } from './infrastructure/controllers/sites.controller';
 import { SiteVisitorsController } from './infrastructure/controllers/site-visitors.controller';
 import { TenantVisitorsController } from './infrastructure/controllers/tenant-visitors.controller';
 import { IdentifyVisitorCommandHandler } from './application/commands/identify-visitor.command-handler';
+import { UpdateSessionHeartbeatCommandHandler } from './application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from './application/commands/end-session.command-handler';
 import { ResolveSiteCommandHandler } from './application/commands/resolve-site.command-handler';
 import { CleanExpiredSessionsCommandHandler } from './application/commands/clean-expired-sessions.command-handler';
 import { VisitorV2MongoRepositoryImpl } from './infrastructure/persistence/impl/visitor-v2-mongo.repository.impl';
 import { VISITOR_V2_REPOSITORY } from './domain/visitor-v2.repository';
 import { CompanyModule } from '../company/company.module';
-import { CommercialModule } from '../commercial/commercial.module';
 import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
 import { ConversationsV2Module } from '../conversations-v2/conversations-v2.module';
 import { GoOnlineVisitorCommandHandler } from './application/commands/go-online-visitor.command-handler';
 import { StartChattingVisitorCommandHandler } from './application/commands/start-chatting-visitor.command-handler';
 import { GoOfflineVisitorCommandHandler } from './application/commands/go-offline-visitor.command-handler';
 import { ChangeVisitorConnectionStatusCommandHandler } from './application/commands/change-visitor-connection-status.command-handler';
-import { UpdateVisitorSessionActivityCommandHandler } from './application/commands/update-visitor-session-activity.command-handler';
 import { GetOnlineVisitorsQueryHandler } from './application/queries/get-online-visitors.query-handler';
 import { GetChattingVisitorsQueryHandler } from './application/queries/get-chatting-visitors.query-handler';
 import { GetVisitorConnectionStatusQueryHandler } from './application/queries/get-visitor-connection-status.query-handler';
@@ -54,7 +53,6 @@ import { EmitPresenceChangedOnVisitorConnectionChangedEventHandler } from './app
 import { ChangeVisitorToOfflineOnSessionEndedEventHandler } from './application/events/change-visitor-to-offline-on-session-ended.event-handler';
 import { NotifyPageChangedOnVisitorCurrentPageChangedEventHandler } from './application/events/notify-page-changed-on-visitor-current-page-changed.event-handler';
 import { NotifyHighIntentOnVisitorBecameHighIntentEventHandler } from './application/events/notify-high-intent-on-visitor-became-high-intent.event-handler';
-import { MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler } from './application/events/mark-visitor-as-internal-on-fingerprint-registered.handler';
 import { VISITOR_CONNECTION_DOMAIN_SERVICE } from './domain/visitor-connection.domain-service';
 import { VISITOR_CONNECTION_SERVICE_PROVIDER } from './infrastructure/connection/redis-visitor-connection.domain-service';
 import { SessionCleanupScheduler } from './application/services/session-cleanup.scheduler';
@@ -82,7 +80,6 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     JwtModule.register({}), // Para TokenVerifyService
     ConfigModule, // Para TokenVerifyService
     CompanyModule,
-    CommercialModule, // ← Importar para acceder a CommercialRepository
     AuthVisitorModule,
     ConsentModule, // ← Importar para que RecordConsentCommand esté disponible
     forwardRef(() => ConversationsV2Module),
@@ -106,6 +103,7 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
       useClass: SavedFilterMongoRepositoryImpl,
     },
     IdentifyVisitorCommandHandler,
+    UpdateSessionHeartbeatCommandHandler,
     EndSessionCommandHandler,
     ResolveSiteCommandHandler,
     CleanExpiredSessionsCommandHandler,
@@ -113,7 +111,6 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     StartChattingVisitorCommandHandler,
     GoOfflineVisitorCommandHandler,
     ChangeVisitorConnectionStatusCommandHandler,
-    UpdateVisitorSessionActivityCommandHandler,
     GetOnlineVisitorsQueryHandler,
     GetChattingVisitorsQueryHandler,
     GetVisitorConnectionStatusQueryHandler,
@@ -135,7 +132,6 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     ChangeVisitorToOfflineOnSessionEndedEventHandler,
     NotifyPageChangedOnVisitorCurrentPageChangedEventHandler,
     NotifyHighIntentOnVisitorBecameHighIntentEventHandler,
-    MarkVisitorAsInternalOnCommercialFingerprintRegisteredEventHandler,
     VISITOR_CONNECTION_SERVICE_PROVIDER,
     SESSION_MANAGEMENT_SERVICE_PROVIDER,
     SessionCleanupScheduler,

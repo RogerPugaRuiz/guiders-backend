@@ -23,14 +23,6 @@ export interface VisitorSearchFilters {
   siteIds?: string[];
   currentUrlContains?: string;
   hasActiveSessions?: boolean;
-  minTotalSessionsCount?: number;
-  maxTotalSessionsCount?: number;
-  isInternal?: boolean;
-  ipAddress?: string;
-  /** Incluir solo visitantes con estos IDs (para filtros cross-collection) */
-  visitorIds?: string[];
-  /** Excluir visitantes con estos IDs (para filtros cross-collection inversos) */
-  excludeVisitorIds?: string[];
 }
 
 /**
@@ -90,13 +82,6 @@ export interface VisitorV2Repository {
     fingerprint: VisitorFingerprint,
     siteId: SiteId,
   ): Promise<Result<VisitorV2, DomainError>>;
-
-  /**
-   * Busca todos los visitantes con un fingerprint específico
-   */
-  findByFingerprint(
-    fingerprint: string,
-  ): Promise<Result<VisitorV2[], DomainError>>;
 
   /**
    * Busca un visitante por sessionId

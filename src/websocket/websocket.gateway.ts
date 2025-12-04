@@ -1,4 +1,4 @@
-import { Inject, Logger, Optional } from '@nestjs/common';
+import { Logger, Optional } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -10,28 +10,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { EventBus, CommandBus } from '@nestjs/cqrs';
-import { ChangeVisitorConnectionStatusCommand } from '../context/visitors-v2/application/commands/change-visitor-connection-status.command';
-import { UpdateVisitorSessionActivityCommand } from '../context/visitors-v2/application/commands/update-visitor-session-activity.command';
 import { TokenVerifyService } from '../context/shared/infrastructure/token-verify.service';
-import {
-  VISITOR_CONNECTION_DOMAIN_SERVICE,
-  VisitorConnectionDomainService,
-} from '../context/visitors-v2/domain/visitor-connection.domain-service';
-import {
-  COMMERCIAL_CONNECTION_DOMAIN_SERVICE,
-  CommercialConnectionDomainService,
-} from '../context/commercial/domain/commercial-connection.domain-service';
-import { VisitorId } from '../context/visitors-v2/domain/value-objects/visitor-id';
-import { CommercialId } from '../context/commercial/domain/value-objects/commercial-id';
-import {
-  VisitorConnectionVO,
-  ConnectionStatus,
-} from '../context/visitors-v2/domain/value-objects/visitor-connection';
-import { CommercialConnectionStatus } from '../context/commercial/domain/value-objects/commercial-connection-status';
-import { VisitorLastActivity } from '../context/visitors-v2/domain/value-objects/visitor-last-activity';
-import { CommercialLastActivity } from '../context/commercial/domain/value-objects/commercial-last-activity';
-import { PresenceChangedEvent } from '../context/shared/domain/events/presence-changed.event';
 
 interface TestMessage {
   message: string;
@@ -103,9 +82,6 @@ interface TypingPayload {
   },
   path: '/socket.io/',
   transports: ['websocket', 'polling'],
-  // Configuración backend-controlled para detección de presencia
-  pingInterval: parseInt(process.env.WS_PING_INTERVAL || '25000', 10), // Ping cada 25s
-  pingTimeout: parseInt(process.env.WS_PING_TIMEOUT || '20000', 10), // Timeout 20s sin respuesta
 })
 export class WebSocketGatewayBasic
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
@@ -129,14 +105,6 @@ export class WebSocketGatewayBasic
 
   constructor(
     @Optional() private readonly tokenVerifyService?: TokenVerifyService,
-    @Optional()
-    @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
-    private readonly visitorConnectionService?: VisitorConnectionDomainService,
-    @Optional()
-    @Inject(COMMERCIAL_CONNECTION_DOMAIN_SERVICE)
-    private readonly commercialConnectionService?: CommercialConnectionDomainService,
-    @Optional() private readonly eventBus?: EventBus,
-    @Optional() private readonly commandBus?: CommandBus,
   ) {}
 
   afterInit() {
@@ -162,58 +130,10 @@ export class WebSocketGatewayBasic
 
     // Intentar autenticar desde handshake (async)
     await this.authenticateClient(client);
-
-    // Marcar como ONLINE si el usuario fue autenticado
-    const user = this.clientUsers.get(client.id);
-    if (user) {
-      const isVisitor = user.roles.includes('visitor');
-      const isCommercial =
-        user.roles.includes('commercial') ||
-        user.roles.includes('admin') ||
-        user.roles.includes('owner');
-
-      try {
-        if (isVisitor && this.visitorConnectionService) {
-          await this.markVisitorOnline(user.userId, user.companyId);
-        } else if (isCommercial && this.commercialConnectionService) {
-          await this.markCommercialOnline(user.userId, user.companyId);
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error al marcar usuario ${user.userId} como online:`,
-          (error as Error).message,
-        );
-      }
-    }
   }
 
-  async handleDisconnect(client: Socket) {
+  handleDisconnect(client: Socket) {
     this.logger.log(`Cliente desconectado: ${client.id}`);
-
-    // Obtener info del usuario antes de limpiar
-    const user = this.clientUsers.get(client.id);
-
-    // Marcar como OFFLINE si el usuario estaba autenticado
-    if (user) {
-      const isVisitor = user.roles.includes('visitor');
-      const isCommercial =
-        user.roles.includes('commercial') ||
-        user.roles.includes('admin') ||
-        user.roles.includes('owner');
-
-      try {
-        if (isVisitor && this.visitorConnectionService) {
-          await this.markVisitorOffline(user.userId, user.companyId);
-        } else if (isCommercial && this.commercialConnectionService) {
-          await this.markCommercialOffline(user.userId, user.companyId);
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error al marcar usuario ${user.userId} como offline:`,
-          (error as Error).message,
-        );
-      }
-    }
 
     // Limpiar tracking del cliente
     const rooms = this.clientRooms.get(client.id);
@@ -246,49 +166,8 @@ export class WebSocketGatewayBasic
       }
 
       if (!token) {
-        // Intentar autenticación de visitante via visitorId + tenantId
-        const visitorId = client.handshake.auth.visitorId as string;
-        const tenantId = client.handshake.auth.tenantId as string;
-
-        if (visitorId && tenantId) {
-          this.logger.log(
-            `Cliente ${client.id} autenticado como visitante: visitorId=${visitorId}, tenantId=${tenantId}`,
-          );
-
-          // Guardar información del visitante
-          this.clientUsers.set(client.id, {
-            userId: visitorId,
-            roles: ['visitor'],
-            chatIds: [],
-            companyId: tenantId,
-            tenantId: tenantId,
-          });
-
-          // Auto-join a sala personal de presencia
-          const presenceRoom = `visitor:${visitorId}`;
-          await client.join(presenceRoom);
-
-          const presenceRooms = this.clientRooms.get(client.id) || new Set();
-          presenceRooms.add(presenceRoom);
-          this.clientRooms.set(client.id, presenceRooms);
-
-          this.logger.log(
-            `Visitante ${visitorId} unido automáticamente a sala de presencia: ${presenceRoom}`,
-          );
-
-          client.emit('presence:joined', {
-            userId: visitorId,
-            userType: 'visitor',
-            roomName: presenceRoom,
-            timestamp: Date.now(),
-            automatic: true,
-          });
-
-          return;
-        }
-
         this.logger.debug(
-          `Cliente ${client.id} conectado sin token ni credenciales de visitante`,
+          `Cliente ${client.id} conectado sin token de autenticación`,
         );
         return;
       }
@@ -1013,295 +892,6 @@ export class WebSocketGatewayBasic
       );
       return { success: false, message: 'Error al procesar typing stop' };
     }
-  }
-
-  /**
-   * Handler para actividad real del usuario
-   * Permite diferenciar entre conexión activa y usuario interactuando
-   */
-  @SubscribeMessage('user:activity')
-  async handleUserActivity(@ConnectedSocket() client: Socket) {
-    const user = this.clientUsers.get(client.id);
-    if (!user) {
-      return { success: false, message: 'Usuario no autenticado' };
-    }
-
-    const isVisitor = user.roles.includes('visitor');
-
-    try {
-      if (isVisitor && this.visitorConnectionService) {
-        const visitorId = new VisitorId(user.userId);
-
-        // Actualizar última actividad del usuario en Redis
-        await this.visitorConnectionService.updateLastUserActivity(
-          visitorId,
-          VisitorLastActivity.now(),
-        );
-
-        // Actualizar actividad de la sesión en MongoDB para evitar expiración
-        if (this.commandBus) {
-          await this.commandBus.execute(
-            new UpdateVisitorSessionActivityCommand(user.userId),
-          );
-        }
-
-        // Reactivar desde AWAY si aplica
-        const currentStatus =
-          await this.visitorConnectionService.getConnectionStatus(visitorId);
-
-        this.logger.log(
-          `📡 [user:activity] Visitante ${user.userId} - Estado actual en Redis: ${currentStatus.value}`,
-        );
-
-        // Reactivar a ONLINE si está AWAY u OFFLINE
-        if (
-          (currentStatus.isAway() || currentStatus.isOffline()) &&
-          this.commandBus
-        ) {
-          // Ejecutar comando para persistir en MongoDB y publicar eventos
-          await this.commandBus.execute(
-            new ChangeVisitorConnectionStatusCommand(user.userId, 'online'),
-          );
-
-          this.logger.log(
-            `✅ Visitante ${user.userId} reactivado de ${currentStatus.value.toUpperCase()} a ONLINE por actividad`,
-          );
-        } else if (
-          (currentStatus.isAway() || currentStatus.isOffline()) &&
-          !this.commandBus
-        ) {
-          this.logger.warn(
-            `⚠️ Visitante ${user.userId} está ${currentStatus.value.toUpperCase()} pero no hay commandBus disponible`,
-          );
-        }
-      }
-
-      return { success: true, message: 'Actividad registrada' };
-    } catch (error) {
-      this.logger.error(
-        `Error al registrar actividad de usuario ${user.userId}:`,
-        (error as Error).message,
-      );
-      return { success: false, message: 'Error al registrar actividad' };
-    }
-  }
-
-  /**
-   * Marca un visitante como ONLINE en Redis y publica evento
-   */
-  private async markVisitorOnline(
-    userId: string,
-    tenantId?: string,
-  ): Promise<void> {
-    if (!this.visitorConnectionService) return;
-
-    const visitorId = new VisitorId(userId);
-
-    // Obtener estado previo para el evento
-    let previousStatus = 'offline';
-    try {
-      const currentStatus =
-        await this.visitorConnectionService.getConnectionStatus(visitorId);
-      previousStatus = currentStatus.value;
-    } catch {
-      // Si no existe, asumimos offline
-    }
-
-    // Establecer estado ONLINE
-    await this.visitorConnectionService.setConnectionStatus(
-      visitorId,
-      new VisitorConnectionVO(ConnectionStatus.ONLINE),
-    );
-
-    // Actualizar última actividad
-    await this.visitorConnectionService.updateLastActivity(
-      visitorId,
-      VisitorLastActivity.now(),
-    );
-    await this.visitorConnectionService.updateLastUserActivity(
-      visitorId,
-      VisitorLastActivity.now(),
-    );
-
-    // Publicar evento de cambio de presencia
-    if (this.eventBus && previousStatus !== 'online') {
-      this.eventBus.publish(
-        new PresenceChangedEvent(
-          userId,
-          'visitor',
-          previousStatus,
-          'online',
-          tenantId,
-        ),
-      );
-    }
-
-    this.logger.log(
-      `Visitante ${userId} marcado como ONLINE (previo: ${previousStatus})`,
-    );
-  }
-
-  /**
-   * Marca un visitante como OFFLINE usando CommandBus para persistir en MongoDB
-   */
-  private async markVisitorOffline(
-    userId: string,
-    tenantId?: string,
-  ): Promise<void> {
-    // Usar CommandBus para persistir en MongoDB y publicar eventos
-    if (this.commandBus) {
-      try {
-        await this.commandBus.execute(
-          new ChangeVisitorConnectionStatusCommand(userId, 'offline'),
-        );
-        this.logger.log(
-          `Visitante ${userId} marcado como OFFLINE (persistido en MongoDB)`,
-        );
-      } catch (error) {
-        this.logger.error(
-          `Error al marcar visitante ${userId} como OFFLINE: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
-      return;
-    }
-
-    // Fallback: Solo Redis si no hay CommandBus
-    if (!this.visitorConnectionService) return;
-
-    const visitorId = new VisitorId(userId);
-
-    // Obtener estado previo para el evento
-    let previousStatus = 'online';
-    try {
-      const currentStatus =
-        await this.visitorConnectionService.getConnectionStatus(visitorId);
-      previousStatus = currentStatus.value;
-    } catch {
-      // Si no existe, asumimos online
-    }
-
-    // Establecer estado OFFLINE
-    await this.visitorConnectionService.setConnectionStatus(
-      visitorId,
-      new VisitorConnectionVO(ConnectionStatus.OFFLINE),
-    );
-
-    // Publicar evento de cambio de presencia
-    if (this.eventBus && previousStatus !== 'offline') {
-      this.eventBus.publish(
-        new PresenceChangedEvent(
-          userId,
-          'visitor',
-          previousStatus,
-          'offline',
-          tenantId,
-        ),
-      );
-    }
-
-    this.logger.log(
-      `Visitante ${userId} marcado como OFFLINE (previo: ${previousStatus})`,
-    );
-  }
-
-  /**
-   * Marca un comercial como ONLINE en Redis y publica evento
-   */
-  private async markCommercialOnline(
-    userId: string,
-    tenantId?: string,
-  ): Promise<void> {
-    if (!this.commercialConnectionService) return;
-
-    const commercialId = new CommercialId(userId);
-
-    // Obtener estado previo para el evento
-    let previousStatus = 'offline';
-    try {
-      const currentStatus =
-        await this.commercialConnectionService.getConnectionStatus(
-          commercialId,
-        );
-      previousStatus = currentStatus.value;
-    } catch {
-      // Si no existe, asumimos offline
-    }
-
-    // Establecer estado ONLINE
-    await this.commercialConnectionService.setConnectionStatus(
-      commercialId,
-      CommercialConnectionStatus.online(),
-    );
-
-    // Actualizar última actividad
-    await this.commercialConnectionService.updateLastActivity(
-      commercialId,
-      CommercialLastActivity.now(),
-    );
-
-    // Publicar evento de cambio de presencia
-    if (this.eventBus && previousStatus !== 'online') {
-      this.eventBus.publish(
-        new PresenceChangedEvent(
-          userId,
-          'commercial',
-          previousStatus,
-          'online',
-          tenantId,
-        ),
-      );
-    }
-
-    this.logger.log(
-      `Comercial ${userId} marcado como ONLINE (previo: ${previousStatus})`,
-    );
-  }
-
-  /**
-   * Marca un comercial como OFFLINE en Redis y publica evento
-   */
-  private async markCommercialOffline(
-    userId: string,
-    tenantId?: string,
-  ): Promise<void> {
-    if (!this.commercialConnectionService) return;
-
-    const commercialId = new CommercialId(userId);
-
-    // Obtener estado previo para el evento
-    let previousStatus = 'online';
-    try {
-      const currentStatus =
-        await this.commercialConnectionService.getConnectionStatus(
-          commercialId,
-        );
-      previousStatus = currentStatus.value;
-    } catch {
-      // Si no existe, asumimos online
-    }
-
-    // Establecer estado OFFLINE
-    await this.commercialConnectionService.setConnectionStatus(
-      commercialId,
-      CommercialConnectionStatus.offline(),
-    );
-
-    // Publicar evento de cambio de presencia
-    if (this.eventBus && previousStatus !== 'offline') {
-      this.eventBus.publish(
-        new PresenceChangedEvent(
-          userId,
-          'commercial',
-          previousStatus,
-          'offline',
-          tenantId,
-        ),
-      );
-    }
-
-    this.logger.log(
-      `Comercial ${userId} marcado como OFFLINE (previo: ${previousStatus})`,
-    );
   }
 
   // Método para enviar mensajes broadcast (legacy - mantener por compatibilidad)

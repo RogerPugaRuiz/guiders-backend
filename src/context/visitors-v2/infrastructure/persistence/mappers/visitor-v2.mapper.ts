@@ -27,7 +27,6 @@ export class VisitorV2Mapper {
         : null,
       consentVersion: primitives.consentVersion,
       currentUrl: primitives.currentUrl || null,
-      isInternal: primitives.isInternal,
       createdAt: new Date(primitives.createdAt),
       updatedAt: new Date(primitives.updatedAt),
       sessions: primitives.sessions.map((session) => ({
@@ -36,8 +35,6 @@ export class VisitorV2Mapper {
         lastActivityAt: new Date(session.lastActivityAt),
         endedAt: session.endedAt ? new Date(session.endedAt) : undefined,
         currentUrl: session.currentUrl,
-        ipAddress: session.ipAddress,
-        userAgent: session.userAgent,
       })),
     };
   }
@@ -61,7 +58,6 @@ export class VisitorV2Mapper {
         : null,
       consentVersion: entity.consentVersion,
       currentUrl: entity.currentUrl || undefined,
-      isInternal: entity.isInternal || false,
       createdAt: entity.createdAt.toISOString(),
       updatedAt: entity.updatedAt.toISOString(),
       sessions: entity.sessions.map((session) => ({
@@ -70,8 +66,6 @@ export class VisitorV2Mapper {
         lastActivityAt: session.lastActivityAt.toISOString(),
         endedAt: session.endedAt ? session.endedAt.toISOString() : undefined,
         currentUrl: session.currentUrl,
-        ipAddress: session.ipAddress,
-        userAgent: session.userAgent,
       })),
     });
   }

@@ -18,9 +18,7 @@ export class CommercialMapper {
       name: primitives.name,
       connectionStatus: primitives.connectionStatus,
       lastActivity: primitives.lastActivity,
-      avatarUrl: primitives.avatarUrl,
       metadata: primitives.metadata,
-      knownFingerprints: primitives.knownFingerprints || [],
     };
   }
 
@@ -35,9 +33,7 @@ export class CommercialMapper {
       lastActivity: schema.lastActivity,
       createdAt: schema.createdAt || new Date(),
       updatedAt: schema.updatedAt || new Date(),
-      avatarUrl: schema.avatarUrl,
       metadata: schema.metadata,
-      knownFingerprints: schema.knownFingerprints || [],
     });
   }
 

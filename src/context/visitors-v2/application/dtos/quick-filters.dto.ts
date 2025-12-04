@@ -152,19 +152,22 @@ export const QUICK_FILTER_DEFINITIONS: Record<
   },
   [QuickFilterId.NEW_VISITORS]: {
     label: 'Nuevos',
-    description: 'Visitantes con una sola sesión',
+    description: 'Visitantes anónimos',
     icon: 'user-plus',
     getFilters: () => ({
-      minTotalSessionsCount: 1,
-      maxTotalSessionsCount: 1,
+      lifecycle: [VisitorLifecycleFilter.ANON],
     }),
   },
   [QuickFilterId.RETURNING]: {
     label: 'Recurrentes',
-    description: 'Visitantes con más de una sesión',
+    description: 'Visitantes que han vuelto',
     icon: 'refresh',
     getFilters: () => ({
-      minTotalSessionsCount: 2,
+      lifecycle: [
+        VisitorLifecycleFilter.ENGAGED,
+        VisitorLifecycleFilter.LEAD,
+        VisitorLifecycleFilter.CONVERTED,
+      ],
     }),
   },
 };
