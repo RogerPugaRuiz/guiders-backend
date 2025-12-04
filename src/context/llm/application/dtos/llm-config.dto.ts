@@ -10,6 +10,7 @@ import {
   IsOptional,
   Min,
   Max,
+  ValidateIf,
 } from 'class-validator';
 
 /**
@@ -138,12 +139,15 @@ export class UpdateLlmConfigDto {
   preferredModel?: string;
 
   @ApiPropertyOptional({
-    description: 'Prompt del sistema personalizado',
+    description:
+      'Prompt del sistema personalizado. Enviar null o string vacío para volver al prompt por defecto.',
     example: 'Eres un asistente de ventas especializado en tecnología.',
+    nullable: true,
   })
+  @ValidateIf((o) => o.customSystemPrompt !== null)
   @IsString()
   @IsOptional()
-  customSystemPrompt?: string;
+  customSystemPrompt?: string | null;
 
   @ApiPropertyOptional({
     description: 'Máximo de tokens en la respuesta',
@@ -225,7 +229,8 @@ export class LlmModelDto {
 
   @ApiProperty({
     description: 'Descripción del modelo',
-    example: 'Modelo versátil de Meta con 70B parámetros, ideal para conversaciones',
+    example:
+      'Modelo versátil de Meta con 70B parámetros, ideal para conversaciones',
   })
   description: string;
 
