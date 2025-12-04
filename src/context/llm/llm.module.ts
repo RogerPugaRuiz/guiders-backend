@@ -24,20 +24,13 @@ import { LLM_CONTEXT_BUILDER_SERVICE } from './domain/services/llm-context-build
 import { LLM_CONFIG_REPOSITORY } from './domain/llm-config.repository';
 
 // Infrastructure - Providers
-import {
-  GroqLlmProviderService,
-  GroqLlmProviderServiceProvider,
-} from './infrastructure/providers/groq-llm-provider.service';
-import { MockLlmProviderService } from './infrastructure/providers/mock-llm-provider.service';
+import { GroqLlmProviderServiceProvider } from './infrastructure/providers/groq-llm-provider.service';
 
 // Infrastructure - Services
 import { LlmContextBuilderServiceImpl } from './infrastructure/services/llm-context-builder.service.impl';
 
 // Infrastructure - Persistence
-import {
-  MongoLlmConfigRepositoryImpl,
-  MongoLlmConfigRepositoryProvider,
-} from './infrastructure/persistence/mongo-llm-config.repository.impl';
+import { MongoLlmConfigRepositoryProvider } from './infrastructure/persistence/mongo-llm-config.repository.impl';
 import {
   LlmSiteConfigSchema,
   LlmSiteConfigSchemaDefinition,

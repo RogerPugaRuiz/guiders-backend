@@ -80,7 +80,9 @@ export class MyCompanyResponseDto {
 
       const matchingSite = primitives.sites.find((site) => {
         const normalizedCanonical = site.canonicalDomain.split(':')[0];
-        const normalizedAliases = site.domainAliases.map((a) => a.split(':')[0]);
+        const normalizedAliases = site.domainAliases.map(
+          (a) => a.split(':')[0],
+        );
 
         return (
           normalizedCanonical === normalizedHost ||

@@ -508,6 +508,8 @@ jobs:
           AWS_REGION=${{ secrets.STAGING_AWS_REGION || 'eu-north-1' }}
           AWS_S3_BUCKET_NAME=${{ secrets.STAGING_AWS_S3_BUCKET_NAME || 'guiders-avatars-prod' }}
           AWS_S3_AVATAR_FOLDER=${{ secrets.STAGING_AWS_S3_AVATAR_FOLDER || 'avatars' }}
+          # Configuración de LLM (Groq)
+          GROQ_API_KEY=${{ secrets.STAGING_GROQ_API_KEY }}
           EOF
 
           echo "✅ Archivo .env.staging creado exitosamente"

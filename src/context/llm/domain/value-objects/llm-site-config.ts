@@ -49,8 +49,8 @@ export class LlmSiteConfig {
     return new LlmSiteConfig(
       siteId,
       companyId,
-      true, // aiAutoResponseEnabled
-      true, // aiSuggestionsEnabled
+      false, // aiAutoResponseEnabled - desactivado por defecto
+      false, // aiSuggestionsEnabled - desactivado por defecto
       false, // aiRespondWithCommercial
       'groq', // preferredProvider
       'llama-3.3-70b-versatile', // preferredModel

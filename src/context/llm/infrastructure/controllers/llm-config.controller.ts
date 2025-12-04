@@ -125,13 +125,15 @@ export class LlmConfigController {
 
   @Get('providers')
   @Roles(['admin', 'superadmin'])
-  @ApiOperation({ summary: 'Obtener lista de proveedores LLM disponibles con sus modelos' })
+  @ApiOperation({
+    summary: 'Obtener lista de proveedores LLM disponibles con sus modelos',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lista de proveedores con sus modelos',
     type: LlmModelsListResponseDto,
   })
-  async getAvailableProviders(): Promise<LlmModelsListResponseDto> {
+  getAvailableProviders(): LlmModelsListResponseDto {
     this.logger.debug('Obteniendo lista de proveedores disponibles');
 
     return {
@@ -184,12 +186,12 @@ export class LlmConfigController {
     const config = LlmSiteConfig.create({
       siteId: dto.siteId,
       companyId: dto.companyId,
-      aiAutoResponseEnabled: dto.aiAutoResponseEnabled ?? true,
-      aiSuggestionsEnabled: dto.aiSuggestionsEnabled ?? true,
+      aiAutoResponseEnabled: dto.aiAutoResponseEnabled ?? false,
+      aiSuggestionsEnabled: dto.aiSuggestionsEnabled ?? false,
       aiRespondWithCommercial: dto.aiRespondWithCommercial ?? false,
       preferredProvider: dto.preferredProvider ?? 'groq',
       preferredModel: dto.preferredModel ?? 'llama-3.3-70b-versatile',
-      customSystemPrompt: dto.customSystemPrompt,
+      customSystemPrompt: dto.customSystemPrompt ?? undefined,
       maxResponseTokens: dto.maxResponseTokens ?? 500,
       temperature: dto.temperature ?? 0.7,
       responseDelayMs: dto.responseDelayMs ?? 1000,
@@ -238,7 +240,7 @@ export class LlmConfigController {
       aiRespondWithCommercial: dto.aiRespondWithCommercial,
       preferredProvider: dto.preferredProvider,
       preferredModel: dto.preferredModel,
-      customSystemPrompt: dto.customSystemPrompt,
+      customSystemPrompt: dto.customSystemPrompt ?? undefined,
       maxResponseTokens: dto.maxResponseTokens,
       temperature: dto.temperature,
       responseDelayMs: dto.responseDelayMs,
