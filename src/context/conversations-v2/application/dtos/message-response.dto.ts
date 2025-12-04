@@ -30,7 +30,7 @@ export class MessageResponseDto {
 
   @ApiProperty({
     description: 'Tipo de mensaje',
-    enum: ['text', 'image', 'file', 'system', 'ai'],
+    enum: ['text', 'image', 'file', 'system'],
     example: 'text',
   })
   type: string;
@@ -113,30 +113,6 @@ export class MessageResponseDto {
     required: false,
   })
   readBy?: string;
-
-  @ApiProperty({
-    description: 'Indica si el mensaje fue generado por IA',
-    example: false,
-  })
-  isAI: boolean;
-
-  @ApiProperty({
-    description: 'Metadatos de IA (para mensajes generados por IA)',
-    required: false,
-    example: {
-      model: 'gpt-4',
-      confidence: 0.95,
-      suggestedActions: ['Ver más opciones', 'Contactar soporte'],
-      processingTimeMs: 250,
-    },
-  })
-  aiMetadata?: {
-    model?: string;
-    confidence?: number;
-    suggestedActions?: string[];
-    processingTimeMs?: number;
-    context?: Record<string, unknown>;
-  };
 }
 
 /**

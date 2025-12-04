@@ -71,8 +71,6 @@ export class GetUnreadMessagesQueryHandler
           isRead: primitives.isRead,
           readAt: primitives.readAt?.toISOString(),
           readBy: primitives.readBy,
-          isAI: primitives.isAI,
-          aiMetadata: primitives.aiMetadata,
           createdAt: primitives.createdAt.toISOString(),
           updatedAt: primitives.updatedAt.toISOString(),
         };

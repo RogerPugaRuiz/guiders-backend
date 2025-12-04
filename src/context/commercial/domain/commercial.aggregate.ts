@@ -6,7 +6,6 @@ import { CommercialLastActivity } from './value-objects/commercial-last-activity
 import { CommercialConnectedEvent } from './events/commercial-connected.event';
 import { CommercialConnectionStatusChangedEvent } from './events/commercial-connection-status-changed.event';
 import { CommercialHeartbeatReceivedEvent } from './events/commercial-heartbeat-received.event';
-import { CommercialFingerprintRegisteredEvent } from './events/commercial-fingerprint-registered.event';
 
 /**
  * Primitivos para la serialización del agregado Commercial
@@ -20,7 +19,6 @@ export interface CommercialPrimitives {
   updatedAt: Date;
   avatarUrl?: string | null;
   metadata?: Record<string, any>;
-  knownFingerprints?: string[]; // Fingerprints de navegadores conocidos del comercial
 }
 
 /**
@@ -35,7 +33,6 @@ export interface CommercialProperties {
   updatedAt?: Date;
   avatarUrl?: string | null;
   metadata?: Record<string, any>;
-  knownFingerprints?: string[];
 }
 
 /**
@@ -53,7 +50,6 @@ export class Commercial extends AggregateRoot {
     private _updatedAt: Date,
     private _avatarUrl?: string | null,
     private _metadata?: Record<string, any>,
-    private _knownFingerprints: Set<string> = new Set(),
   ) {
     super();
   }
@@ -72,7 +68,6 @@ export class Commercial extends AggregateRoot {
       props.updatedAt ?? now,
       props.avatarUrl ?? null,
       props.metadata,
-      new Set(props.knownFingerprints ?? []),
     );
 
     commercial.apply(
@@ -100,7 +95,6 @@ export class Commercial extends AggregateRoot {
       primitives.updatedAt,
       primitives.avatarUrl ?? null,
       primitives.metadata,
-      new Set(primitives.knownFingerprints ?? []),
     );
   }
 
@@ -118,7 +112,6 @@ export class Commercial extends AggregateRoot {
       new Date(),
       this._avatarUrl,
       this._metadata,
-      this._knownFingerprints,
     );
 
     updated.apply(
@@ -152,7 +145,6 @@ export class Commercial extends AggregateRoot {
       new Date(),
       this._avatarUrl,
       this._metadata,
-      this._knownFingerprints,
     );
 
     updated.apply(
@@ -187,7 +179,6 @@ export class Commercial extends AggregateRoot {
       updatedAt: this._updatedAt,
       avatarUrl: this._avatarUrl ?? null,
       metadata: this._metadata,
-      knownFingerprints: Array.from(this._knownFingerprints),
     };
   }
 
@@ -237,68 +228,6 @@ export class Commercial extends AggregateRoot {
       new Date(), // Update updatedAt
       avatarUrl,
       this._metadata,
-      this._knownFingerprints,
     );
-  }
-
-  /**
-   * Registra un fingerprint como conocido para este comercial
-   */
-  public registerFingerprint(fingerprint: string): Commercial {
-    const newFingerprints = new Set(this._knownFingerprints);
-    newFingerprints.add(fingerprint);
-
-    const updated = new Commercial(
-      this._id,
-      this._name,
-      this._connectionStatus,
-      this._lastActivity,
-      this._createdAt,
-      new Date(), // Update updatedAt
-      this._avatarUrl,
-      this._metadata,
-      newFingerprints,
-    );
-
-    // Emitir evento para que otros contextos reaccionen
-    updated.apply(
-      new CommercialFingerprintRegisteredEvent(this._id.value, fingerprint),
-    );
-
-    return updated;
-  }
-
-  /**
-   * Elimina un fingerprint de los conocidos para este comercial
-   */
-  public removeFingerprint(fingerprint: string): Commercial {
-    const newFingerprints = new Set(this._knownFingerprints);
-    newFingerprints.delete(fingerprint);
-
-    return new Commercial(
-      this._id,
-      this._name,
-      this._connectionStatus,
-      this._lastActivity,
-      this._createdAt,
-      new Date(), // Update updatedAt
-      this._avatarUrl,
-      this._metadata,
-      newFingerprints,
-    );
-  }
-
-  /**
-   * Verifica si un fingerprint pertenece a este comercial
-   */
-  public hasFingerprint(fingerprint: string): boolean {
-    return this._knownFingerprints.has(fingerprint);
-  }
-
-  /**
-   * Obtiene la lista de fingerprints conocidos
-   */
-  public getKnownFingerprints(): string[] {
-    return Array.from(this._knownFingerprints);
   }
 }

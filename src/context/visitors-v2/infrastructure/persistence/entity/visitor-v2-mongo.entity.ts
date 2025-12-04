@@ -37,9 +37,6 @@ export class VisitorV2MongoEntity extends Document {
   @Prop({ type: String, default: null })
   currentUrl: string | null;
 
-  @Prop({ required: true, default: false })
-  isInternal: boolean;
-
   @Prop({ required: true })
   createdAt: Date;
 
@@ -54,8 +51,6 @@ export class VisitorV2MongoEntity extends Document {
         lastActivityAt: { type: Date, required: true },
         endedAt: { type: Date, default: null },
         currentUrl: { type: String, default: null },
-        ipAddress: { type: String, default: null }, // IP desde la que se inició la sesión
-        userAgent: { type: String, default: null }, // User-Agent del navegador
       },
     ],
     default: [],
@@ -66,8 +61,6 @@ export class VisitorV2MongoEntity extends Document {
     lastActivityAt: Date;
     endedAt?: Date;
     currentUrl?: string;
-    ipAddress?: string; // IP desde la que se inició la sesión
-    userAgent?: string; // User-Agent del navegador
   }>;
 }
 
@@ -89,9 +82,6 @@ VisitorV2MongoEntitySchema.index({ 'sessions.endedAt': 1 });
 VisitorV2MongoEntitySchema.index({ hasAcceptedPrivacyPolicy: 1 });
 VisitorV2MongoEntitySchema.index({ privacyPolicyAcceptedAt: 1 });
 
-// Índice para visitantes internos
-VisitorV2MongoEntitySchema.index({ isInternal: 1 });
-
 // Índices compuestos para filtros complejos
 VisitorV2MongoEntitySchema.index({
   tenantId: 1,
@@ -101,5 +91,3 @@ VisitorV2MongoEntitySchema.index({
 VisitorV2MongoEntitySchema.index({ tenantId: 1, createdAt: -1 });
 VisitorV2MongoEntitySchema.index({ tenantId: 1, updatedAt: -1 });
 VisitorV2MongoEntitySchema.index({ tenantId: 1, siteId: 1, lifecycle: 1 });
-// Índice compuesto para filtrar visitantes internos en queries
-VisitorV2MongoEntitySchema.index({ tenantId: 1, isInternal: 1, updatedAt: -1 });

@@ -34,11 +34,6 @@ import { DenyConsentCommand } from '../../../consent/application/commands/deny-c
 import { BadRequestException } from '@nestjs/common';
 import { getCurrentConsentVersion } from '../../../consent/domain/config/consent-version.config';
 import { GoOnlineVisitorCommand } from './go-online-visitor.command';
-import {
-  CommercialRepository,
-  COMMERCIAL_REPOSITORY,
-} from '../../../commercial/domain/commercial.repository';
-import { BffSessionAuthService } from '../../../shared/infrastructure/services/bff-session-auth.service';
 
 @CommandHandler(IdentifyVisitorCommand)
 export class IdentifyVisitorCommandHandler
@@ -53,106 +48,9 @@ export class IdentifyVisitorCommandHandler
     private readonly companyRepository: CompanyRepository,
     @Inject(VALIDATE_DOMAIN_API_KEY)
     private readonly apiKeyValidator: ValidateDomainApiKey,
-    @Inject(COMMERCIAL_REPOSITORY)
-    private readonly commercialRepository: CommercialRepository,
-    private readonly bffSessionAuthService: BffSessionAuthService,
     private readonly publisher: EventPublisher,
     private readonly commandBus: CommandBus,
   ) {}
-
-  /**
-   * Detecta si el visitante es un comercial mediante cookie de sesión BFF
-   * Extrae y valida tokens JWT de cookies como 'console_session'
-   * Si el token es válido y contiene rol 'commercial', retorna true
-   */
-  private async isCommercialByBffSession(
-    cookieHeader?: string,
-  ): Promise<boolean> {
-    if (!cookieHeader) {
-      return false;
-    }
-
-    try {
-      this.logger.debug(`Verificando si visitante es comercial vía sesión BFF`);
-
-      const tokens =
-        this.bffSessionAuthService.extractBffSessionTokens(cookieHeader);
-
-      if (tokens.length === 0) {
-        this.logger.debug(`No se encontraron tokens BFF en cookies`);
-        return false;
-      }
-
-      for (const token of tokens) {
-        const userInfo =
-          await this.bffSessionAuthService.validateBffSession(token);
-
-        if (userInfo && userInfo.roles.includes('commercial')) {
-          this.logger.log(
-            `✅ Sesión BFF válida detectada: comercial ${userInfo.sub} (${userInfo.email ?? 'sin email'})`,
-          );
-          return true;
-        }
-      }
-
-      this.logger.debug(
-        `Token(s) BFF encontrados pero ninguno con rol 'commercial'`,
-      );
-      return false;
-    } catch (error) {
-      this.logger.warn(
-        `Error al verificar sesión BFF de comercial: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Detecta si el visitante es en realidad un comercial autenticado
-   * Verifica si el fingerprint pertenece a un comercial pre-registrado
-   * Esto funciona incluso si el SDK y la consola están en dominios diferentes
-   */
-  private async isCommercialByFingerprint(
-    fingerprint: string,
-    tenantId: string,
-  ): Promise<boolean> {
-    try {
-      this.logger.debug(
-        `Verificando si fingerprint ${fingerprint} pertenece a comercial en tenant ${tenantId}`,
-      );
-
-      const result = await this.commercialRepository.findByFingerprintAndTenant(
-        fingerprint,
-        tenantId,
-      );
-
-      if (result.isErr()) {
-        this.logger.debug(
-          `Error al buscar comercial por fingerprint: ${result.error.message}`,
-        );
-        return false;
-      }
-
-      const commercial = result.unwrap();
-
-      if (!commercial) {
-        this.logger.debug(
-          `Fingerprint ${fingerprint} no pertenece a ningún comercial`,
-        );
-        return false;
-      }
-
-      this.logger.log(
-        `✅ Fingerprint ${fingerprint} pertenece a comercial: ${commercial.id.value}`,
-      );
-      return true;
-    } catch (error) {
-      this.logger.warn(
-        `Error al verificar fingerprint de comercial: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return false;
-    }
-  }
 
   async execute(
     command: IdentifyVisitorCommand,
@@ -240,17 +138,6 @@ export class IdentifyVisitorCommandHandler
           `🚫 Procesando rechazo de consentimiento para fingerprint=${fingerprint.value}`,
         );
 
-        // Detectar si es un comercial autenticado vía BFF session o fingerprint
-        let isInternal = await this.isCommercialByBffSession(
-          command.cookieHeader,
-        );
-        if (!isInternal) {
-          isInternal = await this.isCommercialByFingerprint(
-            command.fingerprint,
-            tenantId.value,
-          );
-        }
-
         // Crear visitante anónimo SIN sesión
         const visitor = VisitorV2.create({
           id: VisitorId.random(),
@@ -258,9 +145,6 @@ export class IdentifyVisitorCommandHandler
           siteId,
           fingerprint,
           lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
-          isInternal,
-          ipAddress: command.ipAddress,
-          userAgent: command.userAgent,
         });
 
         // Guardar visitante
@@ -341,27 +225,8 @@ export class IdentifyVisitorCommandHandler
           `✅ Visitante existente encontrado: ${visitor.getId().value}`,
         );
 
-        // Sincronizar isInternal si ahora se detecta como comercial (vía BFF session o fingerprint)
-        if (!visitor.getIsInternal()) {
-          let isInternal = await this.isCommercialByBffSession(
-            command.cookieHeader,
-          );
-          if (!isInternal) {
-            isInternal = await this.isCommercialByFingerprint(
-              command.fingerprint,
-              tenantId.value,
-            );
-          }
-          if (isInternal) {
-            visitor = visitor.markAsInternal();
-            this.logger.log(
-              `🔄 Visitante existente marcado como interno (comercial detectado)`,
-            );
-          }
-        }
-
-        // Iniciar nueva sesión con IP y userAgent
-        visitor.startNewSession(command.ipAddress, command.userAgent);
+        // Iniciar nueva sesión
+        visitor.startNewSession();
 
         // RGPD: Actualizar consentimiento si no existe o si la versión cambió
         if (!visitor.hasValidConsent()) {
@@ -378,31 +243,12 @@ export class IdentifyVisitorCommandHandler
         );
         this.logger.log('🆕 Creando nuevo visitante anónimo');
 
-        // Detectar si es un comercial autenticado (vía BFF session o fingerprint)
-        let isInternal = await this.isCommercialByBffSession(
-          command.cookieHeader,
-        );
-        if (!isInternal) {
-          isInternal = await this.isCommercialByFingerprint(
-            command.fingerprint,
-            tenantId.value,
-          );
-        }
-        if (isInternal) {
-          this.logger.log(
-            '🔒 Visitante marcado como interno (comercial detectado)',
-          );
-        }
-
         visitor = VisitorV2.create({
           id: VisitorId.random(),
           tenantId,
           siteId,
           fingerprint,
           lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
-          isInternal,
-          ipAddress: command.ipAddress,
-          userAgent: command.userAgent,
         });
 
         // RGPD: Registrar consentimiento para visitante nuevo
@@ -488,7 +334,6 @@ export class IdentifyVisitorCommandHandler
 
       return new IdentifyVisitorResponseDto({
         visitorId: visitor.getId().value,
-        tenantId: tenantId.value,
         sessionId: currentSession.getId().value,
         lifecycle: visitor.getLifecycle().getValue(),
         isNewVisitor,

@@ -134,24 +134,3 @@ export class ChangeCommercialStatusDto {
   @IsNotEmpty()
   status: CommercialStatusEnum;
 }
-
-/**
- * DTO para registrar un fingerprint de navegador a un comercial
- */
-export class RegisterFingerprintDto {
-  @ApiProperty({
-    description: 'ID del comercial',
-    example: 'e7f8a9b0-1234-5678-9abc-def012345678',
-  })
-  @IsString()
-  @IsNotEmpty()
-  commercialId: string;
-
-  @ApiProperty({
-    description: 'Fingerprint único del navegador',
-    example: 'fp_a1b2c3d4e5f6g7h8i9j0',
-  })
-  @IsString()
-  @IsNotEmpty()
-  fingerprint: string;
-}

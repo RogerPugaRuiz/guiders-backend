@@ -57,8 +57,6 @@ export class NotifyMessageSentOnMessageSentEventHandler
             isFirstResponse: messageData.isFirstResponse,
             sentAt: messageData.sentAt.toISOString(),
             attachment: messageData.attachment,
-            isAI: messageData.isAI,
-            aiMetadata: messageData.aiMetadata,
           },
         );
 
@@ -84,8 +82,6 @@ export class NotifyMessageSentOnMessageSentEventHandler
         isFirstResponse: messageData.isFirstResponse,
         sentAt: messageData.sentAt.toISOString(),
         attachment: messageData.attachment,
-        isAI: messageData.isAI,
-        aiMetadata: messageData.aiMetadata,
       });
 
       // Si es la primera respuesta del comercial, notificar estado de chat actualizado
