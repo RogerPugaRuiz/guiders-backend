@@ -54,9 +54,10 @@ import { GenerateSuggestionCommandHandler } from './application/commands/generat
 import { SendAIResponseOnMessageSentEventHandler } from './application/events/send-ai-response-on-message-sent.event-handler';
 
 // Guards y Auth (importados de shared)
-import { AuthGuard } from '../shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from '../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../shared/infrastructure/guards/role.guard';
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
+import { BffSessionAuthService } from '../shared/infrastructure/services/bff-session-auth.service';
 
 // Command Handlers
 const CommandHandlers = [
@@ -82,9 +83,10 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
   controllers: [LlmConfigController],
   providers: [
     // Guards y Auth
-    AuthGuard,
+    DualAuthGuard,
     RolesGuard,
     TokenVerifyService,
+    BffSessionAuthService,
 
     // LLM Provider (Groq por defecto)
     GroqLlmProviderServiceProvider,
