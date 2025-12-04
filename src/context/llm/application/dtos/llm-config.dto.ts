@@ -200,3 +200,102 @@ export class CreateLlmConfigDto extends UpdateLlmConfigDto {
   @IsString()
   companyId: string;
 }
+
+/**
+ * DTO para un modelo LLM disponible
+ */
+export class LlmModelDto {
+  @ApiProperty({
+    description: 'ID del modelo',
+    example: 'llama-3.3-70b-versatile',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Nombre descriptivo del modelo',
+    example: 'Llama 3.3 70B Versatile',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'Proveedor del modelo',
+    example: 'groq',
+  })
+  provider: string;
+
+  @ApiProperty({
+    description: 'Descripción del modelo',
+    example: 'Modelo versátil de Meta con 70B parámetros, ideal para conversaciones',
+  })
+  description: string;
+
+  @ApiProperty({
+    description: 'Máximo de tokens de contexto',
+    example: 128000,
+  })
+  maxContextTokens: number;
+
+  @ApiProperty({
+    description: 'Indica si el modelo está activo y disponible',
+    example: true,
+  })
+  isActive: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Indica si es el modelo recomendado por defecto',
+    example: true,
+  })
+  isDefault?: boolean;
+}
+
+/**
+ * DTO para un proveedor LLM
+ */
+export class LlmProviderDto {
+  @ApiProperty({
+    description: 'ID del proveedor',
+    example: 'groq',
+  })
+  id: string;
+
+  @ApiProperty({
+    description: 'Nombre del proveedor',
+    example: 'Groq',
+  })
+  name: string;
+
+  @ApiProperty({
+    description: 'Indica si el proveedor está activo',
+    example: true,
+  })
+  isActive: boolean;
+
+  @ApiProperty({
+    description: 'Modelos disponibles del proveedor',
+    type: [LlmModelDto],
+  })
+  models: LlmModelDto[];
+}
+
+/**
+ * DTO de respuesta con lista de modelos disponibles
+ */
+export class LlmModelsListResponseDto {
+  @ApiProperty({
+    description: 'Lista de proveedores con sus modelos',
+    type: [LlmProviderDto],
+  })
+  providers: LlmProviderDto[];
+
+  @ApiProperty({
+    description: 'Modelo por defecto recomendado',
+    example: 'llama-3.3-70b-versatile',
+  })
+  defaultModel: string;
+
+  @ApiProperty({
+    description: 'Proveedor por defecto recomendado',
+    example: 'groq',
+  })
+  defaultProvider: string;
+}

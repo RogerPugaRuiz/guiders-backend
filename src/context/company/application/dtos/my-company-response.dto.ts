@@ -75,10 +75,18 @@ export class MyCompanyResponseDto {
     let resolvedSiteName: string | undefined;
 
     if (host) {
-      const matchingSite = primitives.sites.find(
-        (site) =>
-          site.canonicalDomain === host || site.domainAliases.includes(host),
-      );
+      // Normalizar el host quitando el puerto si existe (ej: localhost:3000 -> localhost)
+      const normalizedHost = host.split(':')[0];
+
+      const matchingSite = primitives.sites.find((site) => {
+        const normalizedCanonical = site.canonicalDomain.split(':')[0];
+        const normalizedAliases = site.domainAliases.map((a) => a.split(':')[0]);
+
+        return (
+          normalizedCanonical === normalizedHost ||
+          normalizedAliases.includes(normalizedHost)
+        );
+      });
 
       if (matchingSite) {
         resolvedSiteId = matchingSite.id;

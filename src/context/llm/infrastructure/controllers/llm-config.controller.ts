@@ -20,10 +20,11 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiCookieAuth,
   ApiParam,
 } from '@nestjs/swagger';
 import { Inject } from '@nestjs/common';
-import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 import {
@@ -35,12 +36,15 @@ import {
   LlmConfigResponseDto,
   UpdateLlmConfigDto,
   CreateLlmConfigDto,
+  LlmModelsListResponseDto,
+  LlmProviderDto,
 } from '../../application/dtos/llm-config.dto';
 
 @ApiTags('LLM Configuration')
-@Controller('api/v2/llm/config')
-@UseGuards(AuthGuard, RolesGuard)
+@Controller('v2/llm/config')
+@UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiCookieAuth()
 export class LlmConfigController {
   private readonly logger = new Logger(LlmConfigController.name);
 
@@ -48,6 +52,94 @@ export class LlmConfigController {
     @Inject(LLM_CONFIG_REPOSITORY)
     private readonly configRepository: ILlmConfigRepository,
   ) {}
+
+  /**
+   * Lista de proveedores disponibles con sus modelos
+   * Solo se incluyen proveedores activos (implementados)
+   * Actualizado: Diciembre 2025
+   */
+  private readonly availableProviders: LlmProviderDto[] = [
+    {
+      id: 'groq',
+      name: 'Groq',
+      isActive: true,
+      models: [
+        {
+          id: 'llama-3.3-70b-versatile',
+          name: 'Llama 3.3 70B Versatile',
+          provider: 'groq',
+          description:
+            'Modelo versátil de Meta con 70B parámetros. Excelente para conversaciones y tareas generales.',
+          maxContextTokens: 128000,
+          isActive: true,
+          isDefault: true,
+        },
+        {
+          id: 'llama-3.1-8b-instant',
+          name: 'Llama 3.1 8B Instant',
+          provider: 'groq',
+          description:
+            'Modelo ligero y rápido con 8B parámetros. Ideal para respuestas instantáneas con baja latencia.',
+          maxContextTokens: 128000,
+          isActive: true,
+        },
+        {
+          id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+          name: 'Llama 4 Scout 17B',
+          provider: 'groq',
+          description:
+            'Modelo Llama 4 de Meta optimizado para instrucciones. 17B parámetros con arquitectura eficiente.',
+          maxContextTokens: 128000,
+          isActive: true,
+        },
+        {
+          id: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+          name: 'Llama 4 Maverick 17B',
+          provider: 'groq',
+          description:
+            'Modelo Llama 4 de Meta con capacidades avanzadas. 17B parámetros, mayor contexto.',
+          maxContextTokens: 128000,
+          isActive: true,
+        },
+        {
+          id: 'qwen/qwen3-32b',
+          name: 'Qwen 3 32B',
+          provider: 'groq',
+          description:
+            'Modelo de Alibaba Cloud con 32B parámetros. Excelente para razonamiento y tareas complejas.',
+          maxContextTokens: 32768,
+          isActive: true,
+        },
+        {
+          id: 'moonshotai/kimi-k2-instruct',
+          name: 'Kimi K2 Instruct',
+          provider: 'groq',
+          description:
+            'Modelo de Moonshot AI optimizado para seguir instrucciones. Buena calidad de respuestas.',
+          maxContextTokens: 128000,
+          isActive: true,
+        },
+      ],
+    },
+  ];
+
+  @Get('providers')
+  @Roles(['admin', 'superadmin'])
+  @ApiOperation({ summary: 'Obtener lista de proveedores LLM disponibles con sus modelos' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de proveedores con sus modelos',
+    type: LlmModelsListResponseDto,
+  })
+  async getAvailableProviders(): Promise<LlmModelsListResponseDto> {
+    this.logger.debug('Obteniendo lista de proveedores disponibles');
+
+    return {
+      providers: this.availableProviders,
+      defaultModel: 'llama-3.3-70b-versatile',
+      defaultProvider: 'groq',
+    };
+  }
 
   @Get(':siteId')
   @Roles(['admin', 'superadmin'])
