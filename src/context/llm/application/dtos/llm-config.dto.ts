@@ -62,8 +62,9 @@ export class LlmConfigResponseDto {
   @ApiPropertyOptional({
     description: 'Prompt del sistema personalizado',
     example: 'Eres un asistente de ventas especializado en tecnología.',
+    nullable: true,
   })
-  customSystemPrompt?: string;
+  customSystemPrompt?: string | null;
 
   @ApiProperty({
     description: 'Máximo de tokens en la respuesta',

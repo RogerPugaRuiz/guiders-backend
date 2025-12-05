@@ -234,13 +234,14 @@ export class LlmConfigController {
     }
 
     // Aplicar actualizaciones
+    // Nota: customSystemPrompt puede ser null (para borrar) o undefined (no cambiar)
     const updatedConfig = config.update({
       aiAutoResponseEnabled: dto.aiAutoResponseEnabled,
       aiSuggestionsEnabled: dto.aiSuggestionsEnabled,
       aiRespondWithCommercial: dto.aiRespondWithCommercial,
       preferredProvider: dto.preferredProvider,
       preferredModel: dto.preferredModel,
-      customSystemPrompt: dto.customSystemPrompt ?? undefined,
+      customSystemPrompt: dto.customSystemPrompt,
       maxResponseTokens: dto.maxResponseTokens,
       temperature: dto.temperature,
       responseDelayMs: dto.responseDelayMs,

@@ -13,7 +13,7 @@ export interface LlmSiteConfigPrimitives {
   aiRespondWithCommercial: boolean;
   preferredProvider: string;
   preferredModel: string;
-  customSystemPrompt?: string;
+  customSystemPrompt?: string | null;
   maxResponseTokens: number;
   temperature: number;
   responseDelayMs: number;
@@ -103,7 +103,7 @@ export class LlmSiteConfig {
       aiRespondWithCommercial: this._aiRespondWithCommercial,
       preferredProvider: this._preferredProvider,
       preferredModel: this._preferredModel,
-      customSystemPrompt: this._customSystemPrompt ?? undefined,
+      customSystemPrompt: this._customSystemPrompt,
       maxResponseTokens: this._maxResponseTokens,
       temperature: this._temperature,
       responseDelayMs: this._responseDelayMs,
