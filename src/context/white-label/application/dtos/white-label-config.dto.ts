@@ -12,7 +12,6 @@ import {
   IsIn,
   IsUrl,
   MaxLength,
-  MinLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ALLOWED_FONT_FAMILIES } from '../../domain/value-objects/white-label-config';
@@ -122,13 +121,12 @@ export class BrandingDto {
   faviconUrl?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Nombre de la marca',
+    description: 'Nombre de la marca (puede ser vacío)',
     example: 'Mi Empresa',
     maxLength: 100,
   })
   @IsOptional()
   @IsString()
-  @MinLength(1)
   @MaxLength(100)
   brandName?: string;
 }
