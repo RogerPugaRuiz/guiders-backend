@@ -9,6 +9,7 @@
 
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { HttpModule } from '@nestjs/axios';
 
 // Infrastructure - Persistence
 import {
@@ -34,6 +35,7 @@ import { WHITE_LABEL_CONFIG_REPOSITORY } from './domain/white-label-config.repos
 
 @Module({
   imports: [
+    HttpModule,
     MongooseModule.forFeature([
       {
         name: WhiteLabelConfigSchema.name,
