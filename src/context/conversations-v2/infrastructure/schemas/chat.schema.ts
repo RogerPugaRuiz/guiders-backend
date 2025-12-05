@@ -169,6 +169,12 @@ export class ChatSchema {
   lastMessageDate?: Date;
 
   @Prop({
+    type: String,
+    required: false,
+  })
+  lastMessageContent?: string;
+
+  @Prop({
     type: Number,
     required: true,
     default: 0,

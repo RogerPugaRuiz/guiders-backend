@@ -100,6 +100,8 @@ export class SendMessageCommandHandler
       isRead: messagePrimitives.isRead,
       readAt: messagePrimitives.readAt?.toISOString(),
       readBy: messagePrimitives.readBy,
+      isAI: messagePrimitives.isAI,
+      aiMetadata: messagePrimitives.aiMetadata,
       createdAt: messagePrimitives.createdAt.toISOString(),
       updatedAt: messagePrimitives.updatedAt.toISOString(),
     };

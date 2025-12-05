@@ -59,6 +59,14 @@ import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-wi
 import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
 import { CreateChatWithMessageCommand } from '../../application/commands/create-chat-with-message.command';
 import { AssignChatToCommercialCommand } from '../../application/commands/assign-chat-to-commercial.command';
+import { RequestAgentCommand } from '../../application/commands/request-agent.command';
+import { RequestAgentDto } from '../../application/dtos/request-agent.dto';
+import { OpenChatViewCommand } from '../../application/commands/open-chat-view.command';
+import { CloseChatViewCommand } from '../../application/commands/close-chat-view.command';
+import {
+  ChatViewRequestDto,
+  ChatViewResponseDto,
+} from '../../application/dtos/chat-view.dto';
 import { FindUserByIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-id.query';
 
 // Interfaces para respuestas de comandos
@@ -1826,6 +1834,341 @@ export class ChatV2Controller {
         throw error;
       }
       this.logger.error(`Error al asignar chat ${chatId}:`, error);
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Solicita atención de un agente para el chat
+   * Cambia la prioridad del chat a URGENT y notifica a los comerciales
+   */
+  @Post(':chatId/request-agent')
+  @UseGuards(OptionalAuthGuard)
+  @ApiOperation({
+    summary: 'Solicitar atención de un agente',
+    description:
+      'Permite al visitante solicitar atención urgente de un agente humano. ' +
+      'Cambia la prioridad del chat a URGENT y notifica a los comerciales disponibles.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'ID del chat',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiHeader({
+    name: 'X-Guiders-Sid',
+    description: 'Session ID del visitante',
+    required: false,
+  })
+  @ApiBody({
+    type: RequestAgentDto,
+    description: 'Datos de la solicitud de agente',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Solicitud procesada exitosamente',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos inválidos o el visitante no tiene permisos',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Chat no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async requestAgent(
+    @Param('chatId') chatId: string,
+    @Body() requestAgentDto: RequestAgentDto,
+  ): Promise<void> {
+    try {
+      this.logger.log(`Procesando solicitud de agente para chat ${chatId}`);
+
+      const command = new RequestAgentCommand(
+        chatId,
+        requestAgentDto.visitorId,
+        requestAgentDto.timestamp,
+        requestAgentDto.source,
+      );
+
+      const result = await this.commandBus.execute(command);
+
+      if (result.isErr()) {
+        const error = result.error;
+        this.logger.error(
+          `Error al procesar solicitud de agente: ${error.message}`,
+        );
+
+        if (error.message.includes('no encontrado')) {
+          throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+        }
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+
+      this.logger.log(
+        `Solicitud de agente procesada exitosamente para chat ${chatId}`,
+      );
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(
+        `Error al solicitar agente para chat ${chatId}:`,
+        error,
+      );
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Indica que el usuario ha abierto la vista del chat
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante/BFF
+   */
+  @Put(':chatId/view-open')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @RequiredRoles('visitor', 'commercial', 'admin', 'supervisor')
+  @ApiBearerAuth()
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary: 'Notificar apertura de vista del chat',
+    description:
+      'Indica al backend que el usuario (visitante o comercial) ha abierto la vista del chat. ' +
+      'Este endpoint es opcional y se usa para tracking de actividad y notificaciones de presencia. ' +
+      'Soporta autenticación dual: JWT Bearer token para comerciales o sesión de cookie para visitantes.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'ID del chat',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiBody({
+    type: ChatViewRequestDto,
+    description: 'Datos opcionales de la apertura',
+    required: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Vista del chat abierta exitosamente',
+    type: ChatViewResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o sesión de cookie',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos para acceder a este chat',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Chat no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async openChatView(
+    @Param('chatId') chatId: string,
+    @Body() chatViewDto: ChatViewRequestDto = {},
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatViewResponseDto> {
+    try {
+      const userId = req.user.id;
+      const userRoles = req.user.roles || [];
+      const isVisitor = userRoles.includes('visitor');
+      const userRole: 'visitor' | 'commercial' = isVisitor
+        ? 'visitor'
+        : 'commercial';
+
+      this.logger.log(
+        `Procesando apertura de vista del chat ${chatId} por ${userRole} ${userId}`,
+      );
+
+      const command = new OpenChatViewCommand(
+        chatId,
+        userId,
+        userRole,
+        chatViewDto.timestamp,
+      );
+
+      const result = await this.commandBus.execute(command);
+
+      if (result.isErr()) {
+        const error = result.error;
+        this.logger.error(`Error al abrir vista del chat: ${error.message}`);
+
+        if (error.message.includes('no encontrado')) {
+          throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+        }
+        if (error.message.includes('acceso')) {
+          throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+        }
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+
+      // Obtener datos del chat para la respuesta
+      const chatQuery = new GetChatByIdQuery(chatId);
+      const chatResult: Result<Chat, DomainError> =
+        await this.queryBus.execute(chatQuery);
+
+      if (chatResult.isErr()) {
+        throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
+      }
+
+      const chat = chatResult.value;
+      const chatPrimitives = chat.toPrimitives();
+
+      return {
+        success: true,
+        chatId: chatPrimitives.id,
+        visitorId: chatPrimitives.visitorId,
+        lastActivity: new Date().toISOString(),
+        status: chatPrimitives.status,
+        assignedCommercialId: chatPrimitives.assignedCommercialId,
+        priority: chatPrimitives.priority,
+        totalMessages: chatPrimitives.totalMessages,
+        createdAt: chatPrimitives.createdAt.toISOString(),
+        updatedAt: chatPrimitives.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error al abrir vista del chat ${chatId}:`, error);
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Indica que el usuario ha cerrado la vista del chat (no cierra el chat)
+   * Soporta autenticación por JWT (Bearer token) o sesión de visitante/BFF
+   */
+  @Put(':chatId/view-close')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @RequiredRoles('visitor', 'commercial', 'admin', 'supervisor')
+  @ApiBearerAuth()
+  @ApiCookieAuth()
+  @ApiOperation({
+    summary: 'Notificar cierre de vista del chat',
+    description:
+      'Indica al backend que el usuario (visitante o comercial) ha cerrado/minimizado la vista del chat. ' +
+      'NOTA: Este endpoint NO cierra el chat, solo notifica que el usuario dejó de verlo. ' +
+      'Para cerrar el chat (cambiar estado a CLOSED), usar PUT /:chatId/close (solo comerciales). ' +
+      'Soporta autenticación dual: JWT Bearer token para comerciales o sesión de cookie para visitantes.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'ID del chat',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiBody({
+    type: ChatViewRequestDto,
+    description: 'Datos opcionales del cierre de vista',
+    required: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Vista del chat cerrada exitosamente',
+    type: ChatViewResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Usuario no autenticado - Se requiere Bearer token o sesión de cookie',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Usuario sin permisos para acceder a este chat',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Chat no encontrado',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
+  })
+  async closeChatView(
+    @Param('chatId') chatId: string,
+    @Body() chatViewDto: ChatViewRequestDto = {},
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ChatViewResponseDto> {
+    try {
+      const userId = req.user.id;
+      const userRoles = req.user.roles || [];
+      const isVisitor = userRoles.includes('visitor');
+      const userRole: 'visitor' | 'commercial' = isVisitor
+        ? 'visitor'
+        : 'commercial';
+
+      this.logger.log(
+        `Procesando cierre de vista del chat ${chatId} por ${userRole} ${userId}`,
+      );
+
+      const command = new CloseChatViewCommand(
+        chatId,
+        userId,
+        userRole,
+        chatViewDto.timestamp,
+      );
+
+      const result = await this.commandBus.execute(command);
+
+      if (result.isErr()) {
+        const error = result.error;
+        this.logger.error(`Error al cerrar vista del chat: ${error.message}`);
+
+        if (error.message.includes('no encontrado')) {
+          throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+        }
+        if (error.message.includes('acceso')) {
+          throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+        }
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+      }
+
+      // Obtener datos del chat para la respuesta
+      const chatQuery = new GetChatByIdQuery(chatId);
+      const chatResult: Result<Chat, DomainError> =
+        await this.queryBus.execute(chatQuery);
+
+      if (chatResult.isErr()) {
+        throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
+      }
+
+      const chat = chatResult.value;
+      const chatPrimitives = chat.toPrimitives();
+
+      return {
+        success: true,
+        chatId: chatPrimitives.id,
+        visitorId: chatPrimitives.visitorId,
+        lastActivity: new Date().toISOString(),
+        status: chatPrimitives.status,
+        assignedCommercialId: chatPrimitives.assignedCommercialId,
+        priority: chatPrimitives.priority,
+        totalMessages: chatPrimitives.totalMessages,
+        createdAt: chatPrimitives.createdAt.toISOString(),
+        updatedAt: chatPrimitives.updatedAt.toISOString(),
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error al cerrar vista del chat ${chatId}:`, error);
       throw new HttpException(
         'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,

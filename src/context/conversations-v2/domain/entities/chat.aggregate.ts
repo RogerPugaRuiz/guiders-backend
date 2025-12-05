@@ -10,6 +10,7 @@ import { ChatCreatedEvent } from '../events/chat-created.event';
 import { CommercialAssignedEvent } from '../events/commercial-assigned.event';
 import { ChatClosedEvent } from '../events/chat-closed.event';
 import { ChatAutoAssignmentRequestedEvent } from '../events/chat-auto-assignment-requested.event';
+import { AgentRequestedEvent } from '../events/agent-requested.event';
 import { Optional } from 'src/context/shared/domain/optional';
 
 /**
@@ -358,6 +359,83 @@ export class Chat extends AggregateRoot {
   }
 
   /**
+   * Solicita atención de un agente humano, cambiando la prioridad a URGENT
+   * Emite AgentRequestedEvent para notificar a los comerciales
+   *
+   * @param visitorId - ID del visitante que solicita el agente (debe coincidir con el del chat)
+   * @param source - Origen de la solicitud (ej: 'quick_action', 'manual')
+   * @returns El chat actualizado con prioridad URGENT
+   */
+  public requestAgent(visitorId: string, source?: string): Chat {
+    // Validar que el visitante es el dueño del chat
+    if (this._visitorId.getValue() !== visitorId) {
+      throw new Error('El visitante no tiene permisos para este chat');
+    }
+
+    const previousPriority = this._priority.value;
+    const now = new Date();
+
+    // Si ya es URGENT, solo emitir evento sin cambiar nada
+    if (this._priority.isUrgent()) {
+      this.apply(
+        new AgentRequestedEvent({
+          request: {
+            chatId: this._id.getValue(),
+            visitorId: visitorId,
+            previousPriority: previousPriority,
+            newPriority: 'URGENT',
+            source: source || 'quick_action',
+            requestedAt: now,
+          },
+        }),
+      );
+      return this;
+    }
+
+    // Crear nuevo chat con prioridad URGENT
+    const updatedChat = new Chat(
+      this._id,
+      this._status,
+      ChatPriority.URGENT,
+      this._visitorId,
+      this._assignedCommercialId,
+      this._availableCommercialIds,
+      this._lastMessageDate,
+      this._lastMessageContent,
+      this._lastMessageSenderId,
+      this._totalMessages,
+      this._firstResponseTime,
+      this._responseTimeSeconds,
+      this._closedAt,
+      this._closedReason,
+      this._visitorInfo,
+      this._metadata,
+      this._createdAt,
+      now,
+    );
+
+    // Copiar eventos no comprometidos del chat original
+    const originalEvents = this.getUncommittedEvents();
+    originalEvents.forEach((event) => updatedChat.apply(event));
+
+    // Aplicar el nuevo evento de solicitud de agente
+    updatedChat.apply(
+      new AgentRequestedEvent({
+        request: {
+          chatId: this._id.getValue(),
+          visitorId: visitorId,
+          previousPriority: previousPriority,
+          newPriority: 'URGENT',
+          source: source || 'quick_action',
+          requestedAt: now,
+        },
+      }),
+    );
+
+    return updatedChat;
+  }
+
+  /**
    * Serializa la entidad a un objeto plano
    */
   public toPrimitives(): ChatPrimitives {
@@ -453,5 +531,43 @@ export class Chat extends AggregateRoot {
    */
   public canReceiveMessages(): boolean {
     return this._status.canReceiveMessages();
+  }
+
+  /**
+   * Actualiza los datos del último mensaje del chat
+   * @param content - Contenido del mensaje
+   * @param senderId - ID del remitente
+   * @param messageDate - Fecha del mensaje
+   * @param totalMessages - Total de mensajes (conteo real del repositorio)
+   * @returns Nueva instancia del chat con los datos actualizados
+   */
+  public updateLastMessage(
+    content: string,
+    senderId: string,
+    messageDate: Date,
+    totalMessages: number,
+  ): Chat {
+    const now = new Date();
+
+    return new Chat(
+      this._id,
+      this._status,
+      this._priority,
+      this._visitorId,
+      this._assignedCommercialId,
+      this._availableCommercialIds,
+      messageDate,
+      content,
+      senderId,
+      totalMessages,
+      this._firstResponseTime,
+      this._responseTimeSeconds,
+      this._closedAt,
+      this._closedReason,
+      this._visitorInfo,
+      this._metadata,
+      this._createdAt,
+      now,
+    );
   }
 }

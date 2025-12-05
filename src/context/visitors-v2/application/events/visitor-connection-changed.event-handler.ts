@@ -10,6 +10,7 @@ import {
   VisitorConnectionVO,
 } from '../../domain/value-objects/visitor-connection';
 import { VisitorId } from '../../domain/value-objects/visitor-id';
+import { VisitorLastActivity } from '../../domain/value-objects/visitor-last-activity';
 import {
   VISITOR_V2_REPOSITORY,
   VisitorV2Repository,
@@ -41,9 +42,21 @@ export class SyncConnectionOnVisitorConnectionChangedEventHandler
         await this.connectionService.removeConnection(visitorId);
       } else {
         await this.connectionService.setConnectionStatus(visitorId, vo);
+
+        // 2. Inicializar lastUserActivity cuando el visitante va a ONLINE
+        // Esto garantiza que el scheduler tenga un timestamp válido para verificar inactividad
+        if (newStatus === ConnectionStatus.ONLINE) {
+          await this.connectionService.updateLastUserActivity(
+            visitorId,
+            VisitorLastActivity.now(),
+          );
+          this.logger.log(
+            `📝 Inicializado lastUserActivity para visitante ${rawId} al pasar a ONLINE`,
+          );
+        }
       }
 
-      // 2. Persistir en MongoDB (source of truth)
+      // 3. Persistir en MongoDB (source of truth)
       const visitorResult = await this.visitorRepository.findById(visitorId);
       if (visitorResult.isOk()) {
         const visitor = visitorResult.unwrap();

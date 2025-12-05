@@ -8,6 +8,12 @@ export class IdentifyVisitorResponseDto {
   visitorId: string;
 
   @ApiProperty({
+    description: 'ID del tenant (empresa) al que pertenece el visitante',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  tenantId: string;
+
+  @ApiProperty({
     description: 'ID de la sesión activa',
     example: '550e8400-e29b-41d4-a716-446655440003',
   })
@@ -45,6 +51,7 @@ export class IdentifyVisitorResponseDto {
 
   constructor(props: {
     visitorId: string;
+    tenantId: string;
     sessionId: string;
     lifecycle: string;
     isNewVisitor: boolean;
@@ -52,6 +59,7 @@ export class IdentifyVisitorResponseDto {
     allowedActions?: string[];
   }) {
     this.visitorId = props.visitorId;
+    this.tenantId = props.tenantId;
     this.sessionId = props.sessionId;
     this.lifecycle = props.lifecycle;
     this.isNewVisitor = props.isNewVisitor;
