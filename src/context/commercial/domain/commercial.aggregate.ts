@@ -242,6 +242,23 @@ export class Commercial extends AggregateRoot {
   }
 
   /**
+   * Actualiza el nombre del comercial
+   */
+  public updateName(name: string): Commercial {
+    return new Commercial(
+      this._id,
+      new CommercialName(name),
+      this._connectionStatus,
+      this._lastActivity,
+      this._createdAt,
+      new Date(), // Update updatedAt
+      this._avatarUrl,
+      this._metadata,
+      this._knownFingerprints,
+    );
+  }
+
+  /**
    * Registra un fingerprint como conocido para este comercial
    */
   public registerFingerprint(fingerprint: string): Commercial {

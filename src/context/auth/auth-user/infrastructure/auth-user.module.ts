@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { AuthUserService } from './services/auth-user.service';
 import { UserAccountService } from './services/user-account.service';
 import { UserAccountEntity } from './user-account.entity';
@@ -38,6 +38,7 @@ import { FindUserByIdQueryHandler } from '../application/queries/find-user-by-id
 import { UpdateUserAvatarCommandHandler } from '../application/commands/update-user-avatar-command.handler';
 import { UploadModule } from 'src/context/shared/infrastructure/modules/upload.module';
 import { UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler } from '../application/events/update-commercial-avatar-on-user-avatar-updated-event.handler';
+import { UpdateCommercialNameOnUserNameUpdatedEventHandler } from '../application/events/update-commercial-name-on-user-name-updated-event.handler';
 import { CommercialModule } from 'src/context/commercial/commercial.module';
 import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
 
@@ -48,7 +49,7 @@ import { BffSessionAuthService } from 'src/context/shared/infrastructure/service
     CqrsModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     UploadModule,
-    CommercialModule,
+    forwardRef(() => CommercialModule), // forwardRef para evitar dependencia circular
   ],
   controllers: [AuthUserController],
   providers: [
@@ -79,6 +80,7 @@ import { BffSessionAuthService } from 'src/context/shared/infrastructure/service
     VerifyRoleMappingQueryHandler,
     UpdateUserAvatarCommandHandler,
     UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler,
+    UpdateCommercialNameOnUserNameUpdatedEventHandler,
     // Servicios necesarios para DualAuthGuard
     BffSessionAuthService,
   ],

@@ -86,10 +86,10 @@ export class GetChatsWithFiltersQueryHandler
   }
 
   async execute(query: GetChatsWithFiltersQuery): Promise<ChatListResponseDto> {
-    const { userId, userRole, filters, sort, cursor, limit } = query;
+    const { userId, userRoles, filters, sort, cursor, limit } = query;
 
     this.logger.log(
-      `Ejecutando query para usuario ${userId} con rol ${userRole}`,
+      `Ejecutando query para usuario ${userId} con roles ${JSON.stringify(userRoles)}`,
     );
     this.logger.log(`Filtros recibidos: ${JSON.stringify(filters)}`);
     this.logger.log(
@@ -100,10 +100,16 @@ export class GetChatsWithFiltersQueryHandler
       // Construir filtros base
       const criteriaFilters: Filter<Chat>[] = [];
 
-      this.logger.log(`Construyendo filtros base para rol: ${userRole}`);
+      this.logger.log(
+        `Construyendo filtros base para roles: ${JSON.stringify(userRoles)}`,
+      );
 
       // Filtros según el rol del usuario
-      if (userRole === 'commercial') {
+      // Si tiene rol de commercial (y no es admin/superadmin), solo ve sus chats asignados
+      const isAdmin = userRoles.some((role) =>
+        ['admin', 'superadmin', 'supervisor'].includes(role),
+      );
+      if (userRoles.includes('commercial') && !isAdmin) {
         // Los comerciales solo ven chats asignados a ellos o disponibles para ellos
         criteriaFilters.push(
           new Filter<Chat>('assignedCommercialId', Operator.EQUALS, userId),

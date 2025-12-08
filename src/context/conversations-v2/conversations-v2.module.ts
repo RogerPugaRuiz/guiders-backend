@@ -79,6 +79,7 @@ import { NotifyTypingStoppedOnTypingStoppedEventHandler } from './application/ev
 import { NotifyAgentRequestedOnAgentRequestedEventHandler } from './application/events/notify-agent-requested-on-agent-requested.event-handler';
 import { NotifyViewOpenedOnChatViewOpenedEventHandler } from './application/events/notify-view-opened-on-chat-view-opened.event-handler';
 import { NotifyViewClosedOnChatViewClosedEventHandler } from './application/events/notify-view-closed-on-chat-view-closed.event-handler';
+import { NotifyCommercialAssignedOnCommercialAssignedEventHandler } from './application/events/notify-commercial-assigned-on-commercial-assigned.event-handler';
 
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
@@ -191,6 +192,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     NotifyAgentRequestedOnAgentRequestedEventHandler,
     NotifyViewOpenedOnChatViewOpenedEventHandler,
     NotifyViewClosedOnChatViewClosedEventHandler,
+    NotifyCommercialAssignedOnCommercialAssignedEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

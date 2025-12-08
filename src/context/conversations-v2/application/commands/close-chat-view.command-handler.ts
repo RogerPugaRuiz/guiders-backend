@@ -45,8 +45,14 @@ export class CloseChatViewCommandHandler
     command: CloseChatViewCommand,
   ): Promise<Result<void, CloseChatViewError>> {
     try {
+      // Determinar el rol efectivo para logging y evento
+      const isVisitor = command.userRoles.includes('visitor');
+      const effectiveRole: 'visitor' | 'commercial' = isVisitor
+        ? 'visitor'
+        : 'commercial';
+
       this.logger.log(
-        `Procesando cierre de vista del chat ${command.chatId} por ${command.userRole} ${command.userId}`,
+        `Procesando cierre de vista del chat ${command.chatId} por ${effectiveRole} ${command.userId}`,
       );
 
       // 1. Buscar el chat
@@ -61,7 +67,7 @@ export class CloseChatViewCommandHandler
       const chat = chatResult.value;
 
       // 2. Validar acceso según rol
-      if (command.userRole === 'visitor') {
+      if (isVisitor) {
         // Los visitantes solo pueden cerrar vista de sus propios chats
         if (chat.visitorId.getValue() !== command.userId) {
           this.logger.error(
@@ -80,14 +86,14 @@ export class CloseChatViewCommandHandler
           view: {
             chatId: command.chatId,
             userId: command.userId,
-            userRole: command.userRole,
+            userRole: effectiveRole,
             closedAt: now,
           },
         }),
       );
 
       this.logger.log(
-        `Vista del chat ${command.chatId} cerrada exitosamente por ${command.userRole} ${command.userId}`,
+        `Vista del chat ${command.chatId} cerrada exitosamente por ${effectiveRole} ${command.userId}`,
       );
 
       return ok(undefined);

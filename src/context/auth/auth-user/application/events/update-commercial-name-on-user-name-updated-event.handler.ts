@@ -1,6 +1,6 @@
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
-import { UserAvatarUpdatedEvent } from '../../domain/events/user-avatar-updated-event';
+import { UserNameUpdatedEvent } from '../../domain/events/user-name-updated-event';
 import {
   CommercialRepository,
   COMMERCIAL_REPOSITORY,
@@ -8,15 +8,15 @@ import {
 import { CommercialId } from 'src/context/commercial/domain/value-objects/commercial-id';
 
 /**
- * Handler que sincroniza el avatarUrl de UserAccount a Commercial (MongoDB)
- * Escucha UserAvatarUpdatedEvent y actualiza el documento Commercial correspondiente
+ * Handler que sincroniza el nombre de UserAccount a Commercial (MongoDB)
+ * Escucha UserNameUpdatedEvent y actualiza el documento Commercial correspondiente
  */
-@EventsHandler(UserAvatarUpdatedEvent)
-export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
-  implements IEventHandler<UserAvatarUpdatedEvent>
+@EventsHandler(UserNameUpdatedEvent)
+export class UpdateCommercialNameOnUserNameUpdatedEventHandler
+  implements IEventHandler<UserNameUpdatedEvent>
 {
   private readonly logger = new Logger(
-    UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler.name,
+    UpdateCommercialNameOnUserNameUpdatedEventHandler.name,
   );
 
   constructor(
@@ -24,19 +24,19 @@ export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
     private readonly commercialRepository: CommercialRepository,
   ) {}
 
-  async handle(event: UserAvatarUpdatedEvent): Promise<void> {
-    const { userId, keycloakId, avatarUrl } = event;
+  async handle(event: UserNameUpdatedEvent): Promise<void> {
+    const { userId, keycloakId, name } = event;
 
     // El Commercial usa keycloakId como ID, no el userId de UserAccount
     if (!keycloakId) {
       this.logger.debug(
-        `Usuario ${userId} no tiene keycloakId, omitiendo sincronización de avatar`,
+        `Usuario ${userId} no tiene keycloakId, omitiendo sincronización de nombre`,
       );
       return;
     }
 
     this.logger.log(
-      `Sincronizando avatar de usuario ${userId} (keycloakId: ${keycloakId}) a Commercial: ${avatarUrl}`,
+      `Sincronizando nombre de usuario ${userId} (keycloakId: ${keycloakId}) a Commercial: ${name}`,
     );
 
     try {
@@ -60,8 +60,8 @@ export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
         return;
       }
 
-      // Actualizar el avatar del Commercial
-      const updatedCommercial = commercial.updateAvatar(avatarUrl);
+      // Actualizar el nombre del Commercial
+      const updatedCommercial = commercial.updateName(name);
 
       // Guardar los cambios
       const updateResult =
@@ -69,17 +69,17 @@ export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
 
       if (updateResult.isErr()) {
         this.logger.error(
-          `Error al actualizar avatar de Commercial ${keycloakId}: ${updateResult.error.message}`,
+          `Error al actualizar nombre de Commercial ${keycloakId}: ${updateResult.error.message}`,
         );
         return;
       }
 
       this.logger.log(
-        `Avatar sincronizado exitosamente para Commercial ${keycloakId}`,
+        `Nombre sincronizado exitosamente para Commercial ${keycloakId}`,
       );
     } catch (error) {
       this.logger.error(
-        `Error inesperado al sincronizar avatar de Commercial ${keycloakId}: ${error instanceof Error ? error.message : String(error)}`,
+        `Error inesperado al sincronizar nombre de Commercial ${keycloakId}: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
     }

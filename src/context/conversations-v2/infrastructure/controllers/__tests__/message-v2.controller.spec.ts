@@ -105,7 +105,7 @@ describe('MessageV2Controller', () => {
         expect.objectContaining({
           chatId: 'chat-123',
           userId: 'user-123',
-          userRole: 'commercial',
+          userRoles: ['commercial'],
           limit: 10,
         }),
       );

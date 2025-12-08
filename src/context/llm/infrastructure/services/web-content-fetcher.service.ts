@@ -367,11 +367,17 @@ export class WebContentFetcherService {
     text = text.replace(/<th[^>]*>/gi, ' | ');
 
     // Extraer atributos alt de imágenes
-    text = text.replace(/<img[^>]*alt=["']([^"']*)["'][^>]*>/gi, '[Imagen: $1]');
+    text = text.replace(
+      /<img[^>]*alt=["']([^"']*)["'][^>]*>/gi,
+      '[Imagen: $1]',
+    );
     text = text.replace(/<img[^>]*>/gi, '');
 
     // Extraer texto de enlaces
-    text = text.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([^<]*)<\/a>/gi, '$2 ($1)');
+    text = text.replace(
+      /<a[^>]*href=["']([^"']*)["'][^>]*>([^<]*)<\/a>/gi,
+      '$2 ($1)',
+    );
 
     // Eliminar todos los demás tags HTML
     text = text.replace(/<[^>]+>/g, '');

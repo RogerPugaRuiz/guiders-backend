@@ -7,7 +7,7 @@ import { ChatFiltersDto, ChatSortDto } from '../dtos/chat-query.dto';
 export class GetChatsWithFiltersQuery implements IQuery {
   constructor(
     readonly userId: string,
-    readonly userRole: string,
+    readonly userRoles: string[],
     readonly filters?: ChatFiltersDto,
     readonly sort?: ChatSortDto,
     readonly cursor?: string,
@@ -16,7 +16,7 @@ export class GetChatsWithFiltersQuery implements IQuery {
 
   public static create(params: {
     userId: string;
-    userRole: string;
+    userRoles: string[];
     filters?: ChatFiltersDto;
     sort?: ChatSortDto;
     cursor?: string;
@@ -24,7 +24,7 @@ export class GetChatsWithFiltersQuery implements IQuery {
   }): GetChatsWithFiltersQuery {
     return new GetChatsWithFiltersQuery(
       params.userId,
-      params.userRole,
+      params.userRoles,
       params.filters,
       params.sort,
       params.cursor,

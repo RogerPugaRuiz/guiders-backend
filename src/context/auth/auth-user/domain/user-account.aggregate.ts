@@ -13,6 +13,7 @@ import { UserAccountCompanyId } from './value-objects/user-account-company-id';
 import { UserAccountIsActive } from './value-objects/user-account-is-active';
 import { UserAccountCreatedEvent } from './events/user-account-created-event';
 import { UserAvatarUpdatedEvent } from './events/user-avatar-updated-event';
+import { UserNameUpdatedEvent } from './events/user-name-updated-event';
 import { UserAccountName } from './value-objects/user-account-name';
 import { UserAccountKeycloakId } from './value-objects/user-account-keycloak-id';
 import { UserAccountAvatarUrl } from './value-objects/user-account-avatar-url';
@@ -317,6 +318,7 @@ export class UserAccount extends AggregateRoot {
     this.apply(
       new UserAvatarUpdatedEvent(
         this._id.value,
+        this._keycloakId?.value ?? null,
         newAvatarUrl,
         previousAvatarUrl,
       ),
@@ -328,5 +330,36 @@ export class UserAccount extends AggregateRoot {
   // Método para verificar si el usuario está vinculado con Keycloak
   public isLinkedWithKeycloak(): boolean {
     return this._keycloakId !== null;
+  }
+
+  // Método para actualizar el nombre del usuario
+  public updateName(newName: string): UserAccount {
+    const previousName = this._name.getValue();
+    const updatedUser = new UserAccount(
+      this._id,
+      this._email,
+      new UserAccountName(newName),
+      this._password,
+      this._createdAt,
+      this._updatedAt,
+      this._lastLoginAt,
+      this._roles,
+      this._companyId,
+      this._isActive,
+      this._keycloakId,
+      this._avatarUrl,
+    );
+
+    // Aplica el evento de dominio
+    this.apply(
+      new UserNameUpdatedEvent(
+        this._id.value,
+        this._keycloakId?.value ?? null,
+        newName,
+        previousName,
+      ),
+    );
+
+    return updatedUser;
   }
 }

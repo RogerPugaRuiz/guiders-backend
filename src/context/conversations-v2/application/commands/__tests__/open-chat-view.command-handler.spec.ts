@@ -76,11 +76,9 @@ describe('OpenChatViewCommandHandler', () => {
       const mockChat = createMockChat(mockVisitorId);
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
 
-      const command = new OpenChatViewCommand(
-        mockChatId,
-        mockVisitorId,
+      const command = new OpenChatViewCommand(mockChatId, mockVisitorId, [
         'visitor',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -99,11 +97,9 @@ describe('OpenChatViewCommandHandler', () => {
       const mockChat = createMockChat(mockVisitorId);
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
 
-      const command = new OpenChatViewCommand(
-        mockChatId,
-        mockCommercialId,
+      const command = new OpenChatViewCommand(mockChatId, mockCommercialId, [
         'commercial',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -129,11 +125,9 @@ describe('OpenChatViewCommandHandler', () => {
         err(new TestDomainError('Chat not found')),
       );
 
-      const command = new OpenChatViewCommand(
-        mockChatId,
-        mockVisitorId,
+      const command = new OpenChatViewCommand(mockChatId, mockVisitorId, [
         'visitor',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -152,11 +146,9 @@ describe('OpenChatViewCommandHandler', () => {
       const mockChat = createMockChat(otherVisitorId);
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
 
-      const command = new OpenChatViewCommand(
-        mockChatId,
-        mockVisitorId,
+      const command = new OpenChatViewCommand(mockChatId, mockVisitorId, [
         'visitor',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -178,7 +170,7 @@ describe('OpenChatViewCommandHandler', () => {
       const command = new OpenChatViewCommand(
         mockChatId,
         mockVisitorId,
-        'visitor',
+        ['visitor'],
         customTimestamp,
       );
 
