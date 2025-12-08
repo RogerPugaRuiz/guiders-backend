@@ -246,25 +246,12 @@ export class LlmConfigController {
 
     // Aplicar actualizaciones
     // Nota: customSystemPrompt puede ser null (para borrar) o undefined (no cambiar)
-    // Para toolConfig, construimos el objeto solo con campos definidos
-    let toolConfigUpdate: Record<string, unknown> | undefined;
-    if (dto.toolConfig) {
-      toolConfigUpdate = {};
-      if (dto.toolConfig.fetchPageEnabled !== undefined)
-        toolConfigUpdate.fetchPageEnabled = dto.toolConfig.fetchPageEnabled;
-      if (dto.toolConfig.allowedPaths !== undefined)
-        toolConfigUpdate.allowedPaths = dto.toolConfig.allowedPaths;
-      if (dto.toolConfig.maxIterations !== undefined)
-        toolConfigUpdate.maxIterations = dto.toolConfig.maxIterations;
-      if (dto.toolConfig.fetchTimeoutMs !== undefined)
-        toolConfigUpdate.fetchTimeoutMs = dto.toolConfig.fetchTimeoutMs;
-      if (dto.toolConfig.cacheEnabled !== undefined)
-        toolConfigUpdate.cacheEnabled = dto.toolConfig.cacheEnabled;
-      if (dto.toolConfig.cacheTtlSeconds !== undefined)
-        toolConfigUpdate.cacheTtlSeconds = dto.toolConfig.cacheTtlSeconds;
-      if (dto.toolConfig.baseUrl !== undefined)
-        toolConfigUpdate.baseUrl = dto.toolConfig.baseUrl;
-    }
+    // Para toolConfig, filtramos solo los campos definidos (no undefined)
+    const toolConfigUpdate = dto.toolConfig
+      ? Object.fromEntries(
+          Object.entries(dto.toolConfig).filter(([, v]) => v !== undefined),
+        )
+      : undefined;
 
     const updatedConfig = config.update({
       aiAutoResponseEnabled: dto.aiAutoResponseEnabled,

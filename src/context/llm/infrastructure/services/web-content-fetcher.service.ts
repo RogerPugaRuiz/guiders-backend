@@ -46,6 +46,9 @@ const JINA_READER_BASE_URL = 'https://r.jina.ai';
 /** Hostnames considerados locales (bypass de Jina Reader) */
 const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '0.0.0.0'];
 
+/** Caracteres peligrosos que no deben aparecer en paths de URL */
+const DANGEROUS_PATH_CHARS = ['<', '>', '"', "'", '\\', '\n', '\r'];
+
 @Injectable()
 export class WebContentFetcherService {
   private readonly logger = new Logger(WebContentFetcherService.name);
@@ -212,8 +215,7 @@ export class WebContentFetcherService {
     }
 
     // No permitir caracteres peligrosos
-    const dangerousChars = ['<', '>', '"', "'", '\\', '\n', '\r'];
-    if (dangerousChars.some((char) => path.includes(char))) {
+    if (DANGEROUS_PATH_CHARS.some((char) => path.includes(char))) {
       return false;
     }
 
@@ -341,6 +343,16 @@ export class WebContentFetcherService {
   /**
    * Convierte HTML a texto plano para el LLM
    * Extrae el contenido relevante eliminando scripts, estilos y tags HTML
+   *
+   * NOTA: Esta implementación usa regex para parsear HTML, lo cual tiene limitaciones:
+   * - No maneja correctamente HTML malformado o anidamientos complejos
+   * - Puede fallar con atributos que contengan caracteres especiales
+   * - No es adecuado para contenido que requiera precisión exacta
+   *
+   * Se usa intencionalmente para evitar dependencias externas (como cheerio/jsdom)
+   * y porque el contenido procesado solo se usa como contexto para el LLM,
+   * donde pequeñas imprecisiones son aceptables.
+   *
    * @param html Contenido HTML
    * @returns Texto plano con el contenido de la página
    */

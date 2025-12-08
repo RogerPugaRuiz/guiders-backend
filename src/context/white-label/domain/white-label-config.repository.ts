@@ -4,7 +4,7 @@
 
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { WhiteLabelConfig } from './value-objects/white-label-config';
+import { WhiteLabelConfig } from './entities/white-label-config';
 
 export interface IWhiteLabelConfigRepository {
   /**

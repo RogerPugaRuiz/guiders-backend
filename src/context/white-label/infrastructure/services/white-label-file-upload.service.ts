@@ -177,6 +177,16 @@ export class WhiteLabelFileUploadService {
   }
 
   /**
+   * Formatea un tamaño en bytes a formato legible (KB/MB)
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes >= 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+    }
+    return `${(bytes / 1024).toFixed(0)}KB`;
+  }
+
+  /**
    * Valida un archivo según el tipo
    */
   private validateFile(
@@ -217,17 +227,13 @@ export class WhiteLabelFileUploadService {
 
     // Validar tamaño
     if (file.size > config.maxSize) {
-      const maxSizeFormatted =
-        config.maxSize >= 1024 * 1024
-          ? `${(config.maxSize / (1024 * 1024)).toFixed(1)}MB`
-          : `${(config.maxSize / 1024).toFixed(0)}KB`;
       throw new BadRequestException(
-        `El archivo ${fileType} es demasiado grande. Tamaño máximo: ${maxSizeFormatted}`,
+        `El archivo ${fileType} es demasiado grande. Tamaño máximo: ${this.formatFileSize(config.maxSize)}`,
       );
     }
 
     this.logger.debug(
-      `Archivo ${fileType} validado: ${file.originalname}, tipo: ${file.mimetype}, tamaño: ${(file.size / 1024).toFixed(2)}KB`,
+      `Archivo ${fileType} validado: ${file.originalname}, tipo: ${file.mimetype}, tamaño: ${this.formatFileSize(file.size)}`,
     );
   }
 }

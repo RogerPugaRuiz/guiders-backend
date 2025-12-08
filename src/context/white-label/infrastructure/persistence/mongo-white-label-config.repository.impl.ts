@@ -12,7 +12,7 @@ import {
   IWhiteLabelConfigRepository,
   WHITE_LABEL_CONFIG_REPOSITORY,
 } from '../../domain/white-label-config.repository';
-import { WhiteLabelConfig } from '../../domain/value-objects/white-label-config';
+import { WhiteLabelConfig } from '../../domain/entities/white-label-config';
 import {
   WhiteLabelConfigSchema,
   WhiteLabelConfigDocument,

@@ -14,7 +14,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ALLOWED_FONT_FAMILIES } from '../../domain/value-objects/white-label-config';
+import { ALLOWED_FONT_FAMILIES } from '../../domain/entities/white-label-config';
 
 /**
  * Regex para validar colores hexadecimales

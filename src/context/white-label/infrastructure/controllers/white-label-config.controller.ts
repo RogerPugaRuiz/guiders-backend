@@ -41,7 +41,7 @@ import {
 import {
   WhiteLabelConfig,
   ALLOWED_FONT_FAMILIES,
-} from '../../domain/value-objects/white-label-config';
+} from '../../domain/entities/white-label-config';
 import {
   WhiteLabelConfigResponseDto,
   UpdateWhiteLabelConfigDto,
