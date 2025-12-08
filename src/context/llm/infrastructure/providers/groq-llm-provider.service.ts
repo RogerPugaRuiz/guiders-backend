@@ -11,6 +11,9 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   LlmProviderService,
   LlmCompletionParams,
+  LlmCompletionWithToolsParams,
+  LlmCompletionResult,
+  LlmExtendedMessage,
   LLM_PROVIDER_SERVICE,
 } from '../../domain/services/llm-provider.service';
 import { LlmResponse } from '../../domain/value-objects/llm-response';
@@ -18,6 +21,7 @@ import {
   LlmProviderError,
   LlmRateLimitError,
 } from '../../domain/errors/llm.error';
+import { LlmToolDefinition } from '../../domain/tool-definitions';
 
 @Injectable()
 export class GroqLlmProviderService implements LlmProviderService {
@@ -107,6 +111,186 @@ export class GroqLlmProviderService implements LlmProviderService {
         error instanceof Error ? error.message : 'Error desconocido';
       return err(new LlmProviderError(this.getProviderName(), errorMessage));
     }
+  }
+
+  /**
+   * Genera una completación con soporte para tools (function calling)
+   */
+  async generateCompletionWithTools(
+    params: LlmCompletionWithToolsParams,
+  ): Promise<Result<LlmCompletionResult, DomainError>> {
+    const startTime = Date.now();
+
+    try {
+      // Construir mensajes para el API de Groq
+      const messages = this.buildMessagesWithTools(
+        params.systemPrompt,
+        params.messages,
+      );
+
+      this.logger.debug(
+        `Generando completación con tools. Mensajes: ${messages.length}, Tools: ${params.tools?.length || 0}`,
+      );
+
+      // Construir parámetros de la request
+      const baseParams = {
+        model: this.defaultModel,
+        messages,
+        max_tokens: params.maxTokens || 500,
+        temperature: params.temperature || 0.7,
+      };
+
+      // Agregar tools si están definidas
+      const requestParams =
+        params.tools && params.tools.length > 0
+          ? {
+              ...baseParams,
+              tools: this.convertToolsToGroqFormat(params.tools),
+              tool_choice: params.toolChoice || 'auto',
+            }
+          : baseParams;
+
+      const response = await this.client.chat.completions.create(
+        requestParams as any,
+      );
+
+      const processingTimeMs = Date.now() - startTime;
+      const choice = response.choices[0];
+
+      if (!choice) {
+        return err(
+          new LlmProviderError(
+            this.getProviderName(),
+            'Sin respuesta del modelo',
+          ),
+        );
+      }
+
+      // Detectar si hay tool_calls
+      if (
+        choice.finish_reason === 'tool_calls' &&
+        choice.message.tool_calls &&
+        choice.message.tool_calls.length > 0
+      ) {
+        this.logger.debug(
+          `Modelo solicitó ${choice.message.tool_calls.length} tool calls`,
+        );
+
+        return ok({
+          toolCalls: choice.message.tool_calls.map((tc) => ({
+            id: tc.id,
+            type: tc.type as 'function',
+            function: {
+              name: tc.function.name,
+              arguments: tc.function.arguments,
+            },
+          })),
+          finishReason: 'tool_calls',
+        });
+      }
+
+      // Respuesta normal de texto
+      if (!choice.message.content) {
+        return err(
+          new LlmProviderError(
+            this.getProviderName(),
+            'Respuesta vacía del modelo',
+          ),
+        );
+      }
+
+      const llmResponse = LlmResponse.create({
+        content: choice.message.content,
+        model: response.model,
+        tokensUsed: response.usage?.total_tokens || 0,
+        processingTimeMs,
+        finishReason: choice.finish_reason || undefined,
+      });
+
+      this.logger.debug(
+        `Completación con tools generada en ${processingTimeMs}ms, tokens: ${response.usage?.total_tokens}`,
+      );
+
+      return ok({
+        response: llmResponse,
+        finishReason: (choice.finish_reason as 'stop' | 'length') || 'stop',
+      });
+    } catch (error) {
+      const processingTimeMs = Date.now() - startTime;
+      this.logger.error(
+        `Error en Groq con tools después de ${processingTimeMs}ms: ${error}`,
+      );
+
+      if (this.isRateLimitError(error)) {
+        const retryAfter = this.extractRetryAfter(error);
+        return err(new LlmRateLimitError(this.getProviderName(), retryAfter));
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      return err(new LlmProviderError(this.getProviderName(), errorMessage));
+    }
+  }
+
+  /**
+   * Construye los mensajes en formato Groq incluyendo tool messages
+   */
+  private buildMessagesWithTools(
+    systemPrompt: string,
+    messages: LlmExtendedMessage[],
+  ): Groq.Chat.ChatCompletionMessageParam[] {
+    const groqMessages: Groq.Chat.ChatCompletionMessageParam[] = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    for (const msg of messages) {
+      if (msg.role === 'tool') {
+        // Tool response message
+        groqMessages.push({
+          role: 'tool',
+          tool_call_id: msg.tool_call_id,
+          content: msg.content,
+        });
+      } else if (msg.role === 'assistant' && 'tool_calls' in msg) {
+        // Assistant message with tool calls
+        groqMessages.push({
+          role: 'assistant',
+          content: msg.content,
+          tool_calls: msg.tool_calls.map((tc) => ({
+            id: tc.id,
+            type: tc.type,
+            function: {
+              name: tc.function.name,
+              arguments: tc.function.arguments,
+            },
+          })),
+        });
+      } else {
+        // Regular message
+        groqMessages.push({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        });
+      }
+    }
+
+    return groqMessages;
+  }
+
+  /**
+   * Convierte las tool definitions al formato de Groq
+   */
+  private convertToolsToGroqFormat(
+    tools: LlmToolDefinition[],
+  ): Groq.Chat.ChatCompletionTool[] {
+    return tools.map((tool) => ({
+      type: tool.type,
+      function: {
+        name: tool.function.name,
+        description: tool.function.description,
+        parameters: tool.function.parameters as Record<string, unknown>,
+      },
+    }));
   }
 
   async generateSuggestions(

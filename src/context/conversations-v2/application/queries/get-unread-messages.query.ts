@@ -5,6 +5,6 @@ export class GetUnreadMessagesQuery {
   constructor(
     public readonly chatId: string,
     public readonly userId: string,
-    public readonly userRole: string,
+    public readonly userRoles: string[],
   ) {}
 }

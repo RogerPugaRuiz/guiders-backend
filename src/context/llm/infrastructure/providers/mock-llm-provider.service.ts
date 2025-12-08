@@ -9,6 +9,8 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   LlmProviderService,
   LlmCompletionParams,
+  LlmCompletionWithToolsParams,
+  LlmCompletionResult,
   LLM_PROVIDER_SERVICE,
 } from '../../domain/services/llm-provider.service';
 import { LlmResponse } from '../../domain/value-objects/llm-response';
@@ -46,6 +48,31 @@ export class MockLlmProviderService implements LlmProviderService {
     });
 
     return ok(response);
+  }
+
+  async generateCompletionWithTools(
+    _params: LlmCompletionWithToolsParams,
+  ): Promise<Result<LlmCompletionResult, DomainError>> {
+    // Simular delay de procesamiento
+    await this.simulateDelay(100, 300);
+
+    // Mock siempre retorna respuesta directa, sin tool calls
+    const content =
+      'Respuesta mock con tools habilitados. No se ejecutaron herramientas.';
+
+    const response = LlmResponse.create({
+      content,
+      model: this.getDefaultModel(),
+      tokensUsed: Math.floor(content.length / 4),
+      processingTimeMs: Math.floor(Math.random() * 200) + 50,
+      confidence: 0.95,
+      finishReason: 'stop',
+    });
+
+    return ok({
+      response,
+      finishReason: 'stop',
+    });
   }
 
   async generateSuggestions(

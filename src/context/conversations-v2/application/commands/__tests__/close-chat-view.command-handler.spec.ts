@@ -76,11 +76,9 @@ describe('CloseChatViewCommandHandler', () => {
       const mockChat = createMockChat(mockVisitorId);
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
 
-      const command = new CloseChatViewCommand(
-        mockChatId,
-        mockVisitorId,
+      const command = new CloseChatViewCommand(mockChatId, mockVisitorId, [
         'visitor',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -99,11 +97,9 @@ describe('CloseChatViewCommandHandler', () => {
       const mockChat = createMockChat(mockVisitorId);
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
 
-      const command = new CloseChatViewCommand(
-        mockChatId,
-        mockCommercialId,
+      const command = new CloseChatViewCommand(mockChatId, mockCommercialId, [
         'commercial',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -129,11 +125,9 @@ describe('CloseChatViewCommandHandler', () => {
         err(new TestDomainError('Chat not found')),
       );
 
-      const command = new CloseChatViewCommand(
-        mockChatId,
-        mockVisitorId,
+      const command = new CloseChatViewCommand(mockChatId, mockVisitorId, [
         'visitor',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -152,11 +146,9 @@ describe('CloseChatViewCommandHandler', () => {
       const mockChat = createMockChat(otherVisitorId);
       mockChatRepository.findById.mockResolvedValue(ok(mockChat));
 
-      const command = new CloseChatViewCommand(
-        mockChatId,
-        mockVisitorId,
+      const command = new CloseChatViewCommand(mockChatId, mockVisitorId, [
         'visitor',
-      );
+      ]);
 
       // Act
       const result = await handler.execute(command);
@@ -178,7 +170,7 @@ describe('CloseChatViewCommandHandler', () => {
       const command = new CloseChatViewCommand(
         mockChatId,
         mockVisitorId,
-        'visitor',
+        ['visitor'],
         customTimestamp,
       );
 

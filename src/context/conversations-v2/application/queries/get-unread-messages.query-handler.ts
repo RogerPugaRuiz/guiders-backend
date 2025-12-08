@@ -40,7 +40,7 @@ export class GetUnreadMessagesQueryHandler
       ]);
 
       // Si es visitante, excluir mensajes internos
-      if (query.userRole === 'visitor') {
+      if (query.userRoles.includes('visitor')) {
         criteria.filters.push(new Filter('isInternal', Operator.EQUALS, false));
       }
 

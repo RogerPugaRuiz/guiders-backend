@@ -86,3 +86,41 @@ export class LlmEmptyChatError extends LlmError {
     this.name = 'LlmEmptyChatError';
   }
 }
+
+/**
+ * Error cuando falla la ejecución de una tool
+ */
+export class LlmToolExecutionError extends LlmError {
+  constructor(
+    public readonly toolName: string,
+    public readonly reason: string,
+  ) {
+    super(`Error ejecutando tool ${toolName}: ${reason}`);
+    this.name = 'LlmToolExecutionError';
+  }
+}
+
+/**
+ * Error cuando se excede el máximo de iteraciones de tool calling
+ */
+export class LlmMaxIterationsError extends LlmError {
+  constructor(public readonly maxIterations: number) {
+    super(
+      `Se excedió el máximo de ${maxIterations} iteraciones de tool calling`,
+    );
+    this.name = 'LlmMaxIterationsError';
+  }
+}
+
+/**
+ * Error cuando una tool excede el timeout
+ */
+export class LlmToolTimeoutError extends LlmError {
+  constructor(
+    public readonly toolName: string,
+    public readonly timeoutMs: number,
+  ) {
+    super(`Timeout de ${timeoutMs}ms excedido para tool ${toolName}`);
+    this.name = 'LlmToolTimeoutError';
+  }
+}

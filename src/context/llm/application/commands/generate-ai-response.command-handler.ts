@@ -1,19 +1,26 @@
 /**
  * Handler para el comando de generar respuesta de IA
+ * Soporta tool use (function calling) para obtener información de la web
  */
 
 import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 import { GenerateAIResponseCommand } from './generate-ai-response.command';
 import { AIResponseDto } from '../dtos/ai-response.dto';
 import {
   LlmProviderService,
+  LlmExtendedMessage,
   LLM_PROVIDER_SERVICE,
 } from '../../domain/services/llm-provider.service';
 import {
   LlmContextBuilderService,
   LLM_CONTEXT_BUILDER_SERVICE,
 } from '../../domain/services/llm-context-builder.service';
+import {
+  ToolExecutorService,
+  TOOL_EXECUTOR_SERVICE,
+} from '../../domain/services/tool-executor.service';
 import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
@@ -24,6 +31,12 @@ import {
 } from 'src/context/conversations-v2/domain/message.repository';
 import { Message } from 'src/context/conversations-v2/domain/entities/message.aggregate';
 import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import {
+  ToolExecutionContext,
+  LlmAssistantMessageWithToolCalls,
+} from '../../domain/tool-definitions';
+import { LlmMaxIterationsError } from '../../domain/errors/llm.error';
+import { GetCompanySitesQuery } from 'src/context/company/application/queries/get-company-sites.query';
 
 @CommandHandler(GenerateAIResponseCommand)
 export class GenerateAIResponseCommandHandler
@@ -36,11 +49,14 @@ export class GenerateAIResponseCommandHandler
     private readonly llmProvider: LlmProviderService,
     @Inject(LLM_CONTEXT_BUILDER_SERVICE)
     private readonly contextBuilder: LlmContextBuilderService,
+    @Inject(TOOL_EXECUTOR_SERVICE)
+    private readonly toolExecutor: ToolExecutorService,
     @Inject(LLM_CONFIG_REPOSITORY)
     private readonly configRepository: ILlmConfigRepository,
     @Inject(MESSAGE_V2_REPOSITORY)
     private readonly messageRepository: IMessageRepository,
     private readonly publisher: EventPublisher,
+    private readonly queryBus: QueryBus,
   ) {}
 
   async execute(command: GenerateAIResponseCommand): Promise<AIResponseDto> {
@@ -80,35 +96,72 @@ export class GenerateAIResponseCommandHandler
         await this.delay(config.responseDelayMs);
       }
 
-      // 4. Generar respuesta con el LLM
-      const responseResult = await this.llmProvider.generateCompletion({
-        systemPrompt: context.getEnrichedSystemPrompt(),
-        conversationHistory: context.conversationHistory,
-        maxTokens: config.maxResponseTokens,
-        temperature: config.temperature,
-      });
+      // 4. Verificar si tools están habilitadas
+      const toolConfig = config.toolConfig;
+      const hasToolsEnabled = toolConfig.hasAnyToolEnabled();
 
-      if (responseResult.isErr()) {
-        throw new Error(
-          `Error al generar respuesta: ${responseResult.error.message}`,
+      // DEBUG: Log para diagnosticar Tool Use
+      this.logger.debug(
+        `[Tool Use Debug] siteId=${command.siteId}, fetchPageEnabled=${toolConfig.fetchPageEnabled}, hasToolsEnabled=${hasToolsEnabled}`,
+      );
+      this.logger.debug(
+        `[Tool Use Debug] toolConfig=${JSON.stringify(toolConfig.toPrimitives())}`,
+      );
+
+      let responseContent: string;
+      let model: string;
+      let tokensUsed: number;
+      let processingTimeMs: number;
+
+      if (hasToolsEnabled) {
+        // 4a. Generar respuesta con tool use loop
+        const toolResult = await this.generateWithTools(
+          command,
+          config,
+          context.getEnrichedSystemPrompt(),
+          context.conversationHistory,
         );
+        responseContent = toolResult.content;
+        model = toolResult.model;
+        tokensUsed = toolResult.tokensUsed;
+        processingTimeMs = toolResult.processingTimeMs;
+      } else {
+        // 4b. Generar respuesta simple (sin tools)
+        const responseResult = await this.llmProvider.generateCompletion({
+          systemPrompt: context.getEnrichedSystemPrompt(),
+          conversationHistory: context.conversationHistory,
+          maxTokens: config.maxResponseTokens,
+          temperature: config.temperature,
+        });
+
+        if (responseResult.isErr()) {
+          throw new Error(
+            `Error al generar respuesta: ${responseResult.error.message}`,
+          );
+        }
+
+        const llmResponse = responseResult.unwrap();
+        responseContent = llmResponse.content;
+        model = llmResponse.model;
+        tokensUsed = llmResponse.tokensUsed;
+        processingTimeMs = llmResponse.processingTimeMs;
       }
 
-      const llmResponse = responseResult.unwrap();
       const totalProcessingTimeMs = Date.now() - startTime;
 
       // 5. Crear mensaje de IA usando el factory existente
       const aiMessage = Message.createAIMessage({
         chatId: command.chatId,
-        content: llmResponse.content,
+        content: responseContent,
         aiMetadata: {
-          model: llmResponse.model,
-          confidence: llmResponse.confidence ?? undefined,
-          processingTimeMs: llmResponse.processingTimeMs,
+          model,
+          confidence: undefined,
+          processingTimeMs,
           context: {
             provider: this.llmProvider.getProviderName(),
             triggerMessageId: command.triggerMessageId,
-            tokensUsed: llmResponse.tokensUsed,
+            tokensUsed,
+            toolsUsed: hasToolsEnabled,
           },
         },
       });
@@ -127,15 +180,15 @@ export class GenerateAIResponseCommandHandler
       messageCtx.commit();
 
       this.logger.log(
-        `✅ Respuesta IA generada en ${totalProcessingTimeMs}ms para chat ${command.chatId}`,
+        `✅ Respuesta IA generada en ${totalProcessingTimeMs}ms para chat ${command.chatId}${hasToolsEnabled ? ' (con tools)' : ''}`,
       );
 
       return {
         messageId: aiMessage.id.getValue(),
-        content: llmResponse.content,
+        content: responseContent,
         processingTimeMs: totalProcessingTimeMs,
-        model: llmResponse.model,
-        tokensUsed: llmResponse.tokensUsed,
+        model,
+        tokensUsed,
       };
     } catch (error) {
       const errorMessage =
@@ -145,6 +198,195 @@ export class GenerateAIResponseCommandHandler
       );
       throw error;
     }
+  }
+
+  /**
+   * Genera una respuesta usando el loop de tool use
+   */
+  private async generateWithTools(
+    command: GenerateAIResponseCommand,
+    config: LlmSiteConfig,
+    systemPrompt: string,
+    conversationHistory: Array<{
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }>,
+  ): Promise<{
+    content: string;
+    model: string;
+    tokensUsed: number;
+    processingTimeMs: number;
+  }> {
+    const startTime = Date.now();
+    const toolConfig = config.toolConfig;
+    const maxIterations = toolConfig.toPrimitives().maxIterations;
+
+    // Obtener información del sitio para construir el contexto de tools
+    const toolContext = await this.buildToolContext(command, config);
+
+    // Obtener tools disponibles
+    const tools = this.toolExecutor.getAvailableTools(
+      toolConfig.toPrimitives(),
+      toolContext.baseDomain,
+    );
+
+    if (tools.length === 0) {
+      throw new Error(
+        'No hay tools disponibles pero toolConfig está habilitado',
+      );
+    }
+
+    // Construir mensajes iniciales (filtrar system messages ya que el system prompt se pasa aparte)
+    const messages: LlmExtendedMessage[] = conversationHistory
+      .filter((msg) => msg.role !== 'system')
+      .map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+
+    let iteration = 0;
+    let totalTokensUsed = 0;
+    let model = '';
+
+    // Loop de tool use
+    while (iteration < maxIterations) {
+      this.logger.debug(`Tool use iteration ${iteration + 1}/${maxIterations}`);
+
+      const result = await this.llmProvider.generateCompletionWithTools({
+        systemPrompt,
+        messages,
+        maxTokens: config.maxResponseTokens,
+        temperature: config.temperature,
+        tools,
+        toolChoice: 'auto',
+      });
+
+      if (result.isErr()) {
+        throw new Error(`Error en LLM: ${result.error.message}`);
+      }
+
+      const completion = result.unwrap();
+      model = completion.response?.model || model;
+      totalTokensUsed += completion.response?.tokensUsed || 0;
+
+      // Si no hay tool calls, tenemos la respuesta final
+      if (completion.finishReason !== 'tool_calls' || !completion.toolCalls) {
+        if (!completion.response) {
+          throw new Error('No se recibió respuesta del modelo');
+        }
+
+        return {
+          content: completion.response.content,
+          model: completion.response.model,
+          tokensUsed: totalTokensUsed,
+          processingTimeMs: Date.now() - startTime,
+        };
+      }
+
+      // Ejecutar tools
+      this.logger.debug(`Ejecutando ${completion.toolCalls.length} tool calls`);
+
+      const toolResults = await this.toolExecutor.executeTools(
+        completion.toolCalls,
+        toolContext,
+      );
+
+      if (toolResults.isErr()) {
+        throw new Error(`Error ejecutando tools: ${toolResults.error.message}`);
+      }
+
+      // Agregar assistant message con tool_calls al historial
+      const assistantMessage: LlmAssistantMessageWithToolCalls = {
+        role: 'assistant',
+        content: null,
+        tool_calls: completion.toolCalls,
+      };
+      messages.push(assistantMessage);
+
+      // Agregar resultados de tools al historial
+      for (const toolResult of toolResults.unwrap()) {
+        messages.push({
+          role: 'tool',
+          tool_call_id: toolResult.toolCallId,
+          content: toolResult.content,
+        });
+      }
+
+      iteration++;
+    }
+
+    // Si llegamos aquí, se excedió el máximo de iteraciones
+    throw new LlmMaxIterationsError(maxIterations);
+  }
+
+  /**
+   * Construye el contexto de ejecución de tools
+   */
+  private async buildToolContext(
+    command: GenerateAIResponseCommand,
+    config: LlmSiteConfig,
+  ): Promise<ToolExecutionContext> {
+    const toolConfigPrimitives = config.toolConfig.toPrimitives();
+
+    // Si hay baseUrl configurada en toolConfig, usarla directamente
+    // Útil para desarrollo local con puerto (ej: http://localhost:8090)
+    if (toolConfigPrimitives.baseUrl) {
+      this.logger.debug(
+        `[Tool Use Debug] Usando baseUrl de toolConfig: "${toolConfigPrimitives.baseUrl}"`,
+      );
+      return {
+        siteId: command.siteId,
+        companyId: command.companyId,
+        baseDomain: toolConfigPrimitives.baseUrl,
+        allowedDomains: [],
+        toolConfig: toolConfigPrimitives,
+      };
+    }
+
+    // Obtener información del sitio desde canonicalDomain
+    let baseDomain = '';
+    let allowedDomains: string[] = [];
+
+    try {
+      const companySitesResult = await this.queryBus.execute(
+        new GetCompanySitesQuery(command.companyId),
+      );
+
+      if (companySitesResult?.sites) {
+        // Buscar el sitio específico por ID
+        const site = companySitesResult.sites.find(
+          (s: { id: string }) => s.id === command.siteId,
+        );
+
+        if (site) {
+          baseDomain = site.canonicalDomain || '';
+          allowedDomains = site.domainAliases || [];
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo obtener información del sitio ${command.siteId}: ${error}`,
+      );
+    }
+
+    // Si no tenemos dominio, usar un fallback
+    if (!baseDomain) {
+      this.logger.warn(
+        `No se encontró dominio para sitio ${command.siteId}, tools pueden no funcionar`,
+      );
+    }
+
+    this.logger.debug(
+      `[Tool Use Debug] buildToolContext: baseDomain="${baseDomain}", allowedDomains=${JSON.stringify(allowedDomains)}`,
+    );
+
+    return {
+      siteId: command.siteId,
+      companyId: command.companyId,
+      baseDomain,
+      allowedDomains,
+      toolConfig: toolConfigPrimitives,
+    };
   }
 
   /**

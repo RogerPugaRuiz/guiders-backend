@@ -807,7 +807,7 @@ export class ChatV2Controller {
 
       const query = GetChatsWithFiltersQuery.create({
         userId: req.user.id,
-        userRole: req.user.roles[0] || 'visitor', // Usar el primer rol como rol principal
+        userRoles: req.user.roles, // Pasar todos los roles del usuario
         filters: queryParams.filters,
         sort: queryParams.sort,
         cursor: queryParams.cursor,
@@ -1081,7 +1081,7 @@ export class ChatV2Controller {
       // Crear y ejecutar query
       const query = GetChatsWithFiltersQuery.create({
         userId: commercialId,
-        userRole: 'admin', // Usar admin para evitar que filtre por userId automáticamente
+        userRoles: ['admin'], // Usar admin para evitar que filtre por userId automáticamente
         filters,
         sort: sortOptions,
         cursor: queryParams.cursor,
@@ -1300,12 +1300,12 @@ export class ChatV2Controller {
 
       // Determinar userId y userRole según el contexto de autenticación
       const userId = req.user?.id || visitorId; // Para acceso público, usar el visitorId como fallback
-      const userRole = req.user?.roles?.[0] || 'visitor'; // Para acceso público, asumir rol visitor
+      const userRoles = req.user?.roles || ['visitor']; // Para acceso público, asumir rol visitor
 
       // Usar el query handler existente con filtros específicos para el visitante
       const query = GetChatsWithFiltersQuery.create({
         userId: userId,
-        userRole: userRole,
+        userRoles: userRoles,
         filters: filters,
         sort: { field: 'createdAt', direction: 'DESC' },
         cursor: queryParams.cursor,
@@ -1315,7 +1315,7 @@ export class ChatV2Controller {
       this.logger.log(
         `Query creado: ${JSON.stringify({
           userId: userId,
-          userRole: userRole,
+          userRoles: userRoles,
           filters: filters,
           cursor: queryParams.cursor,
           limit: queryParams.limit || 20,
@@ -1483,7 +1483,7 @@ export class ChatV2Controller {
       // Usar el query handler existente con filtros específicos
       const query = GetChatsWithFiltersQuery.create({
         userId: commercialId,
-        userRole: 'admin', // Usar admin para evitar filtros automáticos adicionales
+        userRoles: ['admin'], // Usar admin para evitar filtros automáticos adicionales
         filters: filters,
         sort: { field: 'createdAt', direction: 'DESC' }, // Más reciente primero
         cursor: undefined,
@@ -1506,7 +1506,7 @@ export class ChatV2Controller {
 
       const totalVisitorQuery = GetChatsWithFiltersQuery.create({
         userId: commercialId,
-        userRole: 'admin',
+        userRoles: ['admin'],
         filters: totalVisitorFilters,
         sort: { field: 'createdAt', direction: 'DESC' },
         cursor: undefined,
@@ -1985,19 +1985,15 @@ export class ChatV2Controller {
     try {
       const userId = req.user.id;
       const userRoles = req.user.roles || [];
-      const isVisitor = userRoles.includes('visitor');
-      const userRole: 'visitor' | 'commercial' = isVisitor
-        ? 'visitor'
-        : 'commercial';
 
       this.logger.log(
-        `Procesando apertura de vista del chat ${chatId} por ${userRole} ${userId}`,
+        `Procesando apertura de vista del chat ${chatId} por usuario ${userId}`,
       );
 
       const command = new OpenChatViewCommand(
         chatId,
         userId,
-        userRole,
+        userRoles,
         chatViewDto.timestamp,
       );
 
@@ -2109,19 +2105,15 @@ export class ChatV2Controller {
     try {
       const userId = req.user.id;
       const userRoles = req.user.roles || [];
-      const isVisitor = userRoles.includes('visitor');
-      const userRole: 'visitor' | 'commercial' = isVisitor
-        ? 'visitor'
-        : 'commercial';
 
       this.logger.log(
-        `Procesando cierre de vista del chat ${chatId} por ${userRole} ${userId}`,
+        `Procesando cierre de vista del chat ${chatId} por usuario ${userId}`,
       );
 
       const command = new CloseChatViewCommand(
         chatId,
         userId,
-        userRole,
+        userRoles,
         chatViewDto.timestamp,
       );
 

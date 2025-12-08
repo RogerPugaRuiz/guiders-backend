@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -37,6 +37,7 @@ import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas
 
 // External dependencies needed by controller
 import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
+import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.module';
 import { CompanyModule } from '../company/company.module';
 
 /**
@@ -51,6 +52,7 @@ import { CompanyModule } from '../company/company.module';
     ]),
     // Módulos externos necesarios para el controller
     AuthVisitorModule, // Para validación de API Key
+    forwardRef(() => AuthUserModule), // Para obtener datos de UserAccount (nombre, avatar) - forwardRef para evitar dependencia circular
     CompanyModule, // Para resolver dominio a tenantId/siteId
   ],
   controllers: [CommercialController],

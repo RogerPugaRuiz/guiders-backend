@@ -41,7 +41,7 @@ describe('GetUnreadMessagesQueryHandler', () => {
     it('should return unread messages for a visitor', async () => {
       const chatId = Uuid.random().value;
       const userId = Uuid.random().value;
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
       const commercialId = Uuid.random().value;
 
       const mockMessage = Message.createTextMessage({
@@ -53,7 +53,7 @@ describe('GetUnreadMessagesQueryHandler', () => {
 
       mockRepository.match.mockResolvedValue(ok([mockMessage]));
 
-      const query = new GetUnreadMessagesQuery(chatId, userId, userRole);
+      const query = new GetUnreadMessagesQuery(chatId, userId, userRoles);
       const result = await handler.execute(query);
 
       expect(result).toHaveLength(1);
@@ -65,11 +65,11 @@ describe('GetUnreadMessagesQueryHandler', () => {
     it('should exclude internal messages for visitors', async () => {
       const chatId = Uuid.random().value;
       const userId = Uuid.random().value;
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.match.mockResolvedValue(ok([]));
 
-      const query = new GetUnreadMessagesQuery(chatId, userId, userRole);
+      const query = new GetUnreadMessagesQuery(chatId, userId, userRoles);
       await handler.execute(query);
 
       // Verificar que se aplicó el filtro de isInternal = false para visitantes
@@ -85,11 +85,11 @@ describe('GetUnreadMessagesQueryHandler', () => {
     it('should exclude messages from the same user', async () => {
       const chatId = Uuid.random().value;
       const userId = Uuid.random().value;
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.match.mockResolvedValue(ok([]));
 
-      const query = new GetUnreadMessagesQuery(chatId, userId, userRole);
+      const query = new GetUnreadMessagesQuery(chatId, userId, userRoles);
       await handler.execute(query);
 
       // Verificar que se excluyeron mensajes del propio usuario
@@ -105,14 +105,14 @@ describe('GetUnreadMessagesQueryHandler', () => {
     it('should return empty array when repository returns error', async () => {
       const chatId = Uuid.random().value;
       const userId = Uuid.random().value;
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.match.mockResolvedValue({
         isErr: () => true,
         error: { message: 'Database error' },
       } as any);
 
-      const query = new GetUnreadMessagesQuery(chatId, userId, userRole);
+      const query = new GetUnreadMessagesQuery(chatId, userId, userRoles);
       const result = await handler.execute(query);
 
       expect(result).toEqual([]);
@@ -121,11 +121,11 @@ describe('GetUnreadMessagesQueryHandler', () => {
     it('should return empty array when exception is thrown', async () => {
       const chatId = Uuid.random().value;
       const userId = Uuid.random().value;
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.match.mockRejectedValue(new Error('Unexpected error'));
 
-      const query = new GetUnreadMessagesQuery(chatId, userId, userRole);
+      const query = new GetUnreadMessagesQuery(chatId, userId, userRoles);
       const result = await handler.execute(query);
 
       expect(result).toEqual([]);

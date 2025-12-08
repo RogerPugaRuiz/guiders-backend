@@ -22,6 +22,11 @@ import {
   IMessageRepository,
   MESSAGE_V2_REPOSITORY,
 } from 'src/context/conversations-v2/domain/message.repository';
+import {
+  ToolExecutorService,
+  TOOL_EXECUTOR_SERVICE,
+} from '../domain/services/tool-executor.service';
+import { QueryBus } from '@nestjs/cqrs';
 import { ok, err, okVoid } from 'src/context/shared/domain/result';
 import { LlmContext } from '../domain/value-objects/llm-context';
 import { LlmResponse } from '../domain/value-objects/llm-response';
@@ -36,6 +41,8 @@ describe('GenerateAIResponseCommandHandler', () => {
   let mockConfigRepository: jest.Mocked<ILlmConfigRepository>;
   let mockMessageRepository: jest.Mocked<IMessageRepository>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
+  let mockToolExecutor: jest.Mocked<ToolExecutorService>;
+  let mockQueryBus: jest.Mocked<QueryBus>;
 
   const chatId = Uuid.random().value;
   const visitorId = Uuid.random().value;
@@ -46,6 +53,7 @@ describe('GenerateAIResponseCommandHandler', () => {
   beforeEach(async () => {
     mockLlmProvider = {
       generateCompletion: jest.fn(),
+      generateCompletionWithTools: jest.fn(),
       generateSuggestions: jest.fn(),
       getProviderName: jest.fn().mockReturnValue('groq'),
       getDefaultModel: jest.fn().mockReturnValue('llama-3.3-70b-versatile'),
@@ -105,14 +113,25 @@ describe('GenerateAIResponseCommandHandler', () => {
       mergeClassContext: jest.fn(),
     } as unknown as jest.Mocked<EventPublisher>;
 
+    mockToolExecutor = {
+      executeTools: jest.fn(),
+      getAvailableTools: jest.fn().mockReturnValue([]),
+    } as jest.Mocked<ToolExecutorService>;
+
+    mockQueryBus = {
+      execute: jest.fn().mockResolvedValue(null),
+    } as unknown as jest.Mocked<QueryBus>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GenerateAIResponseCommandHandler,
         { provide: LLM_PROVIDER_SERVICE, useValue: mockLlmProvider },
         { provide: LLM_CONTEXT_BUILDER_SERVICE, useValue: mockContextBuilder },
+        { provide: TOOL_EXECUTOR_SERVICE, useValue: mockToolExecutor },
         { provide: LLM_CONFIG_REPOSITORY, useValue: mockConfigRepository },
         { provide: MESSAGE_V2_REPOSITORY, useValue: mockMessageRepository },
         { provide: EventPublisher, useValue: mockEventPublisher },
+        { provide: QueryBus, useValue: mockQueryBus },
       ],
     }).compile();
 

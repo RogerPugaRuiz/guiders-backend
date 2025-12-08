@@ -8,7 +8,7 @@ export class OpenChatViewCommand implements ICommand {
   constructor(
     public readonly chatId: string,
     public readonly userId: string,
-    public readonly userRole: 'visitor' | 'commercial',
+    public readonly userRoles: string[],
     public readonly timestamp?: string,
   ) {}
 }

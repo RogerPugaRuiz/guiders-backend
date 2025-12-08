@@ -97,7 +97,7 @@ interface TypingPayload {
  */
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: true, // Permite cualquier origen de forma dinámica (necesario con credentials: true)
     methods: ['GET', 'POST'],
     credentials: true,
   },

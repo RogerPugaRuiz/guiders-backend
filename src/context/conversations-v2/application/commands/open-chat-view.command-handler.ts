@@ -45,8 +45,14 @@ export class OpenChatViewCommandHandler
     command: OpenChatViewCommand,
   ): Promise<Result<void, OpenChatViewError>> {
     try {
+      // Determinar el rol efectivo para logging y evento
+      const isVisitor = command.userRoles.includes('visitor');
+      const effectiveRole: 'visitor' | 'commercial' = isVisitor
+        ? 'visitor'
+        : 'commercial';
+
       this.logger.log(
-        `Procesando apertura de vista del chat ${command.chatId} por ${command.userRole} ${command.userId}`,
+        `Procesando apertura de vista del chat ${command.chatId} por ${effectiveRole} ${command.userId}`,
       );
 
       // 1. Buscar el chat
@@ -61,7 +67,7 @@ export class OpenChatViewCommandHandler
       const chat = chatResult.value;
 
       // 2. Validar acceso según rol
-      if (command.userRole === 'visitor') {
+      if (isVisitor) {
         // Los visitantes solo pueden ver sus propios chats
         if (chat.visitorId.getValue() !== command.userId) {
           this.logger.error(
@@ -80,14 +86,14 @@ export class OpenChatViewCommandHandler
           view: {
             chatId: command.chatId,
             userId: command.userId,
-            userRole: command.userRole,
+            userRole: effectiveRole,
             openedAt: now,
           },
         }),
       );
 
       this.logger.log(
-        `Vista del chat ${command.chatId} abierta exitosamente por ${command.userRole} ${command.userId}`,
+        `Vista del chat ${command.chatId} abierta exitosamente por ${effectiveRole} ${command.userId}`,
       );
 
       return ok(undefined);
