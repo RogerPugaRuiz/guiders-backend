@@ -49,6 +49,7 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
             maxResponseTokens: primitives.maxResponseTokens,
             temperature: primitives.temperature,
             responseDelayMs: primitives.responseDelayMs,
+            toolConfig: primitives.toolConfig,
             updatedAt: new Date(),
           },
           $setOnInsert: {
@@ -92,6 +93,7 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
         maxResponseTokens: doc.maxResponseTokens,
         temperature: doc.temperature,
         responseDelayMs: doc.responseDelayMs,
+        toolConfig: doc.toolConfig,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
       });
@@ -126,6 +128,7 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
           maxResponseTokens: doc.maxResponseTokens,
           temperature: doc.temperature,
           responseDelayMs: doc.responseDelayMs,
+          toolConfig: doc.toolConfig,
           createdAt: doc.createdAt,
           updatedAt: doc.updatedAt,
         }),

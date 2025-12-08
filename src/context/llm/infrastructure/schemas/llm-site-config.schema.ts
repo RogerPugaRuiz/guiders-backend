@@ -45,6 +45,29 @@ export class LlmSiteConfigSchema {
   @Prop({ default: 1000 })
   responseDelayMs: number;
 
+  /** Configuración de tools (function calling) */
+  @Prop({
+    type: {
+      fetchPageEnabled: { type: Boolean, default: false },
+      allowedPaths: { type: [String], default: [] },
+      maxIterations: { type: Number, default: 3 },
+      fetchTimeoutMs: { type: Number, default: 10000 },
+      cacheEnabled: { type: Boolean, default: true },
+      cacheTtlSeconds: { type: Number, default: 3600 },
+      baseUrl: { type: String, default: null },
+    },
+    default: null,
+  })
+  toolConfig: {
+    fetchPageEnabled: boolean;
+    allowedPaths: string[];
+    maxIterations: number;
+    fetchTimeoutMs: number;
+    cacheEnabled: boolean;
+    cacheTtlSeconds: number;
+    baseUrl?: string;
+  } | null;
+
   @Prop({ type: Date })
   createdAt: Date;
 

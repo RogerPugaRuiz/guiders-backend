@@ -195,6 +195,17 @@ export class LlmConfigController {
       maxResponseTokens: dto.maxResponseTokens ?? 500,
       temperature: dto.temperature ?? 0.7,
       responseDelayMs: dto.responseDelayMs ?? 1000,
+      toolConfig: dto.toolConfig
+        ? {
+            fetchPageEnabled: dto.toolConfig.fetchPageEnabled ?? false,
+            allowedPaths: dto.toolConfig.allowedPaths ?? [],
+            maxIterations: dto.toolConfig.maxIterations ?? 3,
+            fetchTimeoutMs: dto.toolConfig.fetchTimeoutMs ?? 10000,
+            cacheEnabled: dto.toolConfig.cacheEnabled ?? true,
+            cacheTtlSeconds: dto.toolConfig.cacheTtlSeconds ?? 3600,
+            baseUrl: dto.toolConfig.baseUrl,
+          }
+        : undefined,
     });
 
     const saveResult = await this.configRepository.save(config);
@@ -235,6 +246,26 @@ export class LlmConfigController {
 
     // Aplicar actualizaciones
     // Nota: customSystemPrompt puede ser null (para borrar) o undefined (no cambiar)
+    // Para toolConfig, construimos el objeto solo con campos definidos
+    let toolConfigUpdate: Record<string, unknown> | undefined;
+    if (dto.toolConfig) {
+      toolConfigUpdate = {};
+      if (dto.toolConfig.fetchPageEnabled !== undefined)
+        toolConfigUpdate.fetchPageEnabled = dto.toolConfig.fetchPageEnabled;
+      if (dto.toolConfig.allowedPaths !== undefined)
+        toolConfigUpdate.allowedPaths = dto.toolConfig.allowedPaths;
+      if (dto.toolConfig.maxIterations !== undefined)
+        toolConfigUpdate.maxIterations = dto.toolConfig.maxIterations;
+      if (dto.toolConfig.fetchTimeoutMs !== undefined)
+        toolConfigUpdate.fetchTimeoutMs = dto.toolConfig.fetchTimeoutMs;
+      if (dto.toolConfig.cacheEnabled !== undefined)
+        toolConfigUpdate.cacheEnabled = dto.toolConfig.cacheEnabled;
+      if (dto.toolConfig.cacheTtlSeconds !== undefined)
+        toolConfigUpdate.cacheTtlSeconds = dto.toolConfig.cacheTtlSeconds;
+      if (dto.toolConfig.baseUrl !== undefined)
+        toolConfigUpdate.baseUrl = dto.toolConfig.baseUrl;
+    }
+
     const updatedConfig = config.update({
       aiAutoResponseEnabled: dto.aiAutoResponseEnabled,
       aiSuggestionsEnabled: dto.aiSuggestionsEnabled,
@@ -245,6 +276,7 @@ export class LlmConfigController {
       maxResponseTokens: dto.maxResponseTokens,
       temperature: dto.temperature,
       responseDelayMs: dto.responseDelayMs,
+      toolConfig: toolConfigUpdate,
     });
 
     const saveResult = await this.configRepository.save(updatedConfig);
@@ -291,6 +323,7 @@ export class LlmConfigController {
       maxResponseTokens: primitives.maxResponseTokens,
       temperature: primitives.temperature,
       responseDelayMs: primitives.responseDelayMs,
+      toolConfig: primitives.toolConfig ?? undefined,
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
     };

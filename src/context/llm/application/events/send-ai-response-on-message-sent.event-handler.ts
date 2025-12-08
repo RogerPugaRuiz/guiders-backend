@@ -44,7 +44,7 @@ export class SendAIResponseOnMessageSentEventHandler
   async handle(event: MessageSentEvent): Promise<void> {
     const messageData = event.getMessageData();
 
-    // 1. Ignorar mensajes que no requieren respuesta de IA
+    // 1. Ignorar mensajes que no requieren respuesta de IA (checks básicos)
     if (this.shouldSkipMessage(event)) {
       return;
     }
@@ -69,7 +69,16 @@ export class SendAIResponseOnMessageSentEventHandler
       const chat = chatResult.unwrap();
       const chatPrimitives = chat.toPrimitives();
 
-      // 3. Obtener datos del visitante para siteId y companyId
+      // 3. IMPORTANTE: Solo responder a mensajes de visitantes
+      // Comparamos senderId con visitorId del chat
+      if (messageData.senderId !== chatPrimitives.visitorId) {
+        this.logger.debug(
+          `Ignorando mensaje de comercial (senderId: ${messageData.senderId} !== visitorId: ${chatPrimitives.visitorId})`,
+        );
+        return;
+      }
+
+      // 4. Obtener datos del visitante para siteId y companyId
       const visitorResult = await this.visitorRepository.findById(
         VisitorId.create(chatPrimitives.visitorId),
       );
@@ -92,10 +101,10 @@ export class SendAIResponseOnMessageSentEventHandler
         return;
       }
 
-      // 4. Obtener configuración de IA para el sitio
+      // 5. Obtener configuración de IA para el sitio
       const config = await this.getOrCreateConfig(siteId, tenantId);
 
-      // 5. Verificar si la IA debe responder
+      // 6. Verificar si la IA debe responder
       const hasCommercialAssigned = Boolean(
         chatPrimitives.assignedCommercialId,
       );
@@ -107,7 +116,7 @@ export class SendAIResponseOnMessageSentEventHandler
         return;
       }
 
-      // 6. Generar respuesta de IA
+      // 7. Generar respuesta de IA
       this.logger.log(`Generando respuesta IA para chat ${messageData.chatId}`);
 
       await this.commandBus.execute(
@@ -130,7 +139,8 @@ export class SendAIResponseOnMessageSentEventHandler
   }
 
   /**
-   * Determina si el mensaje debe ser ignorado
+   * Determina si el mensaje debe ser ignorado (checks básicos)
+   * La verificación de visitante vs comercial se hace en handle() comparando con visitorId
    */
   private shouldSkipMessage(event: MessageSentEvent): boolean {
     const messageData = event.getMessageData();
@@ -155,16 +165,10 @@ export class SendAIResponseOnMessageSentEventHandler
       return true;
     }
 
-    // Ignorar mensajes de comerciales (senderId no es visitante)
-    // Los comerciales tienen senderId que empieza con patrón específico
-    // o están en la lista de comerciales asignados
-    if (
-      messageData.senderId === 'ai' ||
-      messageData.senderId === 'system' ||
-      messageData.senderId.includes('commercial')
-    ) {
+    // Ignorar mensajes con senderIds especiales
+    if (messageData.senderId === 'ai' || messageData.senderId === 'system') {
       this.logger.debug(
-        `Ignorando mensaje de no-visitante ${messageData.messageId}`,
+        `Ignorando mensaje con senderId especial ${messageData.messageId}`,
       );
       return true;
     }

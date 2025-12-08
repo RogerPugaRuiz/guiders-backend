@@ -2,6 +2,9 @@
  * Value Object para la configuración de LLM por sitio
  */
 
+import { ToolConfigPrimitives } from '../tool-definitions';
+import { ToolConfig } from './tool-config';
+
 /**
  * Primitivos de la configuración LLM
  */
@@ -17,8 +20,25 @@ export interface LlmSiteConfigPrimitives {
   maxResponseTokens: number;
   temperature: number;
   responseDelayMs: number;
+  toolConfig?: ToolConfigPrimitives | null;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+/**
+ * Tipo para actualizaciones parciales (toolConfig acepta Partial)
+ */
+export interface LlmSiteConfigUpdateParams {
+  aiAutoResponseEnabled?: boolean;
+  aiSuggestionsEnabled?: boolean;
+  aiRespondWithCommercial?: boolean;
+  preferredProvider?: string;
+  preferredModel?: string;
+  customSystemPrompt?: string | null;
+  maxResponseTokens?: number;
+  temperature?: number;
+  responseDelayMs?: number;
+  toolConfig?: Partial<ToolConfigPrimitives> | null;
 }
 
 /**
@@ -37,6 +57,7 @@ export class LlmSiteConfig {
     private readonly _maxResponseTokens: number,
     private readonly _temperature: number,
     private readonly _responseDelayMs: number,
+    private readonly _toolConfig: ToolConfig,
     private readonly _createdAt: Date,
     private readonly _updatedAt: Date,
   ) {}
@@ -58,6 +79,7 @@ export class LlmSiteConfig {
       500, // maxResponseTokens
       0.7, // temperature
       1000, // responseDelayMs
+      ToolConfig.createDefault(), // toolConfig
       now,
       now,
     );
@@ -79,6 +101,7 @@ export class LlmSiteConfig {
       props.maxResponseTokens,
       props.temperature,
       props.responseDelayMs,
+      ToolConfig.fromPrimitives(props.toolConfig),
       props.createdAt || new Date(),
       props.updatedAt || new Date(),
     );
@@ -107,6 +130,7 @@ export class LlmSiteConfig {
       maxResponseTokens: this._maxResponseTokens,
       temperature: this._temperature,
       responseDelayMs: this._responseDelayMs,
+      toolConfig: this._toolConfig.toPrimitives(),
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -157,6 +181,10 @@ export class LlmSiteConfig {
     return this._responseDelayMs;
   }
 
+  get toolConfig(): ToolConfig {
+    return this._toolConfig;
+  }
+
   /**
    * Verifica si la IA debe responder automáticamente
    */
@@ -176,7 +204,17 @@ export class LlmSiteConfig {
   /**
    * Crea una copia con propiedades actualizadas
    */
-  update(updates: Partial<LlmSiteConfigPrimitives>): LlmSiteConfig {
+  update(updates: LlmSiteConfigUpdateParams): LlmSiteConfig {
+    // Para toolConfig, hacer merge parcial si se proporciona
+    let newToolConfig = this._toolConfig;
+    if (updates.toolConfig !== undefined) {
+      const currentToolConfig = this._toolConfig.toPrimitives();
+      newToolConfig = ToolConfig.fromPrimitives({
+        ...currentToolConfig,
+        ...updates.toolConfig,
+      });
+    }
+
     return new LlmSiteConfig(
       this._siteId,
       this._companyId,
@@ -191,6 +229,37 @@ export class LlmSiteConfig {
       updates.maxResponseTokens ?? this._maxResponseTokens,
       updates.temperature ?? this._temperature,
       updates.responseDelayMs ?? this._responseDelayMs,
+      newToolConfig,
+      this._createdAt,
+      new Date(),
+    );
+  }
+
+  /**
+   * Crea una copia con toolConfig actualizado parcialmente
+   */
+  updateToolConfig(
+    toolConfigUpdates: Partial<ToolConfigPrimitives>,
+  ): LlmSiteConfig {
+    const currentToolConfig = this._toolConfig.toPrimitives();
+    const newToolConfig = ToolConfig.fromPrimitives({
+      ...currentToolConfig,
+      ...toolConfigUpdates,
+    });
+
+    return new LlmSiteConfig(
+      this._siteId,
+      this._companyId,
+      this._aiAutoResponseEnabled,
+      this._aiSuggestionsEnabled,
+      this._aiRespondWithCommercial,
+      this._preferredProvider,
+      this._preferredModel,
+      this._customSystemPrompt,
+      this._maxResponseTokens,
+      this._temperature,
+      this._responseDelayMs,
+      newToolConfig,
       this._createdAt,
       new Date(),
     );

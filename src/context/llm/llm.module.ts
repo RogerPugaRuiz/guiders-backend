@@ -6,6 +6,7 @@
  * - Sugerencias de respuesta para comerciales
  * - Configuración por sitio
  * - Factory pattern para múltiples proveedores
+ * - Tool use (function calling) para acceso a la web
  */
 
 import { Module, forwardRef } from '@nestjs/common';
@@ -17,10 +18,12 @@ import { HttpModule } from '@nestjs/axios';
 // Módulos de dependencias
 import { ConversationsV2Module } from '../conversations-v2/conversations-v2.module';
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
+import { CompanyModule } from '../company/company.module';
 
 // Domain
 import { LLM_PROVIDER_SERVICE } from './domain/services/llm-provider.service';
 import { LLM_CONTEXT_BUILDER_SERVICE } from './domain/services/llm-context-builder.service';
+import { TOOL_EXECUTOR_SERVICE } from './domain/services/tool-executor.service';
 import { LLM_CONFIG_REPOSITORY } from './domain/llm-config.repository';
 
 // Infrastructure - Providers
@@ -28,6 +31,8 @@ import { GroqLlmProviderServiceProvider } from './infrastructure/providers/groq-
 
 // Infrastructure - Services
 import { LlmContextBuilderServiceImpl } from './infrastructure/services/llm-context-builder.service.impl';
+import { WebContentFetcherService } from './infrastructure/services/web-content-fetcher.service';
+import { ToolExecutorServiceProvider } from './infrastructure/services/tool-executor.service.impl';
 
 // Infrastructure - Persistence
 import { MongoLlmConfigRepositoryProvider } from './infrastructure/persistence/mongo-llm-config.repository.impl';
@@ -35,13 +40,19 @@ import {
   LlmSiteConfigSchema,
   LlmSiteConfigSchemaDefinition,
 } from './infrastructure/schemas/llm-site-config.schema';
+import {
+  WebContentCacheSchema,
+  WebContentCacheSchemaDefinition,
+} from './infrastructure/schemas/web-content-cache.schema';
 
 // Infrastructure - Controllers
 import { LlmConfigController } from './infrastructure/controllers/llm-config.controller';
+import { LlmSuggestionsController } from './infrastructure/controllers/llm-suggestions.controller';
 
 // Application - Command Handlers
 import { GenerateAIResponseCommandHandler } from './application/commands/generate-ai-response.command-handler';
 import { GenerateSuggestionCommandHandler } from './application/commands/generate-suggestion.command-handler';
+import { ImproveTextCommandHandler } from './application/commands/improve-text.command-handler';
 
 // Application - Event Handlers
 import { SendAIResponseOnMessageSentEventHandler } from './application/events/send-ai-response-on-message-sent.event-handler';
@@ -56,6 +67,7 @@ import { BffSessionAuthService } from '../shared/infrastructure/services/bff-ses
 const CommandHandlers = [
   GenerateAIResponseCommandHandler,
   GenerateSuggestionCommandHandler,
+  ImproveTextCommandHandler,
 ];
 
 // Event Handlers
@@ -68,12 +80,17 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     HttpModule,
     MongooseModule.forFeature([
       { name: LlmSiteConfigSchema.name, schema: LlmSiteConfigSchemaDefinition },
+      {
+        name: WebContentCacheSchema.name,
+        schema: WebContentCacheSchemaDefinition,
+      },
     ]),
     // Dependencias circulares con forwardRef
     forwardRef(() => ConversationsV2Module),
     forwardRef(() => VisitorsV2Module),
+    forwardRef(() => CompanyModule),
   ],
-  controllers: [LlmConfigController],
+  controllers: [LlmConfigController, LlmSuggestionsController],
   providers: [
     // Guards y Auth
     DualAuthGuard,
@@ -90,6 +107,10 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
       useClass: LlmContextBuilderServiceImpl,
     },
 
+    // Tool Executor (para function calling)
+    WebContentFetcherService,
+    ToolExecutorServiceProvider,
+
     // Config Repository
     MongoLlmConfigRepositoryProvider,
 
@@ -102,6 +123,7 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
   exports: [
     LLM_PROVIDER_SERVICE,
     LLM_CONTEXT_BUILDER_SERVICE,
+    TOOL_EXECUTOR_SERVICE,
     LLM_CONFIG_REPOSITORY,
   ],
 })

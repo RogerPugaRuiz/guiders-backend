@@ -63,7 +63,7 @@ export class SuggestionResponseDto {
 }
 
 /**
- * DTO para solicitar sugerencias via WebSocket
+ * DTO para solicitar sugerencias via WebSocket o REST
  */
 export class RequestSuggestionsDto {
   @ApiProperty({
@@ -72,6 +72,14 @@ export class RequestSuggestionsDto {
   })
   @IsString()
   chatId: string;
+
+  @ApiPropertyOptional({
+    description: 'ID del sitio (opcional si está disponible en el JWT)',
+    example: '550e8400-e29b-41d4-a716-446655440001',
+  })
+  @IsString()
+  @IsOptional()
+  siteId?: string;
 
   @ApiPropertyOptional({
     description: 'Contenido del último mensaje del visitante',

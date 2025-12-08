@@ -8,10 +8,94 @@ import {
   IsBoolean,
   IsNumber,
   IsOptional,
+  IsArray,
   Min,
   Max,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+/**
+ * DTO para configuración de herramientas de IA (Tool Use)
+ */
+export class ToolConfigDto {
+  @ApiPropertyOptional({
+    description: 'Habilitar fetch de páginas web del sitio',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  fetchPageEnabled?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Rutas permitidas para fetch (vacío = todas las rutas)',
+    example: ['/productos', '/servicios', '/contacto'],
+    default: [],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  allowedPaths?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Máximo de tool calls por conversación',
+    example: 3,
+    minimum: 1,
+    maximum: 10,
+    default: 3,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  @Max(10)
+  maxIterations?: number;
+
+  @ApiPropertyOptional({
+    description: 'Timeout para fetch de páginas (ms)',
+    example: 10000,
+    minimum: 1000,
+    maximum: 30000,
+    default: 10000,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(1000)
+  @Max(30000)
+  fetchTimeoutMs?: number;
+
+  @ApiPropertyOptional({
+    description: 'Habilitar cache de contenido obtenido',
+    example: true,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  cacheEnabled?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Tiempo de vida del cache (segundos)',
+    example: 3600,
+    minimum: 60,
+    maximum: 86400,
+    default: 3600,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(60)
+  @Max(86400)
+  cacheTtlSeconds?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'URL base para Tool Use (opcional). Sobreescribe el canonicalDomain del sitio. Útil para desarrollo local con puerto (ej: http://localhost:8090)',
+    example: 'http://localhost:8090',
+  })
+  @IsString()
+  @IsOptional()
+  baseUrl?: string;
+}
 
 /**
  * DTO de respuesta de configuración LLM
@@ -83,6 +167,12 @@ export class LlmConfigResponseDto {
     example: 1000,
   })
   responseDelayMs: number;
+
+  @ApiPropertyOptional({
+    description: 'Configuración de herramientas de IA (Tool Use)',
+    type: ToolConfigDto,
+  })
+  toolConfig?: ToolConfigDto;
 
   @ApiPropertyOptional({
     description: 'Fecha de creación',
@@ -185,6 +275,15 @@ export class UpdateLlmConfigDto {
   @Min(0)
   @Max(5000)
   responseDelayMs?: number;
+
+  @ApiPropertyOptional({
+    description: 'Configuración de herramientas de IA (Tool Use)',
+    type: ToolConfigDto,
+  })
+  @ValidateNested()
+  @Type(() => ToolConfigDto)
+  @IsOptional()
+  toolConfig?: ToolConfigDto;
 }
 
 /**
