@@ -46,6 +46,7 @@ export class MongoWhiteLabelConfigRepositoryImpl
             colors: primitives.colors,
             branding: primitives.branding,
             typography: primitives.typography,
+            theme: primitives.theme,
             updatedAt: new Date(),
           },
           $setOnInsert: {
@@ -102,6 +103,7 @@ export class MongoWhiteLabelConfigRepositoryImpl
           customFontName: doc.typography?.customFontName || null,
           customFontFiles: doc.typography?.customFontFiles || [],
         },
+        theme: (doc.theme as 'light' | 'dark' | 'system') || 'light',
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
       });

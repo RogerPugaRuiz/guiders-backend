@@ -170,6 +170,7 @@ export class WhiteLabelConfigController {
       colors: dto.colors,
       branding: dto.branding,
       typography: dto.typography,
+      theme: dto.theme,
     });
 
     const saveResult = await this.configRepository.save(updatedConfig);
@@ -528,6 +529,7 @@ export class WhiteLabelConfigController {
         customFontName: primitives.typography.customFontName || null,
         customFontFiles: primitives.typography.customFontFiles,
       },
+      theme: primitives.theme,
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
     };

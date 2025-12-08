@@ -235,6 +235,13 @@ export class WhiteLabelConfigResponseDto {
     customFontFiles: FontFileDto[];
   };
 
+  @ApiProperty({
+    description: 'Tema de la interfaz',
+    example: 'light',
+    enum: ['light', 'dark', 'system'],
+  })
+  theme: string;
+
   @ApiPropertyOptional({
     description: 'Fecha de creación',
   })
@@ -245,6 +252,12 @@ export class WhiteLabelConfigResponseDto {
   })
   updatedAt?: Date;
 }
+
+/**
+ * Temas disponibles
+ */
+export const ALLOWED_THEMES = ['light', 'dark', 'system'] as const;
+export type AllowedTheme = (typeof ALLOWED_THEMES)[number];
 
 /**
  * DTO para actualizar configuración White Label
@@ -276,6 +289,18 @@ export class UpdateWhiteLabelConfigDto {
   @ValidateNested()
   @Type(() => TypographyDto)
   typography?: TypographyDto;
+
+  @ApiPropertyOptional({
+    description: 'Tema de la interfaz',
+    example: 'light',
+    enum: ALLOWED_THEMES,
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn(ALLOWED_THEMES, {
+    message: `theme debe ser uno de: ${ALLOWED_THEMES.join(', ')}`,
+  })
+  theme?: AllowedTheme;
 }
 
 /**

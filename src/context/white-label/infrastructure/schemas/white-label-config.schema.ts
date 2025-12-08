@@ -96,6 +96,9 @@ export class WhiteLabelConfigSchema {
   @Prop({ type: WhiteLabelTypographySchema, default: () => ({}) })
   typography: WhiteLabelTypographySchema;
 
+  @Prop({ type: String, default: 'light', enum: ['light', 'dark', 'system'] })
+  theme: string;
+
   @Prop({ type: Date })
   createdAt: Date;
 

@@ -41,6 +41,12 @@ export interface WhiteLabelTypographyPrimitives {
 }
 
 /**
+ * Temas disponibles
+ */
+export const ALLOWED_THEMES = ['light', 'dark', 'system'] as const;
+export type AllowedTheme = (typeof ALLOWED_THEMES)[number];
+
+/**
  * Primitivos de la configuración White Label
  */
 export interface WhiteLabelConfigPrimitives {
@@ -49,6 +55,7 @@ export interface WhiteLabelConfigPrimitives {
   colors: WhiteLabelColorsPrimitives;
   branding: WhiteLabelBrandingPrimitives;
   typography: WhiteLabelTypographyPrimitives;
+  theme: AllowedTheme;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -89,6 +96,11 @@ export const ALLOWED_FONT_FAMILIES = [
 export type AllowedFontFamily = (typeof ALLOWED_FONT_FAMILIES)[number];
 
 /**
+ * Tema por defecto
+ */
+const DEFAULT_THEME: AllowedTheme = 'light';
+
+/**
  * Value Object para configuración White Label por empresa
  */
 export class WhiteLabelConfig {
@@ -98,6 +110,7 @@ export class WhiteLabelConfig {
     private readonly _colors: WhiteLabelColorsPrimitives,
     private readonly _branding: WhiteLabelBrandingPrimitives,
     private readonly _typography: WhiteLabelTypographyPrimitives,
+    private readonly _theme: AllowedTheme,
     private readonly _createdAt: Date,
     private readonly _updatedAt: Date,
   ) {}
@@ -121,6 +134,7 @@ export class WhiteLabelConfig {
         brandName,
       },
       { ...DEFAULT_TYPOGRAPHY },
+      DEFAULT_THEME,
       now,
       now,
     );
@@ -136,6 +150,7 @@ export class WhiteLabelConfig {
       props.colors,
       props.branding,
       props.typography,
+      props.theme || DEFAULT_THEME,
       props.createdAt || new Date(),
       props.updatedAt || new Date(),
     );
@@ -161,6 +176,7 @@ export class WhiteLabelConfig {
         ...this._typography,
         customFontFiles: [...this._typography.customFontFiles],
       },
+      theme: this._theme,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };
@@ -190,6 +206,10 @@ export class WhiteLabelConfig {
     };
   }
 
+  get theme(): AllowedTheme {
+    return this._theme;
+  }
+
   get createdAt(): Date {
     return this._createdAt;
   }
@@ -205,6 +225,7 @@ export class WhiteLabelConfig {
     colors?: Partial<WhiteLabelColorsPrimitives>;
     branding?: Partial<WhiteLabelBrandingPrimitives>;
     typography?: Partial<WhiteLabelTypographyPrimitives>;
+    theme?: AllowedTheme;
   }): WhiteLabelConfig {
     return new WhiteLabelConfig(
       this._id,
@@ -222,6 +243,7 @@ export class WhiteLabelConfig {
               this._typography.customFontFiles,
           }
         : this._typography,
+      updates.theme ?? this._theme,
       this._createdAt,
       new Date(),
     );
