@@ -784,7 +784,7 @@ describe('ChatV2Controller (e2e)', () => {
     it('debe ejecutar GetChatsWithFiltersQuery correctamente', async () => {
       const query = GetChatsWithFiltersQuery.create({
         userId: 'user-id',
-        userRole: 'commercial',
+        userRoles: ['commercial'],
         filters: {},
         sort: {
           field: 'createdAt',
