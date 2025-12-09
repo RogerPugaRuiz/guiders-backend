@@ -96,7 +96,7 @@ export class WhiteLabelConfigController {
   }
 
   @Get()
-  @Roles(['admin', 'superadmin'])
+  @Roles(['admin', 'superadmin', 'commercial'])
   @ApiOperation({ summary: 'Obtener configuración White Label de una empresa' })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({
