@@ -436,7 +436,7 @@ export class VisitorV2Controller {
 
   @Get(':visitorId/site')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener el siteId de un visitante',
@@ -444,7 +444,7 @@ export class VisitorV2Controller {
       'Retorna el siteId y tenantId asociados a un visitante específico.\n\n' +
       '**Requisitos:**\n' +
       '- Autenticación: JWT Bearer token o cookie de sesión BFF\n' +
-      '- Rol requerido: `commercial`',
+      '- Rol requerido: `commercial` o `admin`',
   })
   @ApiParam({
     name: 'visitorId',
@@ -462,7 +462,7 @@ export class VisitorV2Controller {
   })
   @ApiResponse({
     status: 403,
-    description: 'Sin permisos - Se requiere rol de comercial',
+    description: 'Sin permisos - Se requiere rol de commercial o admin',
   })
   @ApiResponse({
     status: 404,
