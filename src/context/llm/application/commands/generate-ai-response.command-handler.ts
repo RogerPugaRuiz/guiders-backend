@@ -30,7 +30,7 @@ import {
   MESSAGE_V2_REPOSITORY,
 } from 'src/context/conversations-v2/domain/message.repository';
 import { Message } from 'src/context/conversations-v2/domain/entities/message.aggregate';
-import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../../domain/value-objects/llm-company-config';
 import {
   ToolExecutionContext,
   LlmAssistantMessageWithToolCalls,
@@ -66,18 +66,14 @@ export class GenerateAIResponseCommandHandler
     );
 
     try {
-      // 1. Obtener configuración del sitio
-      const config = await this.getOrCreateConfig(
-        command.siteId,
-        command.companyId,
-      );
+      // 1. Obtener configuración de la empresa
+      const config = await this.getOrCreateConfig(command.companyId);
 
       // 2. Construir contexto para el LLM
       const contextResult = await this.contextBuilder.buildContext({
         chatId: command.chatId,
         visitorId: command.visitorId,
         companyId: command.companyId,
-        siteId: command.siteId,
         includeVisitorInfo: true,
         maxHistoryMessages: 20,
         customSystemPrompt: config.customSystemPrompt ?? undefined,
@@ -102,7 +98,7 @@ export class GenerateAIResponseCommandHandler
 
       // DEBUG: Log para diagnosticar Tool Use
       this.logger.debug(
-        `[Tool Use Debug] siteId=${command.siteId}, fetchPageEnabled=${toolConfig.fetchPageEnabled}, hasToolsEnabled=${hasToolsEnabled}`,
+        `[Tool Use Debug] companyId=${command.companyId}, fetchPageEnabled=${toolConfig.fetchPageEnabled}, hasToolsEnabled=${hasToolsEnabled}`,
       );
       this.logger.debug(
         `[Tool Use Debug] toolConfig=${JSON.stringify(toolConfig.toPrimitives())}`,
@@ -205,7 +201,7 @@ export class GenerateAIResponseCommandHandler
    */
   private async generateWithTools(
     command: GenerateAIResponseCommand,
-    config: LlmSiteConfig,
+    config: LlmCompanyConfig,
     systemPrompt: string,
     conversationHistory: Array<{
       role: 'system' | 'user' | 'assistant';
@@ -324,7 +320,7 @@ export class GenerateAIResponseCommandHandler
    */
   private async buildToolContext(
     command: GenerateAIResponseCommand,
-    config: LlmSiteConfig,
+    config: LlmCompanyConfig,
   ): Promise<ToolExecutionContext> {
     const toolConfigPrimitives = config.toolConfig.toPrimitives();
 
@@ -335,7 +331,6 @@ export class GenerateAIResponseCommandHandler
         `[Tool Use Debug] Usando baseUrl de toolConfig: "${toolConfigPrimitives.baseUrl}"`,
       );
       return {
-        siteId: command.siteId,
         companyId: command.companyId,
         baseDomain: toolConfigPrimitives.baseUrl,
         allowedDomains: [],
@@ -343,7 +338,7 @@ export class GenerateAIResponseCommandHandler
       };
     }
 
-    // Obtener información del sitio desde canonicalDomain
+    // Obtener información de los sitios de la empresa
     let baseDomain = '';
     let allowedDomains: string[] = [];
 
@@ -352,27 +347,34 @@ export class GenerateAIResponseCommandHandler
         new GetCompanySitesQuery(command.companyId),
       );
 
-      if (companySitesResult?.sites) {
-        // Buscar el sitio específico por ID
-        const site = companySitesResult.sites.find(
-          (s: { id: string }) => s.id === command.siteId,
-        );
+      if (companySitesResult?.sites && companySitesResult.sites.length > 0) {
+        // Usar el primer sitio de la empresa como dominio base
+        const site = companySitesResult.sites[0];
+        baseDomain = site.canonicalDomain || '';
+        allowedDomains = site.domainAliases || [];
 
-        if (site) {
-          baseDomain = site.canonicalDomain || '';
-          allowedDomains = site.domainAliases || [];
-        }
+        // Agregar todos los dominios de todos los sitios como permitidos
+        companySitesResult.sites.forEach(
+          (s: { canonicalDomain?: string; domainAliases?: string[] }) => {
+            if (s.canonicalDomain) {
+              allowedDomains.push(s.canonicalDomain);
+            }
+            if (s.domainAliases) {
+              allowedDomains.push(...s.domainAliases);
+            }
+          },
+        );
       }
     } catch (error) {
       this.logger.warn(
-        `No se pudo obtener información del sitio ${command.siteId}: ${error}`,
+        `No se pudo obtener información de los sitios de la empresa ${command.companyId}: ${error}`,
       );
     }
 
     // Si no tenemos dominio, usar un fallback
     if (!baseDomain) {
       this.logger.warn(
-        `No se encontró dominio para sitio ${command.siteId}, tools pueden no funcionar`,
+        `No se encontró dominio para empresa ${command.companyId}, tools pueden no funcionar`,
       );
     }
 
@@ -381,7 +383,6 @@ export class GenerateAIResponseCommandHandler
     );
 
     return {
-      siteId: command.siteId,
       companyId: command.companyId,
       baseDomain,
       allowedDomains,
@@ -390,21 +391,22 @@ export class GenerateAIResponseCommandHandler
   }
 
   /**
-   * Obtiene la configuración del sitio o crea una por defecto
+   * Obtiene la configuración de la empresa o crea una por defecto
    */
   private async getOrCreateConfig(
-    siteId: string,
     companyId: string,
-  ): Promise<LlmSiteConfig> {
-    const configResult = await this.configRepository.findBySiteId(siteId);
+  ): Promise<LlmCompanyConfig> {
+    const configResult = await this.configRepository.findByCompanyId(companyId);
 
     if (configResult.isOk()) {
       return configResult.unwrap();
     }
 
     // Si no existe, crear configuración por defecto
-    this.logger.debug(`Creando configuración por defecto para sitio ${siteId}`);
-    const defaultConfig = LlmSiteConfig.createDefault(siteId, companyId);
+    this.logger.debug(
+      `Creando configuración por defecto para empresa ${companyId}`,
+    );
+    const defaultConfig = LlmCompanyConfig.createDefault(companyId);
     await this.configRepository.save(defaultConfig);
 
     return defaultConfig;

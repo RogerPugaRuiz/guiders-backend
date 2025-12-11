@@ -4,38 +4,33 @@
 
 import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
-import { LlmSiteConfig } from './value-objects/llm-site-config';
+import { LlmCompanyConfig } from './value-objects/llm-company-config';
 
 /**
  * Interface del repositorio de configuración LLM
  */
 export interface ILlmConfigRepository {
   /**
-   * Guarda o actualiza la configuración de un sitio
+   * Guarda o actualiza la configuración de una empresa
    */
-  save(config: LlmSiteConfig): Promise<Result<void, DomainError>>;
+  save(config: LlmCompanyConfig): Promise<Result<void, DomainError>>;
 
   /**
-   * Busca la configuración por ID de sitio
-   */
-  findBySiteId(siteId: string): Promise<Result<LlmSiteConfig, DomainError>>;
-
-  /**
-   * Busca todas las configuraciones de una compañía
+   * Busca la configuración por ID de empresa
    */
   findByCompanyId(
     companyId: string,
-  ): Promise<Result<LlmSiteConfig[], DomainError>>;
+  ): Promise<Result<LlmCompanyConfig, DomainError>>;
 
   /**
-   * Elimina la configuración de un sitio
+   * Elimina la configuración de una empresa
    */
-  delete(siteId: string): Promise<Result<void, DomainError>>;
+  delete(companyId: string): Promise<Result<void, DomainError>>;
 
   /**
-   * Verifica si existe configuración para un sitio
+   * Verifica si existe configuración para una empresa
    */
-  exists(siteId: string): Promise<Result<boolean, DomainError>>;
+  exists(companyId: string): Promise<Result<boolean, DomainError>>;
 }
 
 /** Símbolo para inyección de dependencias */

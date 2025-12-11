@@ -6,7 +6,6 @@ export class GenerateAIResponseCommand {
   constructor(
     public readonly chatId: string,
     public readonly visitorId: string,
-    public readonly siteId: string,
     public readonly companyId: string,
     public readonly triggerMessageId: string,
   ) {}

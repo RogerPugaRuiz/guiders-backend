@@ -77,23 +77,21 @@ export interface ToolExecutionResult {
 
 /**
  * Contexto para la ejecución de tools
- * Contiene información del sitio para validación de URLs
+ * Contiene información de la empresa para validación de URLs
  */
 export interface ToolExecutionContext {
-  /** ID del sitio */
-  siteId: string;
   /** ID de la compañía */
   companyId: string;
-  /** Dominio canónico del sitio (ej: www.ejemplo.com) */
+  /** Dominio canónico del sitio principal (ej: www.ejemplo.com) */
   baseDomain: string;
-  /** Dominios alias permitidos */
+  /** Dominios alias permitidos (de todos los sitios de la empresa) */
   allowedDomains: string[];
-  /** Configuración de tools del sitio */
+  /** Configuración de tools de la empresa */
   toolConfig: ToolConfigPrimitives;
 }
 
 /**
- * Configuración de tools por sitio
+ * Configuración de tools por empresa
  */
 export interface ToolConfigPrimitives {
   /** Habilitar fetch de páginas web */

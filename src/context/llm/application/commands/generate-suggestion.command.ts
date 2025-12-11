@@ -6,7 +6,7 @@ export class GenerateSuggestionCommand {
   constructor(
     public readonly chatId: string,
     public readonly commercialId: string,
-    public readonly siteId: string,
+    public readonly companyId: string,
     public readonly lastMessageContent?: string,
   ) {}
 }

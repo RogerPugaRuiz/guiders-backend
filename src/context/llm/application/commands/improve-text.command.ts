@@ -6,6 +6,6 @@ export class ImproveTextCommand {
   constructor(
     public readonly text: string,
     public readonly userId: string,
-    public readonly siteId: string,
+    public readonly companyId: string,
   ) {}
 }

@@ -74,12 +74,12 @@ export class RequestSuggestionsDto {
   chatId: string;
 
   @ApiPropertyOptional({
-    description: 'ID del sitio (opcional si está disponible en el JWT)',
+    description: 'ID de la compañía (opcional si está disponible en el JWT)',
     example: '550e8400-e29b-41d4-a716-446655440001',
   })
   @IsString()
   @IsOptional()
-  siteId?: string;
+  companyId?: string;
 
   @ApiPropertyOptional({
     description: 'Contenido del último mensaje del visitante',

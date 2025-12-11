@@ -31,7 +31,7 @@ import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
 } from '../../domain/llm-config.repository';
-import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../../domain/value-objects/llm-company-config';
 import {
   LlmConfigResponseDto,
   UpdateLlmConfigDto,
@@ -143,10 +143,10 @@ export class LlmConfigController {
     };
   }
 
-  @Get(':siteId')
+  @Get(':companyId')
   @Roles(['admin', 'superadmin'])
-  @ApiOperation({ summary: 'Obtener configuración LLM de un sitio' })
-  @ApiParam({ name: 'siteId', description: 'ID del sitio' })
+  @ApiOperation({ summary: 'Obtener configuración LLM de una empresa' })
+  @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({
     status: 200,
     description: 'Configuración encontrada',
@@ -154,15 +154,15 @@ export class LlmConfigController {
   })
   @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
   async getConfig(
-    @Param('siteId') siteId: string,
+    @Param('companyId') companyId: string,
   ): Promise<LlmConfigResponseDto> {
-    this.logger.debug(`Obteniendo configuración para sitio ${siteId}`);
+    this.logger.debug(`Obteniendo configuración para empresa ${companyId}`);
 
-    const result = await this.configRepository.findBySiteId(siteId);
+    const result = await this.configRepository.findByCompanyId(companyId);
 
     if (result.isErr()) {
       // Si no existe, devolver configuración por defecto
-      const defaultConfig = LlmSiteConfig.createDefault(siteId, '');
+      const defaultConfig = LlmCompanyConfig.createDefault(companyId);
       return this.toResponseDto(defaultConfig);
     }
 
@@ -171,7 +171,7 @@ export class LlmConfigController {
 
   @Post()
   @Roles(['admin', 'superadmin'])
-  @ApiOperation({ summary: 'Crear configuración LLM para un sitio' })
+  @ApiOperation({ summary: 'Crear configuración LLM para una empresa' })
   @ApiResponse({
     status: 201,
     description: 'Configuración creada',
@@ -181,10 +181,9 @@ export class LlmConfigController {
   async createConfig(
     @Body() dto: CreateLlmConfigDto,
   ): Promise<LlmConfigResponseDto> {
-    this.logger.debug(`Creando configuración para sitio ${dto.siteId}`);
+    this.logger.debug(`Creando configuración para empresa ${dto.companyId}`);
 
-    const config = LlmSiteConfig.create({
-      siteId: dto.siteId,
+    const config = LlmCompanyConfig.create({
       companyId: dto.companyId,
       aiAutoResponseEnabled: dto.aiAutoResponseEnabled ?? false,
       aiSuggestionsEnabled: dto.aiSuggestionsEnabled ?? false,
@@ -217,10 +216,10 @@ export class LlmConfigController {
     return this.toResponseDto(config);
   }
 
-  @Patch(':siteId')
+  @Patch(':companyId')
   @Roles(['admin', 'superadmin'])
-  @ApiOperation({ summary: 'Actualizar configuración LLM de un sitio' })
-  @ApiParam({ name: 'siteId', description: 'ID del sitio' })
+  @ApiOperation({ summary: 'Actualizar configuración LLM de una empresa' })
+  @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({
     status: 200,
     description: 'Configuración actualizada',
@@ -228,20 +227,21 @@ export class LlmConfigController {
   })
   @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
   async updateConfig(
-    @Param('siteId') siteId: string,
+    @Param('companyId') companyId: string,
     @Body() dto: UpdateLlmConfigDto,
   ): Promise<LlmConfigResponseDto> {
-    this.logger.debug(`Actualizando configuración para sitio ${siteId}`);
+    this.logger.debug(`Actualizando configuración para empresa ${companyId}`);
 
     // Obtener configuración existente o crear una por defecto
-    let config: LlmSiteConfig;
-    const existingResult = await this.configRepository.findBySiteId(siteId);
+    let config: LlmCompanyConfig;
+    const existingResult =
+      await this.configRepository.findByCompanyId(companyId);
 
     if (existingResult.isOk()) {
       config = existingResult.unwrap();
     } else {
       // Crear configuración por defecto si no existe
-      config = LlmSiteConfig.createDefault(siteId, '');
+      config = LlmCompanyConfig.createDefault(companyId);
     }
 
     // Aplicar actualizaciones
@@ -275,17 +275,17 @@ export class LlmConfigController {
     return this.toResponseDto(updatedConfig);
   }
 
-  @Delete(':siteId')
+  @Delete(':companyId')
   @Roles(['admin', 'superadmin'])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar configuración LLM de un sitio' })
-  @ApiParam({ name: 'siteId', description: 'ID del sitio' })
+  @ApiOperation({ summary: 'Eliminar configuración LLM de una empresa' })
+  @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Configuración eliminada' })
   @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
-  async deleteConfig(@Param('siteId') siteId: string): Promise<void> {
-    this.logger.debug(`Eliminando configuración para sitio ${siteId}`);
+  async deleteConfig(@Param('companyId') companyId: string): Promise<void> {
+    this.logger.debug(`Eliminando configuración para empresa ${companyId}`);
 
-    const result = await this.configRepository.delete(siteId);
+    const result = await this.configRepository.delete(companyId);
 
     if (result.isErr()) {
       throw new Error(result.error.message);
@@ -293,13 +293,12 @@ export class LlmConfigController {
   }
 
   /**
-   * Convierte LlmSiteConfig a DTO de respuesta
+   * Convierte LlmCompanyConfig a DTO de respuesta
    */
-  private toResponseDto(config: LlmSiteConfig): LlmConfigResponseDto {
+  private toResponseDto(config: LlmCompanyConfig): LlmConfigResponseDto {
     const primitives = config.toPrimitives();
 
     return {
-      siteId: primitives.siteId,
       companyId: primitives.companyId,
       aiAutoResponseEnabled: primitives.aiAutoResponseEnabled,
       aiSuggestionsEnabled: primitives.aiSuggestionsEnabled,

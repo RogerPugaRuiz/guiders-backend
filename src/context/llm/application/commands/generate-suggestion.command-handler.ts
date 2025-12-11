@@ -18,7 +18,7 @@ import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
 } from '../../domain/llm-config.repository';
-import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../../domain/value-objects/llm-company-config';
 
 @CommandHandler(GenerateSuggestionCommand)
 export class GenerateSuggestionCommandHandler
@@ -46,11 +46,11 @@ export class GenerateSuggestionCommandHandler
 
     try {
       // 1. Verificar configuración
-      const config = await this.getConfig(command.siteId);
+      const config = await this.getConfig(command.companyId);
 
       if (!config.aiSuggestionsEnabled) {
         this.logger.debug(
-          `Sugerencias deshabilitadas para sitio ${command.siteId}`,
+          `Sugerencias deshabilitadas para empresa ${command.companyId}`,
         );
         return {
           suggestions: [],
@@ -122,17 +122,17 @@ export class GenerateSuggestionCommandHandler
   }
 
   /**
-   * Obtiene la configuración del sitio
+   * Obtiene la configuración de la empresa
    */
-  private async getConfig(siteId: string): Promise<LlmSiteConfig> {
-    const configResult = await this.configRepository.findBySiteId(siteId);
+  private async getConfig(companyId: string): Promise<LlmCompanyConfig> {
+    const configResult = await this.configRepository.findByCompanyId(companyId);
 
     if (configResult.isOk()) {
       return configResult.unwrap();
     }
 
     // Retornar config por defecto si no existe
-    return LlmSiteConfig.createDefault(siteId, '');
+    return LlmCompanyConfig.createDefault(companyId);
   }
 
   /**

@@ -37,9 +37,9 @@ import { ToolExecutorServiceProvider } from './infrastructure/services/tool-exec
 // Infrastructure - Persistence
 import { MongoLlmConfigRepositoryProvider } from './infrastructure/persistence/mongo-llm-config.repository.impl';
 import {
-  LlmSiteConfigSchema,
-  LlmSiteConfigSchemaDefinition,
-} from './infrastructure/schemas/llm-site-config.schema';
+  LlmCompanyConfigSchema,
+  LlmCompanyConfigSchemaDefinition,
+} from './infrastructure/schemas/llm-company-config.schema';
 import {
   WebContentCacheSchema,
   WebContentCacheSchemaDefinition,
@@ -79,7 +79,10 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     ConfigModule,
     HttpModule,
     MongooseModule.forFeature([
-      { name: LlmSiteConfigSchema.name, schema: LlmSiteConfigSchemaDefinition },
+      {
+        name: LlmCompanyConfigSchema.name,
+        schema: LlmCompanyConfigSchemaDefinition,
+      },
       {
         name: WebContentCacheSchema.name,
         schema: WebContentCacheSchemaDefinition,

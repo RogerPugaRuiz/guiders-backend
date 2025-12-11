@@ -38,7 +38,7 @@ import {
 interface AuthenticatedRequest extends Request {
   user: {
     id: string;
-    siteId?: string;
+    companyId?: string;
     roles?: string[];
   };
 }
@@ -68,7 +68,7 @@ export class LlmSuggestionsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Datos de entrada inválidos (falta chatId o siteId)',
+    description: 'Datos de entrada inválidos (falta chatId o companyId)',
   })
   @ApiResponse({
     status: 401,
@@ -83,12 +83,12 @@ export class LlmSuggestionsController {
     @Body() dto: RequestSuggestionsDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<SuggestionResponseDto> {
-    // Obtener siteId del JWT o del body
-    const siteId = req.user.siteId || dto.siteId;
+    // Obtener companyId del JWT o del body
+    const companyId = req.user.companyId || dto.companyId;
 
-    if (!siteId) {
+    if (!companyId) {
       throw new BadRequestException(
-        'El siteId es requerido (en el token o en el body)',
+        'El companyId es requerido (en el token o en el body)',
       );
     }
 
@@ -99,7 +99,7 @@ export class LlmSuggestionsController {
     const command = new GenerateSuggestionCommand(
       dto.chatId,
       req.user.id,
-      siteId,
+      companyId,
       dto.lastMessageContent,
     );
 
@@ -121,7 +121,7 @@ export class LlmSuggestionsController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Datos de entrada inválidos (falta text o siteId)',
+    description: 'Datos de entrada inválidos (falta text o companyId)',
   })
   @ApiResponse({
     status: 401,
@@ -136,12 +136,12 @@ export class LlmSuggestionsController {
     @Body() dto: ImproveTextDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<ImproveTextResponseDto> {
-    // Obtener siteId del JWT o del body
-    const siteId = req.user.siteId || dto.siteId;
+    // Obtener companyId del JWT o del body
+    const companyId = req.user.companyId || dto.companyId;
 
-    if (!siteId) {
+    if (!companyId) {
       throw new BadRequestException(
-        'El siteId es requerido (en el token o en el body)',
+        'El companyId es requerido (en el token o en el body)',
       );
     }
 
@@ -149,7 +149,7 @@ export class LlmSuggestionsController {
       `Mejorando texto para usuario ${req.user.id} (${dto.text.length} caracteres)`,
     );
 
-    const command = new ImproveTextCommand(dto.text, req.user.id, siteId);
+    const command = new ImproveTextCommand(dto.text, req.user.id, companyId);
 
     return this.commandBus.execute(command);
   }

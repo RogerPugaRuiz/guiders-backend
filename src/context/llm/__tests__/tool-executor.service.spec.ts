@@ -27,7 +27,6 @@ describe('ToolExecutorServiceImpl', () => {
   let mockCacheModel: jest.Mocked<Model<any>>;
 
   const defaultContext: ToolExecutionContext = {
-    siteId: 'site-123',
     companyId: 'company-456',
     baseDomain: 'example.com',
     allowedDomains: ['www.example.com'],

@@ -1,5 +1,5 @@
 /**
- * Value Object para la configuración de LLM por sitio
+ * Value Object para la configuración de LLM por empresa
  */
 
 import { ToolConfigPrimitives } from '../tool-definitions';
@@ -8,8 +8,7 @@ import { ToolConfig } from './tool-config';
 /**
  * Primitivos de la configuración LLM
  */
-export interface LlmSiteConfigPrimitives {
-  siteId: string;
+export interface LlmCompanyConfigPrimitives {
   companyId: string;
   aiAutoResponseEnabled: boolean;
   aiSuggestionsEnabled: boolean;
@@ -28,7 +27,7 @@ export interface LlmSiteConfigPrimitives {
 /**
  * Tipo para actualizaciones parciales (toolConfig acepta Partial)
  */
-export interface LlmSiteConfigUpdateParams {
+export interface LlmCompanyConfigUpdateParams {
   aiAutoResponseEnabled?: boolean;
   aiSuggestionsEnabled?: boolean;
   aiRespondWithCommercial?: boolean;
@@ -42,11 +41,10 @@ export interface LlmSiteConfigUpdateParams {
 }
 
 /**
- * Value Object para configuración de LLM por sitio
+ * Value Object para configuración de LLM por empresa
  */
-export class LlmSiteConfig {
+export class LlmCompanyConfig {
   private constructor(
-    private readonly _siteId: string,
     private readonly _companyId: string,
     private readonly _aiAutoResponseEnabled: boolean,
     private readonly _aiSuggestionsEnabled: boolean,
@@ -65,10 +63,9 @@ export class LlmSiteConfig {
   /**
    * Crea una nueva configuración con valores por defecto
    */
-  static createDefault(siteId: string, companyId: string): LlmSiteConfig {
+  static createDefault(companyId: string): LlmCompanyConfig {
     const now = new Date();
-    return new LlmSiteConfig(
-      siteId,
+    return new LlmCompanyConfig(
       companyId,
       false, // aiAutoResponseEnabled - desactivado por defecto
       false, // aiSuggestionsEnabled - desactivado por defecto
@@ -88,9 +85,8 @@ export class LlmSiteConfig {
   /**
    * Crea una configuración desde primitivos
    */
-  static create(props: LlmSiteConfigPrimitives): LlmSiteConfig {
-    return new LlmSiteConfig(
-      props.siteId,
+  static create(props: LlmCompanyConfigPrimitives): LlmCompanyConfig {
+    return new LlmCompanyConfig(
       props.companyId,
       props.aiAutoResponseEnabled,
       props.aiSuggestionsEnabled,
@@ -110,16 +106,15 @@ export class LlmSiteConfig {
   /**
    * Reconstruye desde primitivos
    */
-  static fromPrimitives(data: LlmSiteConfigPrimitives): LlmSiteConfig {
-    return LlmSiteConfig.create(data);
+  static fromPrimitives(data: LlmCompanyConfigPrimitives): LlmCompanyConfig {
+    return LlmCompanyConfig.create(data);
   }
 
   /**
    * Serializa a primitivos
    */
-  toPrimitives(): LlmSiteConfigPrimitives {
+  toPrimitives(): LlmCompanyConfigPrimitives {
     return {
-      siteId: this._siteId,
       companyId: this._companyId,
       aiAutoResponseEnabled: this._aiAutoResponseEnabled,
       aiSuggestionsEnabled: this._aiSuggestionsEnabled,
@@ -137,10 +132,6 @@ export class LlmSiteConfig {
   }
 
   // Getters
-  get siteId(): string {
-    return this._siteId;
-  }
-
   get companyId(): string {
     return this._companyId;
   }
@@ -204,7 +195,7 @@ export class LlmSiteConfig {
   /**
    * Crea una copia con propiedades actualizadas
    */
-  update(updates: LlmSiteConfigUpdateParams): LlmSiteConfig {
+  update(updates: LlmCompanyConfigUpdateParams): LlmCompanyConfig {
     // Para toolConfig, hacer merge parcial si se proporciona
     let newToolConfig = this._toolConfig;
     if (updates.toolConfig !== undefined) {
@@ -215,8 +206,7 @@ export class LlmSiteConfig {
       });
     }
 
-    return new LlmSiteConfig(
-      this._siteId,
+    return new LlmCompanyConfig(
       this._companyId,
       updates.aiAutoResponseEnabled ?? this._aiAutoResponseEnabled,
       updates.aiSuggestionsEnabled ?? this._aiSuggestionsEnabled,
@@ -240,15 +230,14 @@ export class LlmSiteConfig {
    */
   updateToolConfig(
     toolConfigUpdates: Partial<ToolConfigPrimitives>,
-  ): LlmSiteConfig {
+  ): LlmCompanyConfig {
     const currentToolConfig = this._toolConfig.toPrimitives();
     const newToolConfig = ToolConfig.fromPrimitives({
       ...currentToolConfig,
       ...toolConfigUpdates,
     });
 
-    return new LlmSiteConfig(
-      this._siteId,
+    return new LlmCompanyConfig(
       this._companyId,
       this._aiAutoResponseEnabled,
       this._aiSuggestionsEnabled,

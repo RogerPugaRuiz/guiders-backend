@@ -102,14 +102,8 @@ export class ToolConfigDto {
  */
 export class LlmConfigResponseDto {
   @ApiProperty({
-    description: 'ID del sitio',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  siteId: string;
-
-  @ApiProperty({
     description: 'ID de la compañía',
-    example: '550e8400-e29b-41d4-a716-446655440001',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   companyId: string;
 
@@ -291,15 +285,8 @@ export class UpdateLlmConfigDto {
  */
 export class CreateLlmConfigDto extends UpdateLlmConfigDto {
   @ApiProperty({
-    description: 'ID del sitio',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @IsString()
-  siteId: string;
-
-  @ApiProperty({
     description: 'ID de la compañía',
-    example: '550e8400-e29b-41d4-a716-446655440001',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsString()
   companyId: string;

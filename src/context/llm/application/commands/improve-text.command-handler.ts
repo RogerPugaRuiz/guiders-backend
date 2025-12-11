@@ -14,7 +14,7 @@ import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
 } from '../../domain/llm-config.repository';
-import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../../domain/value-objects/llm-company-config';
 
 @CommandHandler(ImproveTextCommand)
 export class ImproveTextCommandHandler
@@ -36,8 +36,8 @@ export class ImproveTextCommandHandler
     );
 
     try {
-      // 1. Verificar configuración del sitio
-      const config = await this.getConfig(command.siteId);
+      // 1. Verificar configuración de la empresa
+      const config = await this.getConfig(command.companyId);
 
       // 2. Generar texto mejorado
       const completionResult = await this.llmProvider.generateCompletion({
@@ -85,17 +85,17 @@ export class ImproveTextCommandHandler
   }
 
   /**
-   * Obtiene la configuración del sitio
+   * Obtiene la configuración de la empresa
    */
-  private async getConfig(siteId: string): Promise<LlmSiteConfig> {
-    const configResult = await this.configRepository.findBySiteId(siteId);
+  private async getConfig(companyId: string): Promise<LlmCompanyConfig> {
+    const configResult = await this.configRepository.findByCompanyId(companyId);
 
     if (configResult.isOk()) {
       return configResult.unwrap();
     }
 
     // Retornar config por defecto si no existe
-    return LlmSiteConfig.createDefault(siteId, '');
+    return LlmCompanyConfig.createDefault(companyId);
   }
 
   /**

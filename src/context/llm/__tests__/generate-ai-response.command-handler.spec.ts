@@ -30,7 +30,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import { ok, err, okVoid } from 'src/context/shared/domain/result';
 import { LlmContext } from '../domain/value-objects/llm-context';
 import { LlmResponse } from '../domain/value-objects/llm-response';
-import { LlmSiteConfig } from '../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../domain/value-objects/llm-company-config';
 import { LlmProviderError } from '../domain/errors/llm.error';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
@@ -46,7 +46,6 @@ describe('GenerateAIResponseCommandHandler', () => {
 
   const chatId = Uuid.random().value;
   const visitorId = Uuid.random().value;
-  const siteId = Uuid.random().value;
   const companyId = Uuid.random().value;
   const triggerMessageId = Uuid.random().value;
 
@@ -66,7 +65,6 @@ describe('GenerateAIResponseCommandHandler', () => {
 
     // Mock completo de ILlmConfigRepository
     mockConfigRepository = {
-      findBySiteId: jest.fn(),
       findByCompanyId: jest.fn(),
       save: jest.fn(),
       delete: jest.fn(),
@@ -144,12 +142,11 @@ describe('GenerateAIResponseCommandHandler', () => {
     const defaultCommand = new GenerateAIResponseCommand(
       chatId,
       visitorId,
-      siteId,
       companyId,
       triggerMessageId,
     );
 
-    const mockConfig = LlmSiteConfig.createDefault(siteId, companyId);
+    const mockConfig = LlmCompanyConfig.createDefault(companyId);
 
     const mockContext = LlmContext.create({
       systemPrompt: 'Eres un asistente',
@@ -164,7 +161,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería generar respuesta de IA exitosamente', async () => {
-      mockConfigRepository.findBySiteId.mockResolvedValue(ok(mockConfig));
+      mockConfigRepository.findByCompanyId.mockResolvedValue(ok(mockConfig));
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
       mockLlmProvider.generateCompletion.mockResolvedValue(ok(mockLlmResponse));
       mockMessageRepository.save.mockResolvedValue(okVoid());
@@ -179,7 +176,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería crear configuración por defecto si no existe', async () => {
-      mockConfigRepository.findBySiteId.mockResolvedValue(
+      mockConfigRepository.findByCompanyId.mockResolvedValue(
         err({ message: 'No encontrado' } as any),
       );
       mockConfigRepository.save.mockResolvedValue(okVoid());
@@ -194,7 +191,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería lanzar error si falla la construcción del contexto', async () => {
-      mockConfigRepository.findBySiteId.mockResolvedValue(ok(mockConfig));
+      mockConfigRepository.findByCompanyId.mockResolvedValue(ok(mockConfig));
       mockContextBuilder.buildContext.mockResolvedValue(
         err({ message: 'Error construyendo contexto' } as any),
       );
@@ -206,7 +203,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería lanzar error si falla el proveedor LLM', async () => {
-      mockConfigRepository.findBySiteId.mockResolvedValue(ok(mockConfig));
+      mockConfigRepository.findByCompanyId.mockResolvedValue(ok(mockConfig));
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
       mockLlmProvider.generateCompletion.mockResolvedValue(
         err(new LlmProviderError('groq', 'API error')),
@@ -219,8 +216,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería aplicar delay configurado antes de responder', async () => {
-      const configWithDelay = LlmSiteConfig.create({
-        siteId,
+      const configWithDelay = LlmCompanyConfig.create({
         companyId,
         aiAutoResponseEnabled: true,
         aiSuggestionsEnabled: true,
@@ -232,7 +228,7 @@ describe('GenerateAIResponseCommandHandler', () => {
         responseDelayMs: 100, // 100ms de delay
       });
 
-      mockConfigRepository.findBySiteId.mockResolvedValue(ok(configWithDelay));
+      mockConfigRepository.findByCompanyId.mockResolvedValue(ok(configWithDelay));
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
       mockLlmProvider.generateCompletion.mockResolvedValue(ok(mockLlmResponse));
       mockMessageRepository.save.mockResolvedValue(okVoid());
@@ -246,8 +242,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería usar custom system prompt si está configurado', async () => {
-      const configWithCustomPrompt = LlmSiteConfig.create({
-        siteId,
+      const configWithCustomPrompt = LlmCompanyConfig.create({
         companyId,
         aiAutoResponseEnabled: true,
         aiSuggestionsEnabled: true,
@@ -260,7 +255,7 @@ describe('GenerateAIResponseCommandHandler', () => {
         responseDelayMs: 0,
       });
 
-      mockConfigRepository.findBySiteId.mockResolvedValue(
+      mockConfigRepository.findByCompanyId.mockResolvedValue(
         ok(configWithCustomPrompt),
       );
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
@@ -277,7 +272,7 @@ describe('GenerateAIResponseCommandHandler', () => {
     });
 
     it('debería retornar el processingTimeMs en la respuesta', async () => {
-      mockConfigRepository.findBySiteId.mockResolvedValue(ok(mockConfig));
+      mockConfigRepository.findByCompanyId.mockResolvedValue(ok(mockConfig));
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
       mockLlmProvider.generateCompletion.mockResolvedValue(ok(mockLlmResponse));
       mockMessageRepository.save.mockResolvedValue(okVoid());

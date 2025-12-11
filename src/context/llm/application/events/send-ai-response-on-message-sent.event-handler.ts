@@ -21,7 +21,7 @@ import {
 } from 'src/context/visitors-v2/domain/visitor-v2.repository';
 import { ChatId } from 'src/context/conversations-v2/domain/value-objects/chat-id';
 import { VisitorId } from 'src/context/visitors-v2/domain/value-objects/visitor-id';
-import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../../domain/value-objects/llm-company-config';
 
 @EventsHandler(MessageSentEvent)
 export class SendAIResponseOnMessageSentEventHandler
@@ -91,18 +91,17 @@ export class SendAIResponseOnMessageSentEventHandler
       const visitor = visitorResult.unwrap();
       const visitorPrimitives = visitor.toPrimitives();
 
-      const siteId = visitorPrimitives.siteId;
       const tenantId = visitorPrimitives.tenantId; // tenantId es el equivalente a companyId
 
-      if (!siteId || !tenantId) {
+      if (!tenantId) {
         this.logger.warn(
-          `Visitante ${chatPrimitives.visitorId} sin siteId o tenantId`,
+          `Visitante ${chatPrimitives.visitorId} sin tenantId (companyId)`,
         );
         return;
       }
 
-      // 5. Obtener configuración de IA para el sitio
-      const config = await this.getOrCreateConfig(siteId, tenantId);
+      // 5. Obtener configuración de IA para la empresa
+      const config = await this.getOrCreateConfig(tenantId);
 
       // 6. Verificar si la IA debe responder
       const hasCommercialAssigned = Boolean(
@@ -111,7 +110,7 @@ export class SendAIResponseOnMessageSentEventHandler
 
       if (!config.shouldAutoRespond(hasCommercialAssigned)) {
         this.logger.debug(
-          `IA deshabilitada para sitio ${siteId} (comercial asignado: ${hasCommercialAssigned})`,
+          `IA deshabilitada para empresa ${tenantId} (comercial asignado: ${hasCommercialAssigned})`,
         );
         return;
       }
@@ -123,7 +122,6 @@ export class SendAIResponseOnMessageSentEventHandler
         new GenerateAIResponseCommand(
           messageData.chatId,
           chatPrimitives.visitorId,
-          siteId,
           tenantId,
           messageData.messageId,
         ),
@@ -180,17 +178,16 @@ export class SendAIResponseOnMessageSentEventHandler
    * Obtiene la configuración o crea una por defecto
    */
   private async getOrCreateConfig(
-    siteId: string,
     companyId: string,
-  ): Promise<LlmSiteConfig> {
-    const configResult = await this.configRepository.findBySiteId(siteId);
+  ): Promise<LlmCompanyConfig> {
+    const configResult = await this.configRepository.findByCompanyId(companyId);
 
     if (configResult.isOk()) {
       return configResult.unwrap();
     }
 
     // Crear configuración por defecto
-    const defaultConfig = LlmSiteConfig.createDefault(siteId, companyId);
+    const defaultConfig = LlmCompanyConfig.createDefault(companyId);
     await this.configRepository.save(defaultConfig);
 
     return defaultConfig;

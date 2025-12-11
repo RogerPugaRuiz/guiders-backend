@@ -206,7 +206,7 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
 
     // Buscar en cache si está habilitado
     if (toolConfig.cacheEnabled) {
-      const cached = await this.getFromCache(fullUrl, context.siteId);
+      const cached = await this.getFromCache(fullUrl, context.companyId);
       if (cached) {
         this.logger.debug(`Cache hit para ${fullUrl}`);
         return ok(cached);
@@ -228,7 +228,6 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
     if (toolConfig.cacheEnabled) {
       await this.saveToCache(
         fullUrl,
-        context.siteId,
         context.companyId,
         webContent.content,
         webContent.originalSize,
@@ -246,13 +245,13 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
    */
   private async getFromCache(
     url: string,
-    siteId: string,
+    companyId: string,
   ): Promise<string | null> {
     try {
       const cached = await this.cacheModel
         .findOne({
           url,
-          siteId,
+          companyId,
           expiresAt: { $gt: new Date() },
         })
         .exec();
@@ -269,7 +268,6 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
    */
   private async saveToCache(
     url: string,
-    siteId: string,
     companyId: string,
     content: string,
     originalSize: number,
@@ -281,10 +279,9 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
 
       await this.cacheModel.updateOne(
-        { url, siteId },
+        { url, companyId },
         {
           $set: {
-            companyId,
             content,
             originalSize,
             truncated,

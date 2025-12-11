@@ -12,11 +12,11 @@ import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
 } from '../../domain/llm-config.repository';
-import { LlmSiteConfig } from '../../domain/value-objects/llm-site-config';
+import { LlmCompanyConfig } from '../../domain/value-objects/llm-company-config';
 import {
-  LlmSiteConfigSchema,
-  LlmSiteConfigDocument,
-} from '../schemas/llm-site-config.schema';
+  LlmCompanyConfigSchema,
+  LlmCompanyConfigDocument,
+} from '../schemas/llm-company-config.schema';
 import {
   LlmConfigNotFoundError,
   LlmError,
@@ -27,19 +27,18 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
   private readonly logger = new Logger(MongoLlmConfigRepositoryImpl.name);
 
   constructor(
-    @InjectModel(LlmSiteConfigSchema.name)
-    private readonly model: Model<LlmSiteConfigDocument>,
+    @InjectModel(LlmCompanyConfigSchema.name)
+    private readonly model: Model<LlmCompanyConfigDocument>,
   ) {}
 
-  async save(config: LlmSiteConfig): Promise<Result<void, DomainError>> {
+  async save(config: LlmCompanyConfig): Promise<Result<void, DomainError>> {
     try {
       const primitives = config.toPrimitives();
 
       await this.model.findOneAndUpdate(
-        { siteId: primitives.siteId },
+        { companyId: primitives.companyId },
         {
           $set: {
-            companyId: primitives.companyId,
             aiAutoResponseEnabled: primitives.aiAutoResponseEnabled,
             aiSuggestionsEnabled: primitives.aiSuggestionsEnabled,
             aiRespondWithCommercial: primitives.aiRespondWithCommercial,
@@ -59,7 +58,9 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
         { upsert: true, new: true },
       );
 
-      this.logger.debug(`Configuración guardada para sitio ${config.siteId}`);
+      this.logger.debug(
+        `Configuración guardada para empresa ${config.companyId}`,
+      );
       return ok(undefined);
     } catch (error) {
       const errorMessage =
@@ -71,18 +72,17 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
     }
   }
 
-  async findBySiteId(
-    siteId: string,
-  ): Promise<Result<LlmSiteConfig, DomainError>> {
+  async findByCompanyId(
+    companyId: string,
+  ): Promise<Result<LlmCompanyConfig, DomainError>> {
     try {
-      const doc = await this.model.findOne({ siteId }).lean().exec();
+      const doc = await this.model.findOne({ companyId }).lean().exec();
 
       if (!doc) {
-        return err(new LlmConfigNotFoundError(siteId));
+        return err(new LlmConfigNotFoundError(companyId));
       }
 
-      const config = LlmSiteConfig.fromPrimitives({
-        siteId: doc.siteId,
+      const config = LlmCompanyConfig.fromPrimitives({
         companyId: doc.companyId,
         aiAutoResponseEnabled: doc.aiAutoResponseEnabled,
         aiSuggestionsEnabled: doc.aiSuggestionsEnabled,
@@ -109,51 +109,15 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
     }
   }
 
-  async findByCompanyId(
-    companyId: string,
-  ): Promise<Result<LlmSiteConfig[], DomainError>> {
+  async delete(companyId: string): Promise<Result<void, DomainError>> {
     try {
-      const docs = await this.model.find({ companyId }).lean().exec();
-
-      const configs = docs.map((doc) =>
-        LlmSiteConfig.fromPrimitives({
-          siteId: doc.siteId,
-          companyId: doc.companyId,
-          aiAutoResponseEnabled: doc.aiAutoResponseEnabled,
-          aiSuggestionsEnabled: doc.aiSuggestionsEnabled,
-          aiRespondWithCommercial: doc.aiRespondWithCommercial,
-          preferredProvider: doc.preferredProvider,
-          preferredModel: doc.preferredModel,
-          customSystemPrompt: doc.customSystemPrompt ?? undefined,
-          maxResponseTokens: doc.maxResponseTokens,
-          temperature: doc.temperature,
-          responseDelayMs: doc.responseDelayMs,
-          toolConfig: doc.toolConfig,
-          createdAt: doc.createdAt,
-          updatedAt: doc.updatedAt,
-        }),
-      );
-
-      return ok(configs);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error desconocido';
-      this.logger.error(`Error al buscar configuraciones: ${errorMessage}`);
-      return err(
-        new LlmError(`Error al buscar configuraciones: ${errorMessage}`),
-      );
-    }
-  }
-
-  async delete(siteId: string): Promise<Result<void, DomainError>> {
-    try {
-      const result = await this.model.deleteOne({ siteId }).exec();
+      const result = await this.model.deleteOne({ companyId }).exec();
 
       if (result.deletedCount === 0) {
-        return err(new LlmConfigNotFoundError(siteId));
+        return err(new LlmConfigNotFoundError(companyId));
       }
 
-      this.logger.debug(`Configuración eliminada para sitio ${siteId}`);
+      this.logger.debug(`Configuración eliminada para empresa ${companyId}`);
       return ok(undefined);
     } catch (error) {
       const errorMessage =
@@ -165,9 +129,9 @@ export class MongoLlmConfigRepositoryImpl implements ILlmConfigRepository {
     }
   }
 
-  async exists(siteId: string): Promise<Result<boolean, DomainError>> {
+  async exists(companyId: string): Promise<Result<boolean, DomainError>> {
     try {
-      const count = await this.model.countDocuments({ siteId }).exec();
+      const count = await this.model.countDocuments({ companyId }).exec();
       return ok(count > 0);
     } catch (error) {
       const errorMessage =

@@ -46,8 +46,8 @@ export class LlmContextBuildError extends LlmError {
  * Error cuando la configuración del LLM no existe o es inválida
  */
 export class LlmConfigNotFoundError extends LlmError {
-  constructor(public readonly siteId: string) {
-    super(`No se encontró configuración LLM para el sitio ${siteId}`);
+  constructor(public readonly companyId: string) {
+    super(`No se encontró configuración LLM para la empresa ${companyId}`);
     this.name = 'LlmConfigNotFoundError';
   }
 }

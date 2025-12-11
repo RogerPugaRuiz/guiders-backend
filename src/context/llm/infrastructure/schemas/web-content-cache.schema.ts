@@ -17,10 +17,6 @@ export class WebContentCacheSchema {
   @Prop({ required: true, index: true })
   url: string;
 
-  /** ID del sitio al que pertenece */
-  @Prop({ required: true, index: true })
-  siteId: string;
-
   /** ID de la compañía */
   @Prop({ required: true, index: true })
   companyId: string;
@@ -58,8 +54,11 @@ export const WebContentCacheSchemaDefinition = SchemaFactory.createForClass(
   WebContentCacheSchema,
 );
 
-// Índice único por URL y sitio
-WebContentCacheSchemaDefinition.index({ url: 1, siteId: 1 }, { unique: true });
+// Índice único por URL y empresa
+WebContentCacheSchemaDefinition.index(
+  { url: 1, companyId: 1 },
+  { unique: true },
+);
 
 // Índice TTL para auto-eliminación de documentos expirados
 WebContentCacheSchemaDefinition.index(

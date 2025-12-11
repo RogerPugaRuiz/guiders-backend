@@ -17,8 +17,6 @@ export interface BuildContextParams {
   visitorId: string;
   /** ID de la compañía */
   companyId: string;
-  /** ID del sitio */
-  siteId: string;
   /** Incluir información del visitante (página actual, lifecycle, etc.) */
   includeVisitorInfo?: boolean;
   /** Número máximo de mensajes del historial a incluir */

@@ -1,21 +1,18 @@
 /**
- * Schema MongoDB para la configuración de LLM por sitio
+ * Schema MongoDB para la configuración de LLM por empresa
  */
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type LlmSiteConfigDocument = LlmSiteConfigSchema & Document;
+export type LlmCompanyConfigDocument = LlmCompanyConfigSchema & Document;
 
 @Schema({
-  collection: 'llm_site_configs',
+  collection: 'llm_company_configs',
   timestamps: true,
 })
-export class LlmSiteConfigSchema {
+export class LlmCompanyConfigSchema {
   @Prop({ required: true, index: true, unique: true })
-  siteId: string;
-
-  @Prop({ required: true, index: true })
   companyId: string;
 
   @Prop({ default: true })
@@ -75,8 +72,6 @@ export class LlmSiteConfigSchema {
   updatedAt: Date;
 }
 
-export const LlmSiteConfigSchemaDefinition =
-  SchemaFactory.createForClass(LlmSiteConfigSchema);
-
-// Índices compuestos
-LlmSiteConfigSchemaDefinition.index({ companyId: 1, siteId: 1 });
+export const LlmCompanyConfigSchemaDefinition = SchemaFactory.createForClass(
+  LlmCompanyConfigSchema,
+);
