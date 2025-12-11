@@ -178,27 +178,37 @@ export class CompanyController {
   @ApiOperation({
     summary: 'Obtener empresa del usuario autenticado',
     description:
-      'Devuelve la información completa de la empresa a la que pertenece el usuario autenticado, incluyendo sitios y configuraciones. Si se proporciona el parámetro host, se resolverá el siteId correspondiente.',
+      'Devuelve la información completa de la empresa a la que pertenece el usuario autenticado, incluyendo sitios y configuraciones.',
   })
-  @ApiQuery({
-    name: 'host',
-    description:
-      'Dominio del sitio cliente para resolver el siteId (ej: cliente.com)',
-    required: false,
-    example: 'www.ejemplo.com',
+  @ApiResponse({
+    status: 200,
+    description: 'Información de la empresa obtenida exitosamente',
+    type: FindCompanyByDomainResponseDto, // Reutilizamos el DTO existente
+  })
+  @ApiResponse({ status: 401, description: 'No autorizado' })
+  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
+  @ApiResponse({
+    status: 400,
+    description: 'Usuario sin companyId asignado',
   })
   @ApiResponse({
     status: 200,
     description: 'Información de la empresa del usuario con siteId resuelto',
     type: MyCompanyResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
   async getMyCompany(
     @Req() req: AuthenticatedRequest,
-    @Query('host') hostParam?: string,
   ): Promise<MyCompanyResponseDto> {
+    // Log temporal para debugging
+    console.log(
+      '🔍 DEBUG - req.user completo:',
+      JSON.stringify(req.user, null, 2),
+    );
+
+    // Extraer companyId del usuario autenticado
     const companyId = req.user?.companyId;
+
+    console.log('🔍 DEBUG - companyId extraído:', companyId);
 
     if (!companyId) {
       throw new NotFoundException(
@@ -206,9 +216,11 @@ export class CompanyController {
       );
     }
 
-    // Usar el host del query param si se proporciona, sino el header Host
-    const host = hostParam || req.get('host') || (req.headers.host as string);
+    // Extraer el host de la petición para resolver el siteId
+    const host = req.get('host') || (req.headers.host as string);
+    console.log('🔍 DEBUG - host extraído:', host);
 
+    // Obtener información completa de la empresa con sites
     const companyWithSites = await this.queryBus.execute<
       GetCompanySitesQuery,
       GetCompanySitesResponseDto
@@ -218,6 +230,12 @@ export class CompanyController {
       throw new NotFoundException('Empresa no encontrada');
     }
 
+    console.log(
+      '🔍 DEBUG - empresa con sites:',
+      JSON.stringify(companyWithSites, null, 2),
+    );
+
+    // Crear la respuesta con siteId resuelto basado en el host
     return MyCompanyResponseDto.fromPrimitives(
       {
         id: companyWithSites.companyId,
