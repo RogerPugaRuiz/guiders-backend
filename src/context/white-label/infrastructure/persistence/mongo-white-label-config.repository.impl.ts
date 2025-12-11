@@ -88,6 +88,7 @@ export class MongoWhiteLabelConfigRepositoryImpl
         colors: {
           primary: doc.colors?.primary || '#007bff',
           secondary: doc.colors?.secondary || '#6c757d',
+          tertiary: doc.colors?.tertiary || '#17a2b8',
           background: doc.colors?.background || '#ffffff',
           surface: doc.colors?.surface || '#f8f9fa',
           text: doc.colors?.text || '#212529',

@@ -8,6 +8,7 @@
 export interface WhiteLabelColorsPrimitives {
   primary: string;
   secondary: string;
+  tertiary: string;
   background: string;
   surface: string;
   text: string;
@@ -66,6 +67,7 @@ export interface WhiteLabelConfigPrimitives {
 const DEFAULT_COLORS: WhiteLabelColorsPrimitives = {
   primary: '#007bff',
   secondary: '#6c757d',
+  tertiary: '#17a2b8',
   background: '#ffffff',
   surface: '#f8f9fa',
   text: '#212529',

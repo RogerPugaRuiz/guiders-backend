@@ -50,6 +50,18 @@ export class ColorsDto {
   secondary?: string;
 
   @ApiPropertyOptional({
+    description: 'Color terciario (hex)',
+    example: '#17a2b8',
+    pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(HEX_COLOR_REGEX, {
+    message: 'tertiary debe ser un color hexadecimal válido',
+  })
+  tertiary?: string;
+
+  @ApiPropertyOptional({
     description: 'Color de fondo (hex)',
     example: '#ffffff',
     pattern: '^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$',
@@ -211,6 +223,7 @@ export class WhiteLabelConfigResponseDto {
   colors: {
     primary: string;
     secondary: string;
+    tertiary: string;
     background: string;
     surface: string;
     text: string;
@@ -324,6 +337,7 @@ export class WhiteLabelDefaultsDto {
   colors: {
     primary: string;
     secondary: string;
+    tertiary: string;
     background: string;
     surface: string;
     text: string;

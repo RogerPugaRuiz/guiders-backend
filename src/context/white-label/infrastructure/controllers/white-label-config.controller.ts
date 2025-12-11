@@ -85,6 +85,7 @@ export class WhiteLabelConfigController {
       colors: {
         primary: '#007bff',
         secondary: '#6c757d',
+        tertiary: '#17a2b8',
         background: '#ffffff',
         surface: '#f8f9fa',
         text: '#212529',

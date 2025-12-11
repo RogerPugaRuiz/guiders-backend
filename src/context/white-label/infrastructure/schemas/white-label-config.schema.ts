@@ -21,6 +21,9 @@ export class WhiteLabelColorsSchema {
   @Prop({ default: '#6c757d' })
   secondary: string;
 
+  @Prop({ default: '#17a2b8' })
+  tertiary: string;
+
   @Prop({ default: '#ffffff' })
   background: string;
 

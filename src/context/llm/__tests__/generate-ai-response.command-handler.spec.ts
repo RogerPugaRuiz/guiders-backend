@@ -228,7 +228,9 @@ describe('GenerateAIResponseCommandHandler', () => {
         responseDelayMs: 100, // 100ms de delay
       });
 
-      mockConfigRepository.findByCompanyId.mockResolvedValue(ok(configWithDelay));
+      mockConfigRepository.findByCompanyId.mockResolvedValue(
+        ok(configWithDelay),
+      );
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
       mockLlmProvider.generateCompletion.mockResolvedValue(ok(mockLlmResponse));
       mockMessageRepository.save.mockResolvedValue(okVoid());
