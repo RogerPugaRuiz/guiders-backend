@@ -42,6 +42,7 @@ import { GetVisitorsWithUnassignedChatsByTenantQueryHandler } from './applicatio
 import { GetVisitorsWithQueuedChatsByTenantQueryHandler } from './application/queries/get-visitors-with-queued-chats-by-tenant.query-handler';
 import { GetVisitorCurrentPageQueryHandler } from './application/queries/get-visitor-current-page.query-handler';
 import { GetVisitorActivityQueryHandler } from './application/queries/get-visitor-activity.query-handler';
+import { GetVisitorSiteQueryHandler } from './application/queries/get-visitor-site.query-handler';
 import { SearchVisitorsQueryHandler } from './application/queries/search-visitors.query-handler';
 import { GetQuickFiltersConfigQueryHandler } from './application/queries/get-quick-filters-config.query-handler';
 import { GetSavedFiltersQueryHandler } from './application/queries/get-saved-filters.query-handler';
@@ -125,6 +126,7 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     GetVisitorsWithQueuedChatsByTenantQueryHandler,
     GetVisitorCurrentPageQueryHandler,
     GetVisitorActivityQueryHandler,
+    GetVisitorSiteQueryHandler,
     SearchVisitorsQueryHandler,
     GetQuickFiltersConfigQueryHandler,
     GetSavedFiltersQueryHandler,

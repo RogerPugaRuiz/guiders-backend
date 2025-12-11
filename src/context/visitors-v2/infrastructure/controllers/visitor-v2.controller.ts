@@ -47,6 +47,8 @@ import { GetVisitorCurrentPageQuery } from '../../application/queries/get-visito
 import { GetVisitorCurrentPageResponseDto } from '../../application/dtos/get-visitor-current-page-response.dto';
 import { GetVisitorActivityQuery } from '../../application/queries/get-visitor-activity.query';
 import { GetVisitorActivityResponseDto } from '../../application/dtos/get-visitor-activity-response.dto';
+import { GetVisitorSiteQuery } from '../../application/queries/get-visitor-site.query';
+import { GetVisitorSiteResponseDto } from '../../application/dtos/get-visitor-site-response.dto';
 
 @ApiTags('visitors')
 @Controller('visitors')
@@ -429,6 +431,52 @@ export class VisitorV2Controller {
     return this.queryBus.execute<
       GetVisitorActivityQuery,
       GetVisitorActivityResponseDto
+    >(query);
+  }
+
+  @Get(':visitorId/site')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @Roles(['commercial'])
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Obtener el siteId de un visitante',
+    description:
+      'Retorna el siteId y tenantId asociados a un visitante específico.\n\n' +
+      '**Requisitos:**\n' +
+      '- Autenticación: JWT Bearer token o cookie de sesión BFF\n' +
+      '- Rol requerido: `commercial`',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID único del visitante (UUID)',
+    example: '9598b495-205c-46af-9c06-d5dffb28ee21',
+    type: String,
+  })
+  @ApiOkResponse({
+    description: 'SiteId del visitante obtenido exitosamente',
+    type: GetVisitorSiteResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autenticado - Token JWT inválido o expirado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos - Se requiere rol de comercial',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Visitante no encontrado con el ID proporcionado',
+  })
+  async getVisitorSite(
+    @Param('visitorId') visitorId: string,
+  ): Promise<GetVisitorSiteResponseDto> {
+    this.logger.log(`Obteniendo siteId del visitante: ${visitorId}`);
+
+    const query = new GetVisitorSiteQuery(visitorId);
+    return this.queryBus.execute<
+      GetVisitorSiteQuery,
+      GetVisitorSiteResponseDto
     >(query);
   }
 }
