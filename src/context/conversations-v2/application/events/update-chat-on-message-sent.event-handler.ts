@@ -88,12 +88,12 @@ export class UpdateChatOnMessageSentEventHandler
         totalMessages,
       );
 
-      // Guardar el chat actualizado
-      const saveResult = await this.chatRepository.save(updatedChat);
+      // Actualizar el chat (usar update, no save, ya que el chat ya existe)
+      const saveResult = await this.chatRepository.update(updatedChat);
 
       if (saveResult.isErr()) {
         this.logger.error(
-          `Error al guardar chat ${chatId}: ${saveResult.error.message}`,
+          `Error al actualizar chat ${chatId}: ${saveResult.error.message}`,
         );
         return;
       }

@@ -130,8 +130,14 @@ export class SendAIResponseOnMessageSentEventHandler
       const errorMessage =
         error instanceof Error ? error.message : 'Error desconocido';
       this.logger.error(
-        `Error al procesar mensaje para IA: ${errorMessage}`,
-        error instanceof Error ? error.stack : undefined,
+        `[AI_RESPONSE_FAILED] Error generando respuesta IA para chat ${messageData.chatId}`,
+        JSON.stringify({
+          chatId: messageData.chatId,
+          messageId: messageData.messageId,
+          senderId: messageData.senderId,
+          error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        }),
       );
     }
   }

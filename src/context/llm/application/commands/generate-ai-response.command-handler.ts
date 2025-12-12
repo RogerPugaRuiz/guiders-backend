@@ -163,14 +163,33 @@ export class GenerateAIResponseCommandHandler
       });
 
       // 6. Guardar mensaje y publicar eventos
+      this.logger.log(
+        `[AI_SAVE] Intentando guardar mensaje de IA para chat ${command.chatId}`,
+      );
+      this.logger.debug(
+        `[AI_SAVE] aiMessage.id=${aiMessage.id.getValue()}, content.length=${responseContent.length}`,
+      );
+
       const messageCtx = this.publisher.mergeObjectContext(aiMessage);
       const saveResult = await this.messageRepository.save(messageCtx);
 
       if (saveResult.isErr()) {
+        this.logger.error(
+          `[AI_SAVE_ERROR] Error al guardar mensaje IA: ${saveResult.error.message}`,
+          JSON.stringify({
+            chatId: command.chatId,
+            messageId: aiMessage.id.getValue(),
+            errorName: saveResult.error.name,
+          }),
+        );
         throw new Error(
           `Error al guardar mensaje: ${saveResult.error.message}`,
         );
       }
+
+      this.logger.log(
+        `[AI_SAVE_OK] Mensaje de IA guardado correctamente: ${aiMessage.id.getValue()}`,
+      );
 
       // CRITICAL: Commit para publicar eventos de dominio
       messageCtx.commit();
