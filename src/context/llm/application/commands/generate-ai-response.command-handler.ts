@@ -215,6 +215,15 @@ export class GenerateAIResponseCommandHandler
     }
   }
 
+  private readonly TOOL_USE_INSTRUCTION = `
+
+USO DE HERRAMIENTAS:
+- Puedes usar la herramienta fetch_page_content para obtener información del sitio web
+- Usa la herramienta MÁXIMO UNA VEZ por pregunta del usuario
+- Después de obtener información con la herramienta, DEBES responder inmediatamente al usuario
+- NO llames a la herramienta múltiples veces - usa la información que ya obtuviste
+- Si la información obtenida no es suficiente, responde con lo que tienes y sugiere que el usuario pregunte algo más específico`;
+
   /**
    * Genera una respuesta usando el loop de tool use
    */
@@ -235,6 +244,9 @@ export class GenerateAIResponseCommandHandler
     const startTime = Date.now();
     const toolConfig = config.toolConfig;
     const maxIterations = toolConfig.toPrimitives().maxIterations;
+
+    // Agregar instrucciones de uso de tools al system prompt
+    const enrichedSystemPrompt = systemPrompt + this.TOOL_USE_INSTRUCTION;
 
     // Obtener información del sitio para construir el contexto de tools
     const toolContext = await this.buildToolContext(command, config);
@@ -268,7 +280,7 @@ export class GenerateAIResponseCommandHandler
       this.logger.debug(`Tool use iteration ${iteration + 1}/${maxIterations}`);
 
       const result = await this.llmProvider.generateCompletionWithTools({
-        systemPrompt,
+        systemPrompt: enrichedSystemPrompt,
         messages,
         maxTokens: config.maxResponseTokens,
         temperature: config.temperature,
@@ -339,7 +351,7 @@ export class GenerateAIResponseCommandHandler
     // Hacer una última llamada forzando respuesta de texto (sin tools)
     const finalResult = await this.llmProvider.generateCompletionWithTools({
       systemPrompt:
-        systemPrompt +
+        enrichedSystemPrompt +
         '\n\nIMPORTANTE: Ya has consultado suficiente información. Ahora DEBES responder al usuario con la información que tienes disponible. NO solicites más información.',
       messages,
       maxTokens: config.maxResponseTokens,
