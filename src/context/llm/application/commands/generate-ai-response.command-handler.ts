@@ -331,7 +331,49 @@ export class GenerateAIResponseCommandHandler
     }
 
     // Si llegamos aquí, se excedió el máximo de iteraciones
-    throw new LlmMaxIterationsError(maxIterations);
+    // En lugar de lanzar error, hacer una última llamada SIN tools para forzar respuesta
+    this.logger.warn(
+      `Alcanzado máximo de ${maxIterations} iteraciones de tool calling. Forzando respuesta final sin tools.`,
+    );
+
+    // Hacer una última llamada forzando respuesta de texto (sin tools)
+    const finalResult = await this.llmProvider.generateCompletionWithTools({
+      systemPrompt:
+        systemPrompt +
+        '\n\nIMPORTANTE: Ya has consultado suficiente información. Ahora DEBES responder al usuario con la información que tienes disponible. NO solicites más información.',
+      messages,
+      maxTokens: config.maxResponseTokens,
+      temperature: config.temperature,
+      tools: [], // Sin tools para forzar respuesta de texto
+      toolChoice: 'none',
+    });
+
+    if (finalResult.isErr()) {
+      this.logger.error(
+        `Error en llamada final sin tools: ${finalResult.error.message}`,
+      );
+      throw new LlmMaxIterationsError(maxIterations);
+    }
+
+    const finalCompletion = finalResult.unwrap();
+
+    if (!finalCompletion.response?.content) {
+      this.logger.error(
+        'No se pudo obtener respuesta final después de alcanzar maxIterations',
+      );
+      throw new LlmMaxIterationsError(maxIterations);
+    }
+
+    this.logger.log(
+      `Respuesta final generada después de ${maxIterations} iteraciones de tool calling`,
+    );
+
+    return {
+      content: finalCompletion.response.content,
+      model: finalCompletion.response.model || model,
+      tokensUsed: totalTokensUsed + (finalCompletion.response.tokensUsed || 0),
+      processingTimeMs: Date.now() - startTime,
+    };
   }
 
   /**
