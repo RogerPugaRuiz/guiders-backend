@@ -87,7 +87,8 @@ export class WebContentFetcherService {
   ): Promise<Result<WebContentResult, DomainError>> {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
-    const cacheTtlSeconds = options.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
+    const cacheTtlSeconds =
+      options.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
     const startTime = Date.now();
 
     try {
@@ -103,11 +104,7 @@ export class WebContentFetcherService {
       }
 
       // Intentar obtener del cache si está disponible
-      if (
-        this.cacheRepository &&
-        options.companyId &&
-        !options.forceRefresh
-      ) {
+      if (this.cacheRepository && options.companyId && !options.forceRefresh) {
         const cacheResult = await this.cacheRepository.findByUrlAndCompany(
           validatedUrl,
           options.companyId,

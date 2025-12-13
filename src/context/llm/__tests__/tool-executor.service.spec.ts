@@ -138,6 +138,7 @@ describe('ToolExecutorServiceImpl', () => {
             originalSize: 5000,
             truncated: false,
             fetchTimeMs: 150,
+            fromCache: false,
           }),
         );
 
@@ -217,6 +218,7 @@ describe('ToolExecutorServiceImpl', () => {
             originalSize: 100,
             truncated: false,
             fetchTimeMs: 50,
+            fromCache: false,
           }),
         );
 
@@ -249,11 +251,18 @@ describe('ToolExecutorServiceImpl', () => {
       });
 
       it('debería usar cache cuando está habilitado y hay datos en cache', async () => {
-        mockCacheModel.findOne.mockReturnValue({
-          exec: jest.fn().mockResolvedValue({
+        // El cache ahora está integrado en WebContentFetcherService
+        // Mockeamos fetchContent para simular un cache hit
+        mockWebFetcher.fetchContent.mockResolvedValue(
+          ok({
             content: '# Contenido cacheado',
+            sourceUrl: 'https://example.com/productos',
+            originalSize: 100,
+            truncated: false,
+            fetchTimeMs: 5,
+            fromCache: true,
           }),
-        } as any);
+        );
 
         const toolCalls = [
           createToolCall('fetch_page_content', { path: '/productos' }),
@@ -265,14 +274,12 @@ describe('ToolExecutorServiceImpl', () => {
         const results = result.unwrap();
         expect(results[0].success).toBe(true);
         expect(results[0].content).toBe('# Contenido cacheado');
-        expect(mockWebFetcher.fetchContent).not.toHaveBeenCalled();
+        expect(mockWebFetcher.fetchContent).toHaveBeenCalled();
       });
 
       it('debería hacer fetch cuando cache está vacío', async () => {
-        mockCacheModel.findOne.mockReturnValue({
-          exec: jest.fn().mockResolvedValue(null),
-        } as any);
-
+        // El cache ahora está integrado en WebContentFetcherService
+        // Mockeamos fetchContent para simular un cache miss
         mockWebFetcher.fetchContent.mockResolvedValue(
           ok({
             content: '# Contenido nuevo',
@@ -280,6 +287,7 @@ describe('ToolExecutorServiceImpl', () => {
             originalSize: 200,
             truncated: false,
             fetchTimeMs: 100,
+            fromCache: false,
           }),
         );
 
@@ -290,8 +298,10 @@ describe('ToolExecutorServiceImpl', () => {
         const result = await service.executeTools(toolCalls, defaultContext);
 
         expect(result.isOk()).toBe(true);
+        const results = result.unwrap();
+        expect(results[0].success).toBe(true);
+        expect(results[0].content).toBe('# Contenido nuevo');
         expect(mockWebFetcher.fetchContent).toHaveBeenCalled();
-        expect(mockCacheModel.updateOne).toHaveBeenCalled();
       });
 
       it('debería no guardar en cache cuando cacheEnabled es false', async () => {
@@ -310,6 +320,7 @@ describe('ToolExecutorServiceImpl', () => {
             originalSize: 100,
             truncated: false,
             fetchTimeMs: 50,
+            fromCache: false,
           }),
         );
 
@@ -373,6 +384,7 @@ describe('ToolExecutorServiceImpl', () => {
               originalSize: 100,
               truncated: false,
               fetchTimeMs: 50,
+              fromCache: false,
             }),
           )
           .mockResolvedValueOnce(
@@ -382,6 +394,7 @@ describe('ToolExecutorServiceImpl', () => {
               originalSize: 150,
               truncated: false,
               fetchTimeMs: 60,
+              fromCache: false,
             }),
           );
 

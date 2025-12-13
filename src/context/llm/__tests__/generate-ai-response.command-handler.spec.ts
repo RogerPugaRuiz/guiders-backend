@@ -43,6 +43,7 @@ describe('GenerateAIResponseCommandHandler', () => {
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockToolExecutor: jest.Mocked<ToolExecutorService>;
   let mockQueryBus: jest.Mocked<QueryBus>;
+  let mockWebsocketGateway: { emitToRoom: jest.Mock };
 
   const chatId = Uuid.random().value;
   const visitorId = Uuid.random().value;
@@ -120,6 +121,10 @@ describe('GenerateAIResponseCommandHandler', () => {
       execute: jest.fn().mockResolvedValue(null),
     } as unknown as jest.Mocked<QueryBus>;
 
+    mockWebsocketGateway = {
+      emitToRoom: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         GenerateAIResponseCommandHandler,
@@ -128,6 +133,7 @@ describe('GenerateAIResponseCommandHandler', () => {
         { provide: TOOL_EXECUTOR_SERVICE, useValue: mockToolExecutor },
         { provide: LLM_CONFIG_REPOSITORY, useValue: mockConfigRepository },
         { provide: MESSAGE_V2_REPOSITORY, useValue: mockMessageRepository },
+        { provide: 'WEBSOCKET_GATEWAY', useValue: mockWebsocketGateway },
         { provide: EventPublisher, useValue: mockEventPublisher },
         { provide: QueryBus, useValue: mockQueryBus },
       ],

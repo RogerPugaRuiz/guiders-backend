@@ -6,6 +6,7 @@
 import { CommandHandler, ICommandHandler, EventPublisher } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
+import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
 import { GenerateAIResponseCommand } from './generate-ai-response.command';
 import { AIResponseDto } from '../dtos/ai-response.dto';
 import {
@@ -55,6 +56,8 @@ export class GenerateAIResponseCommandHandler
     private readonly configRepository: ILlmConfigRepository,
     @Inject(MESSAGE_V2_REPOSITORY)
     private readonly messageRepository: IMessageRepository,
+    @Inject('WEBSOCKET_GATEWAY')
+    private readonly wsGateway: WebSocketGatewayBasic,
     private readonly publisher: EventPublisher,
     private readonly queryBus: QueryBus,
   ) {}
@@ -64,6 +67,9 @@ export class GenerateAIResponseCommandHandler
     this.logger.log(
       `Generando respuesta IA para chat ${command.chatId}, trigger: ${command.triggerMessageId}`,
     );
+
+    // Emitir typing:start para indicar que la IA está generando respuesta
+    this.emitTypingStart(command.chatId);
 
     try {
       // 1. Obtener configuración de la empresa
@@ -212,6 +218,9 @@ export class GenerateAIResponseCommandHandler
         `❌ Error generando respuesta IA para chat ${command.chatId}: ${errorMessage}`,
       );
       throw error;
+    } finally {
+      // Siempre emitir typing:stop al finalizar (éxito o error)
+      this.emitTypingStop(command.chatId);
     }
   }
 
@@ -261,7 +270,9 @@ EJEMPLOS DE RESPUESTAS CORRECTAS:
 
     // Agregar instrucciones de uso de tools y estilo de respuesta al system prompt
     const enrichedSystemPrompt =
-      systemPrompt + this.TOOL_USE_INSTRUCTION + this.RESPONSE_STYLE_INSTRUCTION;
+      systemPrompt +
+      this.TOOL_USE_INSTRUCTION +
+      this.RESPONSE_STYLE_INSTRUCTION;
 
     // Obtener información del sitio para construir el contexto de tools
     const toolContext = await this.buildToolContext(command, config);
@@ -505,5 +516,45 @@ EJEMPLOS DE RESPUESTAS CORRECTAS:
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Emite evento de typing:start para indicar que la IA está generando respuesta
+   */
+  private emitTypingStart(chatId: string): void {
+    try {
+      this.wsGateway.emitToRoom(`chat:${chatId}`, 'typing:start', {
+        chatId,
+        userId: 'ai',
+        userType: 'ai',
+        timestamp: new Date().toISOString(),
+      });
+      this.logger.debug(`Typing start emitido para chat ${chatId} (IA)`);
+    } catch (error) {
+      // No fallar si hay error en WebSocket, solo loguear
+      this.logger.warn(
+        `Error emitiendo typing:start para chat ${chatId}: ${error}`,
+      );
+    }
+  }
+
+  /**
+   * Emite evento de typing:stop para indicar que la IA terminó de generar
+   */
+  private emitTypingStop(chatId: string): void {
+    try {
+      this.wsGateway.emitToRoom(`chat:${chatId}`, 'typing:stop', {
+        chatId,
+        userId: 'ai',
+        userType: 'ai',
+        timestamp: new Date().toISOString(),
+      });
+      this.logger.debug(`Typing stop emitido para chat ${chatId} (IA)`);
+    } catch (error) {
+      // No fallar si hay error en WebSocket, solo loguear
+      this.logger.warn(
+        `Error emitiendo typing:stop para chat ${chatId}: ${error}`,
+      );
+    }
   }
 }

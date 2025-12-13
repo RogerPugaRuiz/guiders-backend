@@ -108,9 +108,7 @@ export class MongoWebContentCacheRepositoryImpl
     try {
       await this.model.deleteOne({ url, companyId }).exec();
 
-      this.logger.debug(
-        `Cache eliminado para ${url} (company: ${companyId})`,
-      );
+      this.logger.debug(`Cache eliminado para ${url} (company: ${companyId})`);
       return ok(undefined);
     } catch (error) {
       const errorMessage =
@@ -146,7 +144,9 @@ export class MongoWebContentCacheRepositoryImpl
         .deleteMany({ expiresAt: { $lte: new Date() } })
         .exec();
 
-      this.logger.debug(`Cache expirado eliminado: ${result.deletedCount} entradas`);
+      this.logger.debug(
+        `Cache expirado eliminado: ${result.deletedCount} entradas`,
+      );
       return ok(result.deletedCount);
     } catch (error) {
       const errorMessage =
