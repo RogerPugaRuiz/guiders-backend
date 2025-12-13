@@ -384,7 +384,7 @@ export class VisitorV2Controller {
 
   @Get(':visitorId/activity')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @Roles(['commercial'])
+  @Roles(['commercial', 'admin'])
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener estadísticas de actividad del visitante',
@@ -398,7 +398,7 @@ export class VisitorV2Controller {
       '- Ciclo de vida del visitante\n\n' +
       '**Requisitos:**\n' +
       '- Autenticación: JWT Bearer token o cookie de sesión BFF\n' +
-      '- Rol requerido: `commercial`',
+      '- Rol requerido: `commercial` o `admin`',
   })
   @ApiParam({
     name: 'visitorId',
@@ -416,7 +416,7 @@ export class VisitorV2Controller {
   })
   @ApiResponse({
     status: 403,
-    description: 'Sin permisos - Se requiere rol de comercial',
+    description: 'Sin permisos - Se requiere rol de commercial o admin',
   })
   @ApiResponse({
     status: 404,
