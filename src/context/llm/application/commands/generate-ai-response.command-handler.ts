@@ -224,6 +224,20 @@ USO DE HERRAMIENTAS:
 - NO llames a la herramienta múltiples veces - usa la información que ya obtuviste
 - Si la información obtenida no es suficiente, responde con lo que tienes y sugiere que el usuario pregunte algo más específico`;
 
+  private readonly RESPONSE_STYLE_INSTRUCTION = `
+
+PROCESAMIENTO DE INFORMACIÓN WEB:
+- Cuando obtengas información de páginas web, EXTRAE SOLO lo relevante para la pregunta actual
+- NUNCA copies ni listes todo el contenido de la página
+- Da un resumen muy breve (1-2 oraciones) y ofrece ampliar si lo necesita
+- Si hay precios, horarios u otros datos, resume: "Tenemos opciones desde X€" en lugar de listar todo
+- Pregunta qué aspecto específico le interesa para dar información más precisa
+
+EJEMPLOS DE RESPUESTAS CORRECTAS:
+- Pregunta: "¿Qué productos tienen?" → "Tenemos electrónica, hogar y deportes. ¿Qué categoría te interesa?"
+- Pregunta: "¿Cuáles son los precios?" → "Los precios varían según el producto. ¿Qué artículo te interesa para darte el precio exacto?"
+- Pregunta: "¿Tienen horarios?" → "Sí, estamos abiertos de lunes a sábado. ¿Quieres saber el horario de algún día en concreto?"`;
+
   /**
    * Genera una respuesta usando el loop de tool use
    */
@@ -245,8 +259,9 @@ USO DE HERRAMIENTAS:
     const toolConfig = config.toolConfig;
     const maxIterations = toolConfig.toPrimitives().maxIterations;
 
-    // Agregar instrucciones de uso de tools al system prompt
-    const enrichedSystemPrompt = systemPrompt + this.TOOL_USE_INSTRUCTION;
+    // Agregar instrucciones de uso de tools y estilo de respuesta al system prompt
+    const enrichedSystemPrompt =
+      systemPrompt + this.TOOL_USE_INSTRUCTION + this.RESPONSE_STYLE_INSTRUCTION;
 
     // Obtener información del sitio para construir el contexto de tools
     const toolContext = await this.buildToolContext(command, config);

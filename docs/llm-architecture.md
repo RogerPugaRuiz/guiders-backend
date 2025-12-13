@@ -19,7 +19,7 @@ flowchart TB
 
     subgraph SERVICES["⚙️ SERVICIOS DE DOMINIO"]
         CONFIG["LlmCompanyConfig<br/>• aiAutoResponseEnabled<br/>• preferredModel<br/>• customSystemPrompt"]
-        CONTEXT["ContextBuilder<br/>• Prompt base<br/>• Brevity instruction<br/>• Visitor info<br/>• Tools context"]
+        CONTEXT["ContextBuilder<br/>• Prompt base conversacional<br/>• Visitor info<br/>• Tools context<br/>• Response style"]
         TOOLS["ToolExecutor<br/>• fetch_page<br/>• Cache<br/>• Seguridad"]
     end
 
@@ -86,20 +86,20 @@ El system prompt se construye en **5 capas**, cada una añadiendo información:
 
 ```mermaid
 flowchart TB
-    subgraph LAYER1["🔵 CAPA 1: Prompt Base"]
-        BASE["DEFAULT_SYSTEM_PROMPT<br/>o<br/>customSystemPrompt de empresa"]
+    subgraph LAYER1["🔵 CAPA 1: Prompt Base Conversacional"]
+        BASE["DEFAULT_SYSTEM_PROMPT<br/>o<br/>customSystemPrompt de empresa<br/><i>Incluye estilo conversacional integrado</i>"]
     end
 
-    subgraph LAYER2["🟢 CAPA 2: Brevity Instruction"]
-        BREVITY["IMPORTANTE: Responde de forma<br/>breve y concisa.<br/><i>SIEMPRE se inyecta</i>"]
-    end
-
-    subgraph LAYER3["🟡 CAPA 3: Contexto Visitante"]
+    subgraph LAYER2["🟢 CAPA 2: Contexto Visitante"]
         VISITOR["Información del Visitante:<br/>• Página actual<br/>• Etapa del funnel<br/>• Número de visitas<br/><i>Si includeVisitorInfo=true</i>"]
     end
 
-    subgraph LAYER4["🟠 CAPA 4: Tool Use Instructions"]
+    subgraph LAYER3["🟡 CAPA 3: Tool Use Instructions"]
         TOOLINST["USO DE HERRAMIENTAS:<br/>• Usa tools MÁXIMO 1 VEZ<br/>• Responde inmediatamente después<br/>• No llames múltiples veces<br/><i>Si hasToolsEnabled=true</i>"]
+    end
+
+    subgraph LAYER4["🟠 CAPA 4: Response Style Instruction"]
+        RESPONSE["PROCESAMIENTO DE INFO WEB:<br/>• Extrae SOLO lo relevante<br/>• Resume en 1-2 oraciones<br/>• Pregunta aspectos específicos<br/><i>Si hasToolsEnabled=true</i>"]
     end
 
     subgraph LAYER5["🔴 CAPA 5: Historial"]
@@ -119,16 +119,16 @@ flowchart TB
     style LAYER5 fill:#ffcdd2
 ```
 
-[🎨 Editar en Mermaid Playground](https://mermaidchart.com/play?utm_source=mermaid_mcp_server&utm_medium=remote_server&utm_campaign=claude#pako:eNqVk99u0zAUxl_lqFyPbf2DWDQqpVtgkZq2StKKQdHkOM5m5NjFdjoqhATvgLjgZmzihmvgZrd5E56AR8BJStqqk4CoqpLv87F_37H9poFFTBpWI2HiEl8gqSHsTTmYR2XRuUSzC-jbp46__3za-HX14Qcc2SMb9i0YSZHONPSQItPGi6qkeHp24Jixx85je9wPz4LTIHS8s5E_9EbhYSR3u6L8x5nSIg0WSpN0OVVMgKQzSRSqJyQ8nvK7cJolztVNhdO0oCfJnOoFuFxpmWFNBd_E8p2JG56aMtcbDf3QHoSOBT5RM8HNwuaXCJmiki0ycxFYABYcU4Xul-Ih7Qau4418BxQByhcEa3S4S7t_h21VsNcVbMuCI8E1ea0FTKiiGpmPDdaJG7jh0C9YeUmFaf6NG0a2KrBKqJ_vbmCUX59TjgBhnSFWy45GM1TWJBnnZGUM8tuUSFFEnpezqTofNbkwy2JSLiNksfwj007ybznbVc7PVc62BaEQDMamXWu7ojaihsNh3x0EoakcB0M4duDE8X3bc51BaAerkGOFQJvZFHj5-6euN4R9mDjPar_eSMpTElOkUUpMl0xINcvyr2qVXgBjxlSQ5rdM0xkzr3OCyXoXLpAq0JXDUcRI_B8t6FTX5HvVgo4FJ9Scc0kR24h94gZmg4vTaM7YnEiFitZUYxclSP7JwKVCQXMPTBSFXi4JM0XkLlLKjDXnABDTRHIUC3UXXHV1YWenu7w2a3JzJbfW5NZKbq_J7ZXcWZM7ldz3ytxfPsITKV4V3yXNskN6wcgflIQyZt2Lopgk0ZbdXNr4IXmAD7bs1tJOkuQAt7fsdm2Tvai5ZXdqG8dxs_H2N9gxpY4)
+[🎨 Editar en Mermaid Playground](https://mermaidchart.com/play?utm_source=mermaid_mcp_server&utm_medium=remote_server&utm_campaign=claude#pako:eNqtVEFu00AUvcpXWFdtnARRq0RKWpdaSuIodgqFoGpij1uj8YyZGYdGCAnugFiwKa3YsGAFbLr1TTgBR-DbTuOEdAESXkT2ezN_3nvzf17XfBHQmlkLmXjlnxOpwetOOOCj0umZJMk59Don1qj-bFL7dfn-B-x3hh2omzCUIk40dImisC_4jEpF_Ehwwia152WF_Ol2XAu3HliHnXHPO3VPXM_qnw5HTn_o7U3ldlsUv36qtIjdudI0XlQOKNA4kVSRYsVe1La5z9I5wkpHTIC_dipEXFMUHIi97ai91EB5MOF3GTIKQ5fXpSHDzE1oeqEFHEcq0gQ_1owc267tOSPcZfNQyBiPzb5xVMmqDWah9OfbaxhmV2cRJ0B8nRK2hC1NElLsCVPOaUUMspuYSpGbnhXV1K1pN0Jn6DugxTFC5sc_1DKlf-ezUfq8Kn02TPCEYDDGW7O5wjK-xvjUmlXPcXr2wPVw59h14MCCI2s06vRta-B13MrkWBHQWE1BP3v3xO47UIdj6-mSH1GVCI6WIh7TICKaxBRTQpMqSbMvqnIvgDEkFcTZDdNRwvB1Rn26msI5Ubl0ZXEyZTT4hwiaZQSfygia5kIYRuDqOVsLYi2HkeUOnUHRv9iw-5ZbRlAkYg8OHXhsdas0rAstCZZ0eg5gd0rK6CxvitU40hi7l0N9ywAhi8alVQpDSc9SrrFpVEJ9LRQ2Or5kX8PIF_8niVY5xd_LJFomHEU4dzL6Y2iPbBdb_QQX385Ynk25dl4IyT7iNcUo0dgBvFRFXiyMpIrKbaIUrkXzQJimkuNQqrvElf8ssLXVXszkCmxUcGMFblRwcwVuVnBrBW6VcK9f-P78AR5J8TL_LtQsEip6YCEljBgz702nAQ2nG7SxoP0H9L6_u0E3FnQYhrt-c4NuLmm6MzU26NaS9oPAqL35DRDH4cA)
 
 ### Descripción de cada capa
 
 | Capa | Nombre | Condición | Contenido |
 |------|--------|-----------|-----------|
-| 1 | Prompt Base | Siempre | `DEFAULT_SYSTEM_PROMPT` o `customSystemPrompt` de la empresa |
-| 2 | Brevity | **Siempre** | "IMPORTANTE: Responde de forma breve y concisa" |
-| 3 | Visitante | `includeVisitorInfo=true` | Página actual, etapa, visitas |
-| 4 | Tool Use Instructions | `hasToolsEnabled=true` | Instrucciones para limitar uso de tools a 1 vez |
+| 1 | Prompt Base Conversacional | Siempre | `DEFAULT_SYSTEM_PROMPT` con estilo conversacional integrado (brevedad, preguntas de seguimiento) |
+| 2 | Visitante | `includeVisitorInfo=true` | Página actual, etapa, visitas |
+| 3 | Tool Use Instructions | `hasToolsEnabled=true` | Instrucciones para limitar uso de tools a 1 vez |
+| 4 | Response Style Instruction | `hasToolsEnabled=true` | Cómo procesar info web: resumir, no listar todo, preguntar detalles |
 | 5 | Historial | Siempre | Últimos 20 mensajes de la conversación |
 
 ---
@@ -232,7 +232,7 @@ sequenceDiagram
 
     EH->>CB: buildContext()
 
-    Note over CB: Construye prompt:<br/>1. Base/Custom prompt<br/>2. Brevity instruction<br/>3. Visitor info<br/>4. Tools context<br/>5. History
+    Note over CB: Construye prompt:<br/>1. Base conversacional<br/>2. Visitor info<br/>3. Tool use instruction<br/>4. Response style<br/>5. History
 
     CB-->>EH: LlmContext
 
@@ -376,16 +376,32 @@ src/context/llm/
 
 Los siguientes archivos contienen instrucciones que modifican el comportamiento del LLM:
 
-### `llm-context-builder.service.impl.ts` - Brevity Instruction
+### `llm-context-builder.service.impl.ts` - Prompt Base Conversacional
+
+El `DEFAULT_SYSTEM_PROMPT` incluye instrucciones de estilo conversacional integradas:
 
 ```typescript
-private readonly BREVITY_INSTRUCTION = `
+private readonly DEFAULT_SYSTEM_PROMPT = `Eres un asistente virtual de atención al cliente profesional y amable.
+Tu objetivo es ayudar a los visitantes del sitio web manteniendo una conversación natural y fluida.
 
-IMPORTANTE: Responde de forma breve y concisa. Tus respuestas deben ser cortas y directas.`;
+ESTILO DE RESPUESTA:
+- Responde ÚNICAMENTE a la pregunta específica del visitante
+- Usa 1-2 oraciones máximo para responder
+- SIEMPRE resume la información, aunque sea importante (precios, horarios, etc.)
+- Si hay mucha información, da un resumen breve y pregunta si quiere más detalles
+- Haz preguntas de seguimiento cuando tenga sentido (no en despedidas o confirmaciones)
+- NO listes toda la información disponible - solo lo mínimo necesario
+- Sé conversacional, no informativo
+
+REGLAS:
+- Responde siempre en español de manera profesional pero cercana
+- Si no conoces la respuesta, indica que un comercial humano puede ayudar
+- Sugiere "hablar con un agente" si la consulta es muy compleja o requiere información confidencial
+- No inventes información sobre productos, precios o disponibilidad
+- Si el visitante saluda, responde brevemente y pregunta en qué puedes ayudar`;
 
 // En buildContext():
-const basePrompt = params.customSystemPrompt || this.DEFAULT_SYSTEM_PROMPT;
-const systemPrompt = basePrompt + this.BREVITY_INSTRUCTION;  // SIEMPRE se añade
+const systemPrompt = params.customSystemPrompt || this.DEFAULT_SYSTEM_PROMPT;
 ```
 
 ### `generate-ai-response.command-handler.ts` - Tool Use Instruction
@@ -399,9 +415,27 @@ USO DE HERRAMIENTAS:
 - Después de obtener información con la herramienta, DEBES responder inmediatamente al usuario
 - NO llames a la herramienta múltiples veces - usa la información que ya obtuviste
 - Si la información obtenida no es suficiente, responde con lo que tienes y sugiere que el usuario pregunte algo más específico`;
+```
+
+### `generate-ai-response.command-handler.ts` - Response Style Instruction (NUEVO)
+
+```typescript
+private readonly RESPONSE_STYLE_INSTRUCTION = `
+
+PROCESAMIENTO DE INFORMACIÓN WEB:
+- Cuando obtengas información de páginas web, EXTRAE SOLO lo relevante para la pregunta actual
+- NUNCA copies ni listes todo el contenido de la página
+- Da un resumen muy breve (1-2 oraciones) y ofrece ampliar si lo necesita
+- Si hay precios, horarios u otros datos, resume: "Tenemos opciones desde X€" en lugar de listar todo
+- Pregunta qué aspecto específico le interesa para dar información más precisa
+
+EJEMPLOS DE RESPUESTAS CORRECTAS:
+- Pregunta: "¿Qué productos tienen?" → "Tenemos electrónica, hogar y deportes. ¿Qué categoría te interesa?"
+- Pregunta: "¿Cuáles son los precios?" → "Los precios varían según el producto. ¿Qué artículo te interesa para darte el precio exacto?"
+- Pregunta: "¿Tienen horarios?" → "Sí, estamos abiertos de lunes a sábado. ¿Quieres saber el horario de algún día en concreto?"`;
 
 // En generateWithTools():
-const enrichedSystemPrompt = systemPrompt + this.TOOL_USE_INSTRUCTION;
+const enrichedSystemPrompt = systemPrompt + this.TOOL_USE_INSTRUCTION + this.RESPONSE_STYLE_INSTRUCTION;
 ```
 
 ### `generate-ai-response.command-handler.ts` - Fallback Mechanism
@@ -417,17 +451,6 @@ const finalResult = await this.llmProvider.generateCompletionWithTools({
   tools: [],           // Sin tools para forzar respuesta de texto
   toolChoice: 'none',  // Forzar respuesta sin tool calls
 });
-```
-
-### `generate-suggestion.command-handler.ts` - Brevity Instruction
-
-```typescript
-private readonly BREVITY_INSTRUCTION = `
-
-IMPORTANTE: Responde de forma breve y concisa.`;
-
-// En buildSuggestionsPrompt():
-const promptWithBrevity = basePrompt + this.BREVITY_INSTRUCTION;
 ```
 
 ---
