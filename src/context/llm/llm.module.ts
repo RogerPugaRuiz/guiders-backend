@@ -25,6 +25,7 @@ import { LLM_PROVIDER_SERVICE } from './domain/services/llm-provider.service';
 import { LLM_CONTEXT_BUILDER_SERVICE } from './domain/services/llm-context-builder.service';
 import { TOOL_EXECUTOR_SERVICE } from './domain/services/tool-executor.service';
 import { LLM_CONFIG_REPOSITORY } from './domain/llm-config.repository';
+import { WEB_CONTENT_CACHE_REPOSITORY } from './domain/web-content-cache.repository';
 
 // Infrastructure - Providers
 import { GroqLlmProviderServiceProvider } from './infrastructure/providers/groq-llm-provider.service';
@@ -36,6 +37,7 @@ import { ToolExecutorServiceProvider } from './infrastructure/services/tool-exec
 
 // Infrastructure - Persistence
 import { MongoLlmConfigRepositoryProvider } from './infrastructure/persistence/mongo-llm-config.repository.impl';
+import { MongoWebContentCacheRepositoryProvider } from './infrastructure/persistence/mongo-web-content-cache.repository.impl';
 import {
   LlmCompanyConfigSchema,
   LlmCompanyConfigSchemaDefinition,
@@ -117,6 +119,9 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     // Config Repository
     MongoLlmConfigRepositoryProvider,
 
+    // Web Content Cache Repository
+    MongoWebContentCacheRepositoryProvider,
+
     // Command Handlers
     ...CommandHandlers,
 
@@ -128,6 +133,7 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     LLM_CONTEXT_BUILDER_SERVICE,
     TOOL_EXECUTOR_SERVICE,
     LLM_CONFIG_REPOSITORY,
+    WEB_CONTENT_CACHE_REPOSITORY,
   ],
 })
 export class LlmModule {}

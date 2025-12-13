@@ -4,8 +4,6 @@
  */
 
 import { Injectable, Logger, Provider } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
@@ -21,10 +19,6 @@ import {
 } from '../../domain/tool-definitions';
 import { LlmToolExecutionError } from '../../domain/errors/llm.error';
 import { WebContentFetcherService } from './web-content-fetcher.service';
-import {
-  WebContentCacheDocument,
-  WebContentCacheSchema,
-} from '../schemas/web-content-cache.schema';
 
 /**
  * Handler de una tool específica
@@ -41,11 +35,7 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
   private readonly logger = new Logger(ToolExecutorServiceImpl.name);
   private readonly handlers: Map<string, ToolHandler> = new Map();
 
-  constructor(
-    private readonly webFetcher: WebContentFetcherService,
-    @InjectModel(WebContentCacheSchema.name)
-    private readonly cacheModel: Model<WebContentCacheDocument>,
-  ) {
+  constructor(private readonly webFetcher: WebContentFetcherService) {
     this.registerHandlers();
   }
 
@@ -204,18 +194,12 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
       );
     }
 
-    // Buscar en cache si está habilitado
-    if (toolConfig.cacheEnabled) {
-      const cached = await this.getFromCache(fullUrl, context.companyId);
-      if (cached) {
-        this.logger.debug(`Cache hit para ${fullUrl}`);
-        return ok(cached);
-      }
-    }
-
-    // Fetch del contenido
+    // Fetch del contenido (con cache integrado si está habilitado)
     const fetchResult = await this.webFetcher.fetchContent(fullUrl, {
       timeoutMs: toolConfig.fetchTimeoutMs,
+      companyId: toolConfig.cacheEnabled ? context.companyId : undefined,
+      cacheTtlSeconds: toolConfig.cacheTtlSeconds,
+      forceRefresh: !toolConfig.cacheEnabled,
     });
 
     if (fetchResult.isErr()) {
@@ -224,80 +208,11 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
 
     const webContent = fetchResult.unwrap();
 
-    // Guardar en cache si está habilitado
-    if (toolConfig.cacheEnabled) {
-      await this.saveToCache(
-        fullUrl,
-        context.companyId,
-        webContent.content,
-        webContent.originalSize,
-        webContent.truncated,
-        webContent.fetchTimeMs,
-        toolConfig.cacheTtlSeconds,
-      );
+    if (webContent.fromCache) {
+      this.logger.debug(`Cache HIT para ${fullUrl}`);
     }
 
     return ok(webContent.content);
-  }
-
-  /**
-   * Obtiene contenido del cache
-   */
-  private async getFromCache(
-    url: string,
-    companyId: string,
-  ): Promise<string | null> {
-    try {
-      const cached = await this.cacheModel
-        .findOne({
-          url,
-          companyId,
-          expiresAt: { $gt: new Date() },
-        })
-        .exec();
-
-      return cached?.content || null;
-    } catch (error) {
-      this.logger.warn(`Error leyendo cache: ${error}`);
-      return null;
-    }
-  }
-
-  /**
-   * Guarda contenido en cache
-   */
-  private async saveToCache(
-    url: string,
-    companyId: string,
-    content: string,
-    originalSize: number,
-    truncated: boolean,
-    fetchTimeMs: number,
-    ttlSeconds: number,
-  ): Promise<void> {
-    try {
-      const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
-
-      await this.cacheModel.updateOne(
-        { url, companyId },
-        {
-          $set: {
-            content,
-            originalSize,
-            truncated,
-            fetchTimeMs,
-            expiresAt,
-            updatedAt: new Date(),
-          },
-          $setOnInsert: {
-            createdAt: new Date(),
-          },
-        },
-        { upsert: true },
-      );
-    } catch (error) {
-      this.logger.warn(`Error guardando en cache: ${error}`);
-    }
   }
 
   /**

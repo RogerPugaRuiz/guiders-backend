@@ -1,9 +1,10 @@
 /**
  * Servicio para obtener contenido web usando Jina Reader API
  * Convierte páginas web a Markdown limpio para el LLM
+ * Incluye sistema de cache para evitar requests repetidos
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
@@ -12,6 +13,10 @@ import {
   LlmToolExecutionError,
   LlmToolTimeoutError,
 } from '../../domain/errors/llm.error';
+import {
+  IWebContentCacheRepository,
+  WEB_CONTENT_CACHE_REPOSITORY,
+} from '../../domain/web-content-cache.repository';
 
 /**
  * Resultado de fetch de contenido web
@@ -27,6 +32,8 @@ export interface WebContentResult {
   originalSize: number;
   /** Si el contenido fue truncado */
   truncated: boolean;
+  /** Si el contenido vino del cache */
+  fromCache: boolean;
 }
 
 /**
@@ -37,10 +44,17 @@ export interface FetchOptions {
   timeoutMs?: number;
   /** Máximo de caracteres a devolver */
   maxChars?: number;
+  /** ID de la empresa (requerido para cache) */
+  companyId?: string;
+  /** TTL del cache en segundos (default: 1 hora) */
+  cacheTtlSeconds?: number;
+  /** Forzar refresh ignorando cache */
+  forceRefresh?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_MAX_CHARS = 32000; // ~8000 tokens aproximadamente
+const DEFAULT_CACHE_TTL_SECONDS = 3600; // 1 hora
 const JINA_READER_BASE_URL = 'https://r.jina.ai';
 
 /** Hostnames considerados locales (bypass de Jina Reader) */
@@ -53,10 +67,16 @@ const DANGEROUS_PATH_CHARS = ['<', '>', '"', "'", '\\', '\n', '\r'];
 export class WebContentFetcherService {
   private readonly logger = new Logger(WebContentFetcherService.name);
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    @Optional()
+    @Inject(WEB_CONTENT_CACHE_REPOSITORY)
+    private readonly cacheRepository?: IWebContentCacheRepository,
+  ) {}
 
   /**
    * Obtiene el contenido de una URL y lo convierte a Markdown
+   * Utiliza cache si está disponible y companyId es proporcionado
    * @param url URL completa a obtener
    * @param options Opciones de fetch
    * @returns Contenido en Markdown o error
@@ -67,6 +87,7 @@ export class WebContentFetcherService {
   ): Promise<Result<WebContentResult, DomainError>> {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
+    const cacheTtlSeconds = options.cacheTtlSeconds ?? DEFAULT_CACHE_TTL_SECONDS;
     const startTime = Date.now();
 
     try {
@@ -81,9 +102,37 @@ export class WebContentFetcherService {
         );
       }
 
-      // Detectar si es URL local (bypass Jina Reader)
-      const isLocal = this.isLocalUrl(validatedUrl);
+      // Intentar obtener del cache si está disponible
+      if (
+        this.cacheRepository &&
+        options.companyId &&
+        !options.forceRefresh
+      ) {
+        const cacheResult = await this.cacheRepository.findByUrlAndCompany(
+          validatedUrl,
+          options.companyId,
+        );
 
+        if (cacheResult.isOk()) {
+          const cached = cacheResult.unwrap();
+          if (cached) {
+            this.logger.debug(
+              `Cache HIT para ${validatedUrl} (company: ${options.companyId})`,
+            );
+            return ok({
+              content: cached.content,
+              sourceUrl: validatedUrl,
+              fetchTimeMs: 0, // No hubo fetch
+              originalSize: cached.originalSize,
+              truncated: cached.truncated,
+              fromCache: true,
+            });
+          }
+        }
+      }
+
+      // Cache miss o no disponible - hacer fetch
+      const isLocal = this.isLocalUrl(validatedUrl);
       let responseContent: string;
 
       if (isLocal) {
@@ -148,12 +197,31 @@ export class WebContentFetcherService {
         `Fetched ${originalSize} chars in ${fetchTimeMs}ms from ${validatedUrl}`,
       );
 
+      // Guardar en cache si está disponible
+      if (this.cacheRepository && options.companyId) {
+        const expiresAt = new Date(Date.now() + cacheTtlSeconds * 1000);
+        await this.cacheRepository.save({
+          url: validatedUrl,
+          companyId: options.companyId,
+          content,
+          originalSize,
+          truncated,
+          fetchTimeMs,
+          createdAt: new Date(),
+          expiresAt,
+        });
+        this.logger.debug(
+          `Cache guardado para ${validatedUrl} (TTL: ${cacheTtlSeconds}s)`,
+        );
+      }
+
       return ok({
         content,
         sourceUrl: validatedUrl,
         fetchTimeMs,
         originalSize,
         truncated,
+        fromCache: false,
       });
     } catch (error) {
       const fetchTimeMs = Date.now() - startTime;
