@@ -4,6 +4,7 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
+import { CommandBus } from '@nestjs/cqrs';
 import { Model } from 'mongoose';
 import { ok, err } from 'src/context/shared/domain/result';
 import {
@@ -25,6 +26,7 @@ describe('ToolExecutorServiceImpl', () => {
   let service: ToolExecutorServiceImpl;
   let mockWebFetcher: jest.Mocked<WebContentFetcherService>;
   let mockCacheModel: jest.Mocked<Model<any>>;
+  let mockCommandBus: jest.Mocked<CommandBus>;
 
   const defaultContext: ToolExecutionContext = {
     companyId: 'company-456',
@@ -54,6 +56,10 @@ describe('ToolExecutorServiceImpl', () => {
       updateOne: jest.fn().mockResolvedValue({}),
     } as unknown as jest.Mocked<Model<any>>;
 
+    mockCommandBus = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<CommandBus>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ToolExecutorServiceProvider,
@@ -64,6 +70,10 @@ describe('ToolExecutorServiceImpl', () => {
         {
           provide: getModelToken(WebContentCacheSchema.name),
           useValue: mockCacheModel,
+        },
+        {
+          provide: CommandBus,
+          useValue: mockCommandBus,
         },
       ],
     }).compile();
