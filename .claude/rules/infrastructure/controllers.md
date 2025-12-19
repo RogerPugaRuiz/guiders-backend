@@ -1,14 +1,14 @@
 # REST Controllers
 
-## Descripción
+## Description
 
-Endpoints HTTP que delegan a CommandBus/QueryBus sin lógica de negocio.
+HTTP endpoints that delegate to CommandBus/QueryBus without business logic.
 
-## Referencia
+## Reference
 
 `src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import { Controller, Post, Get, Body, Param, Query, UseGuards } from '@nestjs/common';
@@ -59,28 +59,28 @@ export class ChatController {
 }
 ```
 
-## Guards Disponibles
+## Available Guards
 
-| Guard | Uso |
-|-------|-----|
-| `AuthGuard` | JWT Bearer obligatorio |
-| `DualAuthGuard` | JWT o BFF cookies (Keycloak) |
-| `OptionalAuthGuard` | Auth opcional, no falla |
-| `RoleGuard` + `@Roles([])` | Verificar roles |
-| `ApiKeyGuard` | Validar API key |
+| Guard | Usage |
+|-------|-------|
+| `AuthGuard` | Mandatory JWT Bearer |
+| `DualAuthGuard` | JWT or BFF cookies (Keycloak) |
+| `OptionalAuthGuard` | Optional auth, doesn't fail |
+| `RoleGuard` + `@Roles([])` | Verify roles |
+| `ApiKeyGuard` | Validate API key |
 
-## Decoradores Swagger Obligatorios
+## Required Swagger Decorators
 
 ```typescript
-@ApiTags('Módulo')           // Agrupación en Swagger
-@ApiBearerAuth()             // Indica autenticación
-@ApiOperation({ summary })   // Descripción del endpoint
-@ApiResponse({ status, type, description })  // Respuestas posibles
-@ApiParam({ name, description })  // Parámetros de ruta
+@ApiTags('Module')           // Group endpoints in Swagger
+@ApiBearerAuth()             // Indicates authentication
+@ApiOperation({ summary })   // Endpoint description
+@ApiResponse({ status, type, description })  // Possible responses
+@ApiParam({ name, description })  // Route parameters
 @ApiQuery({ name, required, description })  // Query params
 ```
 
-## Manejo de Errores
+## Error Handling
 
 ```typescript
 @Get(':id')
@@ -90,7 +90,7 @@ async findById(@Param('id') id: string): Promise<ChatResponseDto> {
   if (result.isErr()) {
     const error = result.error();
 
-    // Mapear errores de dominio a HTTP
+    // Map domain errors to HTTP
     if (error instanceof ChatNotFoundError) {
       throw new NotFoundException(error.message);
     }
@@ -105,7 +105,7 @@ async findById(@Param('id') id: string): Promise<ChatResponseDto> {
 }
 ```
 
-## Acceso a Usuario Autenticado
+## Authenticated User Access
 
 ```typescript
 @Get('me/chats')
@@ -119,17 +119,17 @@ async getMyChats(@Req() request: RequestWithUser): Promise<ChatListDto> {
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Controller | `<Entity>Controller` | `ChatController` |
-| Archivo | `<entity>.controller.ts` | `chat.controller.ts` |
-| Ruta | kebab-case plural | `/v2/chats` |
+| File | `<entity>.controller.ts` | `chat.controller.ts` |
+| Route | kebab-case plural | `/v2/chats` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Lógica de negocio en controllers
-- Acceso directo a repositorios
-- Olvidar decoradores Swagger
-- Olvidar guards de autenticación
+- Business logic in controllers
+- Direct repository access
+- Missing Swagger decorators
+- Missing authentication guards

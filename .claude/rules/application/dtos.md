@@ -1,10 +1,10 @@
 # DTOs (Data Transfer Objects)
 
-## Descripción
+## Description
 
-Objetos para transferencia de datos con validación y documentación Swagger.
+Objects for data transfer with validation and Swagger documentation.
 
-## Referencia
+## Reference
 `src/context/conversations-v2/application/dtos/`
 
 ## Request DTO (Input)
@@ -15,22 +15,22 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateChatDto {
   @ApiProperty({
-    description: 'ID del visitante',
+    description: 'Visitor ID',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsUUID()
   visitorId: string;
 
   @ApiProperty({
-    description: 'ID de la empresa',
+    description: 'Company ID',
     example: '550e8400-e29b-41d4-a716-446655440001',
   })
   @IsUUID()
   companyId: string;
 
   @ApiPropertyOptional({
-    description: 'Mensaje inicial opcional',
-    example: 'Hola, necesito ayuda',
+    description: 'Optional initial message',
+    example: 'Hello, I need help',
   })
   @IsOptional()
   @IsString()
@@ -46,19 +46,19 @@ export class CreateChatDto {
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ChatResponseDto {
-  @ApiProperty({ description: 'ID del chat' })
+  @ApiProperty({ description: 'Chat ID' })
   id: string;
 
-  @ApiProperty({ description: 'Estado del chat', enum: ['PENDING', 'ACTIVE', 'CLOSED'] })
+  @ApiProperty({ description: 'Chat status', enum: ['PENDING', 'ACTIVE', 'CLOSED'] })
   status: string;
 
-  @ApiProperty({ description: 'ID del visitante' })
+  @ApiProperty({ description: 'Visitor ID' })
   visitorId: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: 'Creation date' })
   createdAt: string;
 
-  // Factory desde dominio
+  // Factory from domain
   static fromDomain(chat: Chat): ChatResponseDto {
     const primitives = chat.toPrimitives();
     const dto = new ChatResponseDto();
@@ -69,7 +69,7 @@ export class ChatResponseDto {
     return dto;
   }
 
-  // Factory desde primitivos
+  // Factory from primitives
   static fromPrimitives(data: ChatPrimitives): ChatResponseDto {
     const dto = new ChatResponseDto();
     dto.id = data.id;
@@ -88,13 +88,13 @@ export class ChatListResponseDto {
   @ApiProperty({ type: [ChatResponseDto] })
   items: ChatResponseDto[];
 
-  @ApiProperty({ description: 'Total de elementos' })
+  @ApiProperty({ description: 'Total items' })
   total: number;
 
-  @ApiProperty({ description: 'Límite por página' })
+  @ApiProperty({ description: 'Page limit' })
   limit: number;
 
-  @ApiProperty({ description: 'Offset actual' })
+  @ApiProperty({ description: 'Current offset' })
   offset: number;
 
   static create(
@@ -117,12 +117,12 @@ export class ChatListResponseDto {
 
 ```typescript
 export class FindChatsQueryDto {
-  @ApiPropertyOptional({ description: 'Filtrar por estado' })
+  @ApiPropertyOptional({ description: 'Filter by status' })
   @IsOptional()
   @IsEnum(['PENDING', 'ACTIVE', 'CLOSED'])
   status?: string;
 
-  @ApiPropertyOptional({ description: 'Límite de resultados', default: 20 })
+  @ApiPropertyOptional({ description: 'Results limit', default: 20 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -130,7 +130,7 @@ export class FindChatsQueryDto {
   @Max(100)
   limit?: number = 20;
 
-  @ApiPropertyOptional({ description: 'Offset para paginación', default: 0 })
+  @ApiPropertyOptional({ description: 'Pagination offset', default: 0 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -139,30 +139,30 @@ export class FindChatsQueryDto {
 }
 ```
 
-## Validadores Comunes
+## Common Validators
 
-| Decorador | Uso |
-|-----------|-----|
+| Decorator | Usage |
+|-----------|-------|
 | `@IsUUID()` | IDs |
-| `@IsString()` | Textos |
+| `@IsString()` | Text |
 | `@IsEmail()` | Emails |
-| `@IsEnum(Enum)` | Valores fijos |
-| `@IsOptional()` | Campos opcionales |
-| `@MinLength(n)` | Longitud mínima |
-| `@MaxLength(n)` | Longitud máxima |
-| `@Type(() => Number)` | Transformar query params |
+| `@IsEnum(Enum)` | Fixed values |
+| `@IsOptional()` | Optional fields |
+| `@MinLength(n)` | Minimum length |
+| `@MaxLength(n)` | Maximum length |
+| `@Type(() => Number)` | Transform query params |
 
-## Reglas de Naming
+## Naming Rules
 
-| Tipo | Patrón | Ejemplo |
-|------|--------|---------|
+| Type | Pattern | Example |
+|------|---------|---------|
 | Request | `<Action><Entity>Dto` | `CreateChatDto` |
 | Response | `<Entity>ResponseDto` | `ChatResponseDto` |
 | Query | `Find<Entity>QueryDto` | `FindChatsQueryDto` |
 
-## Anti-patrones
+## Anti-patterns
 
-- DTOs sin validación
-- DTOs sin documentación Swagger
-- Reusar DTOs de request como response
-- Exponer campos internos sensibles
+- DTOs without validation
+- DTOs without Swagger documentation
+- Reusing request DTOs as response
+- Exposing sensitive internal fields

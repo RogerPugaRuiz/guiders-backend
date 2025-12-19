@@ -1,43 +1,43 @@
 # Uuid Value Object
 
-## Descripción
+## Description
 
-Value Object base para identificadores únicos UUID v4.
+Base Value Object for unique UUID v4 identifiers.
 
-## Referencia
+## Reference
 `src/context/shared/domain/value-objects/uuid.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 export class ChatId extends Uuid {
-  // Heredar sin modificaciones es suficiente
+  // Inheriting without modifications is sufficient
 }
 ```
 
-## Métodos Disponibles
+## Available Methods
 
 ```typescript
-// Generar nuevo UUID
+// Generate new UUID
 const id = ChatId.random();
 
-// Crear desde string existente
+// Create from existing string
 const id = ChatId.create('550e8400-e29b-41d4-a716-446655440000');
 
-// Validar formato
+// Validate format
 const isValid = ChatId.validate('550e8400-e29b-41d4-a716-446655440000'); // true
 const isInvalid = ChatId.validate('invalid-uuid'); // false
 
-// Acceder al valor
+// Access value
 const value: string = id.value;
 
-// Comparar
+// Compare
 const areEqual = id1.equals(id2);
 ```
 
-## Uso en Aggregates
+## Usage in Aggregates
 
 ```typescript
 export class Chat extends AggregateRoot {
@@ -47,13 +47,13 @@ export class Chat extends AggregateRoot {
   ) { super(); }
 
   static create(visitorId: VisitorId): Chat {
-    const id = ChatId.random();  // Generar nuevo
+    const id = ChatId.random();  // Generate new
     return new Chat(id, /* ... */);
   }
 
   static fromPrimitives(data: ChatPrimitives): Chat {
     return new Chat(
-      ChatId.create(data.id),  // Rehidratar existente
+      ChatId.create(data.id),  // Rehydrate existing
       // ...
     );
   }
@@ -64,19 +64,19 @@ export class Chat extends AggregateRoot {
 }
 ```
 
-## Tipos Comunes de IDs
+## Common ID Types
 
-| Clase | Contexto | Uso |
-|-------|----------|-----|
-| `ChatId` | conversations-v2 | Identificador de chat |
-| `MessageId` | conversations-v2 | Identificador de mensaje |
-| `VisitorId` | visitors-v2 | Identificador de visitante |
-| `CompanyId` | company | Identificador de empresa |
-| `UserId` | auth | Identificador de usuario |
-| `SiteId` | company | Identificador de sitio |
+| Class | Context | Usage |
+|-------|---------|-------|
+| `ChatId` | conversations-v2 | Chat identifier |
+| `MessageId` | conversations-v2 | Message identifier |
+| `VisitorId` | visitors-v2 | Visitor identifier |
+| `CompanyId` | company | Company identifier |
+| `UserId` | auth | User identifier |
+| `SiteId` | company | Site identifier |
 
-## Anti-patrones
+## Anti-patterns
 
-- Usar strings directamente en lugar de Uuid tipados
-- Crear método `create()` si ya existe en clase base
-- UUIDs falsos en tests (usar `Uuid.random().value`)
+- Using strings directly instead of typed Uuids
+- Creating `create()` method if it already exists in base class
+- Fake UUIDs in tests (use `Uuid.random().value`)

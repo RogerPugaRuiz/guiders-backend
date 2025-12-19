@@ -95,6 +95,16 @@ export class ToolConfigDto {
   @IsString()
   @IsOptional()
   baseUrl?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Habilitar guardado automático de datos de contacto del lead. Cuando está activo, la IA puede guardar nombre, email, teléfono, etc. que el visitante proporcione en la conversación.',
+    example: true,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  saveLeadContactEnabled?: boolean;
 }
 
 /**

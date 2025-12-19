@@ -82,6 +82,10 @@ export interface ToolExecutionResult {
 export interface ToolExecutionContext {
   /** ID de la compañía */
   companyId: string;
+  /** ID del visitante actual (para tools que operan sobre el visitor) */
+  visitorId?: string;
+  /** ID del chat actual (para tools que operan sobre el chat) */
+  chatId?: string;
   /** Dominio canónico del sitio principal (ej: www.ejemplo.com) */
   baseDomain: string;
   /** Dominios alias permitidos (de todos los sitios de la empresa) */
@@ -96,6 +100,8 @@ export interface ToolExecutionContext {
 export interface ToolConfigPrimitives {
   /** Habilitar fetch de páginas web */
   fetchPageEnabled: boolean;
+  /** Habilitar guardar datos de contacto de leads */
+  saveLeadContactEnabled?: boolean;
   /** Paths permitidos (vacío = todos) */
   allowedPaths?: string[];
   /** Máximo de iteraciones de tool calling */
@@ -119,6 +125,7 @@ export interface ToolConfigPrimitives {
  */
 export const DEFAULT_TOOL_CONFIG: ToolConfigPrimitives = {
   fetchPageEnabled: false,
+  saveLeadContactEnabled: false,
   allowedPaths: [],
   maxIterations: 3,
   fetchTimeoutMs: 10000,

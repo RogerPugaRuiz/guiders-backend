@@ -1,14 +1,14 @@
 # WebSocket Gateways
 
-## Descripción
+## Description
 
-Gateways para comunicación bidireccional en tiempo real con Socket.IO.
+Gateways for bidirectional real-time communication with Socket.IO.
 
-## Referencia
+## Reference
 
 `src/websocket/websocket.gateway.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import {
@@ -62,7 +62,7 @@ export class ChatGateway
 }
 ```
 
-## Handlers de Mensajes
+## Message Handlers
 
 ```typescript
 @SubscribeMessage('chat:join')
@@ -76,13 +76,13 @@ async handleJoinChat(
     return { success: false, message: 'chatId es requerido' };
   }
 
-  // Unirse a la sala
+  // Join the room
   const roomName = `chat:${chatId}`;
   await client.join(roomName);
 
   this.logger.log(`Cliente ${client.id} unido a sala ${roomName}`);
 
-  // Notificar al cliente
+  // Notify the client
   client.emit('chat:joined', {
     chatId,
     roomName,
@@ -98,12 +98,12 @@ async handleSendMessage(
   @MessageBody() data: SendMessagePayload,
 ) {
   try {
-    // Validar datos
+    // Validate data
     if (!data.chatId || !data.content) {
       return { success: false, message: 'Datos incompletos' };
     }
 
-    // Ejecutar comando
+    // Execute command
     const result = await this.commandBus.execute(
       new SendMessageCommand(data.chatId, data.content, client.data.userId),
     );
@@ -120,42 +120,58 @@ async handleSendMessage(
 }
 ```
 
-## Emisión de Eventos
+## Event Emission
 
 ```typescript
-// A una sala específica
+// To a specific room
 emitToRoom(room: string, event: string, data: unknown): void {
   this.server.to(room).emit(event, data);
 }
 
-// A múltiples salas
+// To multiple rooms
 emitToRooms(rooms: string[], event: string, data: unknown): void {
   rooms.forEach(room => {
     this.server.to(room).emit(event, data);
   });
 }
 
-// Broadcast global
+// Global broadcast
 broadcast(event: string, data: unknown): void {
   this.server.emit(event, data);
 }
 
-// A un cliente específico
+// To a specific client
 emitToClient(clientId: string, event: string, data: unknown): void {
   this.server.to(clientId).emit(event, data);
 }
 ```
 
-## Tipos de Salas
+## Room Types
 
-| Sala | Formato | Uso |
-|------|---------|-----|
-| Chat | `chat:{chatId}` | Mensajes y estados del chat |
-| Comerciales | `chat:{chatId}:commercial` | Solo para comerciales |
-| Visitante | `visitor:{visitorId}` | Notificaciones proactivas |
-| Empresa | `tenant:{companyId}` | Notificaciones empresariales |
+| Room | Format | Usage |
+|------|--------|-------|
+| Chat | `chat:{chatId}` | Messages and chat states |
+| Commercials | `chat:{chatId}:commercial` | Commercial users only |
+| Visitor | `visitor:{visitorId}` | Proactive notifications |
+| Company | `tenant:{companyId}` | Company-wide notifications |
 
-## Autenticación
+## Available Guards
+
+| Guard | Usage |
+|-------|-------|
+| `WsAuthGuard` | Mandatory JWT authentication for WebSocket |
+| `WsRolesGuard` + `@Roles([])` | Verify roles in WebSocket handlers |
+
+```typescript
+@UseGuards(WsAuthGuard, WsRolesGuard)
+@SubscribeMessage('chat:send-message')
+@Roles(['visitor', 'commercial'])
+async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+  // Handler with authentication and role verification
+}
+```
+
+## Authentication
 
 ```typescript
 private async authenticateClient(client: Socket): Promise<void> {
@@ -171,14 +187,14 @@ private async authenticateClient(client: Socket): Promise<void> {
 
     const decoded = this.tokenService.verify(token);
 
-    // Guardar datos del usuario en el socket
+    // Store user data in socket
     client.data = {
       userId: decoded.sub,
       roles: decoded.roles || [],
       companyId: decoded.companyId,
     };
 
-    // Unir a salas según rol
+    // Join rooms based on role
     if (decoded.roles.includes('commercial')) {
       await client.join(`commercial:${decoded.sub}`);
     }
@@ -193,7 +209,7 @@ private async authenticateClient(client: Socket): Promise<void> {
 }
 ```
 
-## Tracking de Conexiones
+## Connection Tracking
 
 ```typescript
 private clientUsers = new Map<string, {
@@ -218,25 +234,25 @@ async handleDisconnect(client: Socket) {
   this.clientUsers.delete(client.id);
 }
 
-// Obtener usuarios conectados
+// Get connected users
 getConnectedUsers(): string[] {
   return Array.from(this.clientUsers.values()).map(u => u.userId);
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Gateway | `<Feature>Gateway` | `ChatGateway` |
-| Archivo | `<feature>.gateway.ts` | `chat.gateway.ts` |
-| Evento entrada | `<feature>:<action>` | `chat:send-message` |
-| Evento salida | `<feature>:<event>` | `chat:message-received` |
+| File | `<feature>.gateway.ts` | `chat.gateway.ts` |
+| Input event | `<feature>:<action>` | `chat:send-message` |
+| Output event | `<feature>:<event>` | `chat:message-received` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Lógica de dominio en gateways
-- Falta de autenticación
-- Handlers sin validación de payload
-- No usar salas (rooms) para segmentar
-- Excepciones no controladas
+- Domain logic in gateways
+- Missing authentication
+- Handlers without payload validation
+- Not using rooms for segmentation
+- Unhandled exceptions

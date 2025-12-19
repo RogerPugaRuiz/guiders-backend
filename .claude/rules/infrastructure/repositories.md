@@ -1,14 +1,14 @@
-# Implementaciones de Repositorios
+# Repository Implementations
 
-## Descripción
+## Description
 
-Implementaciones concretas de las interfaces de dominio usando ORMs (Mongoose/TypeORM).
+Concrete implementations of domain interfaces using ORMs (Mongoose/TypeORM).
 
-## Referencia
+## Reference
 
 `src/context/conversations-v2/infrastructure/persistence/impl/mongo-chat.repository.impl.ts`
 
-## Implementación MongoDB (Mongoose)
+## MongoDB Implementation (Mongoose)
 
 ```typescript
 import { Injectable } from '@nestjs/common';
@@ -82,7 +82,7 @@ export class MongoChatRepositoryImpl implements IChatRepository {
 }
 ```
 
-## Implementación TypeORM
+## TypeORM Implementation
 
 ```typescript
 @Injectable()
@@ -135,7 +135,7 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
 ```typescript
 @Injectable()
 export class ChatMapper {
-  // Dominio → Persistencia
+  // Domain → Persistence
   toSchema(chat: Chat): ChatSchema {
     const schema = new ChatSchema();
     const primitives = chat.toPrimitives();
@@ -148,7 +148,7 @@ export class ChatMapper {
     return schema;
   }
 
-  // Persistencia → Dominio
+  // Persistence → Domain
   toDomain(schema: ChatSchema): Chat {
     return Chat.fromPrimitives({
       id: schema.id,
@@ -158,14 +158,14 @@ export class ChatMapper {
     });
   }
 
-  // Lista
+  // List
   toDomainList(schemas: ChatSchema[]): Chat[] {
     return schemas.map(s => this.toDomain(s));
   }
 }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 @Module({
@@ -186,18 +186,18 @@ export class ChatMapper {
 export class ChatInfrastructureModule {}
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
-| Impl Mongo | `Mongo<Entity>RepositoryImpl` | `MongoChatRepositoryImpl` |
-| Impl TypeORM | `<Entity>RepositoryTypeOrmImpl` | `CompanyRepositoryTypeOrmImpl` |
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Mongo Impl | `Mongo<Entity>RepositoryImpl` | `MongoChatRepositoryImpl` |
+| TypeORM Impl | `<Entity>RepositoryTypeOrmImpl` | `CompanyRepositoryTypeOrmImpl` |
 | Mapper | `<Entity>Mapper` | `ChatMapper` |
-| Ubicación | `infrastructure/persistence/impl/` | - |
+| Location | `infrastructure/persistence/impl/` | - |
 
-## Anti-patrones
+## Anti-patterns
 
-- Exponer schemas/entities fuera de infrastructure
-- SQL concatenado manualmente
-- Olvidar mapear a/desde dominio
-- No usar try/catch con Result
+- Exposing schemas/entities outside infrastructure
+- Manually concatenated SQL
+- Forgetting to map to/from domain
+- Not using try/catch with Result

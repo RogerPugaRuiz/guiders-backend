@@ -1,13 +1,13 @@
 # Repository Interfaces
 
-## Descripción
+## Description
 
-Interfaces de dominio para persistencia, implementadas en infraestructura.
+Domain interfaces for persistence, implemented in infrastructure.
 
-## Referencia
+## Reference
 `src/context/conversations-v2/domain/chat.repository.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import { Result } from 'src/context/shared/domain/result';
@@ -22,34 +22,34 @@ export interface IChatRepository {
   count(criteria: Criteria<Chat>): Promise<Result<number, DomainError>>;
 }
 
-// Symbol para inyección de dependencias
+// Symbol for dependency injection
 export const CHAT_REPOSITORY = Symbol('IChatRepository');
 ```
 
-## Métodos Opcionales
+## Optional Methods
 
 ```typescript
 export interface IChatRepository {
-  // Básicos
+  // Basic
   save(chat: Chat): Promise<Result<void, DomainError>>;
   findById(id: ChatId): Promise<Result<Chat, DomainError>>;
 
-  // Actualización parcial (opcional)
+  // Partial update (optional)
   updateStatus(id: ChatId, status: ChatStatus): Promise<Result<void, DomainError>>;
 
-  // Búsquedas específicas (opcional)
+  // Specific searches (optional)
   findByVisitorId(visitorId: VisitorId): Promise<Result<Chat[], DomainError>>;
   findActiveByCompanyId(companyId: CompanyId): Promise<Result<Chat[], DomainError>>;
 
-  // Existencia (opcional)
+  // Existence (optional)
   exists(id: ChatId): Promise<Result<boolean, DomainError>>;
 }
 ```
 
-## Uso con Criteria
+## Usage with Criteria
 
 ```typescript
-// En Query Handler
+// In Query Handler
 async execute(query: FindChatsQuery): Promise<Result<ChatDto[], DomainError>> {
   const criteria = Criteria.create<Chat>()
     .addFilter('companyId', Operator.EQUALS, query.companyId)
@@ -68,7 +68,7 @@ async execute(query: FindChatsQuery): Promise<Result<ChatDto[], DomainError>> {
 }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 @Module({
@@ -82,7 +82,7 @@ async execute(query: FindChatsQuery): Promise<Result<ChatDto[], DomainError>> {
 })
 export class ChatInfrastructureModule {}
 
-// En Command Handler
+// In Command Handler
 @CommandHandler(CreateChatCommand)
 export class CreateChatCommandHandler {
   constructor(
@@ -92,17 +92,17 @@ export class CreateChatCommandHandler {
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Interface | `I<Entity>Repository` | `IChatRepository` |
 | Symbol | `<ENTITY>_REPOSITORY` | `CHAT_REPOSITORY` |
-| Archivo | `<entity>.repository.ts` | `chat.repository.ts` |
+| File | `<entity>.repository.ts` | `chat.repository.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Métodos que retornan entities de persistencia
-- Lógica de negocio en la interface
-- Métodos sin Result pattern
-- Olvidar exportar el Symbol
+- Methods that return persistence entities
+- Business logic in the interface
+- Methods without Result pattern
+- Forgetting to export the Symbol

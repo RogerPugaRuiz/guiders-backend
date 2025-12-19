@@ -1,23 +1,23 @@
 # Event Handlers
 
-## Descripción
+## Description
 
-Reaccionan a eventos de dominio para ejecutar side-effects.
+React to domain events to execute side-effects.
 
-## Referencia
+## Reference
 `src/context/llm/application/events/send-ai-response-on-message-sent.event-handler.ts`
 
-## Convención de Naming
+## Naming Convention
 
 ```
 <NewAction>On<OldEvent>EventHandler
 ```
 
-Ejemplo: `SendNotificationOnChatCreatedEventHandler`
-- **NewAction**: Lo que hace este handler (SendNotification)
-- **OldEvent**: El evento que lo dispara (ChatCreated)
+Example: `SendNotificationOnChatCreatedEventHandler`
+- **NewAction**: What this handler does (SendNotification)
+- **OldEvent**: The event that triggers it (ChatCreated)
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
@@ -39,18 +39,18 @@ export class SendNotificationOnChatCreatedEventHandler
         companyId: event.companyId,
       });
 
-      this.logger.log(`Notificación enviada para chat ${event.chatId}`);
+      this.logger.log(`Notification sent for chat ${event.chatId}`);
     } catch (error) {
-      // IMPORTANTE: No lanzar excepciones, solo loguear
+      // IMPORTANT: Don't throw exceptions, just log
       this.logger.error(
-        `Error enviando notificación para chat ${event.chatId}: ${error.message}`,
+        `Error sending notification for chat ${event.chatId}: ${error.message}`,
       );
     }
   }
 }
 ```
 
-## Ejecutar Commands desde Event Handler
+## Execute Commands from Event Handler
 
 ```typescript
 @EventsHandler(ChatAssignedEvent)
@@ -61,22 +61,22 @@ export class UpdateMetricsOnChatAssignedEventHandler
 
   async handle(event: ChatAssignedEvent): Promise<void> {
     try {
-      // Usar CommandBus para acciones que requieren persistencia
+      // Use CommandBus for actions requiring persistence
       await this.commandBus.execute(
         new UpdateCommercialMetricsCommand(event.commercialId),
       );
     } catch (error) {
-      // Loguear pero no propagar
-      console.error(`Error actualizando métricas: ${error.message}`);
+      // Log but don't propagate
+      console.error(`Error updating metrics: ${error.message}`);
     }
   }
 }
 ```
 
-## Múltiples Handlers por Evento
+## Multiple Handlers per Event
 
 ```typescript
-// Cada handler hace UNA cosa
+// Each handler does ONE thing
 @EventsHandler(ChatCreatedEvent)
 export class NotifyCommercialsOnChatCreatedEventHandler { /* ... */ }
 
@@ -87,7 +87,7 @@ export class UpdateQueueMetricsOnChatCreatedEventHandler { /* ... */ }
 export class SendWebhookOnChatCreatedEventHandler { /* ... */ }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 const EventHandlers = [
@@ -103,16 +103,16 @@ const EventHandlers = [
 export class ChatApplicationModule {}
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Handler | `<Action>On<Event>EventHandler` | `SendNotificationOnChatCreatedEventHandler` |
-| Archivo | `<action>-on-<event>.event-handler.ts` | `send-notification-on-chat-created.event-handler.ts` |
+| File | `<action>-on-<event>.event-handler.ts` | `send-notification-on-chat-created.event-handler.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Lanzar excepciones (rompe otros handlers)
-- Lógica de negocio crítica (usar Commands)
-- Handlers síncronos que bloquean
-- Naming sin patrón `<Action>On<Event>`
+- Throwing exceptions (breaks other handlers)
+- Critical business logic (use Commands)
+- Synchronous handlers that block
+- Naming without `<Action>On<Event>` pattern

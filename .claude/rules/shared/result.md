@@ -1,45 +1,45 @@
 # Result Pattern
 
-## Descripción
+## Description
 
-Manejo de errores sin excepciones usando `Result<T, E>`.
+Error handling without exceptions using `Result<T, E>`.
 
-## Referencia
+## Reference
 `src/context/shared/domain/result.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 type Result<T, E> = Ok<T> | Err<E>;
 
-// Crear resultados exitosos
+// Create successful results
 const success = ok(value);        // Result<T, never>
 const voidSuccess = okVoid();     // Result<void, never>
 
-// Crear resultados de error
+// Create error results
 const failure = err(error);       // Result<never, E>
 ```
 
-## Métodos Principales
+## Main Methods
 
 ```typescript
 const result: Result<User, DomainError> = await findUser(id);
 
-// Verificar estado
+// Check state
 if (result.isOk()) {
-  const user = result.unwrap();   // Seguro después de isOk()
+  const user = result.unwrap();   // Safe after isOk()
 }
 
 if (result.isErr()) {
-  const error = result.error();   // Acceso al error
+  const error = result.error();   // Access the error
 }
 
-// Transformaciones
+// Transformations
 const mapped = result.map(user => user.name);           // Result<string, E>
 const flatMapped = result.flatMap(user => findRole(user.roleId));
 ```
 
-## Uso en Repositorios
+## Usage in Repositories
 
 ```typescript
 async findById(id: UserId): Promise<Result<User, DomainError>> {
@@ -55,7 +55,7 @@ async findById(id: UserId): Promise<Result<User, DomainError>> {
 }
 ```
 
-## Uso en Command Handlers
+## Usage in Command Handlers
 
 ```typescript
 async execute(command: CreateUserCommand): Promise<Result<string, DomainError>> {
@@ -76,8 +76,8 @@ async execute(command: CreateUserCommand): Promise<Result<string, DomainError>> 
 }
 ```
 
-## Anti-patrones
+## Anti-patterns
 
-- Usar `unwrap()` sin verificar `isOk()` primero
-- Lanzar excepciones en lugar de retornar `err()`
-- Ignorar el resultado de operaciones que pueden fallar
+- Using `unwrap()` without checking `isOk()` first
+- Throwing exceptions instead of returning `err()`
+- Ignoring the result of operations that can fail

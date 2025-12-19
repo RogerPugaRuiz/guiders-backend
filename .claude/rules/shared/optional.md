@@ -1,54 +1,54 @@
 # Optional Pattern
 
-## Descripción
+## Description
 
-Wrapper para valores que pueden ser null/undefined de forma segura.
+Wrapper for values that can be null/undefined in a safe way.
 
-## Referencia
+## Reference
 `src/context/shared/domain/optional.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
-// Crear Optional
-const present = Optional.of(value);           // Valor presente (error si null)
-const nullable = Optional.ofNullable(value);  // Acepta null/undefined
-const empty = Optional.empty<T>();            // Sin valor
+// Create Optional
+const present = Optional.of(value);           // Present value (error if null)
+const nullable = Optional.ofNullable(value);  // Accepts null/undefined
+const empty = Optional.empty<T>();            // No value
 ```
 
-## Métodos Principales
+## Main Methods
 
 ```typescript
 const optional: Optional<User> = Optional.ofNullable(user);
 
-// Verificar presencia
+// Check presence
 if (optional.isPresent()) {
-  const user = optional.get();  // Seguro después de isPresent()
+  const user = optional.get();  // Safe after isPresent()
 }
 
 if (optional.isEmpty()) {
-  // Manejar ausencia
+  // Handle absence
 }
 
-// Valor por defecto
+// Default value
 const value = optional.orElse(defaultUser);
 const computed = optional.orElseGet(() => createDefaultUser());
 ```
 
-## Transformaciones
+## Transformations
 
 ```typescript
-// map - transforma si presente
+// map - transform if present
 const name = optional.map(user => user.name);  // Optional<string>
 
-// flatMap - para Optional anidados
+// flatMap - for nested Optionals
 const role = optional.flatMap(user => findRole(user.roleId));
 
-// filter - filtra según predicado
+// filter - filter by predicate
 const active = optional.filter(user => user.isActive);
 ```
 
-## Uso en Queries
+## Usage in Queries
 
 ```typescript
 async findByEmail(email: string): Promise<Optional<User>> {
@@ -61,7 +61,7 @@ async findByEmail(email: string): Promise<Optional<User>> {
   return Optional.of(this.mapper.toDomain(entity));
 }
 
-// En el handler
+// In the handler
 const userOpt = await this.repository.findByEmail(email);
 
 return userOpt
@@ -69,8 +69,8 @@ return userOpt
   .orElse(null);
 ```
 
-## Anti-patrones
+## Anti-patterns
 
-- Usar `get()` sin verificar `isPresent()` primero
-- Usar `Optional.of()` con valores potencialmente null
-- Anidar Optional innecesariamente
+- Using `get()` without checking `isPresent()` first
+- Using `Optional.of()` with potentially null values
+- Unnecessarily nesting Optionals

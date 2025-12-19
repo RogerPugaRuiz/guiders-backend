@@ -431,6 +431,8 @@ EJEMPLOS DE RESPUESTAS CORRECTAS:
       );
       return {
         companyId: command.companyId,
+        visitorId: command.visitorId,
+        chatId: command.chatId,
         baseDomain: toolConfigPrimitives.baseUrl,
         allowedDomains: [],
         toolConfig: toolConfigPrimitives,
@@ -483,6 +485,8 @@ EJEMPLOS DE RESPUESTAS CORRECTAS:
 
     return {
       companyId: command.companyId,
+      visitorId: command.visitorId,
+      chatId: command.chatId,
       baseDomain,
       allowedDomains,
       toolConfig: toolConfigPrimitives,

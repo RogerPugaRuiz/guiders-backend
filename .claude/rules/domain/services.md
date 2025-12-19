@@ -1,22 +1,22 @@
 # Domain Services
 
-## Descripción
+## Description
 
-Interfaces para lógica de dominio que no pertenece a un único Aggregate.
+Interfaces for domain logic that doesn't belong to a single Aggregate.
 
-## Referencia
+## Reference
 `src/context/auth/domain/services/`
 
-## Cuándo Usar
+## When to Use
 
-- Lógica que involucra múltiples Aggregates
-- Operaciones que requieren servicios externos (definir interface)
-- Cálculos complejos que no pertenecen a una entidad
+- Logic involving multiple Aggregates
+- Operations requiring external services (define interface)
+- Complex calculations that don't belong to an entity
 
-## Estructura Base
+## Base Structure
 
 ```typescript
-// Interface en domain
+// Interface in domain
 export interface IPasswordHasher {
   hash(password: string): Promise<string>;
   compare(password: string, hashedPassword: string): Promise<boolean>;
@@ -25,7 +25,7 @@ export interface IPasswordHasher {
 export const PASSWORD_HASHER = Symbol('IPasswordHasher');
 ```
 
-## Ejemplo: Servicio de Asignación
+## Example: Assignment Service
 
 ```typescript
 // domain/services/chat-assignment.service.ts
@@ -38,7 +38,7 @@ export interface IChatAssignmentService {
 
 export const CHAT_ASSIGNMENT_SERVICE = Symbol('IChatAssignmentService');
 
-// Uso en Command Handler
+// Usage in Command Handler
 @CommandHandler(AutoAssignChatCommand)
 export class AutoAssignChatCommandHandler {
   constructor(
@@ -53,7 +53,7 @@ export class AutoAssignChatCommandHandler {
 
     const chat = chatResult.unwrap();
 
-    // Usar domain service para lógica compleja
+    // Use domain service for complex logic
     const commercialResult = await this.assignmentService.findBestCommercial(
       chat.getCompanyId(),
       { priority: command.priority },
@@ -74,7 +74,7 @@ export class AutoAssignChatCommandHandler {
 }
 ```
 
-## Ejemplo: Validador de Dominio
+## Example: Domain Validator
 
 ```typescript
 export interface IApiKeyValidator {
@@ -90,14 +90,14 @@ interface ValidatedApiKey {
 }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 @Module({
   providers: [
     {
       provide: PASSWORD_HASHER,
-      useClass: BcryptPasswordHasher,  // Implementación en infrastructure
+      useClass: BcryptPasswordHasher,  // Implementation in infrastructure
     },
     {
       provide: CHAT_ASSIGNMENT_SERVICE,
@@ -109,17 +109,17 @@ interface ValidatedApiKey {
 export class DomainServicesModule {}
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Interface | `I<Name>Service` | `IPasswordHasher` |
-| Symbol | `<NAME>_SERVICE` o `<NAME>` | `PASSWORD_HASHER` |
-| Archivo | `<name>.service.ts` | `password-hasher.service.ts` |
+| Symbol | `<NAME>_SERVICE` or `<NAME>` | `PASSWORD_HASHER` |
+| File | `<name>.service.ts` | `password-hasher.service.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Lógica que pertenece a un Aggregate
-- Implementación en domain (solo interfaces)
-- Domain Services que acceden directamente a BD
-- Olvidar exportar el Symbol
+- Logic that belongs to an Aggregate
+- Implementation in domain (interfaces only)
+- Domain Services accessing DB directly
+- Forgetting to export the Symbol

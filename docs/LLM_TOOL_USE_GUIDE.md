@@ -1,10 +1,17 @@
-# LLM Tool Use - Acceso Web Automático
+# LLM Tool Use - Herramientas Automáticas de la IA
 
 ## Descripción
 
-El sistema de **Tool Use** (Function Calling) permite que el LLM acceda automáticamente al contenido del sitio web del comercial cuando necesita información específica para responder a un visitante.
+El sistema de **Tool Use** (Function Calling) permite que el LLM ejecute acciones automáticamente durante una conversación con un visitante. Las herramientas disponibles son:
+
+| Tool | Descripción |
+|------|-------------|
+| `fetch_page_content` | Obtiene contenido del sitio web para responder preguntas |
+| `save_lead_contact_data` | Guarda datos de contacto y crea leads automáticamente |
 
 Cuando un visitante pregunta sobre productos, servicios, precios u otra información del negocio, el LLM puede invocar herramientas para obtener el contenido real de la web y generar respuestas precisas y actualizadas.
+
+Cuando un visitante proporciona sus datos de contacto (nombre, email, teléfono), el LLM puede guardarlos automáticamente, convirtiendo al visitante en un **lead** que se sincroniza con el CRM.
 
 ---
 
@@ -134,6 +141,7 @@ curl -X PATCH https://api.guiders.com/v2/llm/config/SITE_ID \
 | Parámetro | Tipo | Default | Descripción |
 |-----------|------|---------|-------------|
 | `fetchPageEnabled` | boolean | `false` | Habilita el fetch de páginas web |
+| `saveLeadContactEnabled` | boolean | `false` | Habilita guardar datos de contacto de leads |
 | `allowedPaths` | string[] | `[]` | Rutas permitidas (vacío = todas) |
 | `maxIterations` | number | `3` | Máximo de tool calls por conversación (1-10) |
 | `fetchTimeoutMs` | number | `10000` | Timeout para fetch en ms (1000-30000) |
@@ -200,6 +208,151 @@ El contenido de la página se convierte a Markdown limpio y se devuelve al LLM:
 ## Precios
 Consulta nuestra sección de precios para más información.
 ```
+
+---
+
+## Tool Disponible: save_lead_contact_data
+
+### Descripción
+
+Permite al LLM guardar automáticamente los datos de contacto que un visitante proporciona durante la conversación. Cuando el visitante comparte su nombre, email, teléfono u otros datos, el LLM puede invocar esta herramienta para:
+
+1. **Guardar los datos de contacto** en el sistema
+2. **Convertir automáticamente al visitor a LEAD** (si hay email o teléfono)
+3. **Disparar sincronización con CRM** (LeadCars) si está configurado
+
+### Definición
+
+```json
+{
+  "type": "function",
+  "function": {
+    "name": "save_lead_contact_data",
+    "description": "Guarda los datos de contacto del visitante cuando te los proporcione durante la conversación. Usa esta herramienta cuando el usuario te dé su nombre, email, teléfono, DNI u otros datos de contacto. Esto permite hacer seguimiento comercial del lead. Solo usa esta herramienta cuando el usuario haya proporcionado voluntariamente sus datos.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "nombre": {
+          "type": "string",
+          "description": "Nombre del visitante"
+        },
+        "apellidos": {
+          "type": "string",
+          "description": "Apellidos del visitante"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email del visitante"
+        },
+        "telefono": {
+          "type": "string",
+          "description": "Número de teléfono del visitante (con o sin prefijo)"
+        },
+        "dni": {
+          "type": "string",
+          "description": "DNI o documento de identidad del visitante"
+        },
+        "poblacion": {
+          "type": "string",
+          "description": "Ciudad o población del visitante"
+        }
+      }
+    }
+  }
+}
+```
+
+### Ejemplo de Flujo
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Visitante: "Me llamo Juan García, mi email es juan@email.com"  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LLM detecta datos de contacto en el mensaje                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LLM invoca: save_lead_contact_data({                           │
+│    nombre: "Juan",                                               │
+│    apellidos: "García",                                          │
+│    email: "juan@email.com"                                       │
+│  })                                                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Backend:                                                        │
+│  1. Guarda datos en LeadContactData                             │
+│  2. Convierte visitor a LEAD                                     │
+│  3. Emite VisitorLifecycleChangedEvent                          │
+│  4. Sincroniza con LeadCars (si configurado)                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LLM responde: "Gracias Juan, he registrado tus datos..."       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Ejemplo de Invocación (interno)
+
+```json
+{
+  "id": "call_xyz789",
+  "type": "function",
+  "function": {
+    "name": "save_lead_contact_data",
+    "arguments": "{\"nombre\": \"Juan\", \"apellidos\": \"García\", \"email\": \"juan@email.com\"}"
+  }
+}
+```
+
+### Resultado
+
+El LLM recibe confirmación de los datos guardados:
+
+```
+Datos de contacto guardados correctamente. Campos guardados: nombre: Juan, apellidos: García, email: juan@email.com. El visitante será sincronizado con el CRM automáticamente.
+```
+
+### Habilitar save_lead_contact_data
+
+```bash
+curl -X PATCH /v2/llm/config/SITE_ID \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "aiAutoResponseEnabled": true,
+    "toolConfig": {
+      "saveLeadContactEnabled": true
+    }
+  }'
+```
+
+### Habilitar ambas tools
+
+```bash
+curl -X PATCH /v2/llm/config/SITE_ID \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "aiAutoResponseEnabled": true,
+    "toolConfig": {
+      "fetchPageEnabled": true,
+      "saveLeadContactEnabled": true
+    }
+  }'
+```
+
+### Consideraciones de Privacidad
+
+- La IA solo debe guardar datos proporcionados **voluntariamente** por el visitante
+- No debe solicitar activamente datos personales a menos que sea necesario para el servicio
+- El visitante debe haber dado consentimiento previo (gestionado por el sistema de consentimientos)
 
 ---
 
@@ -416,12 +569,25 @@ curl -X GET /v2/llm/config/SITE_ID \
 │GroqLlmProvider   │  │ToolExecutorSvc   │  │WebContentFetcher │
 │(tools parameter) │  │(orchestrator)    │  │(Jina Reader API) │
 └──────────────────┘  └──────────────────┘  └──────────────────┘
-                                                     │
-                                                     ▼
-                                            ┌──────────────────┐
-                                            │ MongoDB Cache    │
-                                            │ (TTL Index)      │
-                                            └──────────────────┘
+                               │                     │
+               ┌───────────────┴───────────┐         ▼
+               ▼                           ▼  ┌──────────────────┐
+    ┌──────────────────┐        ┌──────────────────┐            │
+    │ CommandBus       │        │ MongoDB Cache    │◄───────────┘
+    │ (save_lead)      │        │ (TTL Index)      │
+    └──────────────────┘        └──────────────────┘
+               │
+               ▼
+    ┌──────────────────┐
+    │ LeadsModule      │
+    │ (SaveLeadCmd)    │
+    └──────────────────┘
+               │
+               ▼
+    ┌──────────────────┐
+    │ CRM Sync         │
+    │ (LeadCars)       │
+    └──────────────────┘
 ```
 
 ### Archivos Clave
@@ -434,6 +600,7 @@ curl -X GET /v2/llm/config/SITE_ID \
 | `llm/infrastructure/services/web-content-fetcher.service.ts` | Integración Jina Reader |
 | `llm/infrastructure/schemas/web-content-cache.schema.ts` | Schema MongoDB cache |
 | `llm/application/commands/generate-ai-response.command-handler.ts` | Loop de tool use |
+| `leads/application/commands/save-lead-contact-data-command.handler.ts` | Handler que guarda datos y convierte a LEAD |
 
 ---
 
@@ -449,7 +616,8 @@ curl -X GET /v2/llm/config/SITE_ID \
 
 ## Próximas Mejoras (Roadmap)
 
-- [ ] Soporte para múltiples tools (búsqueda interna, FAQs, etc.)
+- [x] ~~Soporte para múltiples tools~~ ✅ Implementado (`fetch_page_content`, `save_lead_contact_data`)
 - [ ] Métricas de uso de tools por sitio
 - [ ] Configuración de tools desde panel de administración
 - [ ] Soporte para sitios con JavaScript rendering (Puppeteer)
+- [ ] Tools adicionales: búsqueda interna, FAQs, gestión de citas

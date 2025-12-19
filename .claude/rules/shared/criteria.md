@@ -1,13 +1,13 @@
 # Criteria Pattern
 
-## Descripción
+## Description
 
-Patrón para construir queries flexibles de forma agnóstica a la persistencia.
+Pattern for building flexible queries in a persistence-agnostic way.
 
-## Referencia
+## Reference
 `src/context/shared/domain/criteria/criteria.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 const criteria = Criteria.create<Chat>()
@@ -18,35 +18,35 @@ const criteria = Criteria.create<Chat>()
   .offset(0);
 ```
 
-## Operadores Disponibles
+## Available Operators
 
-| Operador | Descripción | Ejemplo |
+| Operator | Description | Example |
 |----------|-------------|---------|
-| `EQUALS` | Igualdad exacta | `status = 'ACTIVE'` |
-| `NOT_EQUALS` | Diferente | `status != 'CLOSED'` |
-| `IN` | Dentro de lista | `status IN ['ACTIVE', 'PENDING']` |
-| `NOT_IN` | Fuera de lista | `status NOT IN ['CLOSED']` |
-| `GREATER_THAN` | Mayor que | `createdAt > date` |
-| `LESS_THAN` | Menor que | `createdAt < date` |
-| `LIKE` | Contiene (case insensitive) | `name LIKE '%john%'` |
-| `IS_NULL` | Es null | `deletedAt IS NULL` |
-| `IS_NOT_NULL` | No es null | `assignedTo IS NOT NULL` |
+| `EQUALS` | Exact equality | `status = 'ACTIVE'` |
+| `NOT_EQUALS` | Not equal | `status != 'CLOSED'` |
+| `IN` | Within list | `status IN ['ACTIVE', 'PENDING']` |
+| `NOT_IN` | Outside list | `status NOT IN ['CLOSED']` |
+| `GREATER_THAN` | Greater than | `createdAt > date` |
+| `LESS_THAN` | Less than | `createdAt < date` |
+| `LIKE` | Contains (case insensitive) | `name LIKE '%john%'` |
+| `IS_NULL` | Is null | `deletedAt IS NULL` |
+| `IS_NOT_NULL` | Is not null | `assignedTo IS NOT NULL` |
 
-## Paginación
+## Pagination
 
 ```typescript
 // Offset-based
 const criteria = Criteria.create<Chat>()
   .limit(20)
-  .offset(40);  // Página 3
+  .offset(40);  // Page 3
 
-// Cursor-based (mejor para grandes volúmenes)
+// Cursor-based (better for large volumes)
 const criteria = Criteria.create<Chat>()
   .limit(20)
   .cursor('createdAt', lastCreatedAt, CursorDirection.AFTER);
 ```
 
-## Uso en Repositorios
+## Usage in Repositories
 
 ```typescript
 // MongoDB
@@ -75,8 +75,8 @@ async match(criteria: Criteria<Company>): Promise<Result<Company[], DomainError>
 }
 ```
 
-## Anti-patrones
+## Anti-patterns
 
-- SQL concatenado manualmente (usar CriteriaConverter)
-- Criteria con demasiados filtros (considerar índices)
-- Ignorar paginación en queries que pueden retornar muchos resultados
+- Manually concatenated SQL (use CriteriaConverter)
+- Criteria with too many filters (consider indexes)
+- Ignoring pagination in queries that can return many results

@@ -1,14 +1,14 @@
 # TypeORM Entities
 
-## Descripción
+## Description
 
-Entidades de persistencia para PostgreSQL con TypeORM.
+Persistence entities for PostgreSQL using TypeORM.
 
-## Referencia
+## Reference
 
 `src/context/company/infrastructure/persistence/entity/company-typeorm.entity.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import {
@@ -42,7 +42,7 @@ export class CompanyTypeOrmEntity {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
-  // Relación One-to-Many
+  // One-to-Many relation
   @OneToMany(() => SiteTypeOrmEntity, (site) => site.company, {
     cascade: true,
     eager: true,
@@ -51,7 +51,7 @@ export class CompanyTypeOrmEntity {
 }
 ```
 
-## Relaciones
+## Relations
 
 ### One-to-Many
 
@@ -59,8 +59,8 @@ export class CompanyTypeOrmEntity {
 @Entity('companies')
 export class CompanyTypeOrmEntity {
   @OneToMany(() => SiteTypeOrmEntity, (site) => site.company, {
-    cascade: true,  // Operaciones en cascada
-    eager: true,    // Cargar automáticamente
+    cascade: true,  // Cascade operations
+    eager: true,    // Auto-load
   })
   sites: SiteTypeOrmEntity[];
 }
@@ -91,7 +91,7 @@ export class UserTypeOrmEntity {
 }
 ```
 
-## Convenciones de Naming
+## Naming Conventions
 
 | TypeScript | PostgreSQL |
 |------------|------------|
@@ -100,9 +100,9 @@ export class UserTypeOrmEntity {
 | `userId` | `user_id` |
 | `isActive` | `is_active` |
 
-## Tipos de Columnas
+## Column Types
 
-| TypeScript | PostgreSQL | Decorador |
+| TypeScript | PostgreSQL | Decorator |
 |------------|------------|-----------|
 | `string` | `varchar` | `@Column({ type: 'varchar', length: 255 })` |
 | `string` | `text` | `@Column({ type: 'text' })` |
@@ -114,21 +114,21 @@ export class UserTypeOrmEntity {
 | `object` | `jsonb` | `@Column({ type: 'jsonb' })` |
 | `string` | `uuid` | `@Column({ type: 'uuid' })` |
 
-## Opciones de @Column
+## @Column Options
 
 ```typescript
 @Column({
-  name: 'column_name',       // Nombre en BD
-  type: 'varchar',           // Tipo PostgreSQL
-  length: 255,               // Longitud (varchar)
-  nullable: true,            // Permite null
-  default: 'value',          // Valor por defecto
-  unique: true,              // Índice único
-  select: false,             // No incluir en SELECT por defecto
+  name: 'column_name',       // DB column name
+  type: 'varchar',           // PostgreSQL type
+  length: 255,               // Length (varchar)
+  nullable: true,            // Allows null
+  default: 'value',          // Default value
+  unique: true,              // Unique index
+  select: false,             // Exclude from SELECT by default
 })
 ```
 
-## Índices
+## Indexes
 
 ```typescript
 import { Index } from 'typeorm';
@@ -141,7 +141,7 @@ export class UserTypeOrmEntity {
 }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 @Module({
@@ -155,17 +155,17 @@ export class UserTypeOrmEntity {
 export class CompanyInfrastructureModule {}
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Entity | `<Entity>TypeOrmEntity` | `CompanyTypeOrmEntity` |
-| Tabla | snake_case plural | `companies`, `user_accounts` |
-| Archivo | `<entity>-typeorm.entity.ts` | `company-typeorm.entity.ts` |
+| Table | snake_case plural | `companies`, `user_accounts` |
+| File | `<entity>-typeorm.entity.ts` | `company-typeorm.entity.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Exponer entities fuera de infrastructure
-- Nombres de columnas en camelCase
-- Lógica de negocio en entities
-- No usar `name` explícito para columnas
+- Exposing entities outside infrastructure
+- Column names in camelCase
+- Business logic in entities
+- Not using explicit `name` for columns

@@ -1,13 +1,13 @@
 # Domain Events
 
-## Descripción
+## Description
 
-Eventos que representan hechos ocurridos en el dominio.
+Events that represent facts that occurred in the domain.
 
-## Referencia
+## Reference
 `src/context/conversations-v2/domain/events/chat-created.event.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 export class ChatCreatedEvent {
@@ -20,14 +20,14 @@ export class ChatCreatedEvent {
 }
 ```
 
-## Emisión en Aggregate
+## Emitting in Aggregate
 
 ```typescript
 export class Chat extends AggregateRoot {
   static create(visitorId: VisitorId, companyId: CompanyId): Chat {
     const chat = new Chat(/* ... */);
 
-    // Emitir evento (se encola, no se publica aún)
+    // Emit event (queued, not published yet)
     chat.apply(new ChatCreatedEvent(
       chat._id.value,
       visitorId.value,
@@ -39,7 +39,7 @@ export class Chat extends AggregateRoot {
   }
 
   assignToCommercial(commercialId: CommercialId): Result<void, DomainError> {
-    // ... validaciones ...
+    // ... validations ...
 
     this.apply(new ChatAssignedEvent({
       chatId: this._id.value,
@@ -52,7 +52,7 @@ export class Chat extends AggregateRoot {
 }
 ```
 
-## Publicación con commit()
+## Publishing with commit()
 
 ```typescript
 @CommandHandler(CreateChatCommand)
@@ -65,7 +65,7 @@ export class CreateChatCommandHandler {
   async execute(command: CreateChatCommand): Promise<Result<string, DomainError>> {
     const chat = Chat.create(command.visitorId, command.companyId);
 
-    // CRÍTICO: mergeObjectContext habilita commit()
+    // CRITICAL: mergeObjectContext enables commit()
     const chatCtx = this.publisher.mergeObjectContext(chat);
 
     const saveResult = await this.repository.save(chatCtx);
@@ -73,7 +73,7 @@ export class CreateChatCommandHandler {
       return saveResult;
     }
 
-    // CRÍTICO: sin commit() los eventos NO se publican
+    // CRITICAL: without commit() events are NOT published
     chatCtx.commit();
 
     return ok(chat.getId().value);
@@ -81,10 +81,10 @@ export class CreateChatCommandHandler {
 }
 ```
 
-## Patrón de Datos del Evento
+## Event Data Pattern
 
 ```typescript
-// Opción 1: Parámetros individuales
+// Option 1: Individual parameters
 export class ChatCreatedEvent {
   constructor(
     public readonly chatId: string,
@@ -92,7 +92,7 @@ export class ChatCreatedEvent {
   ) {}
 }
 
-// Opción 2: Objeto de datos (recomendado para muchos campos)
+// Option 2: Data object (recommended for many fields)
 export class ChatAssignedEvent {
   constructor(public readonly data: ChatAssignedEventData) {}
 
@@ -107,16 +107,16 @@ interface ChatAssignedEventData {
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
-| Evento | `<Entity><Action>Event` | `ChatCreatedEvent` |
-| Archivo | `<entity>-<action>.event.ts` | `chat-created.event.ts` |
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Event | `<Entity><Action>Event` | `ChatCreatedEvent` |
+| File | `<entity>-<action>.event.ts` | `chat-created.event.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Olvidar `mergeObjectContext()` antes de save
-- Olvidar `commit()` después de save exitoso
-- Eventos con lógica de negocio
-- Eventos mutables
+- Forgetting `mergeObjectContext()` before save
+- Forgetting `commit()` after successful save
+- Events with business logic
+- Mutable events

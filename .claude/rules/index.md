@@ -1,59 +1,59 @@
-# Arquitectura Hexagonal - Guía de Reglas
+# Hexagonal Architecture - Rules Guide
 
-## Visión General
+## Overview
 
-Arquitectura DDD + CQRS con NestJS v11, multi-persistencia (PostgreSQL + MongoDB) y WebSocket.
+DDD + CQRS architecture with NestJS v11, multi-persistence (PostgreSQL + MongoDB) and WebSocket.
 
-## Estructura de Capas
+## Layer Structure
 
 ```
 src/context/<context>/
-├── domain/          # Lógica de negocio pura
-├── application/     # Casos de uso (Commands, Queries, Events)
-└── infrastructure/  # Adaptadores externos (Controllers, Repos, Gateways)
+├── domain/          # Pure business logic
+├── application/     # Use cases (Commands, Queries, Events)
+└── infrastructure/  # External adapters (Controllers, Repos, Gateways)
 ```
 
-## Regla de Dependencias
+## Dependency Rule
 
 ```
-domain ⇏ nada
+domain ⇏ nothing
 application → domain
 infrastructure → application + domain
 ```
 
-## Navegación
+## Navigation
 
 ### [Shared](./shared/)
-- [Result Pattern](./shared/result.md) - Manejo de errores sin excepciones
-- [Optional](./shared/optional.md) - Valores nullable seguros
-- [Criteria](./shared/criteria.md) - Queries flexibles
-- [Uuid](./shared/uuid.md) - Value Object base para IDs
+- [Result Pattern](./shared/result.md) - Error handling without exceptions
+- [Optional](./shared/optional.md) - Safe nullable values
+- [Criteria](./shared/criteria.md) - Flexible queries
+- [Uuid](./shared/uuid.md) - Base Value Object for IDs
 
 ### [Domain](./domain/)
-- [Entities](./domain/entities.md) - Aggregates y AggregateRoot
-- [Value Objects](./domain/value-objects.md) - Objetos inmutables
-- [Repositories](./domain/repositories.md) - Interfaces de persistencia
-- [Events](./domain/events.md) - Eventos de dominio
-- [Errors](./domain/errors.md) - Errores de dominio
-- [Services](./domain/services.md) - Servicios de dominio
+- [Entities](./domain/entities.md) - Aggregates and AggregateRoot
+- [Value Objects](./domain/value-objects.md) - Immutable objects
+- [Repositories](./domain/repositories.md) - Persistence interfaces
+- [Events](./domain/events.md) - Domain events
+- [Errors](./domain/errors.md) - Domain errors
+- [Services](./domain/services.md) - Domain services
 
 ### [Application](./application/)
-- [Commands](./application/commands.md) - Operaciones de escritura
-- [Queries](./application/queries.md) - Operaciones de lectura
-- [Events](./application/events.md) - Handlers de eventos
+- [Commands](./application/commands.md) - Write operations
+- [Queries](./application/queries.md) - Read operations
+- [Events](./application/events.md) - Event handlers
 - [DTOs](./application/dtos.md) - Data Transfer Objects
 
 ### [Infrastructure](./infrastructure/)
-- [Controllers](./infrastructure/controllers.md) - Endpoints REST
-- [Repositories](./infrastructure/repositories.md) - Implementaciones
+- [Controllers](./infrastructure/controllers.md) - REST endpoints
+- [Repositories](./infrastructure/repositories.md) - Implementations
 - [Schemas](./infrastructure/schemas.md) - MongoDB Schemas
 - [Entities](./infrastructure/entities.md) - TypeORM Entities
-- [Services](./infrastructure/services.md) - Adaptadores externos
+- [Services](./infrastructure/services.md) - External adapters
 - [Gateways](./infrastructure/gateways.md) - WebSocket
 
-## Principios Fundamentales
+## Fundamental Principles
 
-1. **Result Pattern** - No lanzar excepciones para flujos esperados
-2. **Event Publishing** - Siempre `mergeObjectContext()` + `commit()`
-3. **Inmutabilidad** - Value Objects y Aggregates inmutables
-4. **Mappers** - Nunca exponer entities/schemas fuera de infrastructure
+1. **Result Pattern** - Don't throw exceptions for expected flows
+2. **Event Publishing** - Always `mergeObjectContext()` + `commit()`
+3. **Immutability** - Immutable Value Objects and Aggregates
+4. **Mappers** - Never expose entities/schemas outside infrastructure

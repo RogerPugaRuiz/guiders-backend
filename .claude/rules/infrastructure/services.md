@@ -1,14 +1,14 @@
-# Servicios de Infraestructura
+# Infrastructure Services
 
-## Descripción
+## Description
 
-Adaptadores que implementan interfaces de dominio conectando con servicios externos (S3, APIs, etc.).
+Adapters that implement domain interfaces connecting to external services (S3, APIs, etc.).
 
-## Referencia
+## Reference
 
 `src/context/white-label/infrastructure/services/white-label-file-upload.service.ts`
 
-## Implementación de Interface de Dominio
+## Domain Interface Implementation
 
 ```typescript
 // Domain interface
@@ -34,7 +34,7 @@ export class BcryptHashService implements UserPasswordHasher {
 }
 ```
 
-## Servicio de Upload (S3)
+## Upload Service (S3)
 
 ```typescript
 @Injectable()
@@ -54,15 +54,15 @@ export class FileUploadService {
     path: string,
   ): Promise<Result<string, DomainError>> {
     try {
-      // Validar archivo
+      // Validate file
       if (file.size > MAX_FILE_SIZE) {
         return err(new FileValidationError('Archivo demasiado grande'));
       }
 
-      // Generar key única
+      // Generate unique key
       const key = `${path}/${Date.now()}-${file.originalname}`;
 
-      // Subir a S3
+      // Upload to S3
       await this.client.send(
         new PutObjectCommand({
           Bucket: this.bucket,
@@ -104,7 +104,7 @@ export class FileUploadService {
 }
 ```
 
-## Servicio HTTP Externo
+## External HTTP Service
 
 ```typescript
 @Injectable()
@@ -142,13 +142,13 @@ export class ExternalApiService {
     return {
       id: data.external_id,
       name: data.display_name,
-      // ... mapeo
+      // ... mapping
     };
   }
 }
 ```
 
-## Servicio de Cache (Redis)
+## Cache Service (Redis)
 
 ```typescript
 @Injectable()
@@ -178,7 +178,7 @@ export class RedisCacheService implements CacheService {
 }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 @Module({
@@ -202,17 +202,17 @@ export class RedisCacheService implements CacheService {
 export class SharedInfrastructureModule {}
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Service | `<Name>Service` | `FileUploadService` |
-| Impl de interface | `<Technology><Interface>` | `BcryptHashService` |
-| Archivo | `<name>.service.ts` | `file-upload.service.ts` |
+| Interface impl | `<Technology><Interface>` | `BcryptHashService` |
+| File | `<name>.service.ts` | `file-upload.service.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Lógica de dominio en services de infraestructura
-- Hardcodear configuración (usar ConfigService o env vars)
-- No manejar errores con Result pattern
-- No hacer logging de operaciones importantes
+- Domain logic in infrastructure services
+- Hardcoding configuration (use ConfigService or env vars)
+- Not handling errors with Result pattern
+- Not logging important operations

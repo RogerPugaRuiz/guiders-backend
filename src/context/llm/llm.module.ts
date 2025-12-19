@@ -19,6 +19,8 @@ import { HttpModule } from '@nestjs/axios';
 import { ConversationsV2Module } from '../conversations-v2/conversations-v2.module';
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
 import { CompanyModule } from '../company/company.module';
+import { WebSocketModule } from 'src/websocket/websocket.module';
+import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
 
 // Domain
 import { LLM_PROVIDER_SERVICE } from './domain/services/llm-provider.service';
@@ -80,6 +82,7 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     CqrsModule,
     ConfigModule,
     HttpModule,
+    WebSocketModule,
     MongooseModule.forFeature([
       {
         name: LlmCompanyConfigSchema.name,
@@ -102,6 +105,12 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     RolesGuard,
     TokenVerifyService,
     BffSessionAuthService,
+
+    // WebSocket Gateway Provider
+    {
+      provide: 'WEBSOCKET_GATEWAY',
+      useExisting: WebSocketGatewayBasic,
+    },
 
     // LLM Provider (Groq por defecto)
     GroqLlmProviderServiceProvider,

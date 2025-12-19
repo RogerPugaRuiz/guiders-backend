@@ -4,6 +4,7 @@
  */
 
 import { Injectable, Logger, Provider } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
@@ -19,6 +20,7 @@ import {
 } from '../../domain/tool-definitions';
 import { LlmToolExecutionError } from '../../domain/errors/llm.error';
 import { WebContentFetcherService } from './web-content-fetcher.service';
+import { SaveLeadContactDataCommand } from 'src/context/leads/application/commands/save-lead-contact-data.command';
 
 /**
  * Handler de una tool específica
@@ -35,7 +37,10 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
   private readonly logger = new Logger(ToolExecutorServiceImpl.name);
   private readonly handlers: Map<string, ToolHandler> = new Map();
 
-  constructor(private readonly webFetcher: WebContentFetcherService) {
+  constructor(
+    private readonly webFetcher: WebContentFetcherService,
+    private readonly commandBus: CommandBus,
+  ) {
     this.registerHandlers();
   }
 
@@ -45,6 +50,10 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
   private registerHandlers(): void {
     this.handlers.set('fetch_page_content', {
       execute: (args, context) => this.handleFetchPageContent(args, context),
+    });
+
+    this.handlers.set('save_lead_contact_data', {
+      execute: (args, context) => this.handleSaveLeadContactData(args, context),
     });
   }
 
@@ -216,6 +225,106 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
   }
 
   /**
+   * Handler para save_lead_contact_data
+   * Permite a la IA guardar datos de contacto extraídos de la conversación
+   */
+  private async handleSaveLeadContactData(
+    args: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<Result<string, DomainError>> {
+    // Validar que tenemos visitorId del contexto
+    if (!context.visitorId) {
+      return err(
+        new LlmToolExecutionError(
+          'save_lead_contact_data',
+          'No se encontró visitorId en el contexto',
+        ),
+      );
+    }
+
+    // Extraer datos del argumento
+    const nombre = args.nombre as string | undefined;
+    const apellidos = args.apellidos as string | undefined;
+    const email = args.email as string | undefined;
+    const telefono = args.telefono as string | undefined;
+    const dni = args.dni as string | undefined;
+    const poblacion = args.poblacion as string | undefined;
+
+    // Validar que hay al menos un dato de contacto
+    if (!nombre && !apellidos && !email && !telefono && !dni && !poblacion) {
+      return err(
+        new LlmToolExecutionError(
+          'save_lead_contact_data',
+          'Debes proporcionar al menos un dato de contacto',
+        ),
+      );
+    }
+
+    this.logger.log(
+      `[Tool Use] Guardando datos de contacto para visitor ${context.visitorId}: nombre=${nombre}, email=${email}, telefono=${telefono}`,
+    );
+
+    try {
+      // Ejecutar comando para guardar datos de contacto
+      const result = await this.commandBus.execute(
+        new SaveLeadContactDataCommand({
+          visitorId: context.visitorId,
+          companyId: context.companyId,
+          nombre,
+          apellidos,
+          email,
+          telefono,
+          dni,
+          poblacion,
+          extractedFromChatId: context.chatId,
+        }),
+      );
+
+      if (result.isErr()) {
+        this.logger.error(
+          `[Tool Use] Error guardando datos de contacto: ${result.error.message}`,
+        );
+        return err(
+          new LlmToolExecutionError(
+            'save_lead_contact_data',
+            `Error al guardar: ${result.error.message}`,
+          ),
+        );
+      }
+
+      const savedId = result.unwrap();
+      this.logger.log(
+        `[Tool Use] Datos de contacto guardados exitosamente con id=${savedId}`,
+      );
+
+      // Construir mensaje de confirmación para la IA
+      const savedFields: string[] = [];
+      if (nombre) savedFields.push(`nombre: ${nombre}`);
+      if (apellidos) savedFields.push(`apellidos: ${apellidos}`);
+      if (email) savedFields.push(`email: ${email}`);
+      if (telefono) savedFields.push(`teléfono: ${telefono}`);
+      if (dni) savedFields.push(`DNI: ${dni}`);
+      if (poblacion) savedFields.push(`población: ${poblacion}`);
+
+      return ok(
+        `Datos de contacto guardados correctamente. Campos guardados: ${savedFields.join(', ')}. El visitante será sincronizado con el CRM automáticamente.`,
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(
+        `[Tool Use] Error ejecutando SaveLeadContactDataCommand: ${errorMessage}`,
+      );
+      return err(
+        new LlmToolExecutionError(
+          'save_lead_contact_data',
+          `Error interno: ${errorMessage}`,
+        ),
+      );
+    }
+  }
+
+  /**
    * Obtiene las tools disponibles según la configuración
    */
   getAvailableTools(
@@ -240,6 +349,47 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
               },
             },
             required: ['path'],
+          },
+        },
+      });
+    }
+
+    if (toolConfig.saveLeadContactEnabled) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'save_lead_contact_data',
+          description:
+            'Guarda los datos de contacto del visitante cuando te los proporcione durante la conversación. Usa esta herramienta cuando el usuario te dé su nombre, email, teléfono, DNI u otros datos de contacto. Esto permite hacer seguimiento comercial del lead. Solo usa esta herramienta cuando el usuario haya proporcionado voluntariamente sus datos.',
+          parameters: {
+            type: 'object',
+            properties: {
+              nombre: {
+                type: 'string',
+                description: 'Nombre del visitante',
+              },
+              apellidos: {
+                type: 'string',
+                description: 'Apellidos del visitante',
+              },
+              email: {
+                type: 'string',
+                description: 'Email del visitante',
+              },
+              telefono: {
+                type: 'string',
+                description:
+                  'Número de teléfono del visitante (con o sin prefijo)',
+              },
+              dni: {
+                type: 'string',
+                description: 'DNI o documento de identidad del visitante',
+              },
+              poblacion: {
+                type: 'string',
+                description: 'Ciudad o población del visitante',
+              },
+            },
           },
         },
       });

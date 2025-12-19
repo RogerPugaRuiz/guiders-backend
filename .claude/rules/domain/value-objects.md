@@ -1,13 +1,13 @@
 # Value Objects
 
-## Descripción
+## Description
 
-Objetos inmutables que representan conceptos del dominio con validación incorporada.
+Immutable objects that represent domain concepts with built-in validation.
 
-## Referencia
+## Reference
 `src/context/shared/domain/primitive-value-object.ts`
 
-## Clase Base
+## Base Class
 
 ```typescript
 export abstract class PrimitiveValueObject<T> {
@@ -23,7 +23,7 @@ export abstract class PrimitiveValueObject<T> {
 }
 ```
 
-## Tipos de Value Objects
+## Types of Value Objects
 
 ### String Value Object
 
@@ -35,10 +35,10 @@ export class CompanyName extends PrimitiveValueObject<string> {
 
   static create(value: string): CompanyName {
     if (!value || value.trim().length === 0) {
-      throw new InvalidCompanyNameError('El nombre no puede estar vacío');
+      throw new InvalidCompanyNameError('Name cannot be empty');
     }
     if (value.length > 255) {
-      throw new InvalidCompanyNameError('El nombre es demasiado largo');
+      throw new InvalidCompanyNameError('Name is too long');
     }
     return new CompanyName(value.trim());
   }
@@ -62,7 +62,7 @@ export class ChatStatus extends PrimitiveValueObject<string> {
     return new ChatStatus(value);
   }
 
-  // Factory methods semánticos
+  // Semantic factory methods
   static pending(): ChatStatus {
     return new ChatStatus('PENDING');
   }
@@ -71,7 +71,7 @@ export class ChatStatus extends PrimitiveValueObject<string> {
     return new ChatStatus('ASSIGNED');
   }
 
-  // Métodos de consulta
+  // Query methods
   isPending(): boolean {
     return this._value === 'PENDING';
   }
@@ -88,7 +88,7 @@ export class ChatStatus extends PrimitiveValueObject<string> {
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 export class ChatId extends Uuid {
-  // Hereda: random(), create(), validate(), value, equals()
+  // Inherits: random(), create(), validate(), value, equals()
 }
 ```
 
@@ -124,18 +124,18 @@ export class VisitorInfo {
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Tipo | Patrón | Ejemplo |
-|------|--------|---------|
+| Type | Pattern | Example |
+|------|---------|---------|
 | ID | `<Entity>Id` | `ChatId`, `UserId` |
 | Status | `<Entity>Status` | `ChatStatus` |
 | String | `<Concept>` | `CompanyName`, `Email` |
 | Complex | `<Concept>` | `VisitorInfo`, `Address` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Value Objects mutables
-- Validación fuera del constructor/factory
-- Crear `create()` si ya existe en clase base (Uuid)
-- Exponer setters
+- Mutable Value Objects
+- Validation outside constructor/factory
+- Creating `create()` if it already exists in base class (Uuid)
+- Exposing setters

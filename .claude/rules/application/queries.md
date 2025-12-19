@@ -1,13 +1,13 @@
 # Queries
 
-## Descripción
+## Description
 
-Operaciones de lectura que no modifican estado, retornan DTOs.
+Read operations that don't modify state, return DTOs.
 
-## Referencia
+## Reference
 `src/context/company/application/queries/find-company-by-domain.query-handler.ts`
 
-## Estructura de la Query
+## Query Structure
 
 ```typescript
 export class FindChatByIdQuery {
@@ -45,13 +45,13 @@ export class FindChatByIdQueryHandler implements IQueryHandler<FindChatByIdQuery
       return chatResult;
     }
 
-    // Mapear a DTO antes de retornar
+    // Map to DTO before returning
     return ok(ChatDto.fromDomain(chatResult.unwrap()));
   }
 }
 ```
 
-## Query con Criteria
+## Query with Criteria
 
 ```typescript
 @QueryHandler(FindChatsByCompanyQuery)
@@ -89,7 +89,7 @@ export class FindChatsByCompanyQueryHandler implements IQueryHandler<FindChatsBy
 }
 ```
 
-## DTOs de Respuesta
+## Response DTOs
 
 ```typescript
 export class ChatDto {
@@ -126,17 +126,17 @@ export class ChatListDto {
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Query | `Find<Entity>By<Criteria>Query` | `FindChatByIdQuery` |
 | Handler | `Find<Entity>By<Criteria>QueryHandler` | `FindChatByIdQueryHandler` |
-| Archivo | `find-<entity>-by-<criteria>.query-handler.ts` | `find-chat-by-id.query-handler.ts` |
+| File | `find-<entity>-by-<criteria>.query-handler.ts` | `find-chat-by-id.query-handler.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Retornar entidades de dominio (usar DTOs)
-- Modificar estado en queries
-- Queries sin paginación para listas grandes
-- Lógica de negocio en query handlers
+- Returning domain entities (use DTOs)
+- Modifying state in queries
+- Queries without pagination for large lists
+- Business logic in query handlers

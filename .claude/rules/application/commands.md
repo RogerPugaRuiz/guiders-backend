@@ -1,13 +1,13 @@
 # Commands
 
-## Descripción
+## Description
 
-Operaciones de escritura que modifican el estado del sistema.
+Write operations that modify system state.
 
-## Referencia
+## Reference
 `src/context/company/application/commands/create-company-command.handler.ts`
 
-## Estructura del Command
+## Command Structure
 
 ```typescript
 export class CreateChatCommand {
@@ -33,22 +33,22 @@ export class CreateChatCommandHandler implements ICommandHandler<CreateChatComma
   ) {}
 
   async execute(command: CreateChatCommand): Promise<Result<string, DomainError>> {
-    // 1. Crear aggregate (emite eventos internamente)
+    // 1. Create aggregate (emits events internally)
     const chat = Chat.create(
       VisitorId.create(command.visitorId),
       CompanyId.create(command.companyId),
     );
 
-    // 2. CRÍTICO: mergeObjectContext para habilitar commit()
+    // 2. CRITICAL: mergeObjectContext to enable commit()
     const chatCtx = this.publisher.mergeObjectContext(chat);
 
-    // 3. Persistir
+    // 3. Persist
     const saveResult = await this.chatRepository.save(chatCtx);
     if (saveResult.isErr()) {
       return err(saveResult.error());
     }
 
-    // 4. CRÍTICO: commit() publica los eventos
+    // 4. CRITICAL: commit() publishes the events
     chatCtx.commit();
 
     return ok(chat.getId().value);
@@ -56,13 +56,13 @@ export class CreateChatCommandHandler implements ICommandHandler<CreateChatComma
 }
 ```
 
-## Patrón para Modificaciones
+## Pattern for Modifications
 
 ```typescript
 @CommandHandler(AssignChatCommand)
 export class AssignChatCommandHandler implements ICommandHandler<AssignChatCommand> {
   async execute(command: AssignChatCommand): Promise<Result<void, DomainError>> {
-    // 1. Buscar aggregate existente
+    // 1. Find existing aggregate
     const chatResult = await this.chatRepository.findById(
       ChatId.create(command.chatId),
     );
@@ -75,7 +75,7 @@ export class AssignChatCommandHandler implements ICommandHandler<AssignChatComma
     // 2. Merge context
     const chatCtx = this.publisher.mergeObjectContext(chat);
 
-    // 3. Ejecutar operación de negocio
+    // 3. Execute business operation
     const assignResult = chatCtx.assignToCommercial(
       CommercialId.create(command.commercialId),
     );
@@ -83,13 +83,13 @@ export class AssignChatCommandHandler implements ICommandHandler<AssignChatComma
       return assignResult;
     }
 
-    // 4. Persistir cambios
+    // 4. Persist changes
     const updateResult = await this.chatRepository.update(chatCtx);
     if (updateResult.isErr()) {
       return updateResult;
     }
 
-    // 5. Publicar eventos
+    // 5. Publish events
     chatCtx.commit();
 
     return okVoid();
@@ -97,7 +97,7 @@ export class AssignChatCommandHandler implements ICommandHandler<AssignChatComma
 }
 ```
 
-## Registro en Módulo
+## Module Registration
 
 ```typescript
 const CommandHandlers = [
@@ -113,17 +113,17 @@ const CommandHandlers = [
 export class ChatApplicationModule {}
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
+| Element | Pattern | Example |
+|---------|---------|---------|
 | Command | `<Action><Entity>Command` | `CreateChatCommand` |
 | Handler | `<Action><Entity>CommandHandler` | `CreateChatCommandHandler` |
-| Archivo | `<action>-<entity>-command.handler.ts` | `create-chat-command.handler.ts` |
+| File | `<action>-<entity>-command.handler.ts` | `create-chat-command.handler.ts` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Olvidar `mergeObjectContext()` antes de save
-- Olvidar `commit()` después de save exitoso
-- Lógica de negocio en el handler (delegar a aggregate)
-- Retornar void en lugar de Result
+- Forgetting `mergeObjectContext()` before save
+- Forgetting `commit()` after successful save
+- Business logic in the handler (delegate to aggregate)
+- Returning void instead of Result

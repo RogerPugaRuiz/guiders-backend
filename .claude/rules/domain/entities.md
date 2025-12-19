@@ -1,13 +1,13 @@
 # Domain Entities (Aggregates)
 
-## Descripción
+## Description
 
-Aggregates que encapsulan lógica de negocio y emiten eventos de dominio.
+Aggregates that encapsulate business logic and emit domain events.
 
-## Referencia
+## Reference
 `src/context/conversations-v2/domain/entities/chat.aggregate.ts`
 
-## Estructura Base
+## Base Structure
 
 ```typescript
 import { AggregateRoot } from '@nestjs/cqrs';
@@ -23,7 +23,7 @@ export class Chat extends AggregateRoot {
     super();
   }
 
-  // Factory CON eventos (crear nuevo)
+  // Factory WITH events (create new)
   static create(visitorId: VisitorId, companyId: CompanyId): Chat {
     const chat = new Chat(
       ChatId.random(),
@@ -36,7 +36,7 @@ export class Chat extends AggregateRoot {
     return chat;
   }
 
-  // Factory SIN eventos (rehidratar)
+  // Factory WITHOUT events (rehydrate)
   static fromPrimitives(data: ChatPrimitives): Chat {
     return new Chat(
       ChatId.create(data.id),
@@ -47,7 +47,7 @@ export class Chat extends AggregateRoot {
     );
   }
 
-  // Serialización
+  // Serialization
   toPrimitives(): ChatPrimitives {
     return {
       id: this._id.value,
@@ -60,7 +60,7 @@ export class Chat extends AggregateRoot {
 }
 ```
 
-## Métodos de Negocio
+## Business Methods
 
 ```typescript
 assignToCommercial(commercialId: CommercialId): Result<void, DomainError> {
@@ -96,17 +96,17 @@ close(reason: CloseReason): Result<void, DomainError> {
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Elemento | Patrón | Ejemplo |
-|----------|--------|---------|
-| Aggregate | `<Entity>` o `<Entity>Aggregate` | `Chat`, `ChatAggregate` |
-| Archivo | `<entity>.aggregate.ts` | `chat.aggregate.ts` |
+| Element | Pattern | Example |
+|---------|---------|---------|
+| Aggregate | `<Entity>` or `<Entity>Aggregate` | `Chat`, `ChatAggregate` |
+| File | `<entity>.aggregate.ts` | `chat.aggregate.ts` |
 | Primitives | `<Entity>Primitives` | `ChatPrimitives` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Constructor público (usar factories)
-- Setters públicos (usar métodos de negocio)
-- Lógica sin validación de estado
-- Olvidar emitir eventos en cambios de estado
+- Public constructor (use factories)
+- Public setters (use business methods)
+- Logic without state validation
+- Forgetting to emit events on state changes

@@ -10,6 +10,7 @@ import { ToolConfigPrimitives, DEFAULT_TOOL_CONFIG } from '../tool-definitions';
 export class ToolConfig {
   private constructor(
     private readonly _fetchPageEnabled: boolean,
+    private readonly _saveLeadContactEnabled: boolean,
     private readonly _allowedPaths: string[],
     private readonly _maxIterations: number,
     private readonly _fetchTimeoutMs: number,
@@ -24,6 +25,7 @@ export class ToolConfig {
   static createDefault(): ToolConfig {
     return new ToolConfig(
       DEFAULT_TOOL_CONFIG.fetchPageEnabled,
+      DEFAULT_TOOL_CONFIG.saveLeadContactEnabled ?? false,
       DEFAULT_TOOL_CONFIG.allowedPaths || [],
       DEFAULT_TOOL_CONFIG.maxIterations,
       DEFAULT_TOOL_CONFIG.fetchTimeoutMs,
@@ -39,6 +41,7 @@ export class ToolConfig {
   static create(props: Partial<ToolConfigPrimitives>): ToolConfig {
     return new ToolConfig(
       props.fetchPageEnabled ?? DEFAULT_TOOL_CONFIG.fetchPageEnabled,
+      props.saveLeadContactEnabled ?? DEFAULT_TOOL_CONFIG.saveLeadContactEnabled ?? false,
       props.allowedPaths ?? DEFAULT_TOOL_CONFIG.allowedPaths ?? [],
       props.maxIterations ?? DEFAULT_TOOL_CONFIG.maxIterations,
       props.fetchTimeoutMs ?? DEFAULT_TOOL_CONFIG.fetchTimeoutMs,
@@ -66,6 +69,7 @@ export class ToolConfig {
   toPrimitives(): ToolConfigPrimitives {
     return {
       fetchPageEnabled: this._fetchPageEnabled,
+      saveLeadContactEnabled: this._saveLeadContactEnabled,
       allowedPaths: this._allowedPaths,
       maxIterations: this._maxIterations,
       fetchTimeoutMs: this._fetchTimeoutMs,
@@ -78,6 +82,10 @@ export class ToolConfig {
   // Getters
   get fetchPageEnabled(): boolean {
     return this._fetchPageEnabled;
+  }
+
+  get saveLeadContactEnabled(): boolean {
+    return this._saveLeadContactEnabled;
   }
 
   get allowedPaths(): string[] {
@@ -108,7 +116,7 @@ export class ToolConfig {
    * Verifica si alguna tool está habilitada
    */
   hasAnyToolEnabled(): boolean {
-    return this._fetchPageEnabled;
+    return this._fetchPageEnabled || this._saveLeadContactEnabled;
   }
 
   /**
@@ -137,6 +145,7 @@ export class ToolConfig {
   update(updates: Partial<ToolConfigPrimitives>): ToolConfig {
     return new ToolConfig(
       updates.fetchPageEnabled ?? this._fetchPageEnabled,
+      updates.saveLeadContactEnabled ?? this._saveLeadContactEnabled,
       updates.allowedPaths ?? this._allowedPaths,
       updates.maxIterations ?? this._maxIterations,
       updates.fetchTimeoutMs ?? this._fetchTimeoutMs,

@@ -1,13 +1,13 @@
 # Domain Errors
 
-## Descripción
+## Description
 
-Errores tipados del dominio para uso con Result pattern.
+Typed domain errors for use with Result pattern.
 
-## Referencia
+## Reference
 `src/context/shared/domain/domain.error.ts`
 
-## Clase Base
+## Base Class
 
 ```typescript
 export abstract class DomainError extends Error {
@@ -21,7 +21,7 @@ export abstract class DomainError extends Error {
 }
 ```
 
-## Categorías de Errores
+## Error Categories
 
 ### NotFound Errors
 
@@ -81,10 +81,10 @@ export class ChatPersistenceError extends DomainError {
 }
 ```
 
-## Uso con Result
+## Usage with Result
 
 ```typescript
-// En repository
+// In repository
 async findById(id: ChatId): Promise<Result<Chat, DomainError>> {
   const entity = await this.model.findOne({ id: id.value });
 
@@ -95,37 +95,37 @@ async findById(id: ChatId): Promise<Result<Chat, DomainError>> {
   return ok(this.mapper.toDomain(entity));
 }
 
-// En command handler
+// In command handler
 async execute(command: CloseChatCommand): Promise<Result<void, DomainError>> {
   const chatResult = await this.repository.findById(ChatId.create(command.chatId));
 
   if (chatResult.isErr()) {
-    return chatResult;  // Propagar error
+    return chatResult;  // Propagate error
   }
 
   const chat = chatResult.unwrap();
   const closeResult = chat.close(CloseReason.create(command.reason));
 
   if (closeResult.isErr()) {
-    return closeResult;  // Error de regla de negocio
+    return closeResult;  // Business rule error
   }
 
   return await this.repository.update(chat);
 }
 ```
 
-## Reglas de Naming
+## Naming Rules
 
-| Categoría | Patrón | Ejemplo |
-|-----------|--------|---------|
+| Category | Pattern | Example |
+|----------|---------|---------|
 | NotFound | `<Entity>NotFoundError` | `ChatNotFoundError` |
 | Invalid | `Invalid<Concept>Error` | `InvalidEmailError` |
 | BusinessRule | `<Rule>Error` | `ChatAlreadyClosedError` |
 | Persistence | `<Entity>PersistenceError` | `ChatPersistenceError` |
 
-## Anti-patrones
+## Anti-patterns
 
-- Lanzar excepciones en lugar de retornar Result
-- Errores genéricos sin contexto
-- Códigos de error duplicados
-- Mensajes en inglés (usar español)
+- Throwing exceptions instead of returning Result
+- Generic errors without context
+- Duplicate error codes
+- Error messages in English (use Spanish for user-facing messages)
