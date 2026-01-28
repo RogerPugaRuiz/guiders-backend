@@ -150,7 +150,7 @@ export class LeadsContactController {
     const result = await this.commandBus.execute(command);
 
     if (result.isErr()) {
-      const error = result.unwrapErr();
+      const error = result.error;
       if (error instanceof VisitorNotFoundError) {
         throw new NotFoundException(error.message);
       }
