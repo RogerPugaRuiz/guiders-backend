@@ -1,6 +1,6 @@
 import { VisitorV2 } from '../../../domain/visitor-v2.aggregate';
 import { VisitorV2MongoEntity } from '../entity/visitor-v2-mongo.entity';
-import { VisitorLifecycle } from '../../../domain/value-objects/visitor-lifecycle';
+import { VisitorLifecycleUtils } from '../../../domain/value-objects/visitor-lifecycle';
 import { ConnectionStatus } from '../../../domain/value-objects/visitor-connection';
 
 /**
@@ -51,7 +51,7 @@ export class VisitorV2Mapper {
       tenantId: entity.tenantId,
       siteId: entity.siteId,
       fingerprint: entity.fingerprint,
-      lifecycle: entity.lifecycle as VisitorLifecycle,
+      lifecycle: VisitorLifecycleUtils.fromValue(entity.lifecycle),
       connectionStatus:
         (entity.connectionStatus as ConnectionStatus) ||
         ConnectionStatus.OFFLINE,
