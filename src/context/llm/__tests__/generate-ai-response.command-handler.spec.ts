@@ -114,7 +114,13 @@ describe('GenerateAIResponseCommandHandler', () => {
 
     mockToolExecutor = {
       executeTools: jest.fn(),
-      getAvailableTools: jest.fn().mockReturnValue([]),
+      getAvailableTools: jest.fn().mockReturnValue([
+        {
+          name: 'example_tool',
+          description: 'Example tool',
+          parameters: {},
+        },
+      ]),
     } as jest.Mocked<ToolExecutorService>;
 
     mockQueryBus = {
@@ -166,10 +172,27 @@ describe('GenerateAIResponseCommandHandler', () => {
       processingTimeMs: 500,
     });
 
+    beforeEach(() => {
+      // Mock de generateCompletionWithTools para que nunca tenga finish_reason tool_calls
+      mockLlmProvider.generateCompletionWithTools = jest.fn().mockResolvedValue(
+        ok({
+          response: mockLlmResponse,
+          finishReason: 'stop',
+          toolCalls: undefined,
+        }),
+      );
+    });
+
     it('debería generar respuesta de IA exitosamente', async () => {
       mockConfigRepository.findByCompanyId.mockResolvedValue(ok(mockConfig));
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
-      mockLlmProvider.generateCompletion.mockResolvedValue(ok(mockLlmResponse));
+      mockLlmProvider.generateCompletionWithTools.mockResolvedValue(
+        ok({
+          response: mockLlmResponse,
+          finishReason: 'stop',
+          toolCalls: undefined,
+        }),
+      );
       mockMessageRepository.save.mockResolvedValue(okVoid());
 
       const result = await handler.execute(defaultCommand);
@@ -177,7 +200,7 @@ describe('GenerateAIResponseCommandHandler', () => {
       expect(result).toBeDefined();
       expect(result.content).toBe('¡Hola! ¿En qué puedo ayudarte?');
       expect(result.messageId).toBeDefined();
-      expect(mockLlmProvider.generateCompletion).toHaveBeenCalled();
+      expect(mockLlmProvider.generateCompletionWithTools).toHaveBeenCalled();
       expect(mockMessageRepository.save).toHaveBeenCalled();
     });
 
@@ -211,12 +234,12 @@ describe('GenerateAIResponseCommandHandler', () => {
     it('debería lanzar error si falla el proveedor LLM', async () => {
       mockConfigRepository.findByCompanyId.mockResolvedValue(ok(mockConfig));
       mockContextBuilder.buildContext.mockResolvedValue(ok(mockContext));
-      mockLlmProvider.generateCompletion.mockResolvedValue(
+      mockLlmProvider.generateCompletionWithTools.mockResolvedValue(
         err(new LlmProviderError('groq', 'API error')),
       );
 
       await expect(handler.execute(defaultCommand)).rejects.toThrow(
-        'Error al generar respuesta',
+        'Error en LLM',
       );
       expect(mockMessageRepository.save).not.toHaveBeenCalled();
     });
