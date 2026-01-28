@@ -115,7 +115,11 @@ describe('NotifyCommercialCommandHandler', () => {
   describe('execute', () => {
     const createCommand = (
       message = 'El visitante necesita ayuda con financiación',
-      reason: 'cannot_answer' | 'visitor_requested' | 'complex_topic' | 'other' = 'cannot_answer',
+      reason:
+        | 'cannot_answer'
+        | 'visitor_requested'
+        | 'complex_topic'
+        | 'other' = 'cannot_answer',
     ) =>
       new NotifyCommercialCommand(
         chatId,

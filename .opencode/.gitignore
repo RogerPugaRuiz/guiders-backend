@@ -1,0 +1,13 @@
+# Dependencias
+node_modules
+
+# Archivos de lock del gestor de paquetes
+bun.lock
+package-lock.json
+yarn.lock
+
+# NO ignorar:
+# - skills/ (custom skills)
+# - scripts/ (custom scripts)
+# - opencode.config.json (configuración de comandos)
+# - README.md (documentación)

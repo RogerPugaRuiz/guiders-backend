@@ -30,7 +30,15 @@ npm run typeorm:migrate:generate # Generate new migration
 # CLI Tools
 node bin/guiders-cli.js create-company --name "Company" --domain "example.com"
 node bin/guiders-cli.js clean-database --force
+
+# OpenCode Custom Commands (recommended)
+/publish              # Publish to GitHub with full validations (lint + tests + build)
+/publish-quick        # Quick publish (lint + unit tests only)
+/publish-full         # Full publish including E2E tests
 ```
+
+> **💡 Tip:** Use `/publish` in OpenCode to automatically run lint, tests, build, commit and push to GitHub.  
+> See [OpenCode Commands Guide](./.opencode/QUICK_START.md) for details.
 
 ## Project Structure
 
