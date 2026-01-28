@@ -130,6 +130,7 @@ describe('SaveLeadContactDataCommandHandler', () => {
         poblacion: 'Madrid',
         additionalData: {},
         extractedAt: new Date(),
+        createdAt: new Date(),
         updatedAt: new Date(),
       };
 
@@ -183,6 +184,7 @@ describe('SaveLeadContactDataCommandHandler', () => {
         poblacion: 'Madrid',
         additionalData: {},
         extractedAt: new Date(),
+        createdAt: new Date(),
         updatedAt: new Date(),
       };
 

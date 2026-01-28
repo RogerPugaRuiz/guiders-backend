@@ -135,6 +135,9 @@ export class LeadContactDataResponseDto {
   @ApiProperty({ description: 'Fecha de extracción' })
   extractedAt: string;
 
+  @ApiProperty({ description: 'Fecha de creación' })
+  createdAt: string;
+
   @ApiProperty({ description: 'Fecha de última actualización' })
   updatedAt: string;
 
@@ -155,6 +158,7 @@ export class LeadContactDataResponseDto {
     dto.extractedFromChatId = data.extractedFromChatId;
     dto.extractedAt =
       data.extractedAt?.toISOString() || new Date().toISOString();
+    dto.createdAt = data.createdAt?.toISOString() || new Date().toISOString();
     dto.updatedAt = data.updatedAt?.toISOString() || new Date().toISOString();
     return dto;
   }

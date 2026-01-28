@@ -22,6 +22,7 @@ export interface LeadContactDataPrimitives {
   additionalData?: Record<string, unknown>;
   extractedFromChatId?: string;
   extractedAt: Date;
+  createdAt: Date;
   updatedAt: Date;
 }
 

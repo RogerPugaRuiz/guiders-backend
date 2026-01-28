@@ -209,6 +209,7 @@ export class MongoLeadContactDataRepositoryImpl
       additionalData: data.additionalData,
       extractedFromChatId: data.extractedFromChatId,
       extractedAt: data.extractedAt,
+      createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };
   }
@@ -227,6 +228,7 @@ export class MongoLeadContactDataRepositoryImpl
       additionalData: doc.additionalData,
       extractedFromChatId: doc.extractedFromChatId,
       extractedAt: doc.extractedAt,
+      createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
   }

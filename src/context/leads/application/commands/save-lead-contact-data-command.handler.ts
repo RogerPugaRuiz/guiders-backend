@@ -210,6 +210,7 @@ export class SaveLeadContactDataCommandHandler
       additionalData: input.additionalData,
       extractedFromChatId: input.extractedFromChatId,
       extractedAt: now,
+      createdAt: now,
       updatedAt: now,
     };
 
