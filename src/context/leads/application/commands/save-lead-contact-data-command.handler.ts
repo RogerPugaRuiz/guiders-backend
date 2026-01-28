@@ -210,8 +210,7 @@ export class SaveLeadContactDataCommandHandler
       additionalData: input.additionalData,
       extractedFromChatId: input.extractedFromChatId,
       extractedAt: now,
-      createdAt: now,
-      updatedAt: now,
+      // Dejar que Mongoose genere automáticamente createdAt y updatedAt
     };
 
     const saveResult = await this.repository.save(data);

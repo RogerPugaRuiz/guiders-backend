@@ -49,15 +49,15 @@ export class LeadContactDataSchema {
 
   @Prop({ type: Date, required: true, default: Date.now })
   extractedAt: Date;
-
-  @Prop({ type: Date, required: true })
-  createdAt: Date;
-
-  @Prop({ type: Date, required: true })
-  updatedAt: Date;
 }
 
-export type LeadContactDataDocument = HydratedDocument<LeadContactDataSchema>;
+// HydratedDocument incluye automáticamente createdAt y updatedAt cuando timestamps: true
+export type LeadContactDataDocument =
+  HydratedDocument<LeadContactDataSchema> & {
+    createdAt: Date;
+    updatedAt: Date;
+  };
+
 export const LeadContactDataSchemaDefinition = SchemaFactory.createForClass(
   LeadContactDataSchema,
 );

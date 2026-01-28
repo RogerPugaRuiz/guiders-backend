@@ -209,12 +209,12 @@ export class MongoLeadContactDataRepositoryImpl
       additionalData: data.additionalData,
       extractedFromChatId: data.extractedFromChatId,
       extractedAt: data.extractedAt,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt,
+      // No pasar createdAt ni updatedAt aquí - Mongoose los genera automáticamente
+      // createdAt se genera solo en creation, updatedAt se actualiza automáticamente
     };
   }
 
-  private toPrimitives(doc: LeadContactDataSchema): LeadContactDataPrimitives {
+  private toPrimitives(doc: any): LeadContactDataPrimitives {
     return {
       id: doc.id,
       visitorId: doc.visitorId,
