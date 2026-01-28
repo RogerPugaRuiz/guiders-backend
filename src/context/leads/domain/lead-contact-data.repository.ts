@@ -7,31 +7,17 @@ import { LeadContactDataPrimitives } from './services/crm-sync.service';
  */
 export interface ILeadContactDataRepository {
   /**
-   * Guarda o actualiza datos de contacto
+   * Guarda nuevos datos de contacto
    */
   save(data: LeadContactDataPrimitives): Promise<Result<void, DomainError>>;
 
   /**
-   * Busca datos de contacto por visitor ID
+   * Busca datos de contacto por visitorId y companyId
    */
   findByVisitorId(
     visitorId: string,
     companyId: string,
   ): Promise<Result<LeadContactDataPrimitives | null, DomainError>>;
-
-  /**
-   * Busca datos de contacto por ID
-   */
-  findById(
-    id: string,
-  ): Promise<Result<LeadContactDataPrimitives | null, DomainError>>;
-
-  /**
-   * Busca todos los datos de contacto de una empresa
-   */
-  findByCompanyId(
-    companyId: string,
-  ): Promise<Result<LeadContactDataPrimitives[], DomainError>>;
 
   /**
    * Actualiza datos de contacto existentes
@@ -47,7 +33,7 @@ export interface ILeadContactDataRepository {
   ): Promise<Result<void, DomainError>>;
 
   /**
-   * Busca datos de contacto por email
+   * Busca datos de contacto por email y companyId
    */
   findByEmail(
     email: string,
@@ -63,16 +49,30 @@ export interface ILeadContactDataRepository {
   ): Promise<Result<boolean, DomainError>>;
 
   /**
-   * Busca datos de contacto extraídos de un chat específico
+   * Busca datos de contacto por chatId
    */
   findByChatId(
     chatId: string,
     companyId: string,
   ): Promise<Result<LeadContactDataPrimitives[], DomainError>>;
+
+  /**
+   * Busca datos de contacto por id
+   */
+  findById(
+    id: string,
+  ): Promise<Result<LeadContactDataPrimitives | null, DomainError>>;
+
+  /**
+   * Busca todos los datos de contacto de una empresa
+   */
+  findByCompanyId(
+    companyId: string,
+  ): Promise<Result<LeadContactDataPrimitives[], DomainError>>;
 }
 
 /**
- * Symbol para inyección de dependencias
+ * Symbol para inyeccion de dependencias
  */
 export const LEAD_CONTACT_DATA_REPOSITORY = Symbol(
   'ILeadContactDataRepository',

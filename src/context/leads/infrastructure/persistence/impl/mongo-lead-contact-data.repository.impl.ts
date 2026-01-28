@@ -72,7 +72,7 @@ export class MongoLeadContactDataRepositoryImpl
       if (!result) {
         return err(
           new LeadsPersistenceError(
-            `No se encontró registro para visitor ${data.visitorId}`,
+            `No se encontro registro para visitor ${data.visitorId}`,
           ),
         );
       }
@@ -193,9 +193,7 @@ export class MongoLeadContactDataRepositoryImpl
     }
   }
 
-  private toSchema(
-    data: LeadContactDataPrimitives,
-  ): Partial<LeadContactDataSchema> {
+  private toSchema(data: LeadContactDataPrimitives): Record<string, unknown> {
     return {
       id: data.id,
       visitorId: data.visitorId,
@@ -209,8 +207,6 @@ export class MongoLeadContactDataRepositoryImpl
       additionalData: data.additionalData,
       extractedFromChatId: data.extractedFromChatId,
       extractedAt: data.extractedAt,
-      // No pasar createdAt ni updatedAt aquí - Mongoose los genera automáticamente
-      // createdAt se genera solo en creation, updatedAt se actualiza automáticamente
     };
   }
 

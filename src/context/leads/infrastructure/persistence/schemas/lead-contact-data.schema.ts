@@ -47,33 +47,22 @@ export class LeadContactDataSchema {
   @Prop({ type: String, required: false, index: true, sparse: true })
   extractedFromChatId?: string;
 
-  @Prop({ type: Date, required: true, default: Date.now })
-  extractedAt: Date;
-
-  // Timestamps manejados por Mongoose timestamps: true
-  // Definidos como opcionales para evitar validación manual
-  createdAt?: Date;
-  updatedAt?: Date;
+  @Prop({ type: Date, required: false, default: Date.now })
+  extractedAt?: Date;
 }
 
-// HydratedDocument incluye automáticamente createdAt y updatedAt cuando timestamps: true
-export type LeadContactDataDocument =
-  HydratedDocument<LeadContactDataSchema> & {
-    createdAt: Date;
-    updatedAt: Date;
-  };
-
+export type LeadContactDataDocument = HydratedDocument<LeadContactDataSchema>;
 export const LeadContactDataSchemaDefinition = SchemaFactory.createForClass(
   LeadContactDataSchema,
 );
 
-// Índice compuesto para búsqueda por visitor y company
+// Indice compuesto para busqueda por visitor y company
 LeadContactDataSchemaDefinition.index(
   { visitorId: 1, companyId: 1 },
   { unique: true },
 );
 
-// Índice para búsqueda por email y company
+// Indice para busqueda por email y company
 LeadContactDataSchemaDefinition.index(
   { email: 1, companyId: 1 },
   { sparse: true },

@@ -1,108 +1,87 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsOptional,
-  IsUUID,
   IsEmail,
   IsObject,
   MaxLength,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { LeadContactDataPrimitives } from '../../domain/services/crm-sync.service';
 
 /**
- * DTO para crear/actualizar datos de contacto de un lead
+ * DTO para guardar datos de contacto de un lead
  */
 export class SaveLeadContactDataDto {
-  @ApiProperty({
-    description: 'ID del visitante',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @IsUUID()
-  visitorId: string;
-
   @ApiPropertyOptional({
     description: 'Nombre del contacto',
     example: 'Juan',
-    maxLength: 255,
   })
-  @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @IsOptional()
+  @MaxLength(100)
   nombre?: string;
 
   @ApiPropertyOptional({
     description: 'Apellidos del contacto',
-    example: 'García López',
-    maxLength: 255,
+    example: 'Garcia Lopez',
   })
-  @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @IsOptional()
+  @MaxLength(150)
   apellidos?: string;
 
   @ApiPropertyOptional({
     description: 'Email del contacto',
-    example: 'juan.garcia@ejemplo.com',
+    example: 'juan.garcia@example.com',
   })
+  @IsEmail()
   @IsOptional()
-  @IsEmail({}, { message: 'Formato de email inválido' })
   email?: string;
 
   @ApiPropertyOptional({
-    description: 'Teléfono del contacto',
+    description: 'Telefono del contacto',
     example: '+34612345678',
-    maxLength: 50,
   })
-  @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @IsOptional()
+  @MaxLength(20)
   telefono?: string;
 
   @ApiPropertyOptional({
-    description: 'DNI/NIE del contacto',
+    description: 'DNI/NIF del contacto',
     example: '12345678A',
-    maxLength: 20,
   })
-  @IsOptional()
   @IsString()
+  @IsOptional()
   @MaxLength(20)
   dni?: string;
 
   @ApiPropertyOptional({
-    description: 'Población del contacto',
+    description: 'Poblacion/ciudad del contacto',
     example: 'Madrid',
-    maxLength: 255,
   })
-  @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @IsOptional()
+  @MaxLength(100)
   poblacion?: string;
 
   @ApiPropertyOptional({
-    description: 'Datos adicionales',
-    example: { interesadoEn: 'SUV', presupuesto: '30000-40000' },
+    description: 'Datos adicionales en formato libre',
+    example: { preferencia: 'email', horario: 'manana' },
   })
-  @IsOptional()
   @IsObject()
-  additionalData?: Record<string, unknown>;
-
-  @ApiPropertyOptional({
-    description: 'ID del chat de donde se extrajo la información',
-    example: '550e8400-e29b-41d4-a716-446655440001',
-  })
   @IsOptional()
-  @IsUUID()
-  extractedFromChatId?: string;
+  additionalData?: Record<string, unknown>;
 }
 
 /**
- * DTO de respuesta para datos de contacto
+ * DTO de respuesta con datos de contacto del lead
  */
 export class LeadContactDataResponseDto {
-  @ApiProperty({ description: 'ID del registro' })
+  @ApiProperty({ description: 'ID unico del registro' })
   id: string;
 
-  @ApiProperty({ description: 'ID del visitante' })
+  @ApiProperty({ description: 'ID del visitor asociado' })
   visitorId: string;
 
   @ApiProperty({ description: 'ID de la empresa' })
@@ -117,28 +96,30 @@ export class LeadContactDataResponseDto {
   @ApiPropertyOptional({ description: 'Email del contacto' })
   email?: string;
 
-  @ApiPropertyOptional({ description: 'Teléfono del contacto' })
+  @ApiPropertyOptional({ description: 'Telefono del contacto' })
   telefono?: string;
 
-  @ApiPropertyOptional({ description: 'DNI del contacto' })
+  @ApiPropertyOptional({ description: 'DNI/NIF del contacto' })
   dni?: string;
 
-  @ApiPropertyOptional({ description: 'Población del contacto' })
+  @ApiPropertyOptional({ description: 'Poblacion del contacto' })
   poblacion?: string;
 
   @ApiPropertyOptional({ description: 'Datos adicionales' })
   additionalData?: Record<string, unknown>;
 
-  @ApiPropertyOptional({ description: 'ID del chat de extracción' })
+  @ApiPropertyOptional({
+    description: 'ID del chat de donde se extrajeron los datos',
+  })
   extractedFromChatId?: string;
 
-  @ApiProperty({ description: 'Fecha de extracción' })
+  @ApiProperty({ description: 'Fecha de extraccion de datos' })
   extractedAt: string;
 
-  @ApiProperty({ description: 'Fecha de creación' })
+  @ApiProperty({ description: 'Fecha de creacion' })
   createdAt: string;
 
-  @ApiProperty({ description: 'Fecha de última actualización' })
+  @ApiProperty({ description: 'Fecha de ultima actualizacion' })
   updatedAt: string;
 
   static fromPrimitives(
@@ -157,9 +138,9 @@ export class LeadContactDataResponseDto {
     dto.additionalData = data.additionalData;
     dto.extractedFromChatId = data.extractedFromChatId;
     dto.extractedAt =
-      data.extractedAt?.toISOString() || new Date().toISOString();
-    dto.createdAt = data.createdAt?.toISOString() || new Date().toISOString();
-    dto.updatedAt = data.updatedAt?.toISOString() || new Date().toISOString();
+      data.extractedAt?.toISOString() ?? new Date().toISOString();
+    dto.createdAt = data.createdAt?.toISOString() ?? new Date().toISOString();
+    dto.updatedAt = data.updatedAt?.toISOString() ?? new Date().toISOString();
     return dto;
   }
 }

@@ -4,12 +4,13 @@ import {
   Get,
   Body,
   Param,
+  HttpCode,
+  HttpStatus,
   UseGuards,
-  Req,
-  BadRequestException,
-  NotFoundException,
   Inject,
-  Res,
+  NotFoundException,
+  BadRequestException,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,32 +20,30 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
-import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
-import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
-import { Roles } from '../../../shared/infrastructure/roles.decorator';
+import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
+import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 import {
   SaveLeadContactDataDto,
   LeadContactDataResponseDto,
 } from '../../application/dtos/lead-contact-data.dto';
-import { UpdateContactDataDto } from '../../application/dtos/update-contact-data.dto';
 import { SaveLeadContactDataCommand } from '../../application/commands/save-lead-contact-data.command';
 import {
   ILeadContactDataRepository,
   LEAD_CONTACT_DATA_REPOSITORY,
 } from '../../domain/lead-contact-data.repository';
-import { VisitorNotFoundError } from '../../domain/errors/leads.error';
 
-interface AuthenticatedRequest extends Request {
+interface AuthenticatedRequest {
   user: {
-    sub: string;
-    roles: string[];
     companyId: string;
+    sub: string;
+    role?: string;
   };
 }
 
-@ApiTags('Leads - Datos de Contacto')
+@ApiTags('Leads - Contact Data')
 @ApiBearerAuth()
-@Controller('v1/leads/contact-data')
+@Controller('leads')
 @UseGuards(DualAuthGuard, RolesGuard)
 export class LeadsContactController {
   constructor(
@@ -53,94 +52,49 @@ export class LeadsContactController {
     private readonly contactDataRepository: ILeadContactDataRepository,
   ) {}
 
-  @Post(':visitorId')
+  /**
+   * Guarda o actualiza datos de contacto para un visitor
+   * POST /leads/contact-data/:visitorId
+   */
+  @Post('contact-data/:visitorId')
   @Roles(['admin', 'commercial'])
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Actualizar datos de contacto de un lead por visitor ID',
+    summary: 'Guardar datos de contacto del lead',
     description:
-      'Crea o actualiza datos de contacto para un visitor. Retorna 201 si se crea, 200 si se actualiza.',
+      'Crea o actualiza los datos de contacto de un visitor. Si ya existen datos, se hace merge parcial.',
   })
-  @ApiParam({ name: 'visitorId', description: 'ID del visitante' })
-  @ApiResponse({
-    status: 201,
-    description: 'Datos de contacto creados',
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID del visitor',
+    type: String,
   })
   @ApiResponse({
     status: 200,
-    description: 'Datos de contacto actualizados',
-  })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  @ApiResponse({ status: 404, description: 'Visitor no encontrado' })
-  @ApiResponse({ status: 401, description: 'No autenticado' })
-  @ApiResponse({ status: 403, description: 'Sin permisos' })
-  async updateContactDataByVisitorId(
-    @Param('visitorId') visitorId: string,
-    @Body() dto: UpdateContactDataDto,
-    @Req() request: AuthenticatedRequest,
-    @Res() response: any,
-  ): Promise<any> {
-    const companyId = request.user.companyId;
-
-    // Crear command con datos
-    const command = new SaveLeadContactDataCommand({
-      visitorId,
-      companyId,
-      nombre: dto.nombre,
-      apellidos: dto.apellidos,
-      email: dto.email,
-      telefono: dto.telefono,
-      poblacion: dto.poblacion,
-    });
-
-    // Ejecutar
-    const result = await this.commandBus.execute(command);
-
-    if (result.isErr()) {
-      const error = result.error;
-      if (error instanceof VisitorNotFoundError) {
-        throw new NotFoundException(error.message);
-      }
-      throw new BadRequestException(error.message);
-    }
-
-    // Desempaquetar resultado
-    const { isNew } = result.unwrap();
-
-    // Retornar con status code correcto
-    if (isNew) {
-      return response.status(201).json({
-        statusCode: 201,
-        message: 'Datos de contacto creados',
-      });
-    } else {
-      return response.status(200).json({
-        statusCode: 200,
-        message: 'Datos de contacto actualizados',
-      });
-    }
-  }
-
-  @Post()
-  @Roles(['admin', 'commercial'])
-  @ApiOperation({ summary: 'Guardar datos de contacto de un lead' })
-  @ApiResponse({
-    status: 201,
-    description: 'Datos de contacto guardados',
+    description: 'Datos de contacto guardados correctamente',
     type: LeadContactDataResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  @ApiResponse({ status: 401, description: 'No autenticado' })
-  @ApiResponse({ status: 403, description: 'Sin permisos' })
+  @ApiResponse({
+    status: 400,
+    description: 'Error de validacion o al guardar',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Sin permisos suficientes',
+  })
   async saveContactData(
+    @Param('visitorId') visitorId: string,
     @Body() dto: SaveLeadContactDataDto,
-    @Req() request: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ): Promise<LeadContactDataResponseDto> {
-    const companyId = request.user.companyId;
-
     const result = await this.commandBus.execute(
       new SaveLeadContactDataCommand({
-        visitorId: dto.visitorId,
-        companyId,
+        visitorId,
+        companyId: req.user.companyId,
         nombre: dto.nombre,
         apellidos: dto.apellidos,
         email: dto.email,
@@ -148,7 +102,6 @@ export class LeadsContactController {
         dni: dto.dni,
         poblacion: dto.poblacion,
         additionalData: dto.additionalData,
-        extractedFromChatId: dto.extractedFromChatId,
       }),
     );
 
@@ -156,43 +109,48 @@ export class LeadsContactController {
       throw new BadRequestException(result.error.message);
     }
 
-    // Obtener los datos guardados para la respuesta
-    const savedResult = await this.contactDataRepository.findByVisitorId(
-      dto.visitorId,
-      companyId,
-    );
+    const savedId = result.unwrap();
 
-    if (savedResult.isErr()) {
-      throw new BadRequestException('Error al recuperar datos guardados');
+    // Obtener los datos guardados para retornarlos
+    const savedResult = await this.contactDataRepository.findById(savedId);
+    if (savedResult.isErr() || !savedResult.unwrap()) {
+      throw new BadRequestException('Error obteniendo datos guardados');
     }
 
-    const saved = savedResult.unwrap();
-    if (!saved) {
-      throw new BadRequestException('Error al recuperar datos guardados');
-    }
-
-    return LeadContactDataResponseDto.fromPrimitives(saved);
+    return LeadContactDataResponseDto.fromPrimitives(savedResult.unwrap()!);
   }
 
-  @Get('visitor/:visitorId')
+  /**
+   * Obtiene datos de contacto por visitorId
+   * GET /leads/contact-data/:visitorId
+   */
+  @Get('contact-data/:visitorId')
   @Roles(['admin', 'commercial'])
-  @ApiOperation({ summary: 'Obtener datos de contacto por visitor ID' })
-  @ApiParam({ name: 'visitorId', description: 'ID del visitante' })
+  @ApiOperation({
+    summary: 'Obtener datos de contacto de un visitor',
+    description: 'Retorna los datos de contacto asociados a un visitor',
+  })
+  @ApiParam({
+    name: 'visitorId',
+    description: 'ID del visitor',
+    type: String,
+  })
   @ApiResponse({
     status: 200,
     description: 'Datos de contacto encontrados',
     type: LeadContactDataResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'No encontrado' })
-  async getByVisitorId(
+  @ApiResponse({
+    status: 404,
+    description: 'No se encontraron datos de contacto',
+  })
+  async getContactData(
     @Param('visitorId') visitorId: string,
-    @Req() request: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ): Promise<LeadContactDataResponseDto> {
-    const companyId = request.user.companyId;
-
     const result = await this.contactDataRepository.findByVisitorId(
       visitorId,
-      companyId,
+      req.user.companyId,
     );
 
     if (result.isErr()) {
@@ -202,76 +160,41 @@ export class LeadsContactController {
     const contactData = result.unwrap();
     if (!contactData) {
       throw new NotFoundException(
-        `Datos de contacto no encontrados para visitor ${visitorId}`,
+        `No se encontraron datos de contacto para el visitor ${visitorId}`,
       );
     }
 
     return LeadContactDataResponseDto.fromPrimitives(contactData);
   }
 
-  @Get(':id')
+  /**
+   * Lista todos los datos de contacto de la empresa
+   * GET /leads/contact-data
+   */
+  @Get('contact-data')
   @Roles(['admin', 'commercial'])
-  @ApiOperation({ summary: 'Obtener datos de contacto por ID' })
-  @ApiParam({ name: 'id', description: 'ID del registro de datos de contacto' })
-  @ApiResponse({
-    status: 200,
-    description: 'Datos de contacto encontrados',
-    type: LeadContactDataResponseDto,
-  })
-  @ApiResponse({ status: 404, description: 'No encontrado' })
-  async getById(
-    @Param('id') id: string,
-    @Req() request: AuthenticatedRequest,
-  ): Promise<LeadContactDataResponseDto> {
-    const companyId = request.user.companyId;
-
-    const result = await this.contactDataRepository.findById(id);
-
-    if (result.isErr()) {
-      throw new BadRequestException(result.error.message);
-    }
-
-    const contactData = result.unwrap();
-    if (!contactData) {
-      throw new NotFoundException(
-        `Datos de contacto con id ${id} no encontrados`,
-      );
-    }
-
-    // Verificar que pertenece a la misma empresa
-    if (contactData.companyId !== companyId) {
-      throw new NotFoundException(
-        `Datos de contacto con id ${id} no encontrados`,
-      );
-    }
-
-    return LeadContactDataResponseDto.fromPrimitives(contactData);
-  }
-
-  @Get('company/all')
-  @Roles(['admin'])
   @ApiOperation({
-    summary: 'Obtener todos los datos de contacto de la empresa',
+    summary: 'Listar todos los datos de contacto',
+    description: 'Retorna todos los datos de contacto de la empresa',
   })
   @ApiResponse({
     status: 200,
     description: 'Lista de datos de contacto',
     type: [LeadContactDataResponseDto],
   })
-  async getAllByCompany(
-    @Req() request: AuthenticatedRequest,
+  async listContactData(
+    @Req() req: AuthenticatedRequest,
   ): Promise<LeadContactDataResponseDto[]> {
-    const companyId = request.user.companyId;
-
-    const result = await this.contactDataRepository.findByCompanyId(companyId);
+    const result = await this.contactDataRepository.findByCompanyId(
+      req.user.companyId,
+    );
 
     if (result.isErr()) {
       throw new BadRequestException(result.error.message);
     }
 
-    const contactDataList = result.unwrap();
-    return contactDataList.map((cd) =>
-      LeadContactDataResponseDto.fromPrimitives(cd),
-    );
+    return result
+      .unwrap()
+      .map((cd) => LeadContactDataResponseDto.fromPrimitives(cd));
   }
 }
