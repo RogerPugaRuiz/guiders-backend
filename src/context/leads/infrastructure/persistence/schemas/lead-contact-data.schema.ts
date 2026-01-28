@@ -49,6 +49,11 @@ export class LeadContactDataSchema {
 
   @Prop({ type: Date, required: true, default: Date.now })
   extractedAt: Date;
+
+  // Timestamps manejados por Mongoose timestamps: true
+  // Definidos como opcionales para evitar validación manual
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // HydratedDocument incluye automáticamente createdAt y updatedAt cuando timestamps: true
