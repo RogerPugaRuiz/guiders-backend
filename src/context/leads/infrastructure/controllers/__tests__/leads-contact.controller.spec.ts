@@ -2,7 +2,6 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 import { LeadsContactController } from '../leads-contact.controller';
 import { UpdateContactDataDto } from '../../../application/dtos/update-contact-data.dto';
-import { ILeadContactDataRepository } from '../../../domain/lead-contact-data.repository';
 import { ok, err } from 'src/context/shared/domain/result';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { VisitorNotFoundError } from '../../../domain/errors/leads.error';
@@ -10,7 +9,6 @@ import { VisitorNotFoundError } from '../../../domain/errors/leads.error';
 describe('LeadsContactController - updateContactDataByVisitorId', () => {
   let controller: LeadsContactController;
   let commandBusMock: jest.Mocked<CommandBus>;
-  let repositoryMock: jest.Mocked<ILeadContactDataRepository>;
 
   const mockRequest = {
     user: {
@@ -20,23 +18,25 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
     },
   };
 
+  const mockResponse = {
+    status: jest.fn().mockReturnThis(),
+    json: jest.fn().mockReturnThis(),
+  };
+
   beforeEach(() => {
     commandBusMock = {
       execute: jest.fn(),
     } as any;
 
-    repositoryMock = {
-      findByVisitorId: jest.fn(),
-    } as any;
-
-    controller = new LeadsContactController(commandBusMock, repositoryMock);
+    controller = new LeadsContactController(commandBusMock, {} as any);
+    jest.clearAllMocks();
   });
 
   describe('POST /api/v1/leads/contact-data/:visitorId', () => {
     const visitorId = Uuid.random().value;
     const contactDataId = Uuid.random().value;
 
-    it('debe retornar 201 si se crea un nuevo lead', async () => {
+    it('debe retornar status 201 si se crea un nuevo lead', async () => {
       const dto: UpdateContactDataDto = {
         nombre: 'Roger',
         apellidos: 'Puga Ruiz',
@@ -52,18 +52,21 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         }),
       );
 
-      const result = await controller.updateContactDataByVisitorId(
+      await controller.updateContactDataByVisitorId(
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
 
-      expect(result.statusCode).toBe(201);
-      expect(result.message).toBe('Datos de contacto creados');
-      expect(commandBusMock.execute).toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        statusCode: 201,
+        message: 'Datos de contacto creados',
+      });
     });
 
-    it('debe retornar 200 si se actualiza un lead existente', async () => {
+    it('debe retornar status 200 si se actualiza un lead existente', async () => {
       const dto: UpdateContactDataDto = {
         nombre: 'Roger',
         email: 'rogerpugaruiz@gmail.com',
@@ -76,14 +79,18 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         }),
       );
 
-      const result = await controller.updateContactDataByVisitorId(
+      await controller.updateContactDataByVisitorId(
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
 
-      expect(result.statusCode).toBe(200);
-      expect(result.message).toBe('Datos de contacto actualizados');
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        statusCode: 200,
+        message: 'Datos de contacto actualizados',
+      });
     });
 
     it('debe lanzar NotFoundException si el visitor no existe', async () => {
@@ -100,6 +107,7 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
           visitorId,
           dto,
           mockRequest as any,
+          mockResponse as any,
         );
         fail('Debería haber lanzado NotFoundException');
       } catch (error: any) {
@@ -122,6 +130,7 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
           visitorId,
           dto,
           mockRequest as any,
+          mockResponse as any,
         );
         fail('Debería haber lanzado BadRequestException');
       } catch (error: any) {
@@ -141,13 +150,14 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         }),
       );
 
-      const result = await controller.updateContactDataByVisitorId(
+      await controller.updateContactDataByVisitorId(
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
 
-      expect(result.statusCode).toBe(200);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
       const command = commandBusMock.execute.mock.calls[0][0] as any;
       expect(command.input.email).toBe('nuevo@example.com');
       expect(command.input.nombre).toBeUndefined();
@@ -169,6 +179,7 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
 
       const command = commandBusMock.execute.mock.calls[0][0] as any;
@@ -195,6 +206,7 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
 
       const command = commandBusMock.execute.mock.calls[0][0] as any;
@@ -207,7 +219,7 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
       expect(command.input.poblacion).toBe('MOLINS DE REI');
     });
 
-    it('debe retornar estado 201 solo cuando isNew=true', async () => {
+    it('debe retornar status 201 solo cuando isNew=true', async () => {
       const dto: UpdateContactDataDto = {
         nombre: 'Roger',
       };
@@ -220,12 +232,16 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         }),
       );
 
-      let result = await controller.updateContactDataByVisitorId(
+      await controller.updateContactDataByVisitorId(
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
-      expect(result.statusCode).toBe(201);
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
+
+      // Limpiar mocks
+      jest.clearAllMocks();
 
       // Segundo caso: UPDATE
       commandBusMock.execute.mockResolvedValueOnce(
@@ -235,12 +251,13 @@ describe('LeadsContactController - updateContactDataByVisitorId', () => {
         }),
       );
 
-      result = await controller.updateContactDataByVisitorId(
+      await controller.updateContactDataByVisitorId(
         visitorId,
         dto,
         mockRequest as any,
+        mockResponse as any,
       );
-      expect(result.statusCode).toBe(200);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
   });
 });
