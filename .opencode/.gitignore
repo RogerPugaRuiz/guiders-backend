@@ -7,7 +7,6 @@ package-lock.json
 yarn.lock
 
 # NO ignorar:
-# - skills/ (custom skills)
-# - scripts/ (custom scripts)
-# - opencode.config.json (configuración de comandos)
-# - README.md (documentación)
+# - commands/ (comandos personalizados)
+# - scripts/ (scripts si los queremos mantener)
+# - .md files (documentación)
