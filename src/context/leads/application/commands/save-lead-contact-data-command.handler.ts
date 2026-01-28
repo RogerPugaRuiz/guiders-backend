@@ -98,7 +98,11 @@ export class SaveLeadContactDataCommandHandler
       );
 
       // Convertir visitor a LEAD si tiene datos de contacto válidos
-      await this.convertVisitorToLeadIfNeeded(input.visitorId, input.email, input.telefono);
+      await this.convertVisitorToLeadIfNeeded(
+        input.visitorId,
+        input.email,
+        input.telefono,
+      );
 
       return ok(existingData.id);
     }
@@ -230,7 +234,11 @@ export class SaveLeadContactDataCommandHandler
     );
 
     // Convertir visitor a LEAD si tiene datos de contacto válidos
-    await this.convertVisitorToLeadIfNeeded(input.visitorId, input.email, input.telefono);
+    await this.convertVisitorToLeadIfNeeded(
+      input.visitorId,
+      input.email,
+      input.telefono,
+    );
 
     return ok(id);
   }

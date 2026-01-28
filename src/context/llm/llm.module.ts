@@ -19,6 +19,8 @@ import { HttpModule } from '@nestjs/axios';
 import { ConversationsV2Module } from '../conversations-v2/conversations-v2.module';
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
 import { CompanyModule } from '../company/company.module';
+import { CommercialModule } from '../commercial/commercial.module';
+import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.module';
 import { WebSocketModule } from 'src/websocket/websocket.module';
 import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
 
@@ -57,6 +59,7 @@ import { LlmSuggestionsController } from './infrastructure/controllers/llm-sugge
 import { GenerateAIResponseCommandHandler } from './application/commands/generate-ai-response.command-handler';
 import { GenerateSuggestionCommandHandler } from './application/commands/generate-suggestion.command-handler';
 import { ImproveTextCommandHandler } from './application/commands/improve-text.command-handler';
+import { NotifyCommercialCommandHandler } from './application/commands/notify-commercial-command.handler';
 
 // Application - Event Handlers
 import { SendAIResponseOnMessageSentEventHandler } from './application/events/send-ai-response-on-message-sent.event-handler';
@@ -72,6 +75,7 @@ const CommandHandlers = [
   GenerateAIResponseCommandHandler,
   GenerateSuggestionCommandHandler,
   ImproveTextCommandHandler,
+  NotifyCommercialCommandHandler,
 ];
 
 // Event Handlers
@@ -97,6 +101,8 @@ const EventHandlers = [SendAIResponseOnMessageSentEventHandler];
     forwardRef(() => ConversationsV2Module),
     forwardRef(() => VisitorsV2Module),
     forwardRef(() => CompanyModule),
+    forwardRef(() => CommercialModule),
+    forwardRef(() => AuthUserModule),
   ],
   controllers: [LlmConfigController, LlmSuggestionsController],
   providers: [

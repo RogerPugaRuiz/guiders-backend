@@ -86,6 +86,7 @@ describe('ToolExecutorServiceImpl', () => {
       const toolConfig: ToolConfigPrimitives = {
         ...DEFAULT_TOOL_CONFIG,
         fetchPageEnabled: true,
+        escalateToCommercialEnabled: false, // Deshabilitar para probar solo fetch_page_content
       };
 
       const tools = service.getAvailableTools(toolConfig, 'example.com');
@@ -110,6 +111,7 @@ describe('ToolExecutorServiceImpl', () => {
       const toolConfig: ToolConfigPrimitives = {
         ...DEFAULT_TOOL_CONFIG,
         fetchPageEnabled: false,
+        escalateToCommercialEnabled: false, // Deshabilitar para probar que sin tools habilitadas retorna vacío
       };
 
       const tools = service.getAvailableTools(toolConfig, 'example.com');

@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthUserService } from './services/auth-user.service';
 import { UserAccountService } from './services/user-account.service';
 import { UserAccountEntity } from './user-account.entity';
@@ -23,6 +24,8 @@ import { CreateAdminOnCompanyCreatedWithAdminEventHandler } from '../application
 import { EMAIL_SENDER_SERVICE } from 'src/context/shared/domain/email/email-sender.service';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MockEmailSenderService } from 'src/context/shared/infrastructure/email/mock-email-sender.service';
+import { EtherealEmailSenderService } from 'src/context/shared/infrastructure/email/ethereal-email-sender.service';
+import { ResendEmailSenderService } from 'src/context/shared/infrastructure/email/resend-email-sender.service';
 import { AcceptInviteCommandHandler } from '../application/commands/accept-invite-command.handler';
 import { AuthUserController } from './controllers/auth-user.controller';
 import { FindUsersByCompanyIdQueryHandler } from '../application/queries/find-users-by-company-id.query-handler';
@@ -47,6 +50,7 @@ import { BffSessionAuthService } from 'src/context/shared/infrastructure/service
     TypeOrmModule.forFeature([UserAccountEntity, InviteTypeOrmEntity]),
     HttpModule,
     CqrsModule,
+    ConfigModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     UploadModule,
     forwardRef(() => CommercialModule), // forwardRef para evitar dependencia circular
@@ -58,7 +62,28 @@ import { BffSessionAuthService } from 'src/context/shared/infrastructure/service
     { provide: USER_PASSWORD_HASHER, useClass: BcryptHashService },
     { provide: USER_TOKEN_SERVICE, useClass: TokenService },
     { provide: INVITE_REPOSITORY, useClass: InviteRepositoryImpl },
-    { provide: EMAIL_SENDER_SERVICE, useClass: MockEmailSenderService },
+    // Email service configurado por entorno:
+    // - test: MockEmailSenderService (no envía emails, solo log)
+    // - development: EtherealEmailSenderService (genera URLs de preview)
+    // - staging/production: ResendEmailSenderService (emails reales via API)
+    {
+      provide: EMAIL_SENDER_SERVICE,
+      useFactory: (configService: ConfigService) => {
+        const env = configService.get<string>('NODE_ENV') || 'development';
+
+        if (env === 'test') {
+          return new MockEmailSenderService();
+        }
+
+        if (env === 'production' || env === 'staging') {
+          return new ResendEmailSenderService(configService);
+        }
+
+        // development: usa Ethereal para preview de emails
+        return new EtherealEmailSenderService();
+      },
+      inject: [ConfigService],
+    },
     AuthUserService,
     UserAccountMapper,
     UserRegisterUseCase,
@@ -84,6 +109,6 @@ import { BffSessionAuthService } from 'src/context/shared/infrastructure/service
     // Servicios necesarios para DualAuthGuard
     BffSessionAuthService,
   ],
-  exports: [USER_ACCOUNT_REPOSITORY, PassportModule],
+  exports: [USER_ACCOUNT_REPOSITORY, EMAIL_SENDER_SERVICE, PassportModule],
 })
 export class AuthUserModule {}

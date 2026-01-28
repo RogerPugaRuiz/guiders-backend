@@ -11,6 +11,7 @@ export class ToolConfig {
   private constructor(
     private readonly _fetchPageEnabled: boolean,
     private readonly _saveLeadContactEnabled: boolean,
+    private readonly _escalateToCommercialEnabled: boolean,
     private readonly _allowedPaths: string[],
     private readonly _maxIterations: number,
     private readonly _fetchTimeoutMs: number,
@@ -26,6 +27,7 @@ export class ToolConfig {
     return new ToolConfig(
       DEFAULT_TOOL_CONFIG.fetchPageEnabled,
       DEFAULT_TOOL_CONFIG.saveLeadContactEnabled ?? false,
+      DEFAULT_TOOL_CONFIG.escalateToCommercialEnabled ?? true,
       DEFAULT_TOOL_CONFIG.allowedPaths || [],
       DEFAULT_TOOL_CONFIG.maxIterations,
       DEFAULT_TOOL_CONFIG.fetchTimeoutMs,
@@ -41,7 +43,12 @@ export class ToolConfig {
   static create(props: Partial<ToolConfigPrimitives>): ToolConfig {
     return new ToolConfig(
       props.fetchPageEnabled ?? DEFAULT_TOOL_CONFIG.fetchPageEnabled,
-      props.saveLeadContactEnabled ?? DEFAULT_TOOL_CONFIG.saveLeadContactEnabled ?? false,
+      props.saveLeadContactEnabled ??
+        DEFAULT_TOOL_CONFIG.saveLeadContactEnabled ??
+        false,
+      props.escalateToCommercialEnabled ??
+        DEFAULT_TOOL_CONFIG.escalateToCommercialEnabled ??
+        true,
       props.allowedPaths ?? DEFAULT_TOOL_CONFIG.allowedPaths ?? [],
       props.maxIterations ?? DEFAULT_TOOL_CONFIG.maxIterations,
       props.fetchTimeoutMs ?? DEFAULT_TOOL_CONFIG.fetchTimeoutMs,
@@ -70,6 +77,7 @@ export class ToolConfig {
     return {
       fetchPageEnabled: this._fetchPageEnabled,
       saveLeadContactEnabled: this._saveLeadContactEnabled,
+      escalateToCommercialEnabled: this._escalateToCommercialEnabled,
       allowedPaths: this._allowedPaths,
       maxIterations: this._maxIterations,
       fetchTimeoutMs: this._fetchTimeoutMs,
@@ -86,6 +94,10 @@ export class ToolConfig {
 
   get saveLeadContactEnabled(): boolean {
     return this._saveLeadContactEnabled;
+  }
+
+  get escalateToCommercialEnabled(): boolean {
+    return this._escalateToCommercialEnabled;
   }
 
   get allowedPaths(): string[] {
@@ -116,7 +128,11 @@ export class ToolConfig {
    * Verifica si alguna tool está habilitada
    */
   hasAnyToolEnabled(): boolean {
-    return this._fetchPageEnabled || this._saveLeadContactEnabled;
+    return (
+      this._fetchPageEnabled ||
+      this._saveLeadContactEnabled ||
+      this._escalateToCommercialEnabled
+    );
   }
 
   /**
@@ -146,6 +162,7 @@ export class ToolConfig {
     return new ToolConfig(
       updates.fetchPageEnabled ?? this._fetchPageEnabled,
       updates.saveLeadContactEnabled ?? this._saveLeadContactEnabled,
+      updates.escalateToCommercialEnabled ?? this._escalateToCommercialEnabled,
       updates.allowedPaths ?? this._allowedPaths,
       updates.maxIterations ?? this._maxIterations,
       updates.fetchTimeoutMs ?? this._fetchTimeoutMs,

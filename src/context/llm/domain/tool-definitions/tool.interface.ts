@@ -102,6 +102,8 @@ export interface ToolConfigPrimitives {
   fetchPageEnabled: boolean;
   /** Habilitar guardar datos de contacto de leads */
   saveLeadContactEnabled?: boolean;
+  /** Habilitar escalado a comercial (notificación WebSocket + email fallback) */
+  escalateToCommercialEnabled?: boolean;
   /** Paths permitidos (vacío = todos) */
   allowedPaths?: string[];
   /** Máximo de iteraciones de tool calling */
@@ -126,6 +128,7 @@ export interface ToolConfigPrimitives {
 export const DEFAULT_TOOL_CONFIG: ToolConfigPrimitives = {
   fetchPageEnabled: false,
   saveLeadContactEnabled: false,
+  escalateToCommercialEnabled: true,
   allowedPaths: [],
   maxIterations: 3,
   fetchTimeoutMs: 10000,

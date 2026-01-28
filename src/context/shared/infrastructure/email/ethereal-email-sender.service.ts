@@ -52,29 +52,20 @@ export class EtherealEmailSenderService implements EmailSenderService {
   }): Promise<void> {
     const transporter = await this.transporterPromise;
 
-    const infoRaw: unknown = await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: 'no-reply@guiders.io',
       to: params.to,
       subject: params.subject,
       html: params.html,
     });
-    // Validación estricta del resultado para TypeScript estricto
-    if (
-      typeof infoRaw !== 'object' ||
-      infoRaw === null ||
-      !('messageId' in infoRaw) ||
-      !('envelope' in infoRaw) ||
-      !('accepted' in infoRaw) ||
-      !('rejected' in infoRaw) ||
-      !('pending' in infoRaw) ||
-      !('response' in infoRaw)
-    ) {
+
+    // Validación mínima: solo verificar que el email se envió (tiene messageId)
+    if (!info || typeof info !== 'object' || !('messageId' in info)) {
       throw new Error('Respuesta inesperada de nodemailer.sendMail');
     }
-    // Cast seguro a tipo SMTPTransport.SentMessageInfo para getTestMessageUrl
-    // Se usa 'as SMTPTransport.SentMessageInfo' para evitar problemas de tipado cruzado entre nodemailer y sus subtipos
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    const previewUrl = nodemailer.getTestMessageUrl(infoRaw as any);
+
+    // Generar URL de preview para ver el email en Ethereal
+    const previewUrl = nodemailer.getTestMessageUrl(info);
     this.logger.log(
       `Email enviado a ${params.to}. Preview: ${previewUrl ?? 'no disponible'}`,
     );

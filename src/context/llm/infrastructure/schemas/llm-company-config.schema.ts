@@ -46,6 +46,8 @@ export class LlmCompanyConfigSchema {
   @Prop({
     type: {
       fetchPageEnabled: { type: Boolean, default: false },
+      saveLeadContactEnabled: { type: Boolean, default: false },
+      escalateToCommercialEnabled: { type: Boolean, default: true },
       allowedPaths: { type: [String], default: [] },
       maxIterations: { type: Number, default: 3 },
       fetchTimeoutMs: { type: Number, default: 10000 },
@@ -57,6 +59,8 @@ export class LlmCompanyConfigSchema {
   })
   toolConfig: {
     fetchPageEnabled: boolean;
+    saveLeadContactEnabled?: boolean;
+    escalateToCommercialEnabled?: boolean;
     allowedPaths: string[];
     maxIterations: number;
     fetchTimeoutMs: number;

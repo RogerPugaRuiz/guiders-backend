@@ -38,8 +38,10 @@ import {
 } from 'src/context/shared/infrastructure/guards/role.guard';
 
 // DTOs
-import { ChatResponseDto } from '../dto/chat-response.dto';
-import { ChatListResponseDto } from '../../application/dtos/chat-response.dto';
+import {
+  ChatResponseDto,
+  ChatListResponseDto,
+} from '../../application/dtos/chat-response.dto';
 import { PendingChatsResponseDto } from '../../application/dtos/pending-chats-response.dto';
 import { GetChatByIdQuery } from '../../application/queries/get-chat-by-id.query';
 import { GetVisitorPendingChatsQuery } from '../../application/queries/get-visitor-pending-chats.query';

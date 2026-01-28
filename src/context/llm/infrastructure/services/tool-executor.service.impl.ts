@@ -21,6 +21,7 @@ import {
 import { LlmToolExecutionError } from '../../domain/errors/llm.error';
 import { WebContentFetcherService } from './web-content-fetcher.service';
 import { SaveLeadContactDataCommand } from 'src/context/leads/application/commands/save-lead-contact-data.command';
+import { NotifyCommercialCommand } from '../../application/commands/notify-commercial.command';
 
 /**
  * Handler de una tool específica
@@ -54,6 +55,11 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
 
     this.handlers.set('save_lead_contact_data', {
       execute: (args, context) => this.handleSaveLeadContactData(args, context),
+    });
+
+    this.handlers.set('escalate_to_commercial', {
+      execute: (args, context) =>
+        this.handleEscalateToCommercial(args, context),
     });
   }
 
@@ -325,6 +331,89 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
   }
 
   /**
+   * Handler para escalate_to_commercial
+   * Permite a la IA escalar la conversación a un comercial humano
+   */
+  private async handleEscalateToCommercial(
+    args: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<Result<string, DomainError>> {
+    // Validar que tenemos chatId del contexto
+    if (!context.chatId) {
+      return err(
+        new LlmToolExecutionError(
+          'escalate_to_commercial',
+          'No se encontró chatId en el contexto',
+        ),
+      );
+    }
+
+    // Extraer datos del argumento
+    const message = args.message as string;
+    const reason = args.reason as
+      | 'cannot_answer'
+      | 'visitor_requested'
+      | 'complex_topic'
+      | 'other'
+      | undefined;
+
+    // Validar mensaje
+    if (!message || message.trim().length === 0) {
+      return err(
+        new LlmToolExecutionError(
+          'escalate_to_commercial',
+          'Debes proporcionar un mensaje explicando la situación',
+        ),
+      );
+    }
+
+    this.logger.log(
+      `[Tool Use] Escalando chat ${context.chatId} a comercial. Razón: ${reason || 'no especificada'}`,
+    );
+
+    try {
+      // Ejecutar comando para notificar a comerciales
+      const result = await this.commandBus.execute(
+        new NotifyCommercialCommand(
+          context.chatId,
+          context.companyId,
+          context.visitorId || '',
+          message,
+          reason,
+        ),
+      );
+
+      if (result.isErr()) {
+        this.logger.error(
+          `[Tool Use] Error al escalar a comercial: ${result.error.message}`,
+        );
+        // Aún así devolvemos éxito al usuario - no queremos que falle la conversación
+        return ok(
+          'He notificado a un miembro del equipo comercial. Te responderán en breve.',
+        );
+      }
+
+      this.logger.log(
+        `[Tool Use] Escalación completada exitosamente para chat ${context.chatId}`,
+      );
+
+      return ok(
+        'He notificado a un miembro del equipo comercial. Te responderán en breve.',
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.error(
+        `[Tool Use] Error ejecutando NotifyCommercialCommand: ${errorMessage}`,
+      );
+      // Devolvemos éxito de todos modos para no afectar la experiencia del usuario
+      return ok(
+        'He notificado a un miembro del equipo comercial. Te responderán en breve.',
+      );
+    }
+  }
+
+  /**
    * Obtiene las tools disponibles según la configuración
    */
   getAvailableTools(
@@ -390,6 +479,40 @@ export class ToolExecutorServiceImpl implements ToolExecutorService {
                 description: 'Ciudad o población del visitante',
               },
             },
+          },
+        },
+      });
+    }
+
+    // Tool de escalado a comercial (habilitada por defecto)
+    if (toolConfig.escalateToCommercialEnabled !== false) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'escalate_to_commercial',
+          description:
+            'Usa esta herramienta cuando no puedas responder una pregunta, cuando el tema esté fuera de tu conocimiento, o cuando el visitante solicite explícitamente hablar con una persona. Esto notificará a un miembro del equipo comercial que podrá asistir al visitante.',
+          parameters: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                description:
+                  'Un breve mensaje explicando por qué estás escalando y en qué necesita ayuda el visitante. Este mensaje se mostrará al comercial.',
+              },
+              reason: {
+                type: 'string',
+                enum: [
+                  'cannot_answer',
+                  'visitor_requested',
+                  'complex_topic',
+                  'other',
+                ],
+                description:
+                  'Razón de la escalación: cannot_answer (no puedo responder), visitor_requested (el visitante lo pidió), complex_topic (tema complejo), other (otro motivo)',
+              },
+            },
+            required: ['message'],
           },
         },
       });
