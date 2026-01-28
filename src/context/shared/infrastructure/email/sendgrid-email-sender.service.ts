@@ -30,10 +30,11 @@ export class SendGridEmailSenderService implements EmailSenderService {
     this.emailFrom = this.configService.get<string>('EMAIL_FROM') || '';
 
     // Inicializa SendGrid de forma lazy para evitar errores si no está instalado
+
     this.initializeSendGrid();
   }
 
-  private async initializeSendGrid(): Promise<void> {
+  private initializeSendGrid(): void {
     try {
       // Dynamic require para evitar errores de compilación si @sendgrid/mail no está instalado
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -41,7 +42,7 @@ export class SendGridEmailSenderService implements EmailSenderService {
       this.sgMail = sgMailModule.default || sgMailModule;
       this.sgMail.setApiKey(this.apiKey);
       this.logger.log('SendGrid inicializado correctamente');
-    } catch (error) {
+    } catch {
       this.logger.warn(
         'SendGrid no está instalado. Ejecutar: npm install @sendgrid/mail',
       );
