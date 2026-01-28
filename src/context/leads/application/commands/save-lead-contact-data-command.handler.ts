@@ -15,6 +15,7 @@ import {
   VISITOR_V2_REPOSITORY,
 } from 'src/context/visitors-v2/domain/visitor-v2.repository';
 import { VisitorId } from 'src/context/visitors-v2/domain/value-objects/visitor-id';
+import { VisitorNotFoundError } from '../../domain/errors/leads.error';
 
 @CommandHandler(SaveLeadContactDataCommand)
 export class SaveLeadContactDataCommandHandler
@@ -32,12 +33,22 @@ export class SaveLeadContactDataCommandHandler
 
   async execute(
     command: SaveLeadContactDataCommand,
-  ): Promise<Result<string, DomainError>> {
+  ): Promise<Result<{ id: string; isNew: boolean }, DomainError>> {
     const { input } = command;
 
     this.logger.log(
       `Guardando datos de contacto para visitor ${input.visitorId}`,
     );
+
+    // Verificar que el visitor existe
+    const visitorResult = await this.visitorRepository.findById(
+      VisitorId.create(input.visitorId),
+    );
+
+    if (visitorResult.isErr()) {
+      this.logger.warn(`Visitor ${input.visitorId} no encontrado`);
+      return err(new VisitorNotFoundError(input.visitorId));
+    }
 
     // Verificar si ya existen datos para este visitor
     const existsResult = await this.repository.exists(
@@ -104,7 +115,7 @@ export class SaveLeadContactDataCommandHandler
         input.telefono,
       );
 
-      return ok(existingData.id);
+      return ok({ id: existingData.id, isNew: false });
     }
 
     // Crear nuevos datos
@@ -183,7 +194,7 @@ export class SaveLeadContactDataCommandHandler
   private async createNewContactData(
     input: SaveLeadContactDataCommand['input'],
     now: Date,
-  ): Promise<Result<string, DomainError>> {
+  ): Promise<Result<{ id: string; isNew: boolean }, DomainError>> {
     const id = Uuid.random().value;
 
     const data: LeadContactDataPrimitives = {
@@ -240,6 +251,6 @@ export class SaveLeadContactDataCommandHandler
       input.telefono,
     );
 
-    return ok(id);
+    return ok({ id, isNew: true });
   }
 }

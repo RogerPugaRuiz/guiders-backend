@@ -147,3 +147,12 @@ export class ChatSyncFailedError extends DomainError {
     super(`Error al sincronizar chat ${chatId} con ${crmType}: ${reason}`);
   }
 }
+
+/**
+ * Error: Visitor no existe
+ */
+export class VisitorNotFoundError extends DomainError {
+  constructor(visitorId: string) {
+    super(`El visitor ${visitorId} no existe`);
+  }
+}
