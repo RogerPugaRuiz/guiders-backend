@@ -4,6 +4,8 @@ import {
   IsObject,
   IsOptional,
   IsISO8601,
+  IsNumber,
+  Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -56,4 +58,50 @@ export class IngestTrackingEventDto {
   @IsISO8601()
   @IsOptional()
   occurredAt?: string;
+
+  @ApiProperty({
+    description:
+      'Timestamp en milisegundos de cuándo el evento fue encolado en el cliente antes de enviarse al backend. ' +
+      'Se usa para calcular latencia de transmisión y detectar eventos retrasados.',
+    example: 1771064528320,
+    required: false,
+  })
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  __queuedAt?: number;
+
+  @ApiProperty({
+    description:
+      'Número de eventos idénticos que fueron agregados en el cliente antes de enviar. ' +
+      'Por defecto es 1. Valores mayores indican que se consolidaron múltiples eventos duplicados.',
+    example: 1,
+    required: false,
+  })
+  @IsNumber()
+  @Min(1)
+  @IsOptional()
+  aggregatedCount?: number;
+
+  @ApiProperty({
+    description:
+      'Fecha y hora (ISO 8601) del primer evento en caso de agregación. ' +
+      'Solo presente cuando aggregatedCount > 1.',
+    example: '2024-01-15T10:30:00.000Z',
+    required: false,
+  })
+  @IsISO8601()
+  @IsOptional()
+  firstOccurredAt?: string;
+
+  @ApiProperty({
+    description:
+      'Fecha y hora (ISO 8601) del último evento en caso de agregación. ' +
+      'Solo presente cuando aggregatedCount > 1.',
+    example: '2024-01-15T10:30:15.000Z',
+    required: false,
+  })
+  @IsISO8601()
+  @IsOptional()
+  lastOccurredAt?: string;
 }
