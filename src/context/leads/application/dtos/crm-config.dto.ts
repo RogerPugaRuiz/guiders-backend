@@ -14,6 +14,55 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { CrmType } from '../../domain/services/crm-sync.service';
 
+export class LeadcarsConcesionarioDto {
+  @ApiProperty({ description: 'ID del concesionario' })
+  id: number;
+
+  @ApiProperty({ description: 'Nombre del concesionario' })
+  nombre: string;
+}
+
+export class LeadcarsSedeDto {
+  @ApiProperty({ description: 'ID de la sede' })
+  id: number;
+
+  @ApiProperty({ description: 'Nombre de la sede' })
+  nombre: string;
+
+  @ApiProperty({ description: 'ID del concesionario al que pertenece' })
+  concesionarioId: number;
+}
+
+export class LeadcarsCampanaDto {
+  @ApiProperty({ description: 'ID de la campa\u00f1a' })
+  id: number;
+
+  @ApiProperty({ description: 'Nombre de la campa\u00f1a' })
+  nombre: string;
+
+  @ApiPropertyOptional({ description: 'C\u00f3digo de la campa\u00f1a' })
+  codigo?: string;
+
+  @ApiProperty({ description: 'ID del concesionario al que pertenece' })
+  concesionarioId: number;
+}
+
+export class LeadcarsTipoLeadDto {
+  @ApiProperty({ description: 'ID del tipo de lead' })
+  id: number;
+
+  @ApiProperty({ description: 'Nombre del tipo de lead' })
+  nombre: string;
+}
+
+export class TestConnectionByIdResponseDto {
+  @ApiProperty({ description: 'Resultado del test' })
+  success: boolean;
+
+  @ApiProperty({ description: 'Mensaje descriptivo del resultado' })
+  message: string;
+}
+
 /**
  * DTO para configuración específica de LeadCars
  */

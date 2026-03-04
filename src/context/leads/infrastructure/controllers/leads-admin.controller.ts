@@ -10,6 +10,7 @@ import {
   Req,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
   Inject,
 } from '@nestjs/common';
 import {
@@ -28,7 +29,12 @@ import {
   CrmConfigResponseDto,
   TestCrmConnectionDto,
   TestConnectionResponseDto,
+  TestConnectionByIdResponseDto,
   CrmSyncRecordResponseDto,
+  LeadcarsConcesionarioDto,
+  LeadcarsSedeDto,
+  LeadcarsCampanaDto,
+  LeadcarsTipoLeadDto,
 } from '../../application/dtos/crm-config.dto';
 import {
   ICrmCompanyConfigRepository,
@@ -46,6 +52,7 @@ import {
   ICrmSyncServiceFactory,
   CRM_SYNC_SERVICE_FACTORY,
 } from '../../domain/services/crm-sync.service';
+import { LeadcarsApiService } from '../adapters/leadcars/leadcars-api.service';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 interface AuthenticatedRequest extends Request {
@@ -70,6 +77,7 @@ export class LeadsAdminController {
     private readonly crmSyncServiceFactory: ICrmSyncServiceFactory,
     @Inject(LEAD_CONTACT_DATA_REPOSITORY)
     private readonly contactDataRepository: ILeadContactDataRepository,
+    private readonly leadcarsApiService: LeadcarsApiService,
   ) {}
 
   // ==================== Configuración CRM ====================
@@ -149,16 +157,18 @@ export class LeadsAdminController {
   @Get('config')
   @Roles(['admin'])
   @ApiOperation({
-    summary: 'Obtener todas las configuraciones CRM de la empresa',
+    summary:
+      'Obtener la configuración CRM de la empresa (primera activa) o 404 si no existe',
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de configuraciones',
-    type: [CrmConfigResponseDto],
+    description: 'Configuración encontrada',
+    type: CrmConfigResponseDto,
   })
-  async getConfigs(
+  @ApiResponse({ status: 404, description: 'No hay configuración CRM creada' })
+  async getConfig(
     @Req() request: AuthenticatedRequest,
-  ): Promise<CrmConfigResponseDto[]> {
+  ): Promise<CrmConfigResponseDto> {
     const companyId = request.user.companyId;
 
     const result = await this.configRepository.findByCompanyId(companyId);
@@ -166,9 +176,15 @@ export class LeadsAdminController {
       throw new BadRequestException(result.error.message);
     }
 
-    return result
-      .unwrap()
-      .map((config) => CrmConfigResponseDto.fromPrimitives(config));
+    const configs = result.unwrap();
+    if (!configs.length) {
+      throw new NotFoundException(
+        'No existe configuración CRM para esta empresa',
+      );
+    }
+
+    // Devuelve la primera (en la práctica solo hay una por empresa+crmType)
+    return CrmConfigResponseDto.fromPrimitives(configs[0]);
   }
 
   @Get('config/:id')
@@ -309,9 +325,73 @@ export class LeadsAdminController {
 
   // ==================== Test de Conexión ====================
 
+  @Post('config/:configId/test')
+  @Roles(['admin'])
+  @ApiOperation({
+    summary:
+      'Probar conexión con LeadCars usando la configuración guardada por ID',
+  })
+  @ApiParam({ name: 'configId', description: 'ID de la configuración' })
+  @ApiResponse({
+    status: 200,
+    description: 'Resultado del test de conexión',
+    type: TestConnectionByIdResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  async testConnectionById(
+    @Param('configId') configId: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<TestConnectionByIdResponseDto> {
+    const companyId = request.user.companyId;
+
+    const findResult = await this.configRepository.findById(configId);
+    if (findResult.isErr()) {
+      throw new BadRequestException(findResult.error.message);
+    }
+
+    const config = findResult.unwrap();
+    if (!config) {
+      throw new NotFoundException(
+        `Configuración con id ${configId} no encontrada`,
+      );
+    }
+
+    if (config.companyId !== companyId) {
+      throw new NotFoundException(
+        `Configuración con id ${configId} no encontrada`,
+      );
+    }
+
+    const adapter = this.crmSyncServiceFactory.getAdapter(config.crmType);
+    if (!adapter) {
+      return {
+        success: false,
+        message: `Tipo de CRM no soportado: ${config.crmType}`,
+      };
+    }
+
+    const result = await adapter.testConnection(config);
+
+    if (result.isErr()) {
+      return {
+        success: false,
+        message: result.error.message,
+      };
+    }
+
+    return {
+      success: result.unwrap(),
+      message: result.unwrap()
+        ? 'Conexión con LeadCars establecida correctamente'
+        : 'No se pudo establecer conexión con LeadCars',
+    };
+  }
+
   @Post('test-connection')
   @Roles(['admin'])
-  @ApiOperation({ summary: 'Probar conexión con CRM' })
+  @ApiOperation({
+    summary: 'Probar conexión con CRM con credenciales manuales',
+  })
   @ApiResponse({
     status: 200,
     description: 'Resultado del test de conexión',
@@ -378,22 +458,21 @@ export class LeadsAdminController {
 
   // ==================== Registros de Sincronización ====================
 
-  @Get('sync-records')
+  @Get('sync-records/failed')
   @Roles(['admin'])
-  @ApiOperation({
-    summary: 'Obtener registros de sincronización de la empresa',
-  })
+  @ApiOperation({ summary: 'Obtener sincronizaciones fallidas' })
   @ApiResponse({
     status: 200,
-    description: 'Lista de registros de sincronización',
+    description: 'Lista de sincronizaciones fallidas',
     type: [CrmSyncRecordResponseDto],
   })
-  async getSyncRecords(
+  async getFailedSyncRecords(
     @Req() request: AuthenticatedRequest,
   ): Promise<CrmSyncRecordResponseDto[]> {
     const companyId = request.user.companyId;
 
-    const result = await this.syncRecordRepository.findByCompanyId(companyId);
+    const result =
+      await this.syncRecordRepository.findFailedByCompanyId(companyId);
     if (result.isErr()) {
       throw new BadRequestException(result.error.message);
     }
@@ -443,21 +522,22 @@ export class LeadsAdminController {
     return [CrmSyncRecordResponseDto.fromPrimitives(record)];
   }
 
-  @Get('sync-records/failed')
+  @Get('sync-records')
   @Roles(['admin'])
-  @ApiOperation({ summary: 'Obtener sincronizaciones fallidas' })
+  @ApiOperation({
+    summary: 'Obtener registros de sincronización de la empresa',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Lista de sincronizaciones fallidas',
+    description: 'Lista de registros de sincronización',
     type: [CrmSyncRecordResponseDto],
   })
-  async getFailedSyncRecords(
+  async getSyncRecords(
     @Req() request: AuthenticatedRequest,
   ): Promise<CrmSyncRecordResponseDto[]> {
     const companyId = request.user.companyId;
 
-    const result =
-      await this.syncRecordRepository.findFailedByCompanyId(companyId);
+    const result = await this.syncRecordRepository.findByCompanyId(companyId);
     if (result.isErr()) {
       throw new BadRequestException(result.error.message);
     }
@@ -474,6 +554,220 @@ export class LeadsAdminController {
         return CrmSyncRecordResponseDto.fromPrimitives(record, contactData);
       }),
     );
+  }
+
+  // ==================== Proxy LeadCars ====================
+
+  private async getLeadcarsConfigForCompany(companyId: string) {
+    const result = await this.configRepository.findByCompanyAndType(
+      companyId,
+      'leadcars',
+    );
+    if (result.isErr()) {
+      throw new BadRequestException(result.error.message);
+    }
+    const config = result.unwrap();
+    if (!config) {
+      throw new NotFoundException(
+        'No existe configuración de LeadCars para esta empresa',
+      );
+    }
+    if (!config.enabled) {
+      throw new BadRequestException(
+        'La configuración de LeadCars está deshabilitada',
+      );
+    }
+    return {
+      clienteToken: config.config.clienteToken as string,
+      useSandbox: (config.config.useSandbox as boolean) ?? false,
+      concesionarioId: config.config.concesionarioId as number,
+      sedeId: config.config.sedeId as number | undefined,
+      campanaId: config.config.campanaId as number | undefined,
+      tipoLeadDefault: config.config.tipoLeadDefault as string,
+    };
+  }
+
+  @Get('leadcars/concesionarios')
+  @Roles(['admin'])
+  @ApiOperation({
+    summary: 'Listar concesionarios disponibles en LeadCars',
+    description:
+      'Proxy al endpoint GET /concesionarios de LeadCars usando el token guardado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de concesionarios',
+    type: [LeadcarsConcesionarioDto],
+  })
+  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  async getLeadcarsConcesionarios(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<LeadcarsConcesionarioDto[]> {
+    const companyId = request.user.companyId;
+    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+
+    const result =
+      await this.leadcarsApiService.listConcesionarios(leadcarsConfig);
+    if (result.isErr()) {
+      throw new InternalServerErrorException(
+        `Error al obtener concesionarios de LeadCars: ${result.error.message}`,
+      );
+    }
+
+    const response = result.unwrap();
+    if (!response.success || !response.data) {
+      throw new InternalServerErrorException(
+        'LeadCars no devolvió datos de concesionarios',
+      );
+    }
+
+    return response.data.map((c) => ({ id: c.id, nombre: c.nombre }));
+  }
+
+  @Get('leadcars/sedes/:concesionarioId')
+  @Roles(['admin'])
+  @ApiOperation({
+    summary: 'Listar sedes de un concesionario en LeadCars',
+    description:
+      'Proxy al endpoint GET /sedes/:id de LeadCars usando el token guardado',
+  })
+  @ApiParam({
+    name: 'concesionarioId',
+    description: 'ID del concesionario en LeadCars',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de sedes',
+    type: [LeadcarsSedeDto],
+  })
+  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  async getLeadcarsSedes(
+    @Param('concesionarioId') concesionarioId: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<LeadcarsSedeDto[]> {
+    const companyId = request.user.companyId;
+    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+    const concesionarioIdNum = parseInt(concesionarioId, 10);
+
+    if (isNaN(concesionarioIdNum)) {
+      throw new BadRequestException('concesionarioId debe ser un número');
+    }
+
+    const result = await this.leadcarsApiService.listSedes(
+      concesionarioIdNum,
+      leadcarsConfig,
+    );
+    if (result.isErr()) {
+      throw new InternalServerErrorException(
+        `Error al obtener sedes de LeadCars: ${result.error.message}`,
+      );
+    }
+
+    const response = result.unwrap();
+    if (!response.success || !response.data) {
+      throw new InternalServerErrorException(
+        'LeadCars no devolvió datos de sedes',
+      );
+    }
+
+    return response.data.map((s) => ({
+      id: s.id,
+      nombre: s.nombre,
+      concesionarioId: s.concesionario_id,
+    }));
+  }
+
+  @Get('leadcars/campanas/:concesionarioId')
+  @Roles(['admin'])
+  @ApiOperation({
+    summary: 'Listar campañas de un concesionario en LeadCars',
+    description:
+      'Proxy al endpoint GET /campanas/:id de LeadCars usando el token guardado',
+  })
+  @ApiParam({
+    name: 'concesionarioId',
+    description: 'ID del concesionario en LeadCars',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de campañas',
+    type: [LeadcarsCampanaDto],
+  })
+  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  async getLeadcarsCampanas(
+    @Param('concesionarioId') concesionarioId: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<LeadcarsCampanaDto[]> {
+    const companyId = request.user.companyId;
+    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+    const concesionarioIdNum = parseInt(concesionarioId, 10);
+
+    if (isNaN(concesionarioIdNum)) {
+      throw new BadRequestException('concesionarioId debe ser un número');
+    }
+
+    // Usar el concesionarioId del parámetro (no el de la config)
+    const configForRequest = {
+      ...leadcarsConfig,
+      concesionarioId: concesionarioIdNum,
+    };
+
+    const result = await this.leadcarsApiService.listCampanas(configForRequest);
+    if (result.isErr()) {
+      throw new InternalServerErrorException(
+        `Error al obtener campañas de LeadCars: ${result.error.message}`,
+      );
+    }
+
+    const response = result.unwrap();
+    if (!response.success || !response.data) {
+      throw new InternalServerErrorException(
+        'LeadCars no devolvió datos de campañas',
+      );
+    }
+
+    return response.data.map((c) => ({
+      id: c.id,
+      nombre: c.nombre,
+      codigo: c.codigo,
+      concesionarioId: concesionarioIdNum,
+    }));
+  }
+
+  @Get('leadcars/tipos')
+  @Roles(['admin'])
+  @ApiOperation({
+    summary: 'Listar tipos de lead disponibles en LeadCars',
+    description:
+      'Proxy al endpoint GET /tipos de LeadCars usando el token guardado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de tipos de lead',
+    type: [LeadcarsTipoLeadDto],
+  })
+  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  async getLeadcarsTipos(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<LeadcarsTipoLeadDto[]> {
+    const companyId = request.user.companyId;
+    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+
+    const result = await this.leadcarsApiService.listTipos(leadcarsConfig);
+    if (result.isErr()) {
+      throw new InternalServerErrorException(
+        `Error al obtener tipos de lead de LeadCars: ${result.error.message}`,
+      );
+    }
+
+    const response = result.unwrap();
+    if (!response.success || !response.data) {
+      throw new InternalServerErrorException(
+        'LeadCars no devolvió datos de tipos de lead',
+      );
+    }
+
+    return response.data.map((t) => ({ id: t.id, nombre: t.nombre }));
   }
 
   // ==================== Información del Sistema ====================

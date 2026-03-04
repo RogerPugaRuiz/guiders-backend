@@ -16,6 +16,7 @@ import {
   LeadcarsListConcesionariosResponse,
   LeadcarsListSedesResponse,
   LeadcarsListCampanasResponse,
+  LeadcarsListTiposResponse,
   LEADCARS_API_URLS,
   LEADCARS_RETRY_CONFIG,
   LEADCARS_REQUIRED_HEADERS,
@@ -122,6 +123,20 @@ export class LeadcarsApiService {
     return this.executeWithRetry<LeadcarsListCampanasResponse>(
       () => this.get<LeadcarsListCampanasResponse>(url, config),
       'listCampanas',
+    );
+  }
+
+  /**
+   * Obtiene la lista de tipos de lead disponibles
+   */
+  async listTipos(
+    config: LeadcarsConfig,
+  ): Promise<Result<LeadcarsListTiposResponse, DomainError>> {
+    const url = `${this.getBaseUrl(config)}/tipos`;
+
+    return this.executeWithRetry<LeadcarsListTiposResponse>(
+      () => this.get<LeadcarsListTiposResponse>(url, config),
+      'listTipos',
     );
   }
 

@@ -226,6 +226,26 @@ export interface LeadcarsListCampanasResponse {
 }
 
 /**
+ * Tipo de lead de LeadCars (obtenido de GET /tipos)
+ */
+export interface LeadcarsTipoLeadItem {
+  id: number;
+  nombre: string;
+}
+
+/**
+ * Response de listar tipos de lead
+ */
+export interface LeadcarsListTiposResponse {
+  success: boolean;
+  data?: LeadcarsTipoLeadItem[];
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+/**
  * URLs base de LeadCars
  */
 export const LEADCARS_API_URLS = {
