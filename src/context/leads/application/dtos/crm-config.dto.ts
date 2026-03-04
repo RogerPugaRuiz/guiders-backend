@@ -270,6 +270,32 @@ export class TestConnectionResponseDto {
 }
 
 /**
+ * DTO con los datos de contacto del visitante asociado a un registro de sincronización
+ */
+export class ContactDataDto {
+  @ApiPropertyOptional({ description: 'Nombre del contacto' })
+  nombre?: string;
+
+  @ApiPropertyOptional({ description: 'Apellidos del contacto' })
+  apellidos?: string;
+
+  @ApiPropertyOptional({ description: 'Email del contacto' })
+  email?: string;
+
+  @ApiPropertyOptional({ description: 'Teléfono del contacto' })
+  telefono?: string;
+
+  @ApiPropertyOptional({ description: 'DNI/NIF del contacto' })
+  dni?: string;
+
+  @ApiPropertyOptional({ description: 'Población/ciudad del contacto' })
+  poblacion?: string;
+
+  @ApiPropertyOptional({ description: 'Datos adicionales en formato libre' })
+  additionalData?: Record<string, unknown>;
+}
+
+/**
  * DTO de respuesta para registro de sincronización
  */
 export class CrmSyncRecordResponseDto {
@@ -312,21 +338,38 @@ export class CrmSyncRecordResponseDto {
   @ApiProperty({ description: 'Fecha de actualización' })
   updatedAt: string;
 
-  static fromPrimitives(data: {
-    id: string;
-    visitorId: string;
-    companyId: string;
-    crmType: string;
-    externalLeadId?: string;
-    status: string;
-    lastSyncAt?: Date;
-    lastError?: string;
-    retryCount: number;
-    chatsSynced: string[];
-    metadata?: Record<string, unknown>;
-    createdAt: Date;
-    updatedAt: Date;
-  }): CrmSyncRecordResponseDto {
+  @ApiPropertyOptional({
+    description: 'Datos de contacto del visitante asociado',
+    type: ContactDataDto,
+  })
+  contactData?: ContactDataDto;
+
+  static fromPrimitives(
+    data: {
+      id: string;
+      visitorId: string;
+      companyId: string;
+      crmType: string;
+      externalLeadId?: string;
+      status: string;
+      lastSyncAt?: Date;
+      lastError?: string;
+      retryCount: number;
+      chatsSynced: string[];
+      metadata?: Record<string, unknown>;
+      createdAt: Date;
+      updatedAt: Date;
+    },
+    contactData?: {
+      nombre?: string;
+      apellidos?: string;
+      email?: string;
+      telefono?: string;
+      dni?: string;
+      poblacion?: string;
+      additionalData?: Record<string, unknown>;
+    } | null,
+  ): CrmSyncRecordResponseDto {
     const dto = new CrmSyncRecordResponseDto();
     dto.id = data.id;
     dto.visitorId = data.visitorId;
@@ -340,6 +383,17 @@ export class CrmSyncRecordResponseDto {
     dto.chatsSynced = data.chatsSynced;
     dto.createdAt = data.createdAt.toISOString();
     dto.updatedAt = data.updatedAt.toISOString();
+    if (contactData) {
+      const cd = new ContactDataDto();
+      cd.nombre = contactData.nombre;
+      cd.apellidos = contactData.apellidos;
+      cd.email = contactData.email;
+      cd.telefono = contactData.telefono;
+      cd.dni = contactData.dni;
+      cd.poblacion = contactData.poblacion;
+      cd.additionalData = contactData.additionalData;
+      dto.contactData = cd;
+    }
     return dto;
   }
 }

@@ -39,6 +39,10 @@ import {
   CRM_SYNC_RECORD_REPOSITORY,
 } from '../../domain/crm-sync-record.repository';
 import {
+  ILeadContactDataRepository,
+  LEAD_CONTACT_DATA_REPOSITORY,
+} from '../../domain/lead-contact-data.repository';
+import {
   ICrmSyncServiceFactory,
   CRM_SYNC_SERVICE_FACTORY,
 } from '../../domain/services/crm-sync.service';
@@ -64,6 +68,8 @@ export class LeadsAdminController {
     private readonly syncRecordRepository: ICrmSyncRecordRepository,
     @Inject(CRM_SYNC_SERVICE_FACTORY)
     private readonly crmSyncServiceFactory: ICrmSyncServiceFactory,
+    @Inject(LEAD_CONTACT_DATA_REPOSITORY)
+    private readonly contactDataRepository: ILeadContactDataRepository,
   ) {}
 
   // ==================== Configuración CRM ====================
@@ -392,9 +398,18 @@ export class LeadsAdminController {
       throw new BadRequestException(result.error.message);
     }
 
-    return result
-      .unwrap()
-      .map((record) => CrmSyncRecordResponseDto.fromPrimitives(record));
+    return Promise.all(
+      result.unwrap().map(async (record) => {
+        const contactResult = await this.contactDataRepository.findByVisitorId(
+          record.visitorId,
+          companyId,
+        );
+        const contactData = contactResult.isOk()
+          ? contactResult.unwrap()
+          : null;
+        return CrmSyncRecordResponseDto.fromPrimitives(record, contactData);
+      }),
+    );
   }
 
   @Get('sync-records/visitor/:visitorId')
@@ -447,9 +462,18 @@ export class LeadsAdminController {
       throw new BadRequestException(result.error.message);
     }
 
-    return result
-      .unwrap()
-      .map((record) => CrmSyncRecordResponseDto.fromPrimitives(record));
+    return Promise.all(
+      result.unwrap().map(async (record) => {
+        const contactResult = await this.contactDataRepository.findByVisitorId(
+          record.visitorId,
+          companyId,
+        );
+        const contactData = contactResult.isOk()
+          ? contactResult.unwrap()
+          : null;
+        return CrmSyncRecordResponseDto.fromPrimitives(record, contactData);
+      }),
+    );
   }
 
   // ==================== Información del Sistema ====================
