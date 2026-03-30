@@ -65,7 +65,7 @@ export class MessageSchema {
   @Prop({
     type: String,
     required: true,
-    enum: ['TEXT', 'SYSTEM', 'FILE', 'IMAGE', 'TRANSFER', 'ASSIGNMENT'],
+    enum: ['TEXT', 'SYSTEM', 'FILE', 'IMAGE', 'TRANSFER', 'ASSIGNMENT', 'AI'],
     index: true,
   })
   type: string;
@@ -86,7 +86,7 @@ export class MessageSchema {
   @Prop({
     type: String,
     required: true,
-    enum: ['visitor', 'commercial', 'system'],
+    enum: ['visitor', 'commercial', 'system', 'ai'],
     index: true,
   })
   senderType: string;
@@ -231,6 +231,27 @@ export class MessageSchema {
     newValue?: any;
     triggeredBy?: string;
     automationRule?: string;
+  };
+
+  // Campos para mensajes de IA
+  @Prop({
+    type: Boolean,
+    required: true,
+    default: false,
+    index: true,
+  })
+  isAI: boolean;
+
+  @Prop({
+    type: Object,
+    required: false,
+  })
+  aiInfo?: {
+    model?: string; // Modelo de IA usado
+    confidence?: number; // Nivel de confianza 0-1
+    suggestedActions?: string[]; // Acciones sugeridas
+    processingTimeMs?: number; // Tiempo de procesamiento
+    context?: Record<string, unknown>; // Contexto adicional
   };
 }
 

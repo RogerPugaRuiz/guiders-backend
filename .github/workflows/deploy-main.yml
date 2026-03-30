@@ -1,0 +1,743 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Test básico y build
+  test-and-build:
+    name: Test and Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      # PostgreSQL para tests de integración y E2E
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: guiders_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      # Redis para sesiones y cache
+      redis:
+        image: redis:6
+        env:
+          REDIS_PASSWORD: ""
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+          --health-start-period 10s
+        ports:
+          - 6379:6379
+
+      # MongoDB para tests E2E
+      mongodb:
+        image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: admin_test
+          MONGO_INITDB_ROOT_PASSWORD: test_password
+          MONGO_INITDB_DATABASE: guiders_test
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 10s
+          --health-retries 5
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install system dependencies for MongoDB Memory Server
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libssl-dev \
+            libssl3 \
+            openssl \
+            ca-certificates \
+            curl \
+            gnupg \
+            lsb-release
+
+          # Verificar que las bibliotecas estén disponibles
+          echo "Verificando bibliotecas OpenSSL disponibles:"
+          find /usr/lib /lib -name "libcrypto.so*" -o -name "libssl.so*" 2>/dev/null | head -10 || true
+
+          # Crear enlaces simbólicos si es necesario
+          if [ ! -f /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1 ] && [ -f /usr/lib/x86_64-linux-gnu/libcrypto.so.3 ]; then
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so.1.1
+            echo "Creado enlace simbólico para libcrypto.so.1.1"
+          fi
+
+          if [ ! -f /usr/lib/x86_64-linux-gnu/libssl.so.1.1 ] && [ -f /usr/lib/x86_64-linux-gnu/libssl.so.3 ]; then
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3 /usr/lib/x86_64-linux-gnu/libssl.so.1.1
+            echo "Creado enlace simbólico para libssl.so.1.1"
+          fi
+
+          # Instalar mongod del sistema para uso por mongodb-memory-server
+          echo "Instalando mongod para compatibilidad con MongoDB Memory Server..."
+          curl -fsSL https://pgp.mongodb.com/server-7.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-7.0.gpg --dearmor
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-org-server mongodb-mongosh || true
+
+          # Verificar instalación
+          echo "MongoDB instalado (si procede):"
+          (command -v mongod && mongod --version | head -2) || echo "mongod no disponible"
+
+      - name: Install Redis tools and configure system
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y redis-tools
+
+          # Configurar sistema para Redis
+          sudo sysctl -w vm.overcommit_memory=1
+          sudo sysctl -w net.core.somaxconn=1024
+          echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Esperando a que los servicios estén listos..."
+
+          # Esperar PostgreSQL
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres >/dev/null 2>&1; then
+              echo "PostgreSQL listo"
+              break
+            fi
+            echo "Esperando PostgreSQL... ($i/30)"
+            sleep 2
+          done
+
+          # Esperar Redis
+          for i in {1..30}; do
+            if redis-cli -h localhost -p 6379 ping 2>/dev/null | grep -q PONG; then
+              echo "Redis listo"
+              break
+            fi
+            echo "Esperando Redis... ($i/30)"
+            sleep 2
+          done
+
+          # Esperar MongoDB
+          for i in {1..30}; do
+            if mongosh --host localhost:27017 --username admin_test --password test_password --authenticationDatabase admin --eval "db.adminCommand('ping')" >/dev/null 2>&1; then
+              echo "MongoDB listo"
+              break
+            fi
+            echo "Esperando MongoDB... ($i/30)"
+            sleep 2
+          done
+
+          echo "Todos los servicios están listos"
+
+      - name: Install dependencies with retry
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Clean dist folder to avoid Jest conflicts
+        run: rm -rf dist/
+
+      - name: Build project for tests
+        run: npm run build
+
+      - name: Ensure coverage directory exists
+        run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
+
+      - name: Run integration tests
+        run: npm run test:int
+        env:
+          # Variables para tests de integración
+          NODE_ENV: test
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE: guiders_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guiders_test
+          REDIS_URL: redis://localhost:6379
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          MONGODB_USERNAME: admin_test
+          MONGODB_PASSWORD: test_password
+          MONGODB_DATABASE: guiders_test
+          TEST_MONGODB_ROOT_USERNAME: admin_test
+          TEST_MONGODB_ROOT_PASSWORD: test_password
+          TEST_MONGODB_DATABASE: guiders_test
+          MONGODB_URL: mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin
+          ENCRYPTION_KEY: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2
+          # MongoDB Memory Server configuración
+          MONGOMS_VERSION: '7.0.14'
+          MONGOMS_DISABLE_POSTINSTALL: '1'
+          MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
+          MONGOMS_SKIP_MD5: 'true'
+          CI: 'true'
+          # Configuración de timeout extendido para CI
+          JEST_TIMEOUT: 120000
+
+      - name: Clean dist folder before E2E tests
+        run: rm -rf dist/
+
+      - name: Build project for E2E tests
+        run: npm run build
+
+      - name: Ensure coverage directory exists for E2E
+        run: node src/scripts/ensure-coverage-dir.js || mkdir -p coverage
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          # Variables para tests E2E
+          NODE_ENV: test
+          CI: true
+          GITHUB_ACTIONS: true
+          # PostgreSQL para E2E
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+          DATABASE_USERNAME: postgres
+          DATABASE_PASSWORD: postgres
+          DATABASE: guiders_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/guiders_test
+          TEST_DATABASE_HOST: localhost
+          TEST_DATABASE_PORT: 5432
+          TEST_DATABASE_USERNAME: postgres
+          TEST_DATABASE_PASSWORD: postgres
+          TEST_DATABASE: guiders_test
+          # MongoDB para E2E (servicio real)
+          MONGODB_HOST: localhost
+          MONGODB_PORT: 27017
+          MONGODB_USERNAME: admin_test
+          MONGODB_PASSWORD: test_password
+          MONGODB_DATABASE: guiders_test
+          MONGODB_URL: mongodb://admin_test:test_password@localhost:27017/guiders_test?authSource=admin
+          TEST_MONGODB_HOST: localhost
+          TEST_MONGODB_PORT: 27017
+          TEST_MONGODB_DATABASE: guiders_test
+          TEST_MONGODB_ROOT_USERNAME: admin_test
+          TEST_MONGODB_ROOT_PASSWORD: test_password
+          # Redis
+          REDIS_URL: redis://localhost:6379
+          # Variables de aplicación requeridas
+          ENCRYPTION_KEY: 'test-encryption-key-32-chars-long!!'
+          GLOBAL_TOKEN_SECRET: 'test-secret-key'
+          ACCESS_TOKEN_EXPIRATION: '15m'
+          REFRESH_TOKEN_EXPIRATION: '7d'
+          # MongoDB Memory Server (para casos que lo requieran)
+          MONGOMS_SYSTEM_BINARY: '/usr/bin/mongod'
+          # Configuración de timeout extendido para CI
+          JEST_TIMEOUT: 180000
+
+  # Deploy real a producción
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [test-and-build]
+    if: needs.test-and-build.result == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Install WireGuard
+        run: sudo apt-get update && sudo apt-get install -y wireguard
+
+      - name: Configure WireGuard (github.conf)
+        run: |
+          set -euo pipefail
+          sudo mkdir -p /etc/wireguard && sudo chmod 700 /etc/wireguard
+          cat > github.conf <<'CFG'
+          [Interface]
+          PrivateKey = REPLACE_PRIVATE_KEY
+          Address = 10.0.0.4/24
+
+          [Peer]
+          PublicKey = rcfGmqdqyiQs+J81rx5mabiyAjQkvoDfiCTD2eLqaHQ=
+          Endpoint = 217.154.105.26:51820
+          AllowedIPs = 10.0.0.0/24
+          PersistentKeepalive = 25
+          CFG
+          sed -i "s#REPLACE_PRIVATE_KEY#${{ secrets.WG_PRIVATE_KEY }}#" github.conf
+          sudo mv github.conf /etc/wireguard/github.conf
+          sudo chmod 600 /etc/wireguard/github.conf
+          # Reiniciar interfaz si existiese
+          if sudo wg show github >/dev/null 2>&1; then sudo wg-quick down github || true; fi
+          sudo wg-quick up github || { echo "Error al levantar WireGuard"; sudo wg-quick down github || true; exit 1; }
+
+      - name: Verify VPN connection
+        run: |
+          echo "Verificando conexión VPN..."
+
+          # Mostrar información de la interfaz WireGuard
+          echo "Estado de WireGuard:"
+          sudo wg show
+
+          # Verificar todas las interfaces WireGuard
+          echo ""
+          echo "Interfaces WireGuard activas:"
+          ip link show type wireguard 2>/dev/null || echo "No se encontraron interfaces WireGuard"
+
+          # Mostrar todas las IPs asignadas a interfaces WireGuard
+          echo ""
+          echo "IPs asignadas a interfaces WireGuard:"
+          for iface in $(ip link show type wireguard 2>/dev/null | grep -o 'wg[^:]*' || echo ""); do
+            if [[ -n "$iface" ]]; then
+              echo "  $iface:"
+              ip addr show "$iface" | grep -E "inet " | sed 's/^/    /'
+            fi
+          done
+
+          # Verificar tabla de rutas
+          echo ""
+          echo "Rutas VPN:"
+          ip route | grep -E "10\.0\.0\.|wg" || echo "No se encontraron rutas VPN"
+
+          # Ping al servidor VPN (debería ser 10.0.0.1 típicamente)
+          echo ""
+          echo "Probando conectividad VPN:"
+
+          # Primero verificar si el endpoint externo es alcanzable
+          echo "Verificando alcance del endpoint externo..."
+          if ping -c 2 -W 3 ${{ secrets.WG_SERVER_ENDPOINT }}; then
+            echo "Endpoint externo alcanzable"
+          else
+            echo "Endpoint externo no alcanzable - problema de red/firewall"
+          fi
+
+          # Intentar diferentes IPs del servidor VPN
+          echo ""
+          echo "Probando diferentes IPs del servidor VPN..."
+          for server_ip in "10.0.0.1" "10.0.0.254"; do
+            echo "  Probando $server_ip..."
+            if timeout 3 ping -c 1 -W 2 "$server_ip" >/dev/null 2>&1; then
+              echo "    $server_ip responde!"
+              VPN_SERVER_IP="$server_ip"
+              break
+            else
+              echo "    $server_ip no responde"
+            fi
+          done
+
+          # Si encontramos un servidor que responde, continuar; si no, fallar
+          if [[ -n "${VPN_SERVER_IP:-}" ]]; then
+            echo "Conexión VPN exitosa con servidor $VPN_SERVER_IP!"
+          else
+            echo ""
+            echo "No se puede establecer conectividad VPN"
+            echo "DETENIENDO DEPLOYMENT - VPN requerida para acceso seguro"
+            exit 1
+          fi
+
+          # Verificar que podemos alcanzar el servidor de producción a través de la VPN
+          echo ""
+          echo "Probando acceso al servidor de producción:"
+          if ping -c 2 -W 5 ${{ secrets.PROD_HOST }}; then
+            echo "Servidor de producción accesible a través de VPN!"
+          else
+            echo "No se puede alcanzar el servidor de producción a través de VPN"
+            echo "DETENIENDO DEPLOYMENT - Servidor de producción no accesible"
+            exit 1
+          fi
+
+      - name: Add production server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan ${{ secrets.PROD_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Build and prepare deployment
+        run: |
+          # Instalar solo dependencias necesarias para el build
+          npm ci --include=dev
+          npm run build
+
+          # Crear package.json optimizado para producción (sin sqlite3)
+          node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json'));
+            // Remover sqlite3 de las dependencias ya que solo se usa en tests
+            if (pkg.dependencies && pkg.dependencies.sqlite3) {
+              delete pkg.dependencies.sqlite3;
+            }
+            require('fs').writeFileSync('package-production.json', JSON.stringify(pkg, null, 2));
+          "
+
+          # Prune de devDependencies para empaquetar node_modules de producción
+          npm prune --omit=dev
+          echo "Dependencias de producción preparadas (node_modules)"
+
+          # Empaquetar dist + node_modules para evitar npm ci en el servidor
+          tar czf deploy-production.tar.gz dist node_modules package-production.json package-lock.json
+
+      - name: Create production environment config
+        run: |
+          echo "Creando configuración para producción..."
+          cat > .env.production << EOF
+          PORT=${{ secrets.PROD_PORT }}
+          DATABASE_HOST=${{ secrets.PROD_DATABASE_HOST }}
+          DATABASE_PORT=${{ secrets.PROD_DATABASE_PORT }}
+          DATABASE_USERNAME=${{ secrets.PROD_DATABASE_USERNAME }}
+          DATABASE_PASSWORD=${{ secrets.PROD_DATABASE_PASSWORD }}
+          DATABASE=${{ secrets.PROD_DATABASE }}
+          APP_URL=${{ secrets.PROD_APP_URL }}
+          JWKS_BASE_URL=${{ secrets.PROD_APP_URL }}
+          ENCRYPTION_KEY=${{ secrets.PROD_ENCRYPTION_KEY }}
+          GLOBAL_TOKEN_SECRET=${{ secrets.PROD_GLOBAL_TOKEN_SECRET }}
+          ACCESS_TOKEN_EXPIRATION=${{ secrets.PROD_ACCESS_TOKEN_EXPIRATION }}
+          REFRESH_TOKEN_EXPIRATION=${{ secrets.PROD_REFRESH_TOKEN_EXPIRATION }}
+          REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
+          REDIS_URL=${{ secrets.PROD_REDIS_URL }}
+          MONGODB_HOST=localhost
+          MONGODB_DATABASE=${{ secrets.PROD_MONGODB_DATABASE }}
+          MONGODB_PORT=${{ secrets.PROD_MONGODB_PORT || '27017' }}
+          MONGODB_ROOT_USERNAME=${{ secrets.PROD_MONGODB_ROOT_USERNAME }}
+          MONGODB_ROOT_PASSWORD=${{ secrets.PROD_MONGODB_ROOT_PASSWORD }}
+          MONGODB_USERNAME=${{ secrets.PROD_MONGODB_USERNAME || 'prod_user' }}
+          MONGODB_PASSWORD=${{ secrets.PROD_MONGODB_PASSWORD || 'prod_pass' }}
+          REDIS_COMMANDER_PASSWORD=${{ secrets.PROD_REDIS_COMMANDER_PASSWORD || 'prod123' }}
+          MONGO_EXPRESS_PASSWORD=${{ secrets.PROD_MONGO_EXPRESS_PASSWORD || 'prod123' }}
+          NODE_ENV=production
+          LOG_LEVEL=info
+          ENABLE_SWAGGER=false
+          # Configuración de Keycloak para producción
+          KEYCLOAK_ISSUER=${{ secrets.PROD_KEYCLOAK_ISSUER }}
+          KEYCLOAK_JWKS_URI=${{ secrets.PROD_KEYCLOAK_JWKS_URI }}
+          KEYCLOAK_AUDIENCE=account
+          # Configuración BFF
+          OIDC_ISSUER=${{ secrets.PROD_KEYCLOAK_ISSUER }}
+          OIDC_CONSOLE_CLIENT_ID=console
+          OIDC_CONSOLE_REDIRECT_URI=${{ secrets.PROD_OIDC_CONSOLE_REDIRECT_URI }}
+          OIDC_ADMIN_CLIENT_ID=admin
+          OIDC_ADMIN_REDIRECT_URI=${{ secrets.PROD_OIDC_ADMIN_REDIRECT_URI }}
+          # Configuración de cookies BFF para producción (HTTPS)
+          SAMESITE=lax
+          COOKIE_SECURE=true
+          COOKIE_PATH=/
+          REFRESH_PATH=/api/bff/auth/refresh
+          # Configuración de cookies por aplicación
+          SESSION_COOKIE_CONSOLE=console_session
+          REFRESH_COOKIE_CONSOLE=console_refresh
+          SESSION_COOKIE_ADMIN=admin_session
+          REFRESH_COOKIE_ADMIN=admin_refresh
+          # Permitir múltiples orígenes para apps (console + admin)
+          ALLOW_RETURN_TO=${{ secrets.PROD_CONSOLE_URL }},${{ secrets.PROD_ADMIN_URL }}
+          # Control de sincronización de TypeORM (siempre false en producción)
+          TYPEORM_SYNC=false
+          # Configuración de versión de consentimiento
+          CONSENT_VERSION_CURRENT=${{ secrets.PROD_CONSENT_VERSION || 'v1.4.0' }}
+          # Habilitar compatibilidad semántica
+          ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}
+          # Configuración de limpieza automática de sesiones
+          SESSION_CLEANUP_ENABLED=${{ vars.SESSION_CLEANUP_ENABLED || 'true' }}
+          SESSION_CLEANUP_BATCH_SIZE=${{ vars.SESSION_CLEANUP_BATCH_SIZE || '100' }}
+          SESSION_TIMEOUT_SHORT_MS=${{ vars.SESSION_TIMEOUT_SHORT_MS || '300000' }}
+          SESSION_TIMEOUT_MEDIUM_MS=${{ vars.SESSION_TIMEOUT_MEDIUM_MS || '900000' }}
+          SESSION_TIMEOUT_LONG_MS=${{ vars.SESSION_TIMEOUT_LONG_MS || '1800000' }}
+          SESSION_TIMEOUT_EXTENDED_MS=${{ vars.SESSION_TIMEOUT_EXTENDED_MS || '3600000' }}
+          # Configuración de AWS S3 para avatares
+          AWS_ACCESS_KEY_ID=${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.PROD_AWS_REGION || 'eu-north-1' }}
+          AWS_S3_BUCKET_NAME=${{ secrets.PROD_AWS_S3_BUCKET_NAME }}
+          AWS_S3_AVATAR_FOLDER=${{ secrets.PROD_AWS_S3_AVATAR_FOLDER || 'avatars' }}
+          # Configuración de LLM (Groq)
+          GROQ_API_KEY=${{ secrets.PROD_GROQ_API_KEY }}
+          EOF
+
+          echo "Archivo .env.production creado exitosamente"
+
+      - name: 1. Prepare deployment info
+        run: |
+          echo "Preparando deployment a producción..."
+          echo "Archivos listos para deploy:"
+          ls -la deploy-production.tar.gz .env.production
+
+          echo ""
+          echo "Información del deploy:"
+          echo "- Branch: ${{ github.ref_name }}"
+          echo "- Commit: ${{ github.sha }}"
+          echo "- Target: ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}"
+          echo "- Path: /var/www/guiders-backend/"
+
+      - name: 2. Create production directory
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Creando directorio de producción..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
+          echo "Directorio creado exitosamente"
+
+      - name: 3. Upload main files
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Subiendo archivos principales..."
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no deploy-production.tar.gz .env.production docker-compose.yml ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
+          echo "Archivos principales subidos"
+
+      - name: 4. Upload scripts and utilities
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Subiendo scripts y utilidades..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/scripts/"
+          sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js bin/verify-mongo-express.js ecosystem.config.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
+          echo "Scripts subidos exitosamente"
+
+      - name: 5. Extract and prepare application
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Descomprimiendo aplicación..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            echo "Descomprimiendo aplicación..."
+            tar xzf deploy-production.tar.gz
+
+            # Usar package.json optimizado
+            if [ -f package-production.json ]; then
+              mv package-production.json package.json
+              echo "Usando package.json optimizado para producción"
+            fi
+
+            echo "Aplicación descomprimida exitosamente"
+          '
+
+      - name: 6. Prepare dependencies (bundled)
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Preparando dependencias (sin npm ci en servidor)..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            # Usar node_modules empaquetado desde CI para evitar bloqueos del servidor
+            if [ -d node_modules ] && [ -f node_modules/.package-lock.json -o -f package-lock.json ]; then
+              echo "Usando node_modules empaquetado"
+            else
+              echo "node_modules no encontrado; fallback a instalación local sin scripts"
+              npm ci --omit=dev --ignore-scripts || echo "npm ci falló, continuando con lo disponible"
+            fi
+            echo "Dependencias listas"
+          '
+
+      - name: 7. Start database services
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Iniciando servicios de base de datos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            echo "Iniciando servicios de base de datos..."
+            docker compose -f docker-compose.yml --env-file .env.production up -d --remove-orphans
+
+            echo "Servicios Docker iniciados"
+          '
+
+      - name: 8. Wait for services to be ready
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Esperando que los servicios estén listos..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            # Esperar a que estén listos
+            echo "Esperando servicios..."
+            for i in {1..12}; do
+              echo "  Intento $i/12..."
+
+              # Buscar contenedores de producción
+              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres 2>/dev/null | grep -c "healthy" || echo "0")
+              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb 2>/dev/null | grep -c "healthy" || echo "0")
+              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis 2>/dev/null | grep -c "healthy" || echo "0")
+
+              echo "    PostgreSQL: $([[ $postgres_ok -eq 1 ]] && echo "healthy" || echo "not ready")"
+              echo "    MongoDB: $([[ $mongodb_ok -eq 1 ]] && echo "healthy" || echo "not ready")"
+              echo "    Redis: $([[ $redis_ok -eq 1 ]] && echo "healthy" || echo "not ready")"
+
+              if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
+                echo "  Todas las bases de datos listas!"
+                break
+              fi
+
+              if [[ $i -eq 12 ]]; then
+                echo "  Timeout esperando servicios"
+                echo "Estado actual de los contenedores:"
+                docker ps
+                exit 1
+              fi
+
+              sleep 5
+            done
+          '
+
+      - name: 9. Run database migrations
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Ejecutando migraciones..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            set -e
+            cd /var/www/guiders-backend
+            export $(grep -v "^#" .env.production | xargs)
+            NODE_ENV=production npx typeorm migration:run -d dist/src/data-source.js
+          '
+
+      - name: 10. Start application with PM2
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Iniciando aplicación de producción..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            # Crear directorio de logs de PM2 si no existe
+            sudo mkdir -p /var/log/pm2
+            sudo chown $USER:$USER /var/log/pm2
+
+            # Reiniciar aplicación usando el archivo ecosystem
+            echo "Iniciando aplicación de producción con ecosystem config..."
+            pm2 delete guiders-backend 2>/dev/null || true
+
+            # Usar el archivo ecosystem para gestión completa de variables de entorno
+            pm2 start ecosystem.config.js
+
+            # Guardar configuración PM2
+            pm2 save
+
+            echo "Aplicación iniciada exitosamente"
+          '
+
+      - name: 11. Verify deployment status
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Verificando estado del deployment..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            echo "Deployment completado!"
+            echo ""
+            echo "Estado de PM2:"
+            pm2 list | grep guiders-backend
+            echo ""
+            echo "Estado de Docker:"
+            docker ps
+          '
+
+      - name: 12. Test MongoDB connection
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Probando conexión a MongoDB..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            echo "Probando conexión a MongoDB de producción..."
+            # Cargar variables del archivo .env.production y establecer NODE_ENV
+            export $(grep -v "^#" .env.production | xargs)
+            export NODE_ENV=production
+            node test-mongodb-connection.js
+            echo "Conexión a MongoDB verificada"
+          '
+
+      - name: 13. Final deployment verification
+        env:
+          SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
+        run: |
+          echo "Verificación final del deployment..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+            cd /var/www/guiders-backend/
+
+            echo "Estado final de producción:"
+            echo ""
+            echo "PM2 Processes:"
+            pm2 list
+            echo ""
+            echo "Docker Containers:"
+            docker ps
+            echo ""
+            echo "Disk Usage:"
+            du -sh /var/www/guiders-backend/
+            echo ""
+            echo "Network Ports:"
+            netstat -tulpn | grep -E ":3000|:5432|:27017|:6379" || echo "Puerto no encontrado en netstat"
+
+            echo ""
+            echo "Deployment de producción verificado exitosamente!"
+          '
+
+  # Resumen final
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [test-and-build, deploy-production]
+    if: always()
+
+    steps:
+      - name: Show results
+        run: |
+          echo "# Resumen de Production Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tests:** ${{ needs.test-and-build.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Deploy:** ${{ needs.deploy-production.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+            echo "## Deploy Exitoso" >> $GITHUB_STEP_SUMMARY
+            echo "Producción desplegada exitosamente con secrets configurados" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### URLs de Producción:" >> $GITHUB_STEP_SUMMARY
+            echo "- App: https://guiders.app" >> $GITHUB_STEP_SUMMARY
+            echo "- API: https://api.guiders.app" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Servicios activos:" >> $GITHUB_STEP_SUMMARY
+            echo "- PostgreSQL (Base de datos principal)" >> $GITHUB_STEP_SUMMARY
+            echo "- MongoDB (Mensajes cifrados)" >> $GITHUB_STEP_SUMMARY
+            echo "- Redis (Cache y sesiones)" >> $GITHUB_STEP_SUMMARY
+            echo "- PM2 (guiders-backend)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Deploy Fallido" >> $GITHUB_STEP_SUMMARY
+            echo "Revisar logs para más detalles" >> $GITHUB_STEP_SUMMARY
+          fi

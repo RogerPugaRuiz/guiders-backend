@@ -1,0 +1,25 @@
+{
+  "name": "@guiders/opencode-config",
+  "version": "1.0.0",
+  "description": "OpenCode custom commands for Guiders Backend",
+  "commands": {
+    "publish": {
+      "description": "Publica cambios a GitHub con validaciones previas (lint + tests + build)",
+      "handler": ".opencode/scripts/publish-to-github.js",
+      "aliases": ["publish-to-github", "deploy"]
+    },
+    "publish-quick": {
+      "description": "Publicación rápida (solo lint + unit tests)",
+      "handler": ".opencode/scripts/publish-to-github.js --quick",
+      "aliases": ["publish-fast", "quick-deploy"]
+    },
+    "publish-full": {
+      "description": "Publicación completa incluyendo tests E2E",
+      "handler": ".opencode/scripts/publish-to-github.js --with-e2e",
+      "aliases": ["publish-e2e", "full-deploy"]
+    }
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.1.39"
+  }
+}

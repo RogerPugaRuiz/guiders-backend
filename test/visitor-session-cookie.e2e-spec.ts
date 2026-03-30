@@ -5,7 +5,6 @@ import { CqrsModule } from '@nestjs/cqrs';
 import * as cookieParser from 'cookie-parser';
 import { VisitorV2Controller } from '../src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller';
 import { IdentifyVisitorCommandHandler } from '../src/context/visitors-v2/application/commands/identify-visitor.command-handler';
-import { UpdateSessionHeartbeatCommandHandler } from '../src/context/visitors-v2/application/commands/update-session-heartbeat.command-handler';
 import { EndSessionCommandHandler } from '../src/context/visitors-v2/application/commands/end-session.command-handler';
 import { ResolveSiteCommandHandler } from '../src/context/visitors-v2/application/commands/resolve-site.command-handler';
 import {
@@ -66,6 +65,11 @@ import {
 import { EventBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../src/context/shared/infrastructure/guards/role.guard';
+import {
+  CommercialRepository,
+  COMMERCIAL_REPOSITORY,
+} from '../src/context/commercial/domain/commercial.repository';
+import { BffSessionAuthService } from '../src/context/shared/infrastructure/services/bff-session-auth.service';
 
 class MockDualAuthGuard {
   canActivate() {
@@ -86,7 +90,9 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   let app: INestApplication;
   let mockVisitorRepository: jest.Mocked<VisitorV2Repository>;
   let mockCompanyRepository: jest.Mocked<CompanyRepository>;
+  let mockCommercialRepository: jest.Mocked<CommercialRepository>;
   let mockValidateDomainApiKey: jest.Mocked<ValidateDomainApiKey>;
+  let mockBffSessionAuthService: jest.Mocked<BffSessionAuthService>;
   let mockEventPublisher: jest.Mocked<EventPublisher>;
   let mockConsentRepository: jest.Mocked<ConsentRepository>;
   let mockConnectionService: jest.Mocked<VisitorConnectionDomainService>;
@@ -124,6 +130,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
   beforeEach(async () => {
     mockVisitorRepository = {
       findByFingerprintAndSite: jest.fn(),
+      findByFingerprint: jest.fn(),
       findBySessionId: jest.fn(),
       save: jest.fn(),
       findById: jest.fn(),
@@ -150,6 +157,20 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       delete: jest.fn(),
       findAll: jest.fn(),
     };
+
+    mockCommercialRepository = {
+      findByFingerprint: jest.fn(),
+      save: jest.fn(),
+      findById: jest.fn(),
+      delete: jest.fn(),
+      findAll: jest.fn(),
+    } as any;
+
+    mockBffSessionAuthService = {
+      validateSession: jest.fn(),
+      createSession: jest.fn(),
+      invalidateSession: jest.fn(),
+    } as any;
 
     mockValidateDomainApiKey = { validate: jest.fn() } as any;
     mockEventPublisher = { mergeObjectContext: jest.fn() } as any;
@@ -209,17 +230,18 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       controllers: [VisitorV2Controller],
       providers: [
         IdentifyVisitorCommandHandler,
-        UpdateSessionHeartbeatCommandHandler,
         EndSessionCommandHandler,
         ResolveSiteCommandHandler,
         RecordConsentCommandHandler,
         DenyConsentCommandHandler,
         { provide: VISITOR_V2_REPOSITORY, useValue: mockVisitorRepository },
         { provide: COMPANY_REPOSITORY, useValue: mockCompanyRepository },
+        { provide: COMMERCIAL_REPOSITORY, useValue: mockCommercialRepository },
         {
           provide: VALIDATE_DOMAIN_API_KEY,
           useValue: mockValidateDomainApiKey,
         },
+        { provide: BffSessionAuthService, useValue: mockBffSessionAuthService },
         { provide: CONSENT_REPOSITORY, useValue: mockConsentRepository },
         {
           provide: VISITOR_CONNECTION_DOMAIN_SERVICE,
@@ -259,7 +281,7 @@ describe('Visitor Session Cookie Fallback E2E', () => {
     await app.close();
   });
 
-  it('debe permitir heartbeat y endSession usando solo cookie sid', async () => {
+  it('debe permitir endSession usando solo cookie sid', async () => {
     // 1. identify crea visitante nuevo
     mockVisitorRepository.findByFingerprintAndSite.mockResolvedValue(
       err(new VisitorV2PersistenceError('Visitante no encontrado')),
@@ -303,43 +325,22 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       : setCookieHeader
         ? [setCookieHeader]
         : [];
-    const sidCookie = cookiesArray.find((c) => c.startsWith('sid='));
+    const sidCookie = cookiesArray.find((c) => c.startsWith('x-guiders-sid='));
     expect(sidCookie).toBeDefined();
 
-    // Preparar mock findBySessionId para heartbeat / end
-    const visitorForHeartbeat = VisitorV2.create({
+    // Preparar mock findBySessionId para end
+    const visitorForEnd = VisitorV2.create({
       id: new VisitorId(identifyRes.body.visitorId),
       tenantId: new TenantId(mockTenantId),
       siteId: new SiteId(mockSiteId),
       fingerprint: new VisitorFingerprint('fp_cookie_test'),
       lifecycle: new VisitorLifecycleVO(VisitorLifecycle.ANON),
     });
-    mockVisitorRepository.findBySessionId.mockResolvedValue(
-      ok(visitorForHeartbeat),
-    );
+    mockVisitorRepository.findBySessionId.mockResolvedValue(ok(visitorForEnd));
 
-    const mockContextHeartbeat = {
-      ...visitorForHeartbeat,
-      commit: jest.fn(),
-      updateSessionActivity: jest.fn(),
-      getId: jest
-        .fn()
-        .mockReturnValue(new VisitorId(identifyRes.body.visitorId)),
-    };
-    mockEventPublisher.mergeObjectContext.mockReturnValueOnce(
-      mockContextHeartbeat as any,
-    );
-
-    // 2. heartbeat sin sessionId en body (usa cookie)
-    await request(app.getHttpServer())
-      .post('/visitors/session/heartbeat')
-      .set('Cookie', sidCookie as string)
-      .send({ visitorId: identifyRes.body.visitorId })
-      .expect(200);
-
-    // 3. endSession sin sessionId en body (usa cookie)
+    // 2. endSession sin sessionId en body (usa cookie)
     const mockContextEnd = {
-      ...visitorForHeartbeat,
+      ...visitorForEnd,
       commit: jest.fn(),
       endCurrentSession: jest.fn(),
       getId: jest
@@ -356,19 +357,9 @@ describe('Visitor Session Cookie Fallback E2E', () => {
       .send({ visitorId: identifyRes.body.visitorId, reason: 'cookie-flow' })
       .expect(200);
 
-    // 4. (Opcional) intentar heartbeat de nuevo -> puede ser 404 (sesión terminada) o 200 si mocks no reflejan cierre
-    await request(app.getHttpServer())
-      .post('/visitors/session/heartbeat')
-      .set('Cookie', sidCookie as string)
-      .send({ visitorId: identifyRes.body.visitorId })
-      .expect((res) => {
-        if (![200, 404, 500].includes(res.status)) {
-          throw new Error(`Unexpected status ${res.status}`);
-        }
-      });
-
     // Aserciones clave
     expect(mockVisitorRepository.findBySessionId).toHaveBeenCalled();
-    expect(sidCookie).toContain('HttpOnly');
+    // La cookie x-guiders-sid ya no es httpOnly para permitir acceso desde JavaScript
+    expect(sidCookie).not.toContain('HttpOnly');
   });
 });

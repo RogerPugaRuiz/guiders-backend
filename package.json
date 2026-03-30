@@ -32,7 +32,9 @@
     "keycloak:configure": "node bin/keycloak-configure-client.js",
     "docs:generate": "node scripts/generate-api-docs.js",
     "docs:watch": "node scripts/watch-api-docs.js",
-    "docs:validate": "node scripts/validate-api-docs.js"
+    "docs:validate": "node scripts/validate-api-docs.js",
+    "docs:agents:validate": "node scripts/validate-agents.js",
+    "docs:agents:open": "open AGENTS-VALIDATION-REPORT.html"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.933.0",
@@ -66,13 +68,14 @@
     "connect-redis": "^7.1.1",
     "cookie-parser": "^1.4.7",
     "express-session": "^1.18.2",
+    "groq-sdk": "^0.37.0",
     "inquirer": "^12.6.1",
     "jose": "^6.1.0",
     "jsonwebtoken": "^9.0.2",
     "jwks-rsa": "^3.2.0",
     "mongoose": "^8.16.1",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^7.0.13",
     "openid-client": "^6.7.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -126,6 +129,14 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.1-alpha.3"
+  },
+  "overrides": {
+    "lodash": "^4.17.23",
+    "tar": "^7.5.7",
+    "body-parser": "^1.20.3",
+    "diff": "^4.0.4",
+    "jws": "^3.2.3",
+    "qs": "^6.14.1"
   },
   "jest": {
     "moduleFileExtensions": [

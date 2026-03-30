@@ -40,14 +40,14 @@ describe('MarkMessagesAsReadCommandHandler', () => {
     it('should mark messages as read successfully', async () => {
       const messageIds = ['msg-1', 'msg-2', 'msg-3'];
       const readBy = 'visitor-123';
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.markAsRead.mockResolvedValue(ok(3));
 
       const command = new MarkMessagesAsReadCommand(
         messageIds,
         readBy,
-        userRole,
+        userRoles,
       );
       const result = await handler.execute(command);
 
@@ -62,14 +62,14 @@ describe('MarkMessagesAsReadCommandHandler', () => {
     it('should mark single message as read', async () => {
       const messageIds = ['msg-1'];
       const readBy = 'commercial-456';
-      const userRole = 'commercial';
+      const userRoles = ['commercial'];
 
       mockRepository.markAsRead.mockResolvedValue(ok(1));
 
       const command = new MarkMessagesAsReadCommand(
         messageIds,
         readBy,
-        userRole,
+        userRoles,
       );
       const result = await handler.execute(command);
 
@@ -80,14 +80,14 @@ describe('MarkMessagesAsReadCommandHandler', () => {
     it('should return zero marked count when repository returns zero', async () => {
       const messageIds = ['msg-1', 'msg-2'];
       const readBy = 'visitor-123';
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.markAsRead.mockResolvedValue(ok(0));
 
       const command = new MarkMessagesAsReadCommand(
         messageIds,
         readBy,
-        userRole,
+        userRoles,
       );
       const result = await handler.execute(command);
 
@@ -98,7 +98,7 @@ describe('MarkMessagesAsReadCommandHandler', () => {
     it('should return failure when repository returns error', async () => {
       const messageIds = ['msg-1', 'msg-2'];
       const readBy = 'visitor-123';
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       // Crear un error concreto en lugar de instanciar la clase abstracta
       class TestDomainError extends DomainError {
@@ -112,7 +112,7 @@ describe('MarkMessagesAsReadCommandHandler', () => {
       const command = new MarkMessagesAsReadCommand(
         messageIds,
         readBy,
-        userRole,
+        userRoles,
       );
       const result = await handler.execute(command);
 
@@ -123,7 +123,7 @@ describe('MarkMessagesAsReadCommandHandler', () => {
     it('should handle exceptions gracefully', async () => {
       const messageIds = ['msg-1'];
       const readBy = 'visitor-123';
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.markAsRead.mockRejectedValue(
         new Error('Unexpected database error'),
@@ -132,7 +132,7 @@ describe('MarkMessagesAsReadCommandHandler', () => {
       const command = new MarkMessagesAsReadCommand(
         messageIds,
         readBy,
-        userRole,
+        userRoles,
       );
       const result = await handler.execute(command);
 
@@ -143,14 +143,14 @@ describe('MarkMessagesAsReadCommandHandler', () => {
     it('should handle empty message array', async () => {
       const messageIds: string[] = [];
       const readBy = 'visitor-123';
-      const userRole = 'visitor';
+      const userRoles = ['visitor'];
 
       mockRepository.markAsRead.mockResolvedValue(ok(0));
 
       const command = new MarkMessagesAsReadCommand(
         messageIds,
         readBy,
-        userRole,
+        userRoles,
       );
       const result = await handler.execute(command);
 

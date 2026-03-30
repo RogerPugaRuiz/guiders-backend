@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -37,6 +37,8 @@ export class MessagePersistenceError extends DomainError {
  */
 @Injectable()
 export class MongoMessageRepositorySimple implements IMessageRepository {
+  private readonly logger = new Logger(MongoMessageRepositorySimple.name);
+
   constructor(
     @InjectModel(MessageSchema.name)
     private readonly messageModel: Model<MessageSchema>,
@@ -50,6 +52,10 @@ export class MongoMessageRepositorySimple implements IMessageRepository {
     try {
       const schema = this.messageMapper.toSchema(message);
 
+      this.logger.log(
+        `[MSG_REPO_SAVE] Guardando mensaje id=${message.id.value}, chatId=${message.chatId.value}, senderId=${schema.senderId}`,
+      );
+
       // Obtener el siguiente número de secuencia para el chat
       const lastMessage = await this.messageModel
         .findOne({ chatId: message.chatId.value })
@@ -58,8 +64,17 @@ export class MongoMessageRepositorySimple implements IMessageRepository {
       schema.sequenceNumber = lastMessage ? lastMessage.sequenceNumber + 1 : 1;
 
       await this.messageModel.create(schema);
+
+      this.logger.log(
+        `[MSG_REPO_SAVE_OK] Mensaje guardado correctamente: ${message.id.value}`,
+      );
+
       return okVoid();
     } catch (error) {
+      this.logger.error(
+        `[MSG_REPO_SAVE_ERROR] Error al guardar mensaje: ${error instanceof Error ? error.message : String(error)}`,
+        JSON.stringify({ messageId: message.id.value }),
+      );
       return err(
         new MessagePersistenceError(
           `Error al guardar mensaje: ${error instanceof Error ? error.message : String(error)}`,

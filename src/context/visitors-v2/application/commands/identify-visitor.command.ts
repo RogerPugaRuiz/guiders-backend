@@ -8,6 +8,7 @@ export class IdentifyVisitorCommand implements ICommand {
     public readonly hasAcceptedPrivacyPolicy: boolean,
     public readonly ipAddress: string,
     public readonly userAgent: string | undefined,
+    public readonly cookieHeader: string | undefined,
     public readonly currentUrl?: string,
     public readonly consentVersion?: string,
   ) {}

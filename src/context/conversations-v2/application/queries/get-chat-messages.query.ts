@@ -3,7 +3,7 @@ import { IQuery } from '@nestjs/cqrs';
 export interface GetChatMessagesQueryParams {
   chatId: string;
   userId: string;
-  userRole: string;
+  userRoles: string[];
   filters?: {
     messageType?: string;
     isInternal?: boolean;
@@ -35,8 +35,8 @@ export class GetChatMessagesQuery implements IQuery {
     return this.params.userId;
   }
 
-  get userRole(): string {
-    return this.params.userRole;
+  get userRoles(): string[] {
+    return this.params.userRoles;
   }
 
   get filters() {

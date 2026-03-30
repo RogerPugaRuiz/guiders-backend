@@ -104,6 +104,10 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
   /**
    * Notifica el cambio de presencia de un visitante solo a comerciales
    * que tienen chats activos con ese visitante
+   *
+   * Estrategia de emisión dual:
+   * 1. Evento GRANULAR a cada sala chat:{chatId} con chatId específico
+   * 2. Evento GLOBAL a commercial:{commercialId} con affectedChatIds[] para compatibilidad
    */
   private async notifyCommercialsWithActiveChats(
     visitorId: string,
@@ -181,33 +185,14 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
               `✅ Encontrados ${recentClosedChats.length} chat(s) cerrado(s) recientemente para visitante ${visitorId}`,
             );
 
-            // Extraer comercialIds únicos
-            const commercialIds = new Set<string>();
-            recentClosedChats.forEach((chat) => {
-              const primitives = chat.toPrimitives();
-              if (primitives.assignedCommercialId) {
-                commercialIds.add(primitives.assignedCommercialId);
-              }
-            });
-
-            if (commercialIds.size > 0) {
-              this.logger.log(
-                `✅ Emitiendo presence:changed de visitante ${visitorId} (${payload.previousStatus} → ${payload.status}) a ${commercialIds.size} comercial(es) con chats recientes`,
-              );
-
-              commercialIds.forEach((commercialId) => {
-                const commercialRoom = `commercial:${commercialId}`;
-                this.logger.log(
-                  `📤 WebSocket emit → sala: ${commercialRoom} | evento: presence:changed | visitante: ${visitorId} | estado: ${payload.previousStatus} → ${payload.status}`,
-                );
-                this.websocketGateway.emitToRoom(
-                  commercialRoom,
-                  'presence:changed',
-                  payload,
-                );
-              });
-              return;
-            }
+            // Emitir eventos para chats cerrados recientemente (con emisión dual)
+            this.emitPresenceToChatsWithDualStrategy(
+              recentClosedChats,
+              visitorId,
+              payload,
+              'commercial',
+            );
+            return;
           }
         }
 
@@ -217,41 +202,25 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
         return;
       }
 
-      // Extraer comercialIds únicos de los chats activos
-      const commercialIds = new Set<string>();
-      activeChats.forEach((chat) => {
+      // Verificar si hay comerciales asignados
+      const hasAssignedCommercials = activeChats.some((chat) => {
         const primitives = chat.toPrimitives();
-        if (primitives.assignedCommercialId) {
-          commercialIds.add(primitives.assignedCommercialId);
-        }
+        return !!primitives.assignedCommercialId;
       });
 
-      if (commercialIds.size === 0) {
+      if (!hasAssignedCommercials) {
         this.logger.warn(
           `⚠️ Visitante ${visitorId} cambió a ${payload.status} con ${activeChats.length} chat(s) activo(s) pero SIN comerciales asignados, no se notifica`,
         );
         return;
       }
 
-      // Emitir a cada comercial asignado
-      this.logger.log(
-        `✅ Emitiendo presence:changed de visitante ${visitorId} (${payload.previousStatus} → ${payload.status}) a ${commercialIds.size} comercial(es) con chats activos`,
-      );
-
-      commercialIds.forEach((commercialId) => {
-        const commercialRoom = `commercial:${commercialId}`;
-        this.logger.log(
-          `📤 WebSocket emit → sala: ${commercialRoom} | evento: presence:changed | visitante: ${visitorId} | estado: ${payload.previousStatus} → ${payload.status}`,
-        );
-        this.websocketGateway.emitToRoom(
-          commercialRoom,
-          'presence:changed',
-          payload,
-        );
-      });
-
-      this.logger.debug(
-        `Notificaciones enviadas a ${commercialIds.size} comercial(es) para visitante ${visitorId}`,
+      // Emitir eventos con estrategia dual
+      this.emitPresenceToChatsWithDualStrategy(
+        activeChats,
+        visitorId,
+        payload,
+        'commercial',
       );
     } catch (error) {
       const errorObj = error as Error;
@@ -264,8 +233,89 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
   }
 
   /**
+   * Emite eventos de presencia con estrategia dual:
+   * 1. Evento GRANULAR a cada sala chat:{chatId}
+   * 2. Evento GLOBAL a {targetType}:{targetId} con affectedChatIds[]
+   *
+   * @param chats Lista de chats a notificar
+   * @param sourceUserId ID del usuario que cambió de estado
+   * @param payload Payload base del evento
+   * @param targetType Tipo de usuario destino ('commercial' o 'visitor')
+   */
+  private emitPresenceToChatsWithDualStrategy(
+    chats: any[],
+    sourceUserId: string,
+    payload: any,
+    targetType: 'commercial' | 'visitor',
+  ): void {
+    const targetIdField =
+      targetType === 'commercial' ? 'assignedCommercialId' : 'visitorId';
+
+    // PASO 1: Emitir evento GRANULAR a cada sala de chat
+    chats.forEach((chat) => {
+      const primitives = chat.toPrimitives();
+      const targetId = primitives[targetIdField];
+
+      // Solo emitir si hay un destinatario válido
+      if (targetId) {
+        const chatRoom = `chat:${primitives.id}`;
+        const chatPayload = { ...payload, chatId: primitives.id };
+
+        this.websocketGateway.emitToRoom(
+          chatRoom,
+          'presence:changed',
+          chatPayload,
+        );
+        this.logger.debug(
+          `📤 Granular → ${chatRoom} | ${payload.userType} ${sourceUserId} → ${payload.status}`,
+        );
+      }
+    });
+
+    // PASO 2: Agrupar destinatarios con sus chatIds afectados
+    const targetChatMap = new Map<string, string[]>();
+    chats.forEach((chat) => {
+      const primitives = chat.toPrimitives();
+      const targetId = primitives[targetIdField];
+
+      if (targetId) {
+        const existingChats = targetChatMap.get(targetId) || [];
+        existingChats.push(primitives.id);
+        targetChatMap.set(targetId, existingChats);
+      }
+    });
+
+    // PASO 3: Emitir evento GLOBAL a cada destinatario con affectedChatIds
+    this.logger.log(
+      `✅ Emitiendo presence:changed de ${payload.userType} ${sourceUserId} (${payload.previousStatus} → ${payload.status}) a ${targetChatMap.size} ${targetType}(es)`,
+    );
+
+    targetChatMap.forEach((chatIds, targetId) => {
+      const targetRoom = `${targetType}:${targetId}`;
+      const enrichedPayload = { ...payload, affectedChatIds: chatIds };
+
+      this.logger.log(
+        `📤 Global → ${targetRoom} | ${payload.userType} ${sourceUserId} → ${payload.status} | chats: [${chatIds.join(', ')}]`,
+      );
+      this.websocketGateway.emitToRoom(
+        targetRoom,
+        'presence:changed',
+        enrichedPayload,
+      );
+    });
+
+    this.logger.debug(
+      `Notificaciones enviadas: ${chats.length} granulares + ${targetChatMap.size} globales`,
+    );
+  }
+
+  /**
    * Notifica el cambio de presencia de un comercial solo a visitantes
    * que tienen chats activos con ese comercial
+   *
+   * Estrategia de emisión dual:
+   * 1. Evento GRANULAR a cada sala chat:{chatId} con chatId específico
+   * 2. Evento GLOBAL a visitor:{visitorId} con affectedChatIds[] para compatibilidad
    */
   private async notifyVisitorsWithActiveChats(
     commercialId: string,
@@ -313,32 +363,52 @@ export class NotifyPresenceChangedOnPresenceChangedEventHandler
         return;
       }
 
-      // Extraer visitorIds únicos de los chats activos
-      const visitorIds = new Set<string>();
+      // PASO 1: Emitir evento GRANULAR a cada sala de chat
       activeChats.forEach((chat) => {
         const primitives = chat.toPrimitives();
-        visitorIds.add(primitives.visitorId);
+        const chatRoom = `chat:${primitives.id}`;
+        const chatPayload = { ...payload, chatId: primitives.id };
+
+        this.websocketGateway.emitToRoom(
+          chatRoom,
+          'presence:changed',
+          chatPayload,
+        );
+        this.logger.debug(
+          `📤 Granular → ${chatRoom} | comercial ${commercialId} → ${payload.status}`,
+        );
       });
 
-      // Emitir a cada visitante
+      // PASO 2: Agrupar visitantes con sus chatIds afectados
+      const visitorChatMap = new Map<string, string[]>();
+      activeChats.forEach((chat) => {
+        const primitives = chat.toPrimitives();
+        const existingChats = visitorChatMap.get(primitives.visitorId) || [];
+        existingChats.push(primitives.id);
+        visitorChatMap.set(primitives.visitorId, existingChats);
+      });
+
+      // PASO 3: Emitir evento GLOBAL a cada visitante con affectedChatIds
       this.logger.debug(
-        `Emitiendo presence:changed de comercial ${commercialId} a ${visitorIds.size} visitante(s) con chats activos`,
+        `Emitiendo presence:changed de comercial ${commercialId} a ${visitorChatMap.size} visitante(s) con chats activos`,
       );
 
-      visitorIds.forEach((visitorId) => {
+      visitorChatMap.forEach((chatIds, visitorId) => {
         const visitorRoom = `visitor:${visitorId}`;
+        const enrichedPayload = { ...payload, affectedChatIds: chatIds };
+
         this.logger.debug(
-          `Emitiendo a sala: ${visitorRoom} - Comercial ${commercialId} cambió estado a ${payload.status}`,
+          `📤 Global → ${visitorRoom} | comercial ${commercialId} → ${payload.status} | chats: [${chatIds.join(', ')}]`,
         );
         this.websocketGateway.emitToRoom(
           visitorRoom,
           'presence:changed',
-          payload,
+          enrichedPayload,
         );
       });
 
       this.logger.debug(
-        `Notificaciones enviadas a ${visitorIds.size} visitante(s) para comercial ${commercialId}`,
+        `Notificaciones enviadas: ${activeChats.length} granulares + ${visitorChatMap.size} globales para comercial ${commercialId}`,
       );
     } catch (error) {
       const errorObj = error as Error;

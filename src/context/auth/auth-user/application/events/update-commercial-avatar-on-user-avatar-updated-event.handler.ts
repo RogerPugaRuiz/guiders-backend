@@ -25,20 +25,28 @@ export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
   ) {}
 
   async handle(event: UserAvatarUpdatedEvent): Promise<void> {
-    const { userId, avatarUrl } = event;
+    const { userId, keycloakId, avatarUrl } = event;
+
+    // El Commercial usa keycloakId como ID, no el userId de UserAccount
+    if (!keycloakId) {
+      this.logger.debug(
+        `Usuario ${userId} no tiene keycloakId, omitiendo sincronización de avatar`,
+      );
+      return;
+    }
 
     this.logger.log(
-      `Sincronizando avatar de usuario ${userId} a Commercial: ${avatarUrl}`,
+      `Sincronizando avatar de usuario ${userId} (keycloakId: ${keycloakId}) a Commercial: ${avatarUrl}`,
     );
 
     try {
-      // Buscar el Commercial por ID (mismo ID que UserAccount)
-      const commercialId = CommercialId.create(userId);
+      // Buscar el Commercial por keycloakId (que es el ID del Commercial en MongoDB)
+      const commercialId = CommercialId.create(keycloakId);
       const result = await this.commercialRepository.findById(commercialId);
 
       if (result.isErr()) {
         this.logger.error(
-          `Error al buscar Commercial ${userId}: ${result.error.message}`,
+          `Error al buscar Commercial ${keycloakId}: ${result.error.message}`,
         );
         return;
       }
@@ -47,7 +55,7 @@ export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
 
       if (!commercial) {
         this.logger.warn(
-          `No se encontró Commercial con ID ${userId}. El usuario puede no ser un comercial o aún no se ha creado el documento Commercial.`,
+          `No se encontró Commercial con ID ${keycloakId}. El usuario puede no ser un comercial o aún no se ha creado el documento Commercial.`,
         );
         return;
       }
@@ -61,17 +69,17 @@ export class UpdateCommercialAvatarOnUserAvatarUpdatedEventHandler
 
       if (updateResult.isErr()) {
         this.logger.error(
-          `Error al actualizar avatar de Commercial ${userId}: ${updateResult.error.message}`,
+          `Error al actualizar avatar de Commercial ${keycloakId}: ${updateResult.error.message}`,
         );
         return;
       }
 
       this.logger.log(
-        `Avatar sincronizado exitosamente para Commercial ${userId}`,
+        `Avatar sincronizado exitosamente para Commercial ${keycloakId}`,
       );
     } catch (error) {
       this.logger.error(
-        `Error inesperado al sincronizar avatar de Commercial ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+        `Error inesperado al sincronizar avatar de Commercial ${keycloakId}: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
     }

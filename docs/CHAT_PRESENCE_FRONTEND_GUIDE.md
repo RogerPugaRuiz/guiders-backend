@@ -36,11 +36,12 @@ El sistema de presencia permite:
 
 #### ✅ Cambios Implementados
 
-1. **Eventos Filtrados por Chats Activos**
+1. **Eventos Filtrados por Chats Activos + Emisión Dual Granular**
    - Los eventos `presence:changed` ahora **SOLO** se envían a usuarios con chats activos
    - **Antes**: 1000 visitantes → 10,000 eventos broadcast 😱
    - **Ahora**: 1000 visitantes → ~10-30 eventos dirigidos ✅
    - **Reducción**: 99.7% menos tráfico WebSocket
+   - **🆕 Emisión Dual**: Eventos granulares (`chatId`) + globales (`affectedChatIds[]`)
 
 2. **Auto-Join Automático a Salas Personales**
    - Al autenticarte, el backend **automáticamente** te une a tu sala personal
@@ -73,11 +74,18 @@ socket.emit('presence:join', {
   userType: 'commercial'
 });
 
-// ✅ Recibe SOLO eventos relevantes
+// ✅ Recibe eventos granulares y globales con contexto de chat
 socket.on('presence:changed', (data) => {
-  // Solo recibes eventos de usuarios con chats activos contigo
   if (data.userType === 'visitor') {
-    updateVisitorStatus(data.userId, data.status);
+    if (data.chatId) {
+      // Evento GRANULAR - saber exactamente qué chat actualizar
+      updateChatPresence(data.chatId, data.status);
+    } else if (data.affectedChatIds) {
+      // Evento GLOBAL - múltiples chats del mismo visitante
+      data.affectedChatIds.forEach(chatId => {
+        updateChatPresence(chatId, data.status);
+      });
+    }
   }
 });
 ```
@@ -1274,10 +1282,15 @@ socket.on('typing:stop', (data) => {
 });
 ```
 
-#### 🆕 `presence:changed` - Eventos filtrados por chats activos
+#### 🆕 `presence:changed` - Eventos filtrados y granulares por chat
 
-**Nuevo comportamiento en 2025**: Solo recibes eventos de usuarios con chats activos contigo.
+**Nuevo comportamiento en 2025**: Sistema de emisión dual con eventos granulares por chat.
 
+##### Formato de eventos
+
+El sistema ahora emite **dos tipos de eventos** para compatibilidad:
+
+**1. Evento GRANULAR** (recibido en sala `chat:{chatId}`):
 ```javascript
 socket.on('presence:changed', (data) => {
   // data = {
@@ -1285,13 +1298,70 @@ socket.on('presence:changed', (data) => {
   //   userType: "commercial" | "visitor",
   //   status: "away",
   //   previousStatus: "online",
-  //   timestamp: "2025-10-19T19:53:00.000Z"
+  //   timestamp: "2025-10-19T19:53:00.000Z",
+  //   tenantId: "tenant-123",
+  //   chatId: "chat-uuid-123"  // ✅ NUEVO: ID del chat específico
   // }
-
-  // 🎯 FILTRADO AUTOMÁTICO:
-  // - Comerciales: solo reciben eventos de visitantes con chats activos
-  // - Visitantes: solo reciben eventos del comercial asignado a su chat
 });
+```
+
+**2. Evento GLOBAL** (recibido en sala `visitor:{id}` o `commercial:{id}`):
+```javascript
+socket.on('presence:changed', (data) => {
+  // data = {
+  //   userId: "user-456",
+  //   userType: "commercial" | "visitor",
+  //   status: "away",
+  //   previousStatus: "online",
+  //   timestamp: "2025-10-19T19:53:00.000Z",
+  //   tenantId: "tenant-123",
+  //   affectedChatIds: ["chat-1", "chat-2", "chat-3"]  // ✅ NUEVO: todos los chats afectados
+  // }
+});
+```
+
+##### Uso recomendado
+
+```javascript
+socket.on('presence:changed', (data) => {
+  if (data.chatId) {
+    // Evento GRANULAR - actualizar chat específico
+    updateChatPresence(data.chatId, data.status);
+  } else if (data.affectedChatIds) {
+    // Evento GLOBAL - actualizar múltiples chats
+    data.affectedChatIds.forEach(chatId => {
+      updateChatPresence(chatId, data.status);
+    });
+  } else {
+    // Evento de auto-actualización (sin chatId ni affectedChatIds)
+    // Emitido a la sala del propio usuario
+    updateMyStatus(data.status);
+  }
+});
+```
+
+##### Ventajas del sistema dual
+
+| Característica | Evento Granular | Evento Global |
+|----------------|-----------------|---------------|
+| **Sala destino** | `chat:{chatId}` | `visitor:{id}` / `commercial:{id}` |
+| **Contiene chatId** | ✅ Sí (único) | ❌ No |
+| **Contiene affectedChatIds** | ❌ No | ✅ Sí (array) |
+| **Uso ideal** | Actualizar 1 chat | Actualizar múltiples chats a la vez |
+| **Compatibilidad** | Clientes nuevos | Clientes existentes |
+
+##### Escenario: Visitante con múltiples chats
+
+Cuando un visitante cambia de estado y tiene 3 chats activos con 2 comerciales:
+
+```
+Emisiones:
+1. visitor:${visitorId}     → evento auto-actualización
+2. chat:chat-1              → chatId: "chat-1"
+3. chat:chat-2              → chatId: "chat-2"
+4. chat:chat-3              → chatId: "chat-3"
+5. commercial:${commercial1Id} → affectedChatIds: ["chat-1", "chat-2"]
+6. commercial:${commercial2Id} → affectedChatIds: ["chat-3"]
 ```
 
 **Estados posibles:**
@@ -2292,6 +2362,7 @@ Si encuentras problemas o necesitas ayuda:
 
 ---
 
-**Última actualización:** 2025-10-19
+**Última actualización:** 2025-12-06
 **Versión del backend:** conversations-v2
 **Compatible con:** Socket.IO v4+
+**Novedades:** Emisión dual granular por chat (`chatId`) + global (`affectedChatIds[]`)

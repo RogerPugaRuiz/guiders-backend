@@ -34,6 +34,7 @@ export class RedisVisitorConnectionDomainService
   private readonly PREFIX_TYPING = 'visitor:typing:'; // visitor:typing:{visitorId}:{chatId} -> timestamp
   private readonly SET_ONLINE = 'visitors:online';
   private readonly SET_CHATTING = 'visitors:chatting';
+  private readonly SET_AWAY = 'visitors:away';
 
   async onModuleInit() {
     this.client = createClient({
@@ -78,9 +79,10 @@ export class RedisVisitorConnectionDomainService
       .exec();
 
     // Actualizar sets
-    // Remover de ambos para estado limpio
+    // Remover de todos los sets para estado limpio
     await this.client.sRem(this.SET_ONLINE, visitorId.getValue());
     await this.client.sRem(this.SET_CHATTING, visitorId.getValue());
+    await this.client.sRem(this.SET_AWAY, visitorId.getValue());
 
     if (status === ConnectionStatus.ONLINE) {
       await this.client.sAdd(this.SET_ONLINE, visitorId.getValue());
@@ -88,7 +90,9 @@ export class RedisVisitorConnectionDomainService
       await this.client.sAdd(this.SET_ONLINE, visitorId.getValue());
       await this.client.sAdd(this.SET_CHATTING, visitorId.getValue());
     } else if (status === ConnectionStatus.AWAY) {
-      await this.client.sAdd(this.SET_ONLINE, visitorId.getValue());
+      // AWAY va a su propio set, NO al SET_ONLINE
+      // Esto permite que getOnlineVisitors() solo retorne visitantes realmente online
+      await this.client.sAdd(this.SET_AWAY, visitorId.getValue());
     }
   }
 
@@ -113,6 +117,7 @@ export class RedisVisitorConnectionDomainService
     await this.client.del(this.key(visitorId));
     await this.client.sRem(this.SET_ONLINE, visitorId.getValue());
     await this.client.sRem(this.SET_CHATTING, visitorId.getValue());
+    await this.client.sRem(this.SET_AWAY, visitorId.getValue());
   }
 
   async isVisitorOnline(visitorId: VisitorId): Promise<boolean> {

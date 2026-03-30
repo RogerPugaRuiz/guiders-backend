@@ -30,6 +30,9 @@ export class CommercialSchema extends Document {
   @Prop({ required: false, type: mongoose.Schema.Types.Mixed })
   metadata?: Record<string, any>; // Información adicional flexible
 
+  @Prop({ required: false, type: [String], default: [] })
+  knownFingerprints?: string[]; // Fingerprints de navegadores conocidos del comercial
+
   // Campos automáticos de timestamps
   createdAt?: Date;
   updatedAt?: Date;
@@ -45,3 +48,4 @@ export const CommercialSchemaModel = CommercialSchemaDefinition;
 CommercialSchemaDefinition.index({ connectionStatus: 1, lastActivity: -1 });
 CommercialSchemaDefinition.index({ lastActivity: -1 });
 CommercialSchemaDefinition.index({ createdAt: -1 });
+CommercialSchemaDefinition.index({ knownFingerprints: 1 }); // Índice para búsqueda por fingerprint

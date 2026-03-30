@@ -45,6 +45,7 @@ describe('NotifyMessageSentOnMessageSentEventHandler', () => {
           type: 'text',
           isFirstResponse: false,
           isInternal: false,
+          isAI: false,
           sentAt: new Date('2025-10-03T10:00:00Z'),
         },
       });
@@ -79,6 +80,7 @@ describe('NotifyMessageSentOnMessageSentEventHandler', () => {
           type: 'text',
           isFirstResponse: false,
           isInternal: true,
+          isAI: false,
           sentAt: new Date('2025-10-03T10:00:00Z'),
         },
       });
@@ -110,6 +112,7 @@ describe('NotifyMessageSentOnMessageSentEventHandler', () => {
           type: 'text',
           isFirstResponse: true,
           isInternal: false,
+          isAI: false,
           sentAt: new Date('2025-10-03T10:00:00Z'),
         },
       });
@@ -157,6 +160,7 @@ describe('NotifyMessageSentOnMessageSentEventHandler', () => {
           type: 'text',
           isFirstResponse: false,
           isInternal: false,
+          isAI: false,
           sentAt: new Date(),
         },
       });
@@ -177,6 +181,7 @@ describe('NotifyMessageSentOnMessageSentEventHandler', () => {
           type: 'file',
           isFirstResponse: false,
           isInternal: false,
+          isAI: false,
           sentAt: new Date('2025-10-03T10:00:00Z'),
           attachment: {
             url: 'https://storage.example.com/file.pdf',

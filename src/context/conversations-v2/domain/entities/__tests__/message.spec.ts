@@ -160,6 +160,109 @@ describe('Message', () => {
     });
   });
 
+  describe('createAIMessage', () => {
+    it('debería crear un mensaje de IA válido con metadata completa', () => {
+      // Arrange
+      const aiMetadata = {
+        model: 'gpt-4',
+        confidence: 0.95,
+        suggestedActions: ['Ver productos', 'Contactar soporte'],
+        processingTimeMs: 150,
+        context: { topic: 'ventas' },
+      };
+
+      // Act
+      const message = Message.createAIMessage({
+        chatId: mockChatId,
+        content: 'Hola, soy un asistente de IA. ¿En qué puedo ayudarte?',
+        aiMetadata,
+      });
+
+      // Assert
+      expect(message).toBeInstanceOf(Message);
+      expect(message.chatId.getValue()).toBe(mockChatId);
+      expect(message.senderId).toBe('ai');
+      expect(message.content.value).toBe(
+        'Hola, soy un asistente de IA. ¿En qué puedo ayudarte?',
+      );
+      expect(message.type.isAI()).toBe(true);
+      expect(message.isAI).toBe(true);
+      expect(message.aiMetadata).toEqual(aiMetadata);
+      expect(message.isInternal).toBe(false);
+      expect(message.isFirstResponse).toBe(false);
+    });
+
+    it('debería crear un mensaje de IA sin metadata opcional', () => {
+      // Act
+      const message = Message.createAIMessage({
+        chatId: mockChatId,
+        content: 'Respuesta automática de IA',
+      });
+
+      // Assert
+      expect(message).toBeInstanceOf(Message);
+      expect(message.type.isAI()).toBe(true);
+      expect(message.isAI).toBe(true);
+      expect(message.aiMetadata).toBeNull();
+    });
+
+    it('debería crear un mensaje de IA con metadata parcial', () => {
+      // Arrange
+      const aiMetadata = {
+        model: 'claude-3',
+        confidence: 0.88,
+      };
+
+      // Act
+      const message = Message.createAIMessage({
+        chatId: mockChatId,
+        content: 'Respuesta de Claude',
+        aiMetadata,
+      });
+
+      // Assert
+      expect(message.aiMetadata?.model).toBe('claude-3');
+      expect(message.aiMetadata?.confidence).toBe(0.88);
+      expect(message.aiMetadata?.suggestedActions).toBeUndefined();
+    });
+  });
+
+  describe('isAIMessage', () => {
+    it('debería retornar true para mensajes de IA', () => {
+      // Arrange
+      const message = Message.createAIMessage({
+        chatId: mockChatId,
+        content: 'Respuesta de IA',
+      });
+
+      // Act & Assert
+      expect(message.isAIMessage()).toBe(true);
+    });
+
+    it('debería retornar false para mensajes de texto', () => {
+      // Arrange
+      const message = Message.createTextMessage({
+        chatId: mockChatId,
+        senderId: mockSenderId,
+        content: mockContent,
+      });
+
+      // Act & Assert
+      expect(message.isAIMessage()).toBe(false);
+    });
+
+    it('debería retornar false para mensajes del sistema', () => {
+      // Arrange
+      const message = Message.createSystemMessage({
+        chatId: mockChatId,
+        action: 'assigned',
+      });
+
+      // Act & Assert
+      expect(message.isAIMessage()).toBe(false);
+    });
+  });
+
   describe('isSystemMessage', () => {
     it('debería retornar true para mensajes del sistema', () => {
       // Arrange
@@ -305,6 +408,7 @@ describe('Message', () => {
         isInternal: false,
         isFirstResponse: false,
         isRead: false,
+        isAI: false,
         createdAt: now,
         updatedAt: now,
       };
@@ -320,6 +424,65 @@ describe('Message', () => {
       expect(message.content.value).toBe(mockContent);
       expect(message.isInternal).toBe(false);
       expect(message.isFirstResponse).toBe(false);
+    });
+
+    it('debería crear Message de IA desde primitivos con aiMetadata', () => {
+      // Arrange
+      const now = new Date();
+      const messageId = uuidv4();
+      const aiMetadata = {
+        model: 'gpt-4',
+        confidence: 0.92,
+        suggestedActions: ['Acción 1'],
+        processingTimeMs: 200,
+      };
+      const primitives = {
+        id: messageId,
+        chatId: mockChatId,
+        senderId: 'ai',
+        content: 'Respuesta de IA',
+        type: 'AI',
+        isInternal: false,
+        isFirstResponse: false,
+        isRead: false,
+        isAI: true,
+        aiMetadata,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Act
+      const message = Message.fromPrimitives(primitives);
+
+      // Assert
+      expect(message).toBeInstanceOf(Message);
+      expect(message.type.isAI()).toBe(true);
+      expect(message.isAI).toBe(true);
+      expect(message.aiMetadata).toEqual(aiMetadata);
+      expect(message.isAIMessage()).toBe(true);
+    });
+  });
+
+  describe('toPrimitives with AI', () => {
+    it('debería incluir campos AI en primitivos', () => {
+      // Arrange
+      const aiMetadata = {
+        model: 'claude-3',
+        confidence: 0.88,
+      };
+      const message = Message.createAIMessage({
+        chatId: mockChatId,
+        content: 'Respuesta de IA',
+        aiMetadata,
+      });
+
+      // Act
+      const primitives = message.toPrimitives();
+
+      // Assert
+      expect(primitives.isAI).toBe(true);
+      expect(primitives.aiMetadata).toEqual(aiMetadata);
+      expect(primitives.type).toBe('AI');
     });
   });
 });

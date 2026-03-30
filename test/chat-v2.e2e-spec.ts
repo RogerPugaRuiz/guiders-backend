@@ -619,23 +619,13 @@ describe('ChatV2Controller (e2e)', () => {
   });
 
   describe('GET /v2/chats/:chatId', () => {
-    // TODO: Ajustar ChatV2Controller para retornar 200/404 correctamente en entorno aislado sin repos
-    it('temporalmente retorna 500 porque falta wiring de repositorio', async () => {
-      const mockToken = 'mock-commercial-token';
-      const chatId = 'existing-chat-id';
-      return request(app.getHttpServer())
-        .get(`/v2/chats/${chatId}`)
-        .set('Authorization', `Bearer ${mockToken}`)
-        .expect(500);
-    });
-
-    it('temporalmente retorna 500 también para chat inexistente', async () => {
+    it('debe retornar 404 cuando el chat no existe', async () => {
       const mockToken = 'mock-commercial-token';
       const chatId = 'nonexistent';
       return request(app.getHttpServer())
         .get(`/v2/chats/${chatId}`)
         .set('Authorization', `Bearer ${mockToken}`)
-        .expect(500);
+        .expect(404);
     });
   });
 
@@ -794,7 +784,7 @@ describe('ChatV2Controller (e2e)', () => {
     it('debe ejecutar GetChatsWithFiltersQuery correctamente', async () => {
       const query = GetChatsWithFiltersQuery.create({
         userId: 'user-id',
-        userRole: 'commercial',
+        userRoles: ['commercial'],
         filters: {},
         sort: {
           field: 'createdAt',

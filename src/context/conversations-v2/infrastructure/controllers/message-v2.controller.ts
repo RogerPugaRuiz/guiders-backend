@@ -293,7 +293,7 @@ export class MessageV2Controller {
         const query = new GetChatMessagesQuery({
           chatId,
           userId: req.user.id,
-          userRole: req.user.roles[0],
+          userRoles: req.user.roles,
           filters: {
             messageType: queryParams.filters?.types?.[0], // Mapear el primer tipo si existe
             isInternal: queryParams.filters?.isRead,
@@ -467,7 +467,7 @@ export class MessageV2Controller {
       const command = new MarkMessagesAsReadCommand(
         markAsReadDto.messageIds,
         req.user.id,
-        req.user.roles[0],
+        req.user.roles,
       );
 
       const result = await this.commandBus.execute<
@@ -551,7 +551,7 @@ export class MessageV2Controller {
       const query = new GetUnreadMessagesQuery(
         chatId,
         req.user.id,
-        req.user.roles[0],
+        req.user.roles,
       );
 
       const result = await this.queryBus.execute<

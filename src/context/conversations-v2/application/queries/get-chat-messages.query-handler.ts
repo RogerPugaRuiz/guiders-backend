@@ -48,7 +48,7 @@ export class GetChatMessagesQueryHandler
         !this.hasPermissionToViewMessages(
           { visitorId: chat.visitorId?.getValue() },
           query.userId,
-          query.userRole,
+          query.userRoles,
         )
       ) {
         throw new Error('Sin permisos para ver mensajes de este chat');
@@ -100,6 +100,8 @@ export class GetChatMessagesQueryHandler
           isRead: message.isRead,
           readAt: message.readAt?.toISOString(),
           readBy: message.readBy || undefined,
+          isAI: message.isAI,
+          aiMetadata: message.aiMetadata || undefined,
           createdAt: message.createdAt.toISOString(),
           updatedAt: message.updatedAt.toISOString(),
         }),
@@ -129,15 +131,18 @@ export class GetChatMessagesQueryHandler
   private hasPermissionToViewMessages(
     chat: { visitorId?: string },
     userId?: string,
-    userRole?: string,
+    userRoles?: string[],
   ): boolean {
-    // Los administradores y comerciales pueden ver todos los chats
-    if (userRole === 'admin' || userRole === 'commercial') {
+    // Los administradores, superadmin, supervisores y comerciales pueden ver todos los chats
+    const allowedRoles = ['admin', 'superadmin', 'supervisor', 'commercial'];
+
+    // Verificar si ALGUNO de los roles del usuario está en la lista de roles permitidos
+    if (userRoles && userRoles.some((role) => allowedRoles.includes(role))) {
       return true;
     }
 
     // Los visitantes solo pueden ver sus propios chats
-    if (userRole === 'visitor' && userId) {
+    if (userRoles && userRoles.includes('visitor') && userId) {
       return Boolean(chat.visitorId && chat.visitorId === userId);
     }
 

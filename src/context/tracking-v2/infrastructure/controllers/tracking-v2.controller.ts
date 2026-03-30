@@ -74,8 +74,21 @@ export class TrackingV2Controller {
                 url: '/products/laptop',
                 title: 'Laptop Pro 2024',
                 referrer: 'https://google.com',
+                device: {
+                  userAgent:
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                  platform: 'MacIntel',
+                  language: 'es',
+                },
+                page: {
+                  url: '/products/laptop',
+                  path: '/products/laptop',
+                  protocol: 'https:',
+                  host: 'example.com',
+                },
               },
               occurredAt: '2024-01-15T10:30:00.000Z',
+              __queuedAt: 1705319400000,
             },
             {
               visitorId: 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d',
@@ -87,6 +100,10 @@ export class TrackingV2Controller {
                 text: 'Añadir al carrito',
               },
               occurredAt: '2024-01-15T10:30:15.000Z',
+              __queuedAt: 1705319415000,
+              aggregatedCount: 3,
+              firstOccurredAt: '2024-01-15T10:30:10.000Z',
+              lastOccurredAt: '2024-01-15T10:30:15.000Z',
             },
           ],
         },

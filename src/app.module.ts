@@ -24,6 +24,9 @@ import { WebSocketModule } from './websocket/websocket.module';
 import { WebSocketGatewayBasic } from './websocket/websocket.gateway';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConsentModule } from './context/consent/consent.module';
+import { LlmModule } from './context/llm/llm.module';
+import { WhiteLabelModule } from './context/white-label/white-label.module';
+import { LeadsModule } from './context/leads/leads.module';
 import { PresenceInactivityScheduler } from './context/shared/infrastructure/schedulers/presence-inactivity.scheduler';
 import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/shared/infrastructure/events/notify-presence-changed-on-presence-changed.event-handler';
 
@@ -41,6 +44,9 @@ import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/sh
     CommercialModule,
     ConsentModule,
     TrackingV2Module,
+    LlmModule,
+    WhiteLabelModule,
+    LeadsModule,
     WebSocketModule,
     ScheduleModule.forRoot(),
     // OpenSearchModule,

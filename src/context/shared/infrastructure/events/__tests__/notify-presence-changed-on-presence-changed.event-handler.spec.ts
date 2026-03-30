@@ -51,7 +51,7 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
   });
 
   describe('handle - Visitante cambia presencia', () => {
-    it('debe notificar solo a comerciales con chats activos', async () => {
+    it('debe emitir eventos granulares a salas de chat y globales a comerciales', async () => {
       // Arrange
       const visitorId = '550e8400-e29b-41d4-a716-446655440000';
       const commercial1Id = '550e8400-e29b-41d4-a716-446655440001';
@@ -92,8 +92,8 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       await handler.handle(event);
 
       // Assert
-      // Debe emitir 3 veces: 1 al propio visitante + 2 a los comerciales
-      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(3);
+      // Emisión dual: 1 visitante + 2 granulares (chat:id) + 2 globales (commercial:id)
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(5);
 
       // Verifica emisión a sala del visitante
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
@@ -107,7 +107,31 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
         }),
       );
 
-      // Verifica emisión a comercial 1
+      // Verifica emisión GRANULAR a sala de chat 1
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-1',
+        'presence:changed',
+        expect.objectContaining({
+          userId: visitorId,
+          userType: 'visitor',
+          status: 'online',
+          chatId: 'chat-1',
+        }),
+      );
+
+      // Verifica emisión GRANULAR a sala de chat 2
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-2',
+        'presence:changed',
+        expect.objectContaining({
+          userId: visitorId,
+          userType: 'visitor',
+          status: 'online',
+          chatId: 'chat-2',
+        }),
+      );
+
+      // Verifica emisión GLOBAL a comercial 1 con affectedChatIds
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
         `commercial:${commercial1Id}`,
         'presence:changed',
@@ -115,10 +139,11 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
           userId: visitorId,
           userType: 'visitor',
           status: 'online',
+          affectedChatIds: ['chat-1'],
         }),
       );
 
-      // Verifica emisión a comercial 2
+      // Verifica emisión GLOBAL a comercial 2 con affectedChatIds
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
         `commercial:${commercial2Id}`,
         'presence:changed',
@@ -126,6 +151,7 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
           userId: visitorId,
           userType: 'visitor',
           status: 'online',
+          affectedChatIds: ['chat-2'],
         }),
       );
 
@@ -170,7 +196,7 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       );
     });
 
-    it('debe notificar a comerciales con chats cerrados recientemente', async () => {
+    it('debe emitir eventos granulares y globales para chats cerrados recientemente', async () => {
       // Arrange
       const visitorId = '550e8400-e29b-41d4-a716-446655440000';
       const commercialId = 'commercial-456';
@@ -204,8 +230,8 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       await handler.handle(event);
 
       // Assert
-      // Debe emitir 2 veces: al visitante + al comercial con chat reciente
-      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(2);
+      // Emisión dual: 1 visitante + 1 granular (chat:id) + 1 global (commercial:id)
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(3);
 
       // Verifica emisión al visitante
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
@@ -214,15 +240,26 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
         expect.any(Object),
       );
 
-      // Verifica emisión al comercial con chat cerrado recientemente
+      // Verifica emisión GRANULAR a sala del chat
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-1',
+        'presence:changed',
+        expect.objectContaining({
+          chatId: 'chat-1',
+        }),
+      );
+
+      // Verifica emisión GLOBAL al comercial con affectedChatIds
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
         `commercial:${commercialId}`,
         'presence:changed',
-        expect.any(Object),
+        expect.objectContaining({
+          affectedChatIds: ['chat-1'],
+        }),
       );
     });
 
-    it('debe eliminar comerciales duplicados si tiene múltiples chats con el mismo comercial', async () => {
+    it('debe agrupar chatIds en evento global si tiene múltiples chats con el mismo comercial', async () => {
       // Arrange
       const visitorId = '550e8400-e29b-41d4-a716-446655440000';
       const commercialId = 'commercial-456';
@@ -262,15 +299,36 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       await handler.handle(event);
 
       // Assert
-      // Debe emitir solo 2 veces: visitante + comercial (no duplicado)
-      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(2);
+      // Emisión dual: 1 visitante + 2 granulares (chat:id) + 1 global (commercial:id con affectedChatIds)
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(4);
 
-      // Cuenta cuántas veces se emitió al comercial
+      // Verifica emisión GRANULAR a cada sala de chat
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-1',
+        'presence:changed',
+        expect.objectContaining({ chatId: 'chat-1' }),
+      );
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-2',
+        'presence:changed',
+        expect.objectContaining({ chatId: 'chat-2' }),
+      );
+
+      // Cuenta cuántas veces se emitió al comercial (debe ser 1 evento global)
       const commercialEmissions =
         mockWebSocketGateway.emitToRoom.mock.calls.filter(
           (call) => call[0] === `commercial:${commercialId}`,
         );
       expect(commercialEmissions).toHaveLength(1);
+
+      // Verifica que el evento global incluye AMBOS chatIds
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        `commercial:${commercialId}`,
+        'presence:changed',
+        expect.objectContaining({
+          affectedChatIds: expect.arrayContaining(['chat-1', 'chat-2']),
+        }),
+      );
     });
 
     it('no debe notificar si los chats no tienen comercial asignado', async () => {
@@ -310,7 +368,7 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
   });
 
   describe('handle - Comercial cambia presencia', () => {
-    it('debe notificar solo a visitantes con chats activos', async () => {
+    it('debe emitir eventos granulares a salas de chat y globales a visitantes', async () => {
       // Arrange
       const commercialId = '650e8400-e29b-41d4-a716-446655440010';
       const visitor1Id = '550e8400-e29b-41d4-a716-446655440011';
@@ -355,8 +413,8 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
       await handler.handle(event);
 
       // Assert
-      // Debe emitir 3 veces: 1 al propio comercial + 2 a los visitantes
-      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(3);
+      // Emisión dual: 1 comercial + 2 granulares (chat:id) + 2 globales (visitor:id)
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledTimes(5);
 
       // Verifica emisión a sala del comercial
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
@@ -370,7 +428,31 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
         }),
       );
 
-      // Verifica emisión a visitante 1
+      // Verifica emisión GRANULAR a sala de chat 1
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-1',
+        'presence:changed',
+        expect.objectContaining({
+          userId: commercialId,
+          userType: 'commercial',
+          status: 'online',
+          chatId: 'chat-1',
+        }),
+      );
+
+      // Verifica emisión GRANULAR a sala de chat 2
+      expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
+        'chat:chat-2',
+        'presence:changed',
+        expect.objectContaining({
+          userId: commercialId,
+          userType: 'commercial',
+          status: 'online',
+          chatId: 'chat-2',
+        }),
+      );
+
+      // Verifica emisión GLOBAL a visitante 1 con affectedChatIds
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
         `visitor:${visitor1Id}`,
         'presence:changed',
@@ -378,10 +460,11 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
           userId: commercialId,
           userType: 'commercial',
           status: 'online',
+          affectedChatIds: ['chat-1'],
         }),
       );
 
-      // Verifica emisión a visitante 2
+      // Verifica emisión GLOBAL a visitante 2 con affectedChatIds
       expect(mockWebSocketGateway.emitToRoom).toHaveBeenCalledWith(
         `visitor:${visitor2Id}`,
         'presence:changed',
@@ -389,6 +472,7 @@ describe('NotifyPresenceChangedOnPresenceChangedEventHandler', () => {
           userId: commercialId,
           userType: 'commercial',
           status: 'online',
+          affectedChatIds: ['chat-2'],
         }),
       );
 

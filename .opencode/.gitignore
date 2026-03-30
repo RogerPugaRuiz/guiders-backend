@@ -1,0 +1,12 @@
+# Dependencias
+node_modules
+
+# Archivos de lock del gestor de paquetes
+bun.lock
+package-lock.json
+yarn.lock
+
+# NO ignorar:
+# - commands/ (comandos personalizados)
+# - scripts/ (scripts si los queremos mantener)
+# - .md files (documentación)
