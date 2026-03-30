@@ -449,6 +449,30 @@ ENCRYPTION_KEY=<32 bytes hex>   # Requerida para DA-02 (leadcarsApiKey encriptad
 **Cobertura:** Todos los RF y NFR tienen soporte arquitectónico.
 **Preparación:** Los agentes IA tienen suficiente detalle para implementar consistentemente.
 
+### Nota: Alineación con API LeadCars v2.4 (Junio 2025)
+
+> **Referencia**: `docs/leadcar/LeadCars_API_V2_4.pdf` — Última revisión 10/06/2025
+
+La documentación oficial de la API LeadCars v2.4 reveló discrepancias significativas entre los tipos implementados y la API real. Las decisiones DA-01 a DA-04 siguen siendo válidas a nivel arquitectónico, pero los detalles de implementación del adapter LeadCars requieren corrección:
+
+**Discrepancias críticas:**
+
+- **Nombres de campos**: `concesionario_id` → `concesionario`, `sede_id` → `sede`, `campana_id` → `campana` (texto)
+- **Tipo de lead**: Es un **ID numérico** (de `GET /tipos`), no un string enum (`COMPRA`, `VENTA`, etc.)
+- **Campo `origen_lead`**: No existe en la API real
+- **Campos dinámicos**: Van al nivel raíz del JSON, no dentro de `datos_adicionales`
+- **Estructura chat**: La API usa `{ chat: { chat_id, users[], messages[] } }` con `interaction_type`
+- **Teléfonos**: Formato E.164 obligatorio (`+34XXXXXXXXX`)
+- **`listCampanas`**: Requiere `concesionarioId` en la URL (actualmente no se pasa)
+
+**Nuevo módulo en v2.4 — Automagic (Nurturing):**
+
+- Módulo opcional con autenticación separada (`api-user` + `api-token`)
+- Endpoints: listar flujos, asignar lead a flujo, consultar estado
+- Extiende la integración sin afectar el flujo existente de sync de leads
+
+**Impacto arquitectónico:** Ninguno. Las correcciones son a nivel de adapter/tipos, no de arquitectura. La decisión DA-04 (adapter pattern) permite estos cambios sin afectar otros contextos. Ver **Epic 4** en `_bmad-output/planning-artifacts/epics.md`.
+
 ### Gaps resueltos durante validación
 
 **Gap-01 — Query cross-context para `leadcarsApiKey`:**

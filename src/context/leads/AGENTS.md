@@ -1,421 +1,417 @@
 # AGENTS.md - Leads Context
 
-Lead management and lifecycle tracking for sales pipeline. Transforms visitors into leads and tracks their progression through sales stages.
+Gestión de datos de contacto de visitantes y sincronización CRM. Captura leads desde la consola comercial o la IA, y los sincroniza automáticamente con CRMs externos (LeadCars, extensible a HubSpot/Salesforce).
 
-**Parent documentation**: [Root AGENTS.md](../../AGENTS.md) | **Related**: [Visitors V2](../visitors-v2/AGENTS.md), [Tracking V2](../tracking-v2/AGENTS.md), [Lead Scoring](../lead-scoring/AGENTS.md)
+**Parent documentation**: [Root AGENTS.md](../../AGENTS.md) | **Related**: [Visitors V2](../visitors-v2/AGENTS.md), [Conversations V2](../conversations-v2/AGENTS.md), [LLM](../llm/AGENTS.md)
 
 ## Context Overview
 
-The Leads context handles:
+El contexto Leads maneja:
 
-- Lead creation from visitors
-- Lead property management and enrichment
-- Sales pipeline and stage tracking
-- Lead assignment to sales agents
-- Lead status and lifecycle management
-- Lead-to-customer conversion
-- Lead re-engagement and follow-up
+- Guardado y actualización de datos de contacto de visitantes (upsert con merge parcial)
+- Conversión automática de visitor a estado LEAD (cuando hay email o teléfono)
+- Sincronización automática de leads a CRM al cambiar lifecycle a LEAD
+- Sincronización automática de conversaciones de chat al cerrar un chat
+- Configuración CRM multi-tenant (una config por empresa + tipo de CRM)
+- Dashboard de registros de sincronización (synced, failed, partial)
+- Proxy discovery de datos del CRM (concesionarios, sedes, campañas, tipos de lead)
+- Test de conexión CRM (con credenciales manuales o config guardada)
 
-This context is **critical for sales operations** and bridges visitor engagement to revenue.
+Este contexto es **crítico para la integración con CRMs** y cierra el ciclo entre la captura del lead en guiders y su aparición en el CRM del cliente.
 
-## Directory Structure
+## Directory Structure (Real)
 
 ```
 src/context/leads/
-├── domain/
-│   ├── lead.aggregate.ts       # Lead aggregate root
-│   ├── lead.repository.ts      # Repository interface
-│   ├── entities/
-│   │   ├── contact.entity.ts   # Contact information
-│   │   └── interaction.entity.ts
-│   ├── value-objects/
-│   │   ├── lead-id.ts
-│   │   ├── lead-status.ts
-│   │   └── lead-source.ts
-│   ├── events/
-│   └── errors/
+├── AGENTS.md
+├── leads.module.ts
 ├── application/
 │   ├── commands/
-│   │   ├── create-lead/
-│   │   ├── update-lead-status/
-│   │   ├── assign-lead/
-│   │   └── convert-lead/
-│   ├── queries/
-│   │   ├── get-lead/
-│   │   ├── list-leads/
-│   │   └── get-lead-pipeline/
+│   │   ├── index.ts
+│   │   ├── save-lead-contact-data.command.ts
+│   │   ├── save-lead-contact-data-command.handler.ts
+│   │   ├── sync-chat-to-crm.command.ts
+│   │   ├── sync-chat-to-crm-command.handler.ts
+│   │   ├── sync-lead-to-crm.command.ts
+│   │   ├── sync-lead-to-crm-command.handler.ts
+│   │   └── __tests__/
+│   │       └── save-lead-contact-data-command.handler.spec.ts
+│   ├── dtos/
+│   │   ├── index.ts
+│   │   ├── crm-config.dto.ts
+│   │   ├── lead-contact-data.dto.ts
+│   │   └── update-contact-data.dto.ts
+│   └── events/
+│       ├── index.ts
+│       ├── sync-chat-on-chat-closed.event-handler.ts
+│       └── sync-lead-on-lifecycle-changed.event-handler.ts
+├── domain/
+│   ├── crm-company-config.repository.ts
+│   ├── crm-sync-record.repository.ts
+│   ├── lead-contact-data.repository.ts
+│   ├── errors/
+│   │   └── leads.error.ts
 │   ├── events/
-│   └── dtos/
+│   │   └── lead-synced.event.ts
+│   └── services/
+│       └── crm-sync.service.ts
 └── infrastructure/
+    ├── adapters/
+    │   └── leadcars/
+    │       ├── index.ts
+    │       ├── leadcars.types.ts
+    │       ├── leadcars-api.service.ts
+    │       └── leadcars-crm-sync.adapter.ts
     ├── controllers/
+    │   ├── index.ts
+    │   ├── leads-admin.controller.ts
+    │   └── leads-contact.controller.ts
     ├── persistence/
-    │   ├── postgres-lead.repository.ts
-    │   └── lead.mapper.ts
+    │   ├── impl/
+    │   │   ├── mongo-crm-company-config.repository.impl.ts
+    │   │   ├── mongo-crm-sync-record.repository.impl.ts
+    │   │   └── mongo-lead-contact-data.repository.impl.ts
+    │   └── schemas/
+    │       ├── crm-company-config.schema.ts
+    │       ├── crm-sync-record.schema.ts
+    │       └── lead-contact-data.schema.ts
     └── services/
+        └── crm-sync-service.factory.ts
 ```
 
-## Domain Entities
+## Persistencia (MongoDB)
 
-### Lead Aggregate (Root)
+Tres colecciones en MongoDB:
+
+### `lead_contact_data`
+
+Datos de contacto del visitante. Índice unique: `(visitorId, companyId)`.
 
 ```typescript
-// src/context/leads/domain/lead.aggregate.ts
-Lead {
-  id: LeadId (UUID)
-  companyId: CompanyId
-  visitorId: VisitorId | null
-  email: Email
-  name: string
-  phone: string | null
-  company: string | null
-  status: LeadStatus (NEW, QUALIFIED, CONTACTED, NEGOTIATING, WON, LOST)
-  source: LeadSource (chat, form, import, api, etc.)
-  pipeline: string (sales pipeline name)
-  stage: string (prospecting, qualification, demo, etc.)
-  value: Money | null (estimated deal value)
-  assignedTo: UserId | null
-  notes: string
-  customFields: Map<string, unknown>
-  interactions: Interaction[]
-  createdAt: Date
-  updatedAt: Date
-  convertedAt: Date | null
+{
+  id: string;              // UUID
+  visitorId: string;       // UUID del visitor
+  companyId: string;       // UUID de la empresa (tenantId)
+  nombre?: string;
+  apellidos?: string;
+  email?: string;
+  telefono?: string;
+  dni?: string;
+  poblacion?: string;
+  additionalData?: Record<string, unknown>;
+  extractedFromChatId?: string;
+  extractedAt: Date;
+  updatedAt: Date;
 }
 ```
 
-### Interaction Entity
+### `crm_company_configs`
+
+Configuración CRM por empresa. Índice unique: `(companyId, crmType)`.
 
 ```typescript
-// Tracks lead communications
-Interaction {
-  id: InteractionId (UUID)
-  type: InteractionType (email, call, meeting, chat, etc.)
-  direction: Direction (inbound, outbound)
-  subject: string | null
-  notes: string
-  duration: number | null (seconds, for calls)
-  createdAt: Date
+{
+  id: string;
+  companyId: string;
+  crmType: 'leadcars' | 'hubspot' | 'salesforce';
+  enabled: boolean;
+  syncChatConversations: boolean;
+  triggerEvents: string[];   // ['lifecycle_to_lead', 'chat_closed']
+  config: {                  // Para LeadCars:
+    clienteToken: string;    // API token (header 'cliente-token')
+    useSandbox: boolean;
+    concesionarioId: number; // ID del concesionario
+    sedeId?: number;         // ID de la sede (opcional)
+    campanaCode?: string;    // Código de campaña (texto, no numérico)
+    tipoLeadDefault: number; // ID del tipo de lead (de GET /tipos)
+  };
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
-## Value Objects
+### `crm_sync_records`
 
-- `LeadId` - Unique lead identifier
-- `LeadStatus` - Sales stage (NEW, QUALIFIED, CONTACTED, etc.)
-- `LeadSource` - Where lead came from (chat, form, import)
-- `LeadScore` - Numerical quality score (0-100)
-- `Money` - Deal value with currency
-- `InteractionType` - Communication type
-- `PipelineStage` - Sales pipeline stage name
+Registros de sincronización. Índice unique: `(visitorId, companyId, crmType)`.
 
-## Key Use Cases
-
-### Lead Creation
-
-- **Create from Visitor**: When visitor identifies themselves
-- **Create from Form**: When form submitted
-- **Bulk Import**: Import from CSV or API
-- **Create from Chat**: When chat conversation starts
-- **Manual Creation**: Sales agent creates lead directly
-
-### Lead Management
-
-- **Update Lead Info**: Change name, email, phone
-- **Add Notes**: Track interactions and observations
-- **Change Status**: Progress through sales stages
-- **Assign to Agent**: Route to specific sales person
-- **Unassign**: Remove assignment
-- **Tag Lead**: Categorize for reporting
-
-### Lead Progression
-
-- **Qualify Lead**: Move from NEW to QUALIFIED
-- **Schedule Demo**: Track demo request
-- **Send Proposal**: Move to NEGOTIATING
-- **Convert to Customer**: Move WON status
-- **Mark Lost**: Track deal loss and reason
-
-## Commands
-
-### Lead Lifecycle
-
-- `CreateLeadCommand` → New lead
-- `UpdateLeadCommand` → Modify information
-- `ChangeLeadStatusCommand` → Update sales stage
-- `ConvertLeadCommand` → Mark as won
-- `MarkLeadLostCommand` → Track deal loss
-
-### Lead Management
-
-- `AssignLeadCommand` → Route to agent
-- `UnassignLeadCommand` → Remove assignment
-- `AddLeadNoteCommand` → Log interaction
-- `TagLeadCommand` → Add category tag
-- `EnrichLeadCommand` → Add data (from external source)
-
-### Bulk Operations
-
-- `BulkImportLeadsCommand` → Import from CSV
-- `BulkUpdateLeadsCommand` → Batch update
-- `ReassignLeadsCommand` → Route multiple
-
-## Queries
-
-### Lead Information
-
-- `GetLeadQuery` → Lead details
-- `GetLeadByEmailQuery` → Find by email
-- `ListLeadsQuery` → Search and filter
-- `GetLeadHistoryQuery` → Activity log
-
-### Pipeline Management
-
-- `GetLeadPipelineQuery` → Pipeline overview
-- `GetPipelineStageLeadsQuery` → Leads by stage
-- `GetAgentLeadsQuery` → Leads assigned to agent
-
-### Analytics
-
-- `GetLeadMetricsQuery` → Count, conversion rates
-- `GetLeadSourceMetricsQuery` → Performance by source
-- `GetAgentPerformanceQuery` → Sales metrics
-
-## Events
-
-- `LeadCreatedEvent` → New lead added
-- `LeadUpdatedEvent` → Lead information changed
-- `LeadQualifiedEvent` → Moved to qualified
-- `LeadAssignedEvent` → Assigned to agent
-- `LeadUnassignedEvent` → Assignment removed
-- `LeadStatusChangedEvent` → Pipeline stage updated
-- `LeadConvertedEvent` → Won and converted to customer
-- `LeadLostEvent` → Deal lost with reason
-- `InteractionRecordedEvent` → Communication logged
-
-## Database Schema (PostgreSQL)
-
-### leads table
-
-```sql
-CREATE TABLE leads (
-  id UUID PRIMARY KEY,
-  company_id UUID NOT NULL REFERENCES companies(id),
-  visitor_id UUID REFERENCES visitors_v2(id),
-  email VARCHAR(255) NOT NULL,
-  name VARCHAR(255) NOT NULL,
-  phone VARCHAR(20),
-  company_name VARCHAR(255),
-  status VARCHAR(50) DEFAULT 'NEW',
-  source VARCHAR(50) NOT NULL,
-  pipeline VARCHAR(255),
-  stage VARCHAR(255),
-  estimated_value DECIMAL(15, 2),
-  assigned_to UUID REFERENCES users(id),
-  notes TEXT,
-  custom_fields JSONB DEFAULT '{}',
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  converted_at TIMESTAMP
-);
-
-CREATE INDEX idx_leads_company_status ON leads(company_id, status);
-CREATE INDEX idx_leads_assigned ON leads(assigned_to);
-CREATE INDEX idx_leads_visitor ON leads(visitor_id);
-CREATE INDEX idx_leads_email ON leads(company_id, email);
+```typescript
+{
+  id: string;
+  visitorId: string;
+  companyId: string;
+  crmType: string;
+  crmConfigId: string;
+  status: 'pending' | 'synced' | 'failed' | 'partial';
+  externalLeadId?: string;   // ID del lead en LeadCars
+  chatsSynced?: string[];    // IDs de chats sincronizados
+  requestPayload: object;
+  responsePayload?: object;
+  errorMessage?: string;
+  syncedAt: Date;
+  retryCount: number;
+}
 ```
 
-### lead_interactions table
+## Referencia de la API LeadCars v2.4
 
-```sql
-CREATE TABLE lead_interactions (
-  id UUID PRIMARY KEY,
-  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
-  interaction_type VARCHAR(50) NOT NULL,
-  direction VARCHAR(20) NOT NULL,
-  subject VARCHAR(255),
-  notes TEXT,
-  duration_seconds INT,
-  created_at TIMESTAMP DEFAULT NOW()
-);
+> Documentación oficial: `docs/leadcar/LeadCars_API_V2_4.pdf`
+> Última revisión: 10/06/2025
 
-CREATE INDEX idx_interactions_lead ON lead_interactions(lead_id, created_at DESC);
+### URLs Base
+
+| Entorno    | URL                                     |
+| ---------- | --------------------------------------- |
+| Producción | `https://api.leadcars.es/api/v2`        |
+| Sandbox    | `https://apisandbox.leadcars.es/api/v2` |
+
+### Autenticación
+
+Header `cliente-token` con el token proporcionado por LeadCars (20 caracteres).
+El módulo Automagic usa headers distintos: `api-user` + `api-token`.
+
+### Endpoints Implementados
+
+| Método | Endpoint                            | Descripción                    | Estado       |
+| ------ | ----------------------------------- | ------------------------------ | ------------ |
+| `POST` | `/leads`                            | Crear nuevo lead               | Implementado |
+| `POST` | `/leads/{idLead}/comments`          | Registrar comentario           | Implementado |
+| `POST` | `/leads/{idLead}/chat_conversation` | Registrar conversación de chat | Implementado |
+| `GET`  | `/concesionarios`                   | Listar concesionarios          | Implementado |
+| `GET`  | `/sedes/{concesionarioId}`          | Sedes de un concesionario      | Implementado |
+| `GET`  | `/campanas/{concesionarioId}`       | Campañas de un concesionario   | Implementado |
+| `GET`  | `/tipos`                            | Listar tipos de lead           | Implementado |
+
+### Endpoints Pendientes de Implementar
+
+| Método | Endpoint                           | Descripción              | Prioridad |
+| ------ | ---------------------------------- | ------------------------ | --------- |
+| `GET`  | `/leadinfos/{idLead}`              | Obtener info de un lead  | Media     |
+| `PUT`  | `/leads/{idLead}/submit`           | Editar lead              | Media     |
+| `GET`  | `/contacts/{idContacto}`           | Listar contacto          | Baja      |
+| `PUT`  | `/gdprs/{idContact}`               | Modificar GDPR           | Baja      |
+| `GET`  | `/journeys/list/summary`           | Listar flujos Automagic  | Alta      |
+| `POST` | `/journeys/generate-lead-journey`  | Añadir lead a flujo      | Alta      |
+| `GET`  | `/journeys/list/get-lead-journeys` | Estado de lead en flujos | Alta      |
+
+### Campos de `POST /leads` (API Real v2.4)
+
+| Campo              | Tipo          | Requerido | Descripción                                |
+| ------------------ | ------------- | --------- | ------------------------------------------ |
+| `nombre`           | Texto         | Sí        | Nombre del lead                            |
+| `apellidos`        | Texto         | Sí        | Apellidos                                  |
+| `email`            | Texto (x@y.z) | Sí        | Email                                      |
+| `telefono`         | Texto E.164   | No        | Teléfono principal (+34XXXXXXXXX)          |
+| `movil`            | Texto E.164   | No        | Teléfono móvil adicional                   |
+| `cp`               | Texto         | No        | Código postal                              |
+| `provincia`        | Texto         | No        | Provincia                                  |
+| `comentario`       | Texto         | No        | Comentario/observaciones                   |
+| `url_origen`       | Texto (URL)   | No        | URL de origen del lead                     |
+| `concesionario`    | Número        | Sí        | ID del concesionario                       |
+| `sede`             | Número        | No        | ID de la sede                              |
+| `tipo_lead`        | Número        | Sí        | ID del tipo de lead (de GET /tipos)        |
+| `campana`          | Texto         | No        | Código de la campaña                       |
+| `{campo_dinamico}` | Texto         | No        | Campos dinámicos clave:valor al nivel raíz |
+
+> **IMPORTANTE**: Los campos dinámicos se envían al nivel raíz del JSON (no dentro de un campo `datos_adicionales`). Las claves no deben llevar caracteres especiales ni espacios.
+
+### Estructura de Chat Conversation (`POST /leads/{idLead}/chat_conversation`)
+
+La API v2.4 espera un campo `chat` con esta estructura JSON:
+
+```json
+{
+  "chat": {
+    "chat_id": "string",
+    "users": [
+      {
+        "_id": "string",
+        "user": {
+          "name": "string",
+          "first_lastname": "string",
+          "second_lastname": "string",
+          "email": "string",
+          "phone": "string",
+          "id": "string"
+        }
+      },
+      {
+        "_id": "string",
+        "visitor": {
+          "name": "string",
+          "first_lastname": "string",
+          "second_lastname": "string",
+          "email": "string",
+          "phone": "string",
+          "id": "string"
+        }
+      }
+    ],
+    "messages": [
+      {
+        "_id": "string",
+        "message": { "text": "string", "type": "text" },
+        "created_at": "ISO 8601",
+        "user_sender": "users._id del emisor",
+        "interaction_type": "welcome | default | close"
+      }
+    ]
+  }
+}
 ```
+
+### Módulo Automagic (Nurturing) — Nuevo en v2.4
+
+Módulo opcional de nurturing. Usa autenticación diferente: `api-user` (email) + `api-token` en headers.
+
+| Método | Endpoint                           | Descripción                      |
+| ------ | ---------------------------------- | -------------------------------- |
+| `GET`  | `/journeys/list/summary`           | Listar flujos disponibles        |
+| `POST` | `/journeys/generate-lead-journey`  | Añadir lead a flujo de nurturing |
+| `GET`  | `/journeys/list/get-lead-journeys` | Estado de un lead en flujos      |
+
+**Errores Automagic:**
+
+- `409 CONFLICT` — El lead ya pasó por el flujo
+- `400 BAD REQUEST` — El lead se encuentra actualmente en el flujo
+- `404 NOT FOUND` — Lead o flujo no encontrados
+
+## Discrepancias Conocidas: Código vs API v2.4
+
+> **CRÍTICO**: Los tipos actuales en `leadcars.types.ts` no coinciden con la API real. Se requiere una story de alineación (ver Epic 4 en epics.md).
+
+| Aspecto                | Código Actual                | API Real v2.4                                   | Impacto                                       |
+| ---------------------- | ---------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| Campo concesionario    | `concesionario_id`           | `concesionario`                                 | **Alto** — nombre de campo incorrecto         |
+| Campo sede             | `sede_id`                    | `sede`                                          | **Alto** — nombre de campo incorrecto         |
+| Campo campaña          | `campana_id` (number)        | `campana` (texto/código)                        | **Alto** — tipo y nombre incorrectos          |
+| Tipo de lead           | String enum (`COMPRA`, etc.) | Número (ID de GET /tipos)                       | **Alto** — tipo completamente incorrecto      |
+| Campo origen           | `origen_lead`                | No existe                                       | **Medio** — campo inventado                   |
+| Datos adicionales      | `datos_adicionales: {}`      | Campos dinámicos al nivel raíz                  | **Alto** — estructura incorrecta              |
+| Observaciones          | `observaciones`              | `comentario`                                    | **Medio** — nombre incorrecto                 |
+| Teléfono               | Sin formato especificado     | E.164 obligatorio                               | **Medio** — falta validación                  |
+| Móvil                  | No existe                    | `movil` (E.164)                                 | **Bajo** — campo faltante                     |
+| Código postal          | No existe                    | `cp`                                            | **Bajo** — campo faltante                     |
+| URL origen             | No existe                    | `url_origen`                                    | **Bajo** — campo faltante                     |
+| Chat conversation      | Formato custom interno       | Formato específico con `users[]` + `messages[]` | **Alto** — estructura completamente diferente |
+| Response de crear lead | Asumido (success/data)       | No especificado en docs oficiales               | **Medio** — verificar en sandbox              |
+| `listCampanas` URL     | `/campanas` (sin param)      | `/campanas/:concesionarioId`                    | **Alto** — falta parámetro requerido          |
+| Automagic              | No implementado              | Nuevo en v2.4                                   | **Bajo** — feature nueva no crítica           |
+
+## Commands Implementados
+
+- `SaveLeadContactDataCommand` → Guarda/actualiza datos de contacto + convierte a LEAD
+- `SyncLeadToCrmCommand` → Sincroniza lead al CRM configurado
+- `SyncChatToCrmCommand` → Sincroniza conversación de chat al CRM
+
+## Event Handlers
+
+- `SyncLeadOnLifecycleChangedEventHandler` → Escucha `VisitorLifecycleChangedEvent`, dispara sync si lifecycle → LEAD
+- `SyncChatOnChatClosedEventHandler` → Escucha `ChatClosedEvent`, sincroniza mensajes si `syncChatConversations` está habilitado
+
+## Eventos Emitidos
+
+- `LeadContactDataSavedEvent` → Al crear nuevo contacto
+- `LeadSyncedToCrmEvent` → Al sincronizar exitosamente un lead
+- `LeadSyncFailedEvent` → Al fallar la sincronización
+- `ChatSyncedToCrmEvent` → Al sincronizar exitosamente un chat
 
 ## Integration Points
 
-| Context          | Purpose                 | Method                   |
-| ---------------- | ----------------------- | ------------------------ |
-| company          | Lead belongs to company | CompanyId in all queries |
-| visitors-v2      | Lead source             | VisitorId on creation    |
-| conversations-v2 | Chat context            | Start chat from lead     |
-| tracking-v2      | Lead engagement         | Track lead interactions  |
-| lead-scoring     | Lead quality            | Score calculation        |
-| commercial       | Lead value              | Deal amount tracking     |
+| Contexto           | Propósito                 | Método                                       |
+| ------------------ | ------------------------- | -------------------------------------------- |
+| `visitors-v2`      | Conversión a LEAD         | Escucha `VisitorLifecycleChangedEvent`       |
+| `conversations-v2` | Sync chat                 | Escucha `ChatClosedEvent`                    |
+| `company`          | Tenant isolation          | `companyId` en todas las queries             |
+| `llm`              | Captura automática por IA | Tool `save_lead_contact_data` → `CommandBus` |
+
+## Arquitectura Multi-CRM
+
+```
+ICrmSyncService (interfaz)
+├── LeadcarsCrmSyncAdapter  (implementado)
+├── HubSpotCrmSyncAdapter   (futuro)
+└── SalesforceCrmSyncAdapter (futuro)
+
+CrmSyncServiceFactory → resuelve adapter por CrmType
+```
+
+## API Endpoints (Guiders Backend)
+
+### Datos de Contacto
+
+| Método | Endpoint                                    | Roles             | Descripción               |
+| ------ | ------------------------------------------- | ----------------- | ------------------------- |
+| `POST` | `/v1/leads/contact-data`                    | admin, commercial | Guardar datos de contacto |
+| `GET`  | `/v1/leads/contact-data/visitor/:visitorId` | admin, commercial | Datos por visitor         |
+| `GET`  | `/v1/leads/contact-data/:id`                | admin, commercial | Datos por ID              |
+| `GET`  | `/v1/leads/contact-data/company/all`        | admin             | Todos los contactos       |
+
+### Administración CRM
+
+| Método   | Endpoint                                          | Roles             | Descripción                    |
+| -------- | ------------------------------------------------- | ----------------- | ------------------------------ |
+| `POST`   | `/v1/leads/admin/config`                          | admin             | Crear config CRM               |
+| `GET`    | `/v1/leads/admin/config`                          | admin             | Listar configs                 |
+| `GET`    | `/v1/leads/admin/config/:id`                      | admin             | Obtener config                 |
+| `PUT`    | `/v1/leads/admin/config/:id`                      | admin             | Actualizar config              |
+| `DELETE` | `/v1/leads/admin/config/:id`                      | admin             | Eliminar config                |
+| `POST`   | `/v1/leads/admin/test-connection`                 | admin             | Test con credenciales manuales |
+| `POST`   | `/v1/leads/admin/config/:configId/test`           | admin             | Test con config guardada       |
+| `GET`    | `/v1/leads/admin/sync-records`                    | admin             | Registros de sync              |
+| `GET`    | `/v1/leads/admin/sync-records/failed`             | admin             | Syncs fallidos                 |
+| `GET`    | `/v1/leads/admin/sync-records/visitor/:visitorId` | admin, commercial | Sync por visitor               |
+| `GET`    | `/v1/leads/admin/supported-crms`                  | admin             | CRMs soportados                |
+
+### Proxy Discovery LeadCars
+
+| Método | Endpoint                                             | Roles | Descripción                |
+| ------ | ---------------------------------------------------- | ----- | -------------------------- |
+| `GET`  | `/v1/leads/admin/leadcars/concesionarios`            | admin | Listar concesionarios      |
+| `GET`  | `/v1/leads/admin/leadcars/sedes/:concesionarioId`    | admin | Sedes del concesionario    |
+| `GET`  | `/v1/leads/admin/leadcars/campanas/:concesionarioId` | admin | Campañas del concesionario |
+| `GET`  | `/v1/leads/admin/leadcars/tipos`                     | admin | Tipos de lead              |
 
 ## Testing Strategy
 
-### Unit Tests
+### Unit Tests (existentes)
 
 ```bash
 npm run test:unit -- src/context/leads/**/*.spec.ts
 ```
 
-Test domain logic:
+- `SaveLeadContactDataCommandHandler`: 6 casos (create, update, merge, edge cases)
 
-- Lead creation with validation
-- Status transitions
-- Lead qualification
-- Assignment logic
+### Tests Pendientes
 
-### Integration Tests
-
-```bash
-npm run test:int -- src/context/leads/**/*.spec.ts
-```
-
-Test persistence:
-
-- Lead CRUD operations
-- Interaction history
-- Complex queries
-- Event publishing
-
-### E2E Tests
-
-```bash
-npm run test:e2e
-```
-
-Test endpoints:
-
-- POST /leads
-- GET /leads/:id
-- PUT /leads/:id
-- POST /leads/:id/status
-- POST /leads/:id/assign
-- GET /leads (with filters)
-
-## Common Patterns
-
-### Creating Lead from Visitor
-
-```typescript
-const result = await handler.execute(
-  new CreateLeadCommand({
-    companyId,
-    visitorId,
-    email: 'prospect@example.com',
-    name: 'John Prospect',
-    source: LeadSource.CHAT,
-  }),
-);
-if (result.isErr()) return result;
-const lead = result.unwrap();
-// Event: LeadCreatedEvent
-```
-
-### Progressing Lead Through Pipeline
-
-```typescript
-// 1. Qualify lead
-const qualifyResult = await handler.execute(
-  new ChangeLeadStatusCommand(leadId, LeadStatus.QUALIFIED),
-);
-
-// 2. After demo, move to negotiating
-const negotiateResult = await handler.execute(
-  new ChangeLeadStatusCommand(leadId, LeadStatus.NEGOTIATING),
-);
-
-// 3. Convert to customer
-const convertResult = await handler.execute(
-  new ConvertLeadCommand(leadId, estimatedValue),
-);
-// Event: LeadConvertedEvent → may trigger customer creation
-```
-
-### Assigning and Tracking Interactions
-
-```typescript
-// Assign to sales agent
-const assignResult = await handler.execute(
-  new AssignLeadCommand(leadId, agentId),
-);
-
-// Log interaction
-const interactionResult = await handler.execute(
-  new AddLeadNoteCommand(leadId, {
-    type: InteractionType.CALL,
-    duration: 1800, // 30 minutes
-    notes: 'Client interested in demo next week',
-  }),
-);
-```
-
-## Security Guidelines
-
-### Lead Access Control
-
-```typescript
-// Only assigned agent or company admins can edit
-const canEdit = lead.assignedTo === userId || isCompanyAdmin(userId);
-if (!canEdit) return err(new ForbiddenError());
-```
-
-### Company Isolation
-
-```typescript
-// Always filter by company
-const leads = await repo.find({
-  companyId: userCompanyId,
-  status: LeadStatus.OPEN,
-});
-```
+- `SyncLeadToCrmCommandHandler`: sync exitoso, fallido, ya sincronizado, datos incompletos
+- `SyncChatToCrmCommandHandler`: sync exitoso, chat ya sincronizado, lead no sincronizado
+- `SyncLeadOnLifecycleChangedEventHandler`: triggers, sin config, sin datos
+- `SyncChatOnChatClosedEventHandler`: con/sin config habilitada
 
 ## Known Limitations
 
-- No pipeline templates (custom setup required)
-- Lead merge not implemented (duplicates manual)
-- No automatic lead status transitions
-- Bulk import doesn't validate duplicate emails
-- No lead scoring integration in core (see lead-scoring context)
-- Email validation limited to format check
+- `clienteToken` se almacena sin encriptar en MongoDB (pendiente Story 2.5)
+- Los tipos en `leadcars.types.ts` NO coinciden con la API real v2.4 (pendiente Epic 4)
+- `listCampanas` no pasa `concesionarioId` como requiere la API real
+- La estructura de `chat_conversation` usa formato custom en vez del formato real de la API
+- No hay implementación del módulo Automagic (journeys/nurturing)
+- Falta validación de formato E.164 para teléfonos
+- No hay endpoint para obtener info de un lead ya creado (`GET /leadinfos/{id}`)
+- No hay endpoint para editar un lead existente (`PUT /leads/{id}/submit`)
 
 ## Future Enhancements
 
-1. **Lead routing rules** - Auto-assign based on criteria
-2. **Lead templates** - Pre-configured fields per company
-3. **Lead merge** - Combine duplicate leads
-4. **Automation workflows** - Trigger actions on events
-5. **Email integration** - Sync with email service
-6. **CRM sync** - Two-way sync with Salesforce, HubSpot
-7. **SMS notifications** - Alert agents of new leads
-8. **Advanced search** - Full-text and complex filters
+1. **Alineación con API v2.4** — Corregir tipos, mapeo de campos, estructura de chat (Epic 4)
+2. **Integración Automagic** — Flujos de nurturing de LeadCars (post-alineación)
+3. **Encriptación API keys** — AES-256 para `clienteToken` en MongoDB (Story 2.5)
+4. **HubSpot adapter** — Segundo CRM soportado
+5. **Salesforce adapter** — Tercer CRM soportado
+6. **Webhook bidireccional** — LeadCars → Guiders para actualizar estado del lead
+7. **Retry manual** — Dashboard para reintentar syncs fallidos
 
 ## Related Documentation
 
-- [Lead Scoring](../lead-scoring/AGENTS.md) - Quality scoring
-- [Visitors V2](../visitors-v2/AGENTS.md) - Visitor to lead conversion
-- [Commercial](../commercial/AGENTS.md) - Deal tracking
-- [Root AGENTS.md](../../AGENTS.md) - Architecture
-
-## Troubleshooting
-
-### Cannot assign lead
-
-- Verify agent user exists and is company member
-- Check agent hasn't reached assignment limit
-- Ensure lead is not already assigned to someone
-
-### Lead not appearing in pipeline
-
-- Check lead status matches filter
-- Verify company ID is correct
-- Ensure lead has required fields (email, name)
-
-### Bulk import failed
-
-- Verify CSV format and headers
-- Check for duplicate emails in import
-- Ensure company ID is valid
-- Check file size limits
+- [Frontend Integration](../../../docs/leadcar/frontend-integration.md) — Guía para frontend
+- [LeadCars API v2.4 (PDF)](../../../docs/leadcar/LeadCars_API_V2_4.pdf) — Documentación oficial de la API
+- [LLM Tool Use Guide](../../../docs/LLM_TOOL_USE_GUIDE.md) — Captura automática por IA
+- [Root AGENTS.md](../../AGENTS.md) — Arquitectura general

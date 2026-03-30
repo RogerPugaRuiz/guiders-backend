@@ -124,12 +124,14 @@ La integración Leadcars cierra el ciclo: el momento en que el comercial registr
 - Ponderación de intereses por tiempo invertido en página, no solo conteo de visitas
 - Dashboard de estado de sync Leadcars (leads enviados, fallidos, pendientes)
 - Webhook bidireccional: Leadcars → guiders para actualizar estado del lead
+- **Integración Automagic (LeadCars v2.4)**: Asignación automática de leads a flujos de nurturing tras la captura inicial. Los leads sincronizados pueden entrar en un flujo personalizado de seguimiento (emails, tareas, recordatorios) gestionado por LeadCars. Módulo opcional con autenticación separada (`api-user` + `api-token`).
 
 ### Vision (Future)
 
 - Intereses inferidos por IA sobre el contenido de las páginas visitadas (sin config manual)
 - Sync bidireccional completo: transcript de conversación, lead score, historial de sesiones
 - Integración con otros CRMs (HubSpot, Salesforce) usando el mismo patrón de Leadcars
+- **Automagic avanzado**: Creación de flujos de nurturing personalizados desde guiders, seguimiento del progreso del lead en flujos, métricas de conversión por flujo
 
 ## User Journeys
 

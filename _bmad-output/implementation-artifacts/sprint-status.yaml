@@ -1,0 +1,106 @@
+# generated: 30/03/2026
+# last_updated: 30/03/2026
+# project: guiders-backend
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Stories marcadas 'done' fueron implementadas antes de la creación formal de épicas (brownfield reconciliation)
+
+generated: 30/03/2026
+last_updated: 30/03/2026
+project: guiders-backend
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+# SPRINT OVERVIEW:
+# Epic 1: Intereses del Visitante (backlog) — 0/2 stories
+# Epic 2: Config CRM y Admin LeadCars (in-progress) — 4/5 stories done
+# Epic 3: Datos Contacto y Sync CRM (in-progress) — 4/5 stories done
+# Epic 4: Alineación API LeadCars v2.4 (backlog) — 0/6 stories
+
+development_status:
+  # ─────────────────────────────────────────────────────────────
+  # Epic 1: Intereses del Visitante en la Consola Comercial
+  # FRs: FR-01, FR-02
+  # Dependencias: tracking-v2, visitors-v2
+  # Prioridad: Puede trabajarse en paralelo con Epic 2/3
+  # ─────────────────────────────────────────────────────────────
+  epic-1: backlog
+  1-1-metodo-gettoppagesbyvisitor-en-trackingeventrepository: backlog
+  1-2-exposicion-de-toppages-en-get-visitors-id-activity: backlog
+  epic-1-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # Epic 2: Configuración CRM y Panel de Administración LeadCars
+  # FRs: FR-08, FR-09, FR-10, FR-13, FR-14
+  # Contexto: leads (MongoDB)
+  # 4/5 stories completadas — pendiente: encriptación en reposo
+  # ─────────────────────────────────────────────────────────────
+  epic-2: in-progress
+  2-1-crud-configuracion-crm-por-empresa: done
+  2-2-cliente-http-leadcars-con-retry: done
+  2-3-proxy-discovery-datos-leadcars: done
+  2-4-endpoints-test-conexion-crm: done
+  2-5-encriptacion-en-reposo-api-keys-crm: backlog
+  epic-2-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # Epic 3: Gestión de Datos de Contacto y Sincronización CRM
+  # FRs: FR-03, FR-04, FR-05, FR-06, FR-07, FR-12
+  # Contexto: leads (MongoDB), visitors-v2, conversations-v2
+  # 4/5 stories completadas — pendiente: tests unitarios sync
+  # ─────────────────────────────────────────────────────────────
+  epic-3: in-progress
+  3-1-gestion-datos-contacto-visitante: done
+  3-2-registros-sincronizacion-crm-dashboard: done
+  3-3-sincronizacion-automatica-lead-a-crm: done
+  3-4-sincronizacion-automatica-chat-a-crm: done
+  3-5-tests-unitarios-sync-lead-y-chat: backlog
+  epic-3-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # Epic 4: Alineación con API LeadCars v2.4
+  # FRs: FR-05 (corrección), FR-12 (corrección), FR-15, FR-16,
+  #       FR-17, FR-18, FR-19
+  # Contexto: leads (adaptador LeadCars)
+  # Fuente de verdad: docs/leadcar/LeadCars_API_V2_4.pdf
+  # Prioridad: Alta — los campos actuales no coinciden con la API
+  # ─────────────────────────────────────────────────────────────
+  epic-4: backlog
+  4-1-corregir-tipos-y-request-crear-lead: backlog
+  4-2-alinear-estructura-chat-conversation-api-v24: backlog
+  4-3-validacion-formato-e164-telefonos: backlog
+  4-4-actualizar-tipos-response-y-comentarios: backlog
+  4-5-integracion-modulo-automagic-journeys: backlog
+  4-6-tests-e2e-contra-sandbox-leadcars: backlog
+  epic-4-retrospective: optional
