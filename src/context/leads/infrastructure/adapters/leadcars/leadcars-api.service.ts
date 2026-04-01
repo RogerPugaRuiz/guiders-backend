@@ -119,6 +119,15 @@ export class LeadcarsApiService {
     concesionarioId: number,
     config: LeadcarsConfig,
   ): Promise<Result<LeadcarsListCampanasResponse, DomainError>> {
+    if (!Number.isInteger(concesionarioId) || concesionarioId <= 0) {
+      return err(
+        new CrmApiError(
+          'leadcars',
+          `concesionarioId inválido: ${concesionarioId}. Debe ser un entero positivo.`,
+        ),
+      );
+    }
+
     const url = `${this.getBaseUrl(config)}/campanas/${concesionarioId}`;
 
     return this.executeWithRetry<LeadcarsListCampanasResponse>(

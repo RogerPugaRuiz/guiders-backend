@@ -307,6 +307,7 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
 
     if (contactData.additionalData) {
       // Filtrar keys que colisionarían con campos conocidos del request
+      // y keys peligrosas para evitar prototype pollution
       const protectedKeys = new Set([
         'nombre',
         'apellidos',
@@ -323,6 +324,9 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
         'campana',
         'guiders_visitor_id',
         'guiders_company_id',
+        '__proto__',
+        'constructor',
+        'prototype',
       ]);
 
       for (const [key, value] of Object.entries(contactData.additionalData)) {
