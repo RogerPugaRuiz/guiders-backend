@@ -36,7 +36,7 @@
 # - Stories marcadas 'done' fueron implementadas antes de la creación formal de épicas (brownfield reconciliation)
 
 generated: 30/03/2026
-last_updated: 30/03/2026
+last_updated: 01/04/2026 (4.1 done)
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
@@ -44,9 +44,9 @@ story_location: _bmad-output/implementation-artifacts
 
 # SPRINT OVERVIEW:
 # Epic 1: Intereses del Visitante (backlog) — 0/2 stories
-# Epic 2: Config CRM y Admin LeadCars (in-progress) — 4/5 stories done
-# Epic 3: Datos Contacto y Sync CRM (in-progress) — 4/5 stories done
-# Epic 4: Alineación API LeadCars v2.4 (backlog) — 0/6 stories
+# Epic 2: Config CRM y Admin LeadCars (in-progress) — 4/5 stories done, 1 ready-for-dev
+# Epic 3: Datos Contacto y Sync CRM (in-progress) — 4/5 stories done, 1 ready-for-dev
+# Epic 4: Alineación API LeadCars v2.4 (in-progress) — 1/6 done, 5 ready-for-dev
 
 development_status:
   # ─────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ development_status:
   2-2-cliente-http-leadcars-con-retry: done
   2-3-proxy-discovery-datos-leadcars: done
   2-4-endpoints-test-conexion-crm: done
-  2-5-encriptacion-en-reposo-api-keys-crm: backlog
+  2-5-encriptacion-en-reposo-api-keys-crm: ready-for-dev
   epic-2-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────
@@ -85,7 +85,7 @@ development_status:
   3-2-registros-sincronizacion-crm-dashboard: done
   3-3-sincronizacion-automatica-lead-a-crm: done
   3-4-sincronizacion-automatica-chat-a-crm: done
-  3-5-tests-unitarios-sync-lead-y-chat: backlog
+  3-5-tests-unitarios-sync-lead-y-chat: ready-for-dev
   epic-3-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────
@@ -96,11 +96,11 @@ development_status:
   # Fuente de verdad: docs/leadcar/LeadCars_API_V2_4.pdf
   # Prioridad: Alta — los campos actuales no coinciden con la API
   # ─────────────────────────────────────────────────────────────
-  epic-4: backlog
-  4-1-corregir-tipos-y-request-crear-lead: backlog
-  4-2-alinear-estructura-chat-conversation-api-v24: backlog
-  4-3-validacion-formato-e164-telefonos: backlog
-  4-4-actualizar-tipos-response-y-comentarios: backlog
-  4-5-integracion-modulo-automagic-journeys: backlog
-  4-6-tests-e2e-contra-sandbox-leadcars: backlog
+  epic-4: in-progress
+  4-1-corregir-tipos-y-request-crear-lead: done
+  4-2-alinear-estructura-chat-conversation-api-v24: ready-for-dev
+  4-3-validacion-formato-e164-telefonos: ready-for-dev
+  4-4-actualizar-tipos-response-y-comentarios: ready-for-dev
+  4-5-integracion-modulo-automagic-journeys: ready-for-dev
+  4-6-tests-e2e-contra-sandbox-leadcars: ready-for-dev
   epic-4-retrospective: optional

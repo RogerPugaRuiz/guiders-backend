@@ -582,8 +582,10 @@ export class LeadsAdminController {
       useSandbox: (config.config.useSandbox as boolean) ?? false,
       concesionarioId: config.config.concesionarioId as number,
       sedeId: config.config.sedeId as number | undefined,
-      campanaId: config.config.campanaId as number | undefined,
-      tipoLeadDefault: config.config.tipoLeadDefault as string,
+      campanaCode: (config.config.campanaCode || config.config.campana) as
+        | string
+        | undefined,
+      tipoLeadDefault: config.config.tipoLeadDefault as number,
     };
   }
 
@@ -649,8 +651,14 @@ export class LeadsAdminController {
     const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
     const concesionarioIdNum = parseInt(concesionarioId, 10);
 
-    if (isNaN(concesionarioIdNum)) {
-      throw new BadRequestException('concesionarioId debe ser un número');
+    if (
+      isNaN(concesionarioIdNum) ||
+      !Number.isInteger(concesionarioIdNum) ||
+      concesionarioIdNum <= 0
+    ) {
+      throw new BadRequestException(
+        'concesionarioId debe ser un número entero positivo',
+      );
     }
 
     const result = await this.leadcarsApiService.listSedes(
@@ -702,8 +710,14 @@ export class LeadsAdminController {
     const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
     const concesionarioIdNum = parseInt(concesionarioId, 10);
 
-    if (isNaN(concesionarioIdNum)) {
-      throw new BadRequestException('concesionarioId debe ser un número');
+    if (
+      isNaN(concesionarioIdNum) ||
+      !Number.isInteger(concesionarioIdNum) ||
+      concesionarioIdNum <= 0
+    ) {
+      throw new BadRequestException(
+        'concesionarioId debe ser un número entero positivo',
+      );
     }
 
     // Usar el concesionarioId del parámetro (no el de la config)
@@ -712,7 +726,10 @@ export class LeadsAdminController {
       concesionarioId: concesionarioIdNum,
     };
 
-    const result = await this.leadcarsApiService.listCampanas(configForRequest);
+    const result = await this.leadcarsApiService.listCampanas(
+      concesionarioIdNum,
+      configForRequest,
+    );
     if (result.isErr()) {
       throw new InternalServerErrorException(
         `Error al obtener campañas de LeadCars: ${result.error.message}`,

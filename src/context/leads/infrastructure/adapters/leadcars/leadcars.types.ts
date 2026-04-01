@@ -1,6 +1,6 @@
 /**
- * Tipos específicos para la integración con LeadCars API v2
- * Documentación: https://api.leadcars.es/api/v2
+ * Tipos específicos para la integración con LeadCars API v2.4
+ * Documentación oficial: docs/leadcar/LeadCars_API_V2_4.pdf
  */
 
 /**
@@ -11,50 +11,41 @@ export interface LeadcarsConfig {
   useSandbox: boolean;
   concesionarioId: number;
   sedeId?: number;
-  campanaId?: number;
-  tipoLeadDefault: string;
+  /** Código de campaña (texto, no numérico). Antes: campanaId (number) */
+  campanaCode?: string;
+  /** ID numérico del tipo de lead obtenido de GET /tipos. Antes: string enum */
+  tipoLeadDefault: number;
 }
 
 /**
- * Tipos de lead soportados por LeadCars
- */
-export type LeadcarsTipoLead =
-  | 'COMPRA'
-  | 'VENTA'
-  | 'FINANCIACION'
-  | 'TALLER'
-  | 'RECAMBIOS'
-  | 'OTRO';
-
-/**
- * Orígenes de lead soportados
- */
-export type LeadcarsOrigenLead =
-  | 'WEB'
-  | 'TELEFONO'
-  | 'PRESENCIAL'
-  | 'EMAIL'
-  | 'REDES_SOCIALES'
-  | 'CHAT'
-  | 'OTRO';
-
-/**
- * Request para crear un lead en LeadCars
+ * Request para crear un lead en LeadCars (API v2.4)
+ * Campos dinámicos se envían al nivel raíz mediante el index signature.
  */
 export interface LeadcarsCreateLeadRequest {
   nombre: string;
   apellidos?: string;
   email?: string;
   telefono?: string;
-  dni?: string;
-  poblacion?: string;
-  concesionario_id: number;
-  sede_id?: number;
-  campana_id?: number;
-  tipo_lead: LeadcarsTipoLead;
-  origen_lead: LeadcarsOrigenLead;
-  observaciones?: string;
-  datos_adicionales?: Record<string, unknown>;
+  /** Teléfono móvil adicional en formato E.164 */
+  movil?: string;
+  /** Código postal */
+  cp?: string;
+  /** Provincia (antes: poblacion) */
+  provincia?: string;
+  /** Comentario/observaciones (antes: observaciones) */
+  comentario?: string;
+  /** URL de origen del lead */
+  url_origen?: string;
+  /** ID del concesionario (antes: concesionario_id) */
+  concesionario: number;
+  /** ID de la sede (antes: sede_id) */
+  sede?: number;
+  /** ID numérico del tipo de lead de GET /tipos (antes: LeadcarsTipoLead string enum) */
+  tipo_lead: number;
+  /** Código de campaña en texto (antes: campana_id number) */
+  campana?: string;
+  /** Campos dinámicos clave:valor al nivel raíz del JSON */
+  [key: string]: unknown;
 }
 
 /**
@@ -246,7 +237,7 @@ export interface LeadcarsListTiposResponse {
 }
 
 /**
- * URLs base de LeadCars
+ * URLs base de LeadCars API v2.4
  */
 export const LEADCARS_API_URLS = {
   production: 'https://api.leadcars.es/api/v2',
