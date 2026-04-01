@@ -18,7 +18,6 @@ import { LeadcarsApiService } from './leadcars-api.service';
 import {
   LeadcarsConfig,
   LeadcarsCreateLeadRequest,
-  LeadcarsTipoLead,
   LeadcarsChatMessage,
 } from './leadcars.types';
 
@@ -217,24 +216,13 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
       errors.push('useSandbox es obligatorio');
     }
 
-    if (!leadcarsConfig.tipoLeadDefault) {
-      errors.push('tipoLeadDefault es obligatorio');
-    } else {
-      const validTipos: LeadcarsTipoLead[] = [
-        'COMPRA',
-        'VENTA',
-        'FINANCIACION',
-        'TALLER',
-        'RECAMBIOS',
-        'OTRO',
-      ];
-      if (
-        !validTipos.includes(leadcarsConfig.tipoLeadDefault as LeadcarsTipoLead)
-      ) {
-        errors.push(
-          `tipoLeadDefault debe ser uno de: ${validTipos.join(', ')}`,
-        );
-      }
+    if (
+      typeof leadcarsConfig.tipoLeadDefault !== 'number' ||
+      leadcarsConfig.tipoLeadDefault <= 0
+    ) {
+      errors.push(
+        'tipoLeadDefault es obligatorio y debe ser un número positivo (ID de GET /tipos)',
+      );
     }
 
     return errors;
@@ -252,8 +240,11 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
       useSandbox: rawConfig.useSandbox as boolean,
       concesionarioId: rawConfig.concesionarioId as number,
       sedeId: rawConfig.sedeId as number | undefined,
-      campanaId: rawConfig.campanaId as number | undefined,
-      tipoLeadDefault: rawConfig.tipoLeadDefault as string,
+      // Compatibilidad: leer campanaCode o campana (antes: campanaId)
+      campanaCode: (rawConfig.campanaCode || rawConfig.campana) as
+        | string
+        | undefined,
+      tipoLeadDefault: rawConfig.tipoLeadDefault as number,
     };
   }
 
@@ -263,12 +254,12 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
   ): LeadcarsCreateLeadRequest {
     const request: LeadcarsCreateLeadRequest = {
       nombre: contactData.nombre || 'Visitante',
-      concesionario_id: config.concesionarioId,
-      tipo_lead: config.tipoLeadDefault as LeadcarsTipoLead,
-      origen_lead: 'CHAT',
+      concesionario: config.concesionarioId,
+      tipo_lead: config.tipoLeadDefault,
+      comentario: `Lead generado automáticamente desde chat de Guiders (visitor: ${contactData.visitorId})`,
     };
 
-    // Campos opcionales
+    // Campos opcionales de contacto
     if (contactData.apellidos) {
       request.apellidos = contactData.apellidos;
     }
@@ -281,38 +272,27 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
       request.telefono = contactData.telefono;
     }
 
-    if (contactData.dni) {
-      request.dni = contactData.dni;
-    }
-
+    // Mapear poblacion → provincia (nombre correcto en API v2.4)
     if (contactData.poblacion) {
-      request.poblacion = contactData.poblacion;
+      request.provincia = contactData.poblacion;
     }
 
     if (config.sedeId) {
-      request.sede_id = config.sedeId;
+      request.sede = config.sedeId;
     }
 
-    if (config.campanaId) {
-      request.campana_id = config.campanaId;
+    // campanaCode es texto (antes campanaId era número)
+    if (config.campanaCode) {
+      request.campana = config.campanaCode;
     }
 
-    // Datos adicionales
+    // Campos dinámicos al nivel raíz (no dentro de datos_adicionales)
+    request['guiders_visitor_id'] = contactData.visitorId;
+    request['guiders_company_id'] = contactData.companyId;
+
     if (contactData.additionalData) {
-      request.datos_adicionales = {
-        ...contactData.additionalData,
-        guiders_visitor_id: contactData.visitorId,
-        guiders_company_id: contactData.companyId,
-      };
-    } else {
-      request.datos_adicionales = {
-        guiders_visitor_id: contactData.visitorId,
-        guiders_company_id: contactData.companyId,
-      };
+      Object.assign(request, contactData.additionalData);
     }
-
-    // Añadir observaciones con info de origen
-    request.observaciones = `Lead generado automáticamente desde chat de Guiders (visitor: ${contactData.visitorId})`;
 
     return request;
   }

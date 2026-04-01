@@ -113,12 +113,13 @@ export class LeadcarsApiService {
   }
 
   /**
-   * Obtiene la lista de campañas disponibles
+   * Obtiene la lista de campañas de un concesionario
    */
   async listCampanas(
+    concesionarioId: number,
     config: LeadcarsConfig,
   ): Promise<Result<LeadcarsListCampanasResponse, DomainError>> {
-    const url = `${this.getBaseUrl(config)}/campanas`;
+    const url = `${this.getBaseUrl(config)}/campanas/${concesionarioId}`;
 
     return this.executeWithRetry<LeadcarsListCampanasResponse>(
       () => this.get<LeadcarsListCampanasResponse>(url, config),
