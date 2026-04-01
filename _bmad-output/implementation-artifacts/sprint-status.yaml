@@ -36,7 +36,7 @@
 # - Stories marcadas 'done' fueron implementadas antes de la creación formal de épicas (brownfield reconciliation)
 
 generated: 30/03/2026
-last_updated: 01/04/2026 (4.1 review)
+last_updated: 01/04/2026 (4.1 done)
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
@@ -46,7 +46,7 @@ story_location: _bmad-output/implementation-artifacts
 # Epic 1: Intereses del Visitante (backlog) — 0/2 stories
 # Epic 2: Config CRM y Admin LeadCars (in-progress) — 4/5 stories done, 1 ready-for-dev
 # Epic 3: Datos Contacto y Sync CRM (in-progress) — 4/5 stories done, 1 ready-for-dev
-# Epic 4: Alineación API LeadCars v2.4 (in-progress) — 0/6 done, 6 ready-for-dev
+# Epic 4: Alineación API LeadCars v2.4 (in-progress) — 1/6 done, 5 ready-for-dev
 
 development_status:
   # ─────────────────────────────────────────────────────────────
@@ -97,7 +97,7 @@ development_status:
   # Prioridad: Alta — los campos actuales no coinciden con la API
   # ─────────────────────────────────────────────────────────────
   epic-4: in-progress
-  4-1-corregir-tipos-y-request-crear-lead: review
+  4-1-corregir-tipos-y-request-crear-lead: done
   4-2-alinear-estructura-chat-conversation-api-v24: ready-for-dev
   4-3-validacion-formato-e164-telefonos: ready-for-dev
   4-4-actualizar-tipos-response-y-comentarios: ready-for-dev

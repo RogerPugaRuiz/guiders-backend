@@ -100,22 +100,20 @@ export class LeadcarsConfigDto {
   sedeId?: number;
 
   @ApiPropertyOptional({
-    description: 'ID de la campaña (opcional)',
-    example: 789,
-  })
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  campanaId?: number;
-
-  @ApiPropertyOptional({
-    description: 'Tipo de lead por defecto',
-    example: 'web',
-    default: 'web',
+    description: 'Código de campaña (texto, no numérico)',
+    example: 'WEB-2026',
   })
   @IsOptional()
   @IsString()
-  tipoLeadDefault?: string;
+  campanaCode?: string;
+
+  @ApiProperty({
+    description: 'ID numérico del tipo de lead (de GET /tipos)',
+    example: 7,
+  })
+  @IsNumber()
+  @Min(1)
+  tipoLeadDefault: number;
 }
 
 /**

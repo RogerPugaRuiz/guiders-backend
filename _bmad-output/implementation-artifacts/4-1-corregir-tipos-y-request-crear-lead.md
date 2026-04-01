@@ -1,6 +1,6 @@
 # Historia 4.1: Corregir Tipos y Request de Crear Lead
 
-Status: review
+Status: done
 
 ## Historia
 
@@ -71,6 +71,17 @@ para que la sincronización de leads no falle por nombres de campos incorrectos 
   - [x] Cambiar el tipo del parámetro `request` para aceptar la nueva estructura (preparar para Story 4.2)
 - [x] Actualizar tests si existen (AC: todos)
   - [x] Verificar que `npm run test:unit -- src/context/leads` pasa sin errores
+
+### Review Findings
+
+- [x] [Review][Decision] tipoLeadDefault cambió de string a number sin migración de datos existentes — Resuelto: coerción runtime con validación explícita de tipo string legacy. [leadcars-crm-sync.adapter.ts:234]
+- [x] [Review][Patch] Object.assign(request, additionalData) permite sobreescritura de campos críticos — Corregido: filtrado de keys protegidas con Set + logger warning. [leadcars-crm-sync.adapter.ts:305]
+- [x] [Review][Patch] tipoLeadDefault permite floats — Corregido: añadido Number.isInteger() a validateConfig(). [leadcars-crm-sync.adapter.ts:225]
+- [x] [Review][Patch] DTO crm-config.dto.ts NO actualizado — Corregido: campanaId→campanaCode (string), tipoLeadDefault→number. [crm-config.dto.ts:102-115]
+- [x] [Review][Patch] concesionarioId=0 pasa validación — Corregido: añadido <= 0 al check. [leadcars-crm-sync.adapter.ts:216]
+- [x] [Review][Patch] Fallback campanaCode no lee campanaId legacy — Corregido: añadido campanaId al fallback chain con conversión a string. [leadcars-crm-sync.adapter.ts:257]
+- [x] [Review][Defer] Sin validación de concesionarioId en URL path [leadcars-api.service.ts:122] — deferred, pre-existing
+- [x] [Review][Defer] email y apellidos requeridos por API v2.4 pero no validados/advertidos — deferred, pre-existing
 
 ## Notas de Desarrollo
 

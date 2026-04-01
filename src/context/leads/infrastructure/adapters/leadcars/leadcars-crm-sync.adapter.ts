@@ -208,20 +208,33 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
       errors.push('clienteToken es obligatorio');
     }
 
-    if (typeof leadcarsConfig.concesionarioId !== 'number') {
-      errors.push('concesionarioId es obligatorio y debe ser un número');
+    if (
+      typeof leadcarsConfig.concesionarioId !== 'number' ||
+      leadcarsConfig.concesionarioId <= 0
+    ) {
+      errors.push(
+        'concesionarioId es obligatorio y debe ser un número positivo',
+      );
     }
 
     if (leadcarsConfig.useSandbox === undefined) {
       errors.push('useSandbox es obligatorio');
     }
 
-    if (
-      typeof leadcarsConfig.tipoLeadDefault !== 'number' ||
-      leadcarsConfig.tipoLeadDefault <= 0
+    // Detectar configs legacy donde tipoLeadDefault era string (antes del check de tipo)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawTipoLead = (leadcarsConfig as any).tipoLeadDefault;
+    if (typeof rawTipoLead === 'string') {
+      errors.push(
+        `tipoLeadDefault tiene valor string "${rawTipoLead}". Debe ser un ID numérico de GET /tipos. Re-configure la integración.`,
+      );
+    } else if (
+      typeof rawTipoLead !== 'number' ||
+      !Number.isInteger(rawTipoLead) ||
+      rawTipoLead <= 0
     ) {
       errors.push(
-        'tipoLeadDefault es obligatorio y debe ser un número positivo (ID de GET /tipos)',
+        'tipoLeadDefault es obligatorio y debe ser un número entero positivo (ID de GET /tipos)',
       );
     }
 
@@ -240,10 +253,12 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
       useSandbox: rawConfig.useSandbox as boolean,
       concesionarioId: rawConfig.concesionarioId as number,
       sedeId: rawConfig.sedeId as number | undefined,
-      // Compatibilidad: leer campanaCode o campana (antes: campanaId)
-      campanaCode: (rawConfig.campanaCode || rawConfig.campana) as
-        | string
-        | undefined,
+      // Compatibilidad: leer campanaCode, campana, o campanaId (legacy, convertir a string)
+      campanaCode: (rawConfig.campanaCode ||
+        rawConfig.campana ||
+        (rawConfig.campanaId != null
+          ? `${rawConfig.campanaId as number}`
+          : undefined)) as string | undefined,
       tipoLeadDefault: rawConfig.tipoLeadDefault as number,
     };
   }
@@ -291,7 +306,34 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
     request['guiders_company_id'] = contactData.companyId;
 
     if (contactData.additionalData) {
-      Object.assign(request, contactData.additionalData);
+      // Filtrar keys que colisionarían con campos conocidos del request
+      const protectedKeys = new Set([
+        'nombre',
+        'apellidos',
+        'email',
+        'telefono',
+        'movil',
+        'cp',
+        'provincia',
+        'comentario',
+        'url_origen',
+        'concesionario',
+        'sede',
+        'tipo_lead',
+        'campana',
+        'guiders_visitor_id',
+        'guiders_company_id',
+      ]);
+
+      for (const [key, value] of Object.entries(contactData.additionalData)) {
+        if (!protectedKeys.has(key)) {
+          request[key] = value;
+        } else {
+          this.logger.warn(
+            `additionalData contiene key protegida '${key}', ignorada para evitar sobreescritura`,
+          );
+        }
+      }
     }
 
     return request;
