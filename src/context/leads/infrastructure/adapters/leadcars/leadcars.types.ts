@@ -1,6 +1,6 @@
 /**
- * Tipos específicos para la integración con LeadCars API v2.4
- * Documentación oficial: docs/leadcar/LeadCars_API_V2_4.pdf
+ * Tipos específicos para la integración con LeadCars API v2.5
+ * Documentación oficial: docs/leadcar/LeadCars_API_V2_5.pdf
  */
 
 /**
@@ -18,8 +18,50 @@ export interface LeadcarsConfig {
 }
 
 /**
- * Request para crear un lead en LeadCars (API v2.4)
- * Campos dinámicos se envían al nivel raíz mediante el index signature.
+ * Estado de un lead en LeadCars (API v2.5)
+ */
+export interface LeadcarsEstado {
+  id: number;
+  motivos?: string[];
+  texto?: string;
+}
+
+/**
+ * Temperatura del lead (API v2.5)
+ */
+export type LeadcarsTemperature = 'cold' | 'warn' | 'hot';
+
+/**
+ * Campo dinámico de un estado de LeadCars (API v2.5)
+ */
+export interface LeadcarsStateField {
+  name: string;
+  type: 'checkbox' | 'text' | 'textarea' | (string & {});
+  title: string;
+  required: boolean;
+  options?: string[];
+}
+
+/**
+ * Item de estado de LeadCars (API v2.5)
+ */
+export interface LeadcarsStateItem {
+  id: number;
+  group: string;
+  fields: LeadcarsStateField[];
+}
+
+/**
+ * Response del endpoint GET /listStates (API v2.5)
+ * Mapa de nombre de estado → detalle del estado
+ */
+export interface LeadcarsListStatesResponse {
+  [stateName: string]: LeadcarsStateItem;
+}
+
+/**
+ * Request para crear un lead en LeadCars (API v2.5)
+ * Los campos dinámicos ahora van dentro de `custom` (antes iban al nivel raíz).
  */
 export interface LeadcarsCreateLeadRequest {
   nombre: string;
@@ -44,14 +86,61 @@ export interface LeadcarsCreateLeadRequest {
   tipo_lead: number;
   /** Código de campaña en texto (antes: campana_id number) */
   campana?: string;
-  /** Campos dinámicos clave:valor al nivel raíz del JSON */
-  [key: string]: unknown;
+  /** Campos dinámicos clave:valor (API v2.5: dentro de custom, antes al nivel raíz) */
+  custom?: Record<string, unknown>;
+  /** Estado del lead (API v2.5) */
+  estado?: LeadcarsEstado;
+  /** Temperatura del lead (API v2.5) */
+  temperature?: LeadcarsTemperature;
 }
 
 /**
  * Response de crear lead en LeadCars
  */
 export interface LeadcarsCreateLeadResponse {
+  success: boolean;
+  data?: {
+    id: number;
+    referencia: string;
+    nombre: string;
+    email?: string;
+    telefono?: string;
+    estado: string;
+    created_at: string;
+    updated_at: string;
+  };
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, string[]>;
+  };
+}
+
+/**
+ * Request para editar un lead en LeadCars (API v2.5)
+ * PUT /leads/{idLead}/submit — campo `estado` requerido en v2.5
+ */
+export interface LeadcarsEditLeadRequest {
+  /** Estado del lead (requerido en v2.5) */
+  estado: LeadcarsEstado;
+  /** Temperatura del lead (API v2.5) */
+  temperature?: LeadcarsTemperature;
+  nombre?: string;
+  apellidos?: string;
+  telefono?: string;
+  cp?: string;
+  provincia?: string;
+  comentario?: string;
+  url_origen?: string;
+  concesionario?: number;
+  sede?: number;
+  campana?: string;
+}
+
+/**
+ * Response de editar lead en LeadCars (API v2.5)
+ */
+export interface LeadcarsEditLeadResponse {
   success: boolean;
   data?: {
     id: number;
@@ -237,7 +326,7 @@ export interface LeadcarsListTiposResponse {
 }
 
 /**
- * URLs base de LeadCars API v2.4
+ * URLs base de LeadCars API v2.5
  */
 export const LEADCARS_API_URLS = {
   production: 'https://api.leadcars.es/api/v2',

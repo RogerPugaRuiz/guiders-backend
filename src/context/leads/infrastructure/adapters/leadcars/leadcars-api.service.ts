@@ -17,6 +17,9 @@ import {
   LeadcarsListSedesResponse,
   LeadcarsListCampanasResponse,
   LeadcarsListTiposResponse,
+  LeadcarsListStatesResponse,
+  LeadcarsEditLeadRequest,
+  LeadcarsEditLeadResponse,
   LEADCARS_API_URLS,
   LEADCARS_RETRY_CONFIG,
   LEADCARS_REQUIRED_HEADERS,
@@ -151,6 +154,46 @@ export class LeadcarsApiService {
   }
 
   /**
+   * Obtiene el catálogo de estados disponibles en LeadCars (API v2.5)
+   */
+  async listStates(
+    config: LeadcarsConfig,
+  ): Promise<Result<LeadcarsListStatesResponse, DomainError>> {
+    const url = `${this.getBaseUrl(config)}/listStates`;
+
+    return this.executeWithRetry<LeadcarsListStatesResponse>(
+      () => this.get<LeadcarsListStatesResponse>(url, config),
+      'listStates',
+    );
+  }
+
+  /**
+   * Edita un lead existente en LeadCars (API v2.5)
+   * PUT /leads/{leadId}/submit — campo `estado` requerido
+   */
+  async editLead(
+    leadId: number,
+    request: LeadcarsEditLeadRequest,
+    config: LeadcarsConfig,
+  ): Promise<Result<LeadcarsEditLeadResponse, DomainError>> {
+    if (!Number.isInteger(leadId) || leadId <= 0) {
+      return err(
+        new CrmApiError(
+          'leadcars',
+          `leadId inválido: ${leadId}. Debe ser un entero positivo.`,
+        ),
+      );
+    }
+
+    const url = `${this.getBaseUrl(config)}/leads/${leadId}/submit`;
+
+    return this.executeWithRetry<LeadcarsEditLeadResponse>(
+      () => this.put<LeadcarsEditLeadResponse>(url, request, config),
+      'editLead',
+    );
+  }
+
+  /**
    * Verifica que la conexión con LeadCars funciona
    */
   async testConnection(
@@ -223,6 +266,29 @@ export class LeadcarsApiService {
       return ok(response.data);
     } catch (error) {
       return this.handleAxiosError(error, 'POST', url);
+    }
+  }
+
+  private async put<T>(
+    url: string,
+    data: unknown,
+    config: LeadcarsConfig,
+  ): Promise<Result<T, DomainError>> {
+    try {
+      const axiosConfig: AxiosRequestConfig = {
+        headers: this.getHeaders(config),
+        timeout: 30000,
+      };
+
+      this.logger.debug(`PUT ${url}`, { data: this.sanitizeForLog(data) });
+
+      const response = await firstValueFrom(
+        this.httpService.put<T>(url, data, axiosConfig),
+      );
+
+      return ok(response.data);
+    } catch (error) {
+      return this.handleAxiosError(error, 'PUT', url);
     }
   }
 

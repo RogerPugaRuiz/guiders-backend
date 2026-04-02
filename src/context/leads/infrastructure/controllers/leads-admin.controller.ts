@@ -787,6 +787,34 @@ export class LeadsAdminController {
     return response.data.map((t) => ({ id: t.id, nombre: t.nombre }));
   }
 
+  @Get('leadcars/states')
+  @Roles(['admin'])
+  @ApiOperation({
+    summary: 'Listar estados disponibles en LeadCars',
+    description:
+      'Proxy al endpoint GET /listStates de LeadCars (API v2.5) usando el token guardado',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Mapa de estados disponibles con sus campos dinámicos',
+  })
+  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  async getLeadcarsStates(
+    @Req() request: AuthenticatedRequest,
+  ): Promise<Record<string, unknown>> {
+    const companyId = request.user.companyId;
+    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+
+    const result = await this.leadcarsApiService.listStates(leadcarsConfig);
+    if (result.isErr()) {
+      throw new InternalServerErrorException(
+        `Error al obtener estados de LeadCars: ${result.error.message}`,
+      );
+    }
+
+    return result.unwrap() as Record<string, unknown>;
+  }
+
   // ==================== Información del Sistema ====================
 
   @Get('supported-crms')

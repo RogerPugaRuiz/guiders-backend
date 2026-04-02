@@ -222,7 +222,7 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
     }
 
     // Detectar configs legacy donde tipoLeadDefault era string (antes del check de tipo)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const rawTipoLead = (leadcarsConfig as any).tipoLeadDefault;
     if (typeof rawTipoLead === 'string') {
       errors.push(
@@ -301,9 +301,11 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
       request.campana = config.campanaCode;
     }
 
-    // Campos dinámicos al nivel raíz (no dentro de datos_adicionales)
-    request['guiders_visitor_id'] = contactData.visitorId;
-    request['guiders_company_id'] = contactData.companyId;
+    // Campos de identificación de Guiders dentro del objeto custom (API v2.5)
+    const customFields: Record<string, unknown> = {
+      guiders_visitor_id: contactData.visitorId,
+      guiders_company_id: contactData.companyId,
+    };
 
     if (contactData.additionalData) {
       // Filtrar keys que colisionarían con campos conocidos del request
@@ -331,7 +333,7 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
 
       for (const [key, value] of Object.entries(contactData.additionalData)) {
         if (!protectedKeys.has(key)) {
-          request[key] = value;
+          customFields[key] = value;
         } else {
           this.logger.warn(
             `additionalData contiene key protegida '${key}', ignorada para evitar sobreescritura`,
@@ -339,6 +341,8 @@ export class LeadcarsCrmSyncAdapter implements ICrmSyncService {
         }
       }
     }
+
+    request.custom = customFields;
 
     return request;
   }
