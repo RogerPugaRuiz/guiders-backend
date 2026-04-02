@@ -1,0 +1,118 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-04-01T00:00:00Z",
+    "last_updated": "2026-04-01T03:45:00Z",
+    "completed": "2026-04-01T03:45:00Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "exhaustive",
+  "project_root": "/root/.openclaw/workspace/guiders-backend",
+  "project_knowledge": "docs",
+  "project_types": [
+    {
+      "part_id": "guiders-backend",
+      "project_type_id": "backend",
+      "display_name": "NestJS Backend (DDD+CQRS+Hexagonal)"
+    }
+  ],
+  "completed_steps": [
+    {
+      "step": "step_0.5",
+      "status": "completed",
+      "timestamp": "2026-04-01T00:00:00Z",
+      "summary": "Documentation requirements CSV loaded for 12 project types"
+    },
+    {
+      "step": "step_0.6",
+      "status": "completed",
+      "timestamp": "2026-04-01T00:00:30Z",
+      "summary": "Initialized state file, set mode=initial_scan, scan_level=exhaustive"
+    },
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-04-01T00:01:00Z",
+      "summary": "Classified as monolith backend NestJS with DDD+CQRS+Hexagonal architecture, 15 bounded contexts, dual persistence PostgreSQL+MongoDB"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-04-01T00:05:00Z",
+      "summary": "Found ~148 existing documentation files across docs/, AGENTS.md, .claude/rules/, _bmad-output/"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2026-04-01T00:10:00Z",
+      "summary": "Tech stack: NestJS v11, TypeScript 5.8, PostgreSQL+MongoDB+Redis, Socket.IO, Keycloak, AWS S3, Groq"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2026-04-01T02:30:00Z",
+      "summary": "Exhaustive scan complete. ~145 REST endpoints + 13 WebSocket events. 15 MongoDB collections + 7 PostgreSQL tables."
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2026-04-01T02:40:00Z",
+      "summary": "Source tree analysis written (279 lines)."
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2026-04-01T02:50:00Z",
+      "summary": "Development + deployment guide written (331 lines)."
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2026-04-01T03:00:00Z",
+      "summary": "Architecture document written (703 lines)."
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2026-04-01T03:15:00Z",
+      "summary": "project-overview.md (217 lines) and component-inventory.md (512 lines) written."
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2026-04-01T03:30:00Z",
+      "summary": "Master index.md generated (192 lines) with links to 8 generated docs, 15 AGENTS.md, 51+ existing docs."
+    },
+    {
+      "step": "step_11",
+      "status": "completed",
+      "timestamp": "2026-04-01T03:40:00Z",
+      "summary": "Validation complete. All checklist items passed. No incomplete markers found. 3,351 total lines across 8 documents."
+    },
+    {
+      "step": "step_12",
+      "status": "completed",
+      "timestamp": "2026-04-01T03:45:00Z",
+      "summary": "Workflow complete. All documentation generated and validated."
+    }
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": "Monolith backend, NestJS v11, DDD+CQRS+Hexagonal, 15 bounded contexts, dual persistence PostgreSQL+MongoDB",
+    "technology_stack": "NestJS v11 + TypeScript 5.8, PostgreSQL (TypeORM), MongoDB (Mongoose), Redis, Socket.IO, Keycloak OIDC, AWS S3, Groq SDK",
+    "api_summary": "~145 REST endpoints across 25 controllers + 13 WebSocket events",
+    "data_summary": "15 MongoDB collections + 7 PostgreSQL tables, ~99 MongoDB indexes + 6 PG unique constraints"
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "api-contracts.md",
+    "data-models.md",
+    "source-tree-analysis.md",
+    "development-guide.md",
+    "architecture.md",
+    "project-overview.md",
+    "component-inventory.md",
+    "index.md"
+  ],
+  "resume_instructions": "Workflow completed. All documentation generated and validated."
+}
