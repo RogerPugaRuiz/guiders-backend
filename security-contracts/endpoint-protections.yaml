@@ -1,0 +1,559 @@
+# endpoint-protections.yaml
+# Matriz machine-readable de endpoints y sus controles de seguridad requeridos.
+# Origen: Step 7 del security-prd.md (party mode item 6 — propuesta de Quinn).
+#
+# Uso:
+#   1. Auditoría: fuente de verdad de controles requeridos por endpoint.
+#   2. CI: test de integración (Quinn) lee este YAML y valida que cada endpoint
+#      declare los decoradores esperados (@UseGuards, @RequireTenantContext, etc.).
+#   3. Documentación: base para diagrama trust boundaries (Winston).
+#
+# Política de defaults por grupo:
+#   - Todo endpoint tiene rate_limit salvo excepción documentada.
+#   - Todo endpoint autenticado requiere un decorador tenant-context explícito:
+#       @RequireTenantContext  → exige companyId del JWT y lo aplica en repos.
+#       @OptionalTenantContext → puede o no tener companyId (operaciones globales
+#                                tipo "listar sites propios").
+#       @NoTenantContext       → explícitamente sin tenant (auth flows, health).
+#   - Una lint rule custom (eslint-plugin-security-local) debe fallar CI si un
+#     controller autenticado no declara uno de los tres decoradores.
+#
+# Inventario generado por grep sobre src/**/*.controller.ts y websocket.gateway.ts.
+# Total: 25 controllers HTTP + 1 gateway WS, 140+ endpoints, 13 eventos WS.
+
+version: 1
+generated_at: 2026-04-21
+generated_from:
+  - "grep '@Controller\\(' src/**/*.ts"
+  - "grep '@(Get|Post|Put|Patch|Delete)\\(' src/**/*.ts"
+  - "grep '@SubscribeMessage\\(' src/websocket/websocket.gateway.ts"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONTROLES DEFINIDOS (vocabulario cerrado)
+# ─────────────────────────────────────────────────────────────────────────────
+controls_vocabulary:
+  authentication:
+    - none                    # Endpoint público intencional
+    - jwt_user                # JWT de usuario (comercial/admin) — AuthGuard
+    - jwt_visitor             # JWT de visitor anónimo/identificado
+    - jwt_any                 # Acepta ambos (jwt_user OR jwt_visitor)
+    - api_key                 # X-API-Key header — ApiKeyGuard
+    - cookie_bff              # Cookie HttpOnly del BFF auth flow
+    - oauth_callback          # OAuth state + PKCE (Keycloak)
+
+  authorization:
+    - none
+    - role_admin              # RolesGuard con 'admin'
+    - role_commercial         # RolesGuard con 'commercial'
+    - role_any_authenticated  # Cualquier rol válido
+    - resource_ownership      # Visitor solo accede a sus propios datos
+
+  tenant_context:
+    - required                # @RequireTenantContext (companyId obligatorio)
+    - optional                # @OptionalTenantContext
+    - none                    # @NoTenantContext (auth, health, public)
+
+  input_validation:
+    - dto_class_validator     # class-validator en DTOs
+    - criteria_safe           # CriteriaConverter con whitelist (fix INJ-001)
+    - mongo_projection        # Proyección explícita (no $where, no RCE)
+    - file_upload_validated   # MIME whitelist + tamaño + antivirus
+
+  rate_limit:
+    - none                    # Solo health checks y JWKS público cacheable
+    - standard                # 100 req/min por IP (default ThrottlerGuard)
+    - strict                  # 20 req/min por IP
+    - progressive_auth        # 1s, 5s, 30s backoff tras fallos (FR-AUTH-005)
+    - generous                # 1000 req/min (endpoints de tracking pixel)
+
+  logging_constraints:
+    - no_secrets              # Logger sanitizer activo (FR-OBS-001)
+    - audit_trail             # Registro en audit log (GDPR art. 30)
+    - no_pii                  # Sin nombre/email/DNI en logs
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GRUPOS DE ENDPOINTS (por controller → política + excepciones)
+# ─────────────────────────────────────────────────────────────────────────────
+groups:
+
+  # ───── AUTH CONTEXT ─────
+  - id: auth-user
+    controller: src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts
+    base_path: /user/auth
+    endpoints_count: 12
+    default_policy:
+      authentication: jwt_user
+      authorization: role_any_authenticated
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii]
+    exceptions:
+      - path: POST /login
+        authentication: none
+        tenant_context: none
+        rate_limit: progressive_auth
+        logging_constraints: [no_secrets, no_pii, audit_trail]
+      - path: POST /register
+        authentication: none
+        tenant_context: none
+        rate_limit: strict
+      - path: POST /refresh
+        authentication: none       # Valida refresh token en body
+        tenant_context: none
+        rate_limit: standard
+      - path: POST /accept-invite
+        authentication: none
+        tenant_context: none
+        rate_limit: strict
+      - path: GET /validate
+        tenant_context: optional
+      - path: POST /:keycloakId/avatar
+        input_validation: [dto_class_validator, file_upload_validated]
+
+  - id: auth-visitor
+    controller: src/context/auth/auth-visitor/infrastructure/auth-visitor.controller.ts
+    base_path: /pixel
+    endpoints_count: 4
+    default_policy:
+      authentication: api_key
+      authorization: none
+      tenant_context: required      # companyId derivado de API key
+      input_validation: [dto_class_validator]
+      rate_limit: generous           # Pixel alto volumen
+      logging_constraints: [no_secrets, no_pii]
+    exceptions:
+      - path: POST /token
+        rate_limit: progressive_auth
+      - path: GET /metadata
+        authentication: api_key
+        rate_limit: standard
+
+  - id: auth-bff
+    controller: src/context/auth/bff/infrastructure/controllers/bff-auth.controller.ts
+    base_path: /bff/auth
+    endpoints_count: 9
+    default_policy:
+      authentication: cookie_bff
+      authorization: role_any_authenticated
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii, audit_trail]
+    exceptions:
+      - path: GET /login
+        authentication: none
+        tenant_context: none
+        rate_limit: strict
+      - path: GET /login/:app
+        authentication: none
+        tenant_context: none
+      - path: GET /callback/:app
+        authentication: oauth_callback
+        tenant_context: none
+      - path: GET /logout
+        authentication: cookie_bff
+        rate_limit: standard
+      - path: GET /logout/:app
+        authentication: cookie_bff
+
+  - id: api-keys
+    controller: src/context/auth/api-key/infrastructure/api-key.controller.ts
+    base_path: /api-keys
+    endpoints_count: 2
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: strict
+      logging_constraints: [no_secrets, no_pii, audit_trail]
+
+  - id: jwks
+    controller: src/context/auth/api-key/infrastructure/jwks.controller.ts
+    base_path: /jwks
+    endpoints_count: 1
+    default_policy:
+      authentication: none          # JWKS es público por diseño
+      authorization: none
+      tenant_context: none
+      input_validation: []
+      rate_limit: none               # Cacheable con CDN
+      logging_constraints: [no_secrets]
+
+  # ───── COMPANY CONTEXT ─────
+  - id: company
+    controller: src/context/company/infrastructure/controllers/company.controller.ts
+    base_path: /
+    endpoints_count: 5
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, audit_trail]
+    exceptions:
+      - path: POST /sites/resolve
+        authentication: api_key
+        tenant_context: required
+      - path: GET /company/by-domain/:domain
+        authentication: api_key
+        tenant_context: optional
+      - path: GET /me/company
+        authorization: role_any_authenticated
+
+  # ───── CONVERSATIONS V2 CONTEXT ─────
+  - id: chat-v2
+    controller: src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts
+    base_path: /v2/chats
+    endpoints_count: 16
+    default_policy:
+      authentication: jwt_any
+      authorization: role_any_authenticated
+      tenant_context: required
+      input_validation: [dto_class_validator, criteria_safe, mongo_projection]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii, audit_trail]
+    exceptions:
+      - path: GET /response-time-stats
+        authorization: role_commercial
+      - path: GET /metrics/commercial/:commercialId
+        authorization: role_commercial
+      - path: PUT /:chatId/assign/:commercialId
+        authorization: role_commercial
+        logging_constraints: [no_secrets, audit_trail]
+      - path: DELETE /visitor/:visitorId/clear
+        authorization: role_admin
+        logging_constraints: [no_secrets, no_pii, audit_trail]
+
+  - id: message-v2
+    controller: src/context/conversations-v2/infrastructure/controllers/message-v2.controller.ts
+    base_path: /v2/messages
+    endpoints_count: 9
+    default_policy:
+      authentication: jwt_any
+      authorization: role_any_authenticated
+      tenant_context: required
+      input_validation: [dto_class_validator, criteria_safe, mongo_projection]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii]
+    exceptions:
+      - path: GET /metrics
+        authorization: role_commercial
+      - path: GET /attachments
+        authorization: role_any_authenticated
+        input_validation: [dto_class_validator, mongo_projection]
+
+  - id: presence
+    controller: src/context/conversations-v2/infrastructure/controllers/presence.controller.ts
+    base_path: /presence
+    endpoints_count: 3
+    default_policy:
+      authentication: jwt_any
+      authorization: role_any_authenticated
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii]
+
+  - id: assignment-rules
+    controller: src/context/conversations-v2/infrastructure/controllers/assignment-rules.controller.ts
+    base_path: /v2/assignment-rules
+    endpoints_count: 2
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, audit_trail]
+
+  # ───── VISITORS V2 CONTEXT ─────
+  - id: visitor-v2
+    controller: src/context/visitors-v2/infrastructure/controllers/visitor-v2.controller.ts
+    base_path: /visitors
+    endpoints_count: 6
+    default_policy:
+      authentication: jwt_visitor
+      authorization: resource_ownership
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: generous
+      logging_constraints: [no_secrets, no_pii]
+    exceptions:
+      - path: POST /identify
+        rate_limit: standard
+        logging_constraints: [no_secrets, no_pii, audit_trail]
+
+  - id: sites
+    controller: src/context/visitors-v2/infrastructure/controllers/sites.controller.ts
+    base_path: /sites
+    endpoints_count: 1
+    default_policy:
+      authentication: api_key
+      authorization: none
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets]
+
+  - id: site-visitors
+    controller: src/context/visitors-v2/infrastructure/controllers/site-visitors.controller.ts
+    base_path: /site-visitors
+    endpoints_count: 3
+    default_policy:
+      authentication: jwt_user
+      authorization: role_commercial
+      tenant_context: required
+      input_validation: [dto_class_validator, criteria_safe]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii]
+
+  - id: tenant-visitors
+    controller: src/context/visitors-v2/infrastructure/controllers/tenant-visitors.controller.ts
+    base_path: /tenant-visitors
+    endpoints_count: 7
+    default_policy:
+      authentication: jwt_user
+      authorization: role_commercial
+      tenant_context: required      # :tenantId debe igualar companyId del JWT
+      input_validation: [dto_class_validator, criteria_safe, mongo_projection]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii]
+
+  # ───── COMMERCIAL CONTEXT ─────
+  - id: commercial
+    controller: src/context/commercial/infrastructure/controllers/commercial.controller.ts
+    base_path: /v2/commercials
+    endpoints_count: 9
+    default_policy:
+      authentication: jwt_user
+      authorization: role_commercial
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, audit_trail]
+    exceptions:
+      - path: DELETE /:id
+        authorization: role_admin
+      - path: POST /register-fingerprint
+        logging_constraints: [no_secrets, no_pii]
+
+  # ───── LEADS CONTEXT ─────
+  - id: leads-contact
+    controller: src/context/leads/infrastructure/controllers/leads-contact.controller.ts
+    base_path: /leads
+    endpoints_count: 3
+    default_policy:
+      authentication: api_key
+      authorization: none
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii, audit_trail]   # PII sensible
+
+  - id: leads-admin
+    controller: src/context/leads/infrastructure/controllers/leads-admin.controller.ts
+    base_path: /v1/leads/admin
+    endpoints_count: 15
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii, audit_trail]
+    exceptions:
+      - path: POST /test-connection
+        rate_limit: strict            # SSRF target potencial (fix INJ-003)
+        input_validation: [dto_class_validator, criteria_safe]
+
+  # ───── LLM CONTEXT ─────
+  - id: llm-config
+    controller: src/context/llm/infrastructure/controllers/llm-config.controller.ts
+    base_path: /v2/llm/config
+    endpoints_count: 5
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, audit_trail]
+
+  - id: llm-suggestions
+    controller: src/context/llm/infrastructure/controllers/llm-suggestions.controller.ts
+    base_path: /v2/llm
+    endpoints_count: 2
+    default_policy:
+      authentication: jwt_user
+      authorization: role_commercial
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: strict              # Coste LLM
+      logging_constraints: [no_secrets, no_pii]
+
+  # ───── TRACKING V2 CONTEXT ─────
+  - id: tracking-v2
+    controller: src/context/tracking-v2/infrastructure/controllers/tracking-v2.controller.ts
+    base_path: /tracking-v2
+    endpoints_count: 3
+    default_policy:
+      authentication: api_key
+      authorization: none
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: generous
+      logging_constraints: [no_secrets, no_pii]
+    exceptions:
+      - path: GET /stats/tenant/:tenantId
+        authentication: jwt_user
+        authorization: role_admin
+      - path: GET /health
+        authentication: none
+        tenant_context: none
+        rate_limit: none
+
+  # ───── WHITE LABEL CONTEXT ─────
+  - id: white-label
+    controller: src/context/white-label/infrastructure/controllers/white-label-config.controller.ts
+    base_path: /v2/companies/:companyId/white-label
+    endpoints_count: 11
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: required      # :companyId en path debe == companyId JWT
+      input_validation: [dto_class_validator, file_upload_validated]
+      rate_limit: strict
+      logging_constraints: [no_secrets, audit_trail]
+    exceptions:
+      - path: GET /defaults
+        authorization: role_any_authenticated
+        input_validation: []
+
+  # ───── CONSENT CONTEXT (GDPR) ─────
+  - id: consent
+    controller: src/context/consent/infrastructure/controllers/consent.controller.ts
+    base_path: /consents
+    endpoints_count: 4
+    default_policy:
+      authentication: jwt_visitor
+      authorization: resource_ownership
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii, audit_trail]  # GDPR art. 30
+
+  # ───── LEGACY V1 (maintenance) ─────
+  - id: visitor-v1
+    controller: src/context/visitors/infrastructure/controllers/visitor.controller.ts
+    base_path: /visitor
+    endpoints_count: 5
+    deprecated: true
+    default_policy:
+      authentication: jwt_visitor
+      authorization: resource_ownership
+      tenant_context: required
+      input_validation: [dto_class_validator]
+      rate_limit: standard
+      logging_constraints: [no_secrets, no_pii]
+
+  # ───── APP ROOT ─────
+  - id: app-root
+    controller: src/app.controller.ts
+    base_path: /
+    endpoints_count: 3
+    default_policy:
+      authentication: none
+      tenant_context: none
+      rate_limit: none
+      logging_constraints: [no_secrets]
+    exceptions:
+      - path: GET /protected
+        authentication: jwt_user
+        tenant_context: optional
+        rate_limit: standard
+
+  # ───── DEBUG / TEST (debe desactivarse en prod) ─────
+  - id: open-search-debug
+    controller: src/context/shared/infrastructure/open-search/tests/open-search.controller.ts
+    base_path: /open-search
+    endpoints_count: 2
+    must_disable_in_production: true
+    default_policy:
+      authentication: jwt_user
+      authorization: role_admin
+      tenant_context: none
+      input_validation: [dto_class_validator]
+      rate_limit: strict
+      logging_constraints: [no_secrets]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WEBSOCKET EVENTS (src/websocket/websocket.gateway.ts)
+# ─────────────────────────────────────────────────────────────────────────────
+websocket:
+  gateway: src/websocket/websocket.gateway.ts
+  handshake_policy:
+    authentication: jwt_any          # JWT en handshake (auth.token)
+    tenant_context: required         # companyId extraído y validado al join
+    rate_limit: per_connection       # connection throttle + per-event throttle
+    adapter: redis                   # FR-WS-001: Redis adapter para multi-instancia
+    logging_constraints: [no_secrets, no_pii, audit_trail]
+
+  events:
+    - event: chat:join
+      tenant_guard: required          # Validar chat.companyId == socket.companyId
+      rate_limit: standard
+    - event: chat:leave
+      tenant_guard: required
+      rate_limit: standard
+    - event: visitor:join
+      tenant_guard: required
+      rate_limit: standard
+    - event: visitor:leave
+      tenant_guard: required
+      rate_limit: standard
+    - event: tenant:join
+      tenant_guard: required
+      rate_limit: strict
+      authorization: role_commercial
+    - event: tenant:leave
+      tenant_guard: required
+      rate_limit: strict
+      authorization: role_commercial
+    - event: presence:join
+      tenant_guard: required
+      rate_limit: standard
+    - event: presence:leave
+      tenant_guard: required
+      rate_limit: standard
+    - event: typing:start
+      tenant_guard: required
+      rate_limit: generous             # Alto volumen esperado
+    - event: typing:stop
+      tenant_guard: required
+      rate_limit: generous
+    - event: user:activity
+      tenant_guard: required
+      rate_limit: generous
+    - event: health-check
+      tenant_guard: none
+      authentication: none
+      rate_limit: standard
+    - event: test
+      must_disable_in_production: true
+      tenant_guard: none
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CI ENFORCEMENT (Quinn — test de integración driven by este YAML)
+# ─────────────────────────────────────────────────────────────────────────────
+ci_enforcement:
+  test_file: test/security/endpoint-protections.spec.ts
+  lint_rule: eslint-plugin-security-local/require-tenant-context-decorator
+  assertions:
+    - "Cada controller autenticado declara @RequireTenantContext | @OptionalTenantContext | @NoTenantContext"
+    - "Cada endpoint en exceptions declara los decoradores de su override"
+    - "Endpoints must_disable_in_production están guardados tras NODE_ENV check"
+    - "WebSocket gateway usa Redis adapter (no in-memory) si NODE_ENV=production"
+  fail_policy: hard_fail              # CI rojo si falla cualquier aserción

@@ -1,0 +1,1111 @@
+# finding-to-fr-mapping.yaml
+# Trazabilidad bidireccional: hallazgo V2 (docs/SECURITY_AUDIT_2026_V2.md) ↔ FR (security-prd.md)
+#
+# Propósito (FR-CI-009):
+#   - Todo hallazgo P0+P1 en scope tiene al menos un FR mapeado.
+#   - Todo FR tiene al menos un hallazgo origen, salvo excepciones marcadas.
+#   - CI valida este archivo en test/security/finding-to-fr-mapping.spec.ts.
+#
+# Scope: P0 (40 hallazgos CRÍTICOS) + P1 (60 ALTOS) = 100 hallazgos en scope
+# Fuera de scope: MEDIA (47) y BAJA (19) — backlog post-hardening
+#
+# Formato por hallazgo:
+#   id: <ID-V2>          # Identificador del informe V2
+#   severity: CRÍTICA|ALTA
+#   status_v2: NUEVO|PERSISTE  # Estado respecto a V1
+#   fr_ids: [<FR-ID>, ...]     # FRs que cierran este hallazgo
+#   epic: <N>            # Epic que lo implementa
+#   sprint: 1|2          # Sprint objetivo
+#   story_ref: "E<N>-S<M>"    # Story en security-epics.md (opcional, se completa al crear stories)
+#   notes: "..."         # Aclaración si el hallazgo está cubierto parcialmente o tiene duplicado
+#
+# Metadatos
+metadata:
+  version: "1.0"
+  date: "2026-04-21"
+  source_audit: "docs/SECURITY_AUDIT_2026_V2.md"
+  source_prd: "_bmad-output/planning-artifacts/security-prd.md"
+  total_in_scope: 100
+  total_critical: 40
+  total_high: 60
+  validator_test: "test/security/finding-to-fr-mapping.spec.ts"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PARTE I — Autenticación y Autorización (42 hallazgos: 10 CRÍTICOS, 18 ALTOS)
+# ─────────────────────────────────────────────────────────────────────────────
+findings:
+
+  # ── CRÍTICOS ──────────────────────────────────────────────────────────────
+
+  - id: AUTH-001
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-AUTH-01
+    description: "Log de claves RSA privadas en texto plano"
+    file: "src/context/auth/auth-visitor/infrastructure/services/auth-visitor-jwt.ts:69,71,101,103"
+    fr_ids: [FR-OBS-001, FR-OBS-002]
+    epic: 8
+    sprint: 1
+    story_ref: "E8-S1"
+
+  - id: AUTH-002
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "AES-256-CBC sin autenticación (no AEAD)"
+    file: "src/context/auth/api-key/infrastructure/encrypt-adapter.ts:12-40"
+    fr_ids: [FR-AUTH-008]
+    epic: 2
+    sprint: 2
+    notes: "Migración AES-GCM planificada para Sprint 2 con dual-read 30 días (runbook docs/runbooks/aes-gcm-migration.md)"
+
+  - id: AUTH-003
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-AUTH-03
+    description: "Secretos de fallback hardcodeados en encrypt-adapter y main.ts"
+    file: "src/context/auth/api-key/infrastructure/encrypt-adapter.ts:13-14, src/main.ts:51,105"
+    fr_ids: [FR-OBS-005, FR-AUTH-008]
+    epic: 8
+    sprint: 1
+    notes: "FR-OBS-005 cubre JWT_SECRET sin fallback; FR-AUTH-008 cubre AES key fail-fast; duplicado parcial con AUTH-024"
+
+  - id: AUTH-004
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "API key derivada determinísticamente de SHA256(domain)"
+    file: "src/context/auth/api-key/application/usecase/create-api-key-for-domain.usecase.ts:41-43"
+    fr_ids: [FR-AUTH-007]
+    epic: 2
+    sprint: 1
+    notes: "Stretch goal Sprint 1 (FR-API-001 sprint planning); si no entra, pasa a Sprint 2"
+
+  - id: AUTH-005
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-AUTH-04
+    description: "Verificación JWT sin restricción de algoritmo"
+    file: "src/context/shared/infrastructure/token-verify.service.ts:101-103"
+    fr_ids: [FR-AUTH-001]
+    epic: 1
+    sprint: 1
+
+  - id: AUTH-006
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-AUTH-05
+    description: "Selección de estrategia de verificación por payload no verificado"
+    file: "src/context/shared/infrastructure/token-verify.service.ts:44-103"
+    fr_ids: [FR-AUTH-002]
+    epic: 1
+    sprint: 1
+
+  - id: AUTH-007
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-AUTH-02
+    description: "Endpoint POST /api-keys/create sin autenticación"
+    file: "src/context/auth/api-key/infrastructure/api-key.controller.ts:32-60"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+    notes: "También referenciado como API-003"
+
+  - id: AUTH-008
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "Bug: kid leído del payload en lugar del header JWT"
+    file: "src/context/auth/auth-visitor/infrastructure/services/auth-visitor-jwt.ts:144-163"
+    fr_ids: [FR-AUTH-002]
+    epic: 1
+    sprint: 1
+
+  - id: AUTH-009
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-INFRA-04
+    description: "Logging de secretos críticos en producción (ENCRYPTION_KEY, GLOBAL_TOKEN_SECRET, DATABASE_PASSWORD)"
+    file: "src/app.module.ts:300-315"
+    fr_ids: [FR-OBS-001, FR-OBS-002]
+    epic: 8
+    sprint: 1
+    notes: "Duplicado funcional con INFRA-003"
+
+  - id: AUTH-010
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-HTTP-01
+    description: "POST /auth/user/sync-keycloak sin autenticación"
+    file: "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts:608,626-662"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+    notes: "También referenciado como API-002"
+
+  # ── ALTOS ─────────────────────────────────────────────────────────────────
+
+  - id: AUTH-011
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-06
+    description: "CSRF en /bff/auth/refresh"
+    file: "bff-auth.controller.ts:528-553"
+    fr_ids: [FR-AUTH-012]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-012
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-07
+    description: "Cliente OIDC con token_endpoint_auth_method: none"
+    file: "oidc.service.ts:98"
+    fr_ids: [FR-AUTH-012]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-013
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-08
+    description: "PII en logs (req.user, cookies raw)"
+    file: "bff-auth.controller.ts:20,76,514 + company.controller.ts"
+    fr_ids: [FR-OBS-001, FR-GDPR-005]
+    epic: 8
+    sprint: 2
+
+  - id: AUTH-014
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-09
+    description: "Tokens sin expiración si env vars ausentes"
+    file: "auth-visitor-jwt.ts:82,135"
+    fr_ids: [FR-AUTH-004]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-015
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-10
+    description: "MemoryStore de PKCE como fallback silencioso"
+    file: "main.ts:65-87"
+    fr_ids: [FR-AUTH-012]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-016
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-11
+    description: "Hash SHA-256 de API keys sin salt/iteraciones"
+    file: "sha-256-hash-strategy.ts"
+    fr_ids: [FR-AUTH-007, FR-AUTH-008]
+    epic: 2
+    sprint: 2
+
+  - id: AUTH-017
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-12
+    description: "Mensajes 500 con stack trace al cliente"
+    file: "auth-visitor.controller.ts:194"
+    fr_ids: [FR-OBS-001]
+    epic: 8
+    sprint: 2
+
+  - id: AUTH-018
+    severity: ALTA
+    status_v2: NUEVO
+    description: "saltRounds=10 insuficiente en bcrypt"
+    file: "auth-user.service.ts"
+    fr_ids: [FR-AUTH-008]
+    epic: 2
+    sprint: 2
+
+  - id: AUTH-019
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Audience Keycloak por defecto 'account' genérica"
+    file: "token-verify.service.ts"
+    fr_ids: [FR-AUTH-003, FR-AUTHZ-005]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-020
+    severity: ALTA
+    status_v2: NUEVO
+    description: "OptionalAuthGuard fail-open (permite sin auth)"
+    file: "optional-auth.guard.ts"
+    fr_ids: [FR-AUTHZ-001]
+    epic: 3
+    sprint: 2
+
+  - id: AUTH-021
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Token invite no se invalida tras uso"
+    file: "accept-invite.usecase.ts"
+    fr_ids: [FR-AUTH-006]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-022
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-07 parcial
+    description: "Verificación de dominio solo por Referer header"
+    file: "auth-visitor.controller.ts"
+    fr_ids: [FR-API-007]
+    epic: 3
+    sprint: 2
+
+  - id: AUTH-023
+    severity: ALTA
+    status_v2: NUEVO
+    description: "BFF no valida state PKCE estrictamente"
+    file: "bff-auth.controller.ts"
+    fr_ids: [FR-AUTH-012]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-025
+    severity: ALTA
+    status_v2: PERSISTE  # V1-WS-13
+    description: "@Optional() TokenVerifyService en WebSocket"
+    file: "websocket.gateway.ts:130-140"
+    fr_ids: [FR-WS-002]
+    epic: 7
+    sprint: 2
+    notes: "AUTH-024 omitido — duplicado explícito de AUTH-003 (según auditoría V2)"
+
+  - id: AUTH-026
+    severity: ALTA
+    status_v2: NUEVO
+    description: "JWKS cache sin TTL — claves rotadas no aplican"
+    file: "jwks.service.ts"
+    fr_ids: [FR-AUTH-011, FR-AUTH-013]
+    epic: 1
+    sprint: 2
+
+  - id: AUTH-027
+    severity: ALTA
+    status_v2: NUEVO
+    description: "keycloakId del body sobrescribe en sync sin verificación"
+    file: "auth-user.controller.ts"
+    fr_ids: [FR-AUTHZ-001, FR-API-005]
+    epic: 3
+    sprint: 2
+
+  - id: AUTH-028
+    severity: ALTA
+    status_v2: NUEVO
+    description: "BFF loguea fragmentos de tokens (primeros 20 chars)"
+    file: "bff-auth.controller.ts"
+    fr_ids: [FR-OBS-001]
+    epic: 8
+    sprint: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PARTE II — APIs HTTP (36 hallazgos: 9 CRÍTICOS, 11 ALTOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - id: API-001
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "OpenSearchController expuesto en producción sin auth"
+    file: "src/context/shared/infrastructure/open-search/tests/open-search.controller.ts"
+    fr_ids: [FR-API-004, FR-AUTHZ-001]
+    epic: 3
+    sprint: 1
+
+  - id: API-002
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-HTTP-01
+    description: "POST /auth/user/sync-keycloak sin auth (referencia cruzada AUTH-010)"
+    file: "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+    notes: "Duplicado de AUTH-010; mismo fix"
+
+  - id: API-003
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-AUTH-02
+    description: "POST /api-keys/create sin auth (referencia cruzada AUTH-007)"
+    file: "src/context/auth/api-key/infrastructure/api-key.controller.ts"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+    notes: "Duplicado de AUTH-007; mismo fix"
+
+  - id: API-004
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "CommercialController sin guards (todos comentados)"
+    file: "src/context/commercial/infrastructure/controllers/commercial.controller.ts"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+
+  - id: API-005
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-HTTP-02 + V1-HTTP-08
+    description: "POST /company y enumeración por dominio sin auth"
+    file: "src/context/company/infrastructure/controllers/company.controller.ts:41-72,110-138"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+
+  - id: API-006
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "@RequiredRoles sin @UseGuards(RolesGuard) en ChatV2Controller"
+    file: "src/context/conversations-v2/infrastructure/controllers/chat-v2.controller.ts"
+    fr_ids: [FR-AUTHZ-001, FR-AUTHZ-006]
+    epic: 3
+    sprint: 1
+
+  - id: API-007
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-HTTP-03 + V1-HTTP-09
+    description: "POST /tracking-v2/events y GET /stats/tenant/:tenantId sin auth"
+    file: "src/context/tracking-v2/infrastructure/controllers/tracking-v2.controller.ts:47-227"
+    fr_ids: [FR-AUTHZ-001, FR-API-001]
+    epic: 3
+    sprint: 1
+
+  - id: API-008
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "Privilege escalation vía POST /auth/user/register con roles[] del body"
+    file: "src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts:167"
+    fr_ids: [FR-API-005, FR-AUTHZ-001]
+    epic: 3
+    sprint: 1
+
+  - id: API-009
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "SSRF vía LlmConfigController.baseUrl"
+    file: "src/context/llm/infrastructure/controllers/llm-config.controller.ts"
+    fr_ids: [FR-INJ-002]
+    epic: 5
+    sprint: 1
+    notes: "Stretch goal Sprint 1 según scoping del PRD"
+
+  - id: API-010
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-05
+    description: "Helmet ausente"
+    file: "main.ts"
+    fr_ids: [FR-API-001]
+    epic: 3
+    sprint: 2
+
+  - id: API-011
+    severity: ALTA
+    status_v2: NUEVO
+    description: "BOLA cross-tenant generalizado (LLM/WhiteLabel/Assignment/TenantVisitors/Leads)"
+    file: "múltiples controllers"
+    fr_ids: [FR-AUTHZ-003, FR-AUTHZ-004, FR-DATA-003]
+    epic: 6
+    sprint: 2
+
+  - id: API-012
+    severity: ALTA
+    status_v2: NUEVO
+    description: "ChatV2Controller.getChatsByCommercial bypass con ['admin'] forzado"
+    file: "chat-v2.controller.ts"
+    fr_ids: [FR-AUTHZ-003, FR-AUTHZ-004]
+    epic: 6
+    sprint: 2
+
+  - id: API-013
+    severity: ALTA
+    status_v2: NUEVO
+    description: "IDOR en VisitorV2Controller.endSession/updateStatus"
+    file: "visitor-v2.controller.ts"
+    fr_ids: [FR-AUTHZ-004, FR-DATA-003]
+    epic: 6
+    sprint: 2
+
+  - id: API-014
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-04
+    description: "Swagger UI + swagger-json expuestos en prod"
+    file: "main.ts:222"
+    fr_ids: [FR-API-008]
+    epic: 3
+    sprint: 2
+
+  - id: API-015
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-06
+    description: "Sin rate limiting global (@nestjs/throttler)"
+    file: "main.ts"
+    fr_ids: [FR-API-003, FR-AUTH-005]
+    epic: 4
+    sprint: 2
+
+  - id: API-016
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-07
+    description: "CORS origin:true + credentials:true si env vacío"
+    file: "main.ts:185-188"
+    fr_ids: [FR-API-007]
+    epic: 3
+    sprint: 2
+
+  - id: API-017
+    severity: ALTA
+    status_v2: PERSISTE  # V1-AUTH-08
+    description: "console.log(req.user) y logs de tokens en BFF"
+    file: "company.controller.ts, bff-auth.controller.ts"
+    fr_ids: [FR-OBS-001, FR-OBS-002, FR-GDPR-005]
+    epic: 8
+    sprint: 2
+
+  - id: API-018
+    severity: ALTA
+    status_v2: NUEVO
+    description: "GET /websocket-test sirve HTML desde disco en prod"
+    file: "app.controller.ts"
+    fr_ids: [FR-API-004]
+    epic: 3
+    sprint: 2
+
+  - id: API-020
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-07 parcial
+    description: "Validación de origen por Referer header débil"
+    file: "auth-visitor.controller.ts"
+    fr_ids: [FR-API-007]
+    epic: 3
+    sprint: 2
+    notes: "API-019 omitido — duplicado explícito de AUTH-003 (según auditoría V2)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PARTE III — Inyecciones y Validación de Inputs (17 hallazgos: 2 CRÍTICOS, 7 ALTOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - id: INJ-001
+    severity: CRÍTICA
+    status_v2: NUEVO  # Reclasificado de ALTA en V1
+    description: "SQL Injection en CriteriaConverter.toPostgresSql (campos, operadores, ORDER BY)"
+    file: "src/context/shared/infrastructure/criteria-converter/criteria-converter.ts:36-82"
+    fr_ids: [FR-INJ-001]
+    epic: 5
+    sprint: 1
+
+  - id: INJ-002
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "SQL Injection específico en ORDER BY y LIMIT/OFFSET"
+    file: "src/context/shared/infrastructure/criteria-converter/criteria-converter.ts:52-68"
+    fr_ids: [FR-INJ-001]
+    epic: 5
+    sprint: 1
+    notes: "Sub-hallazgo de INJ-001; mismo fix"
+
+  - id: INJ-003
+    severity: ALTA
+    status_v2: PERSISTE  # V1-INJ-02
+    description: "ReDoS/regex injection en $regex MongoDB sin escape"
+    file: "mongo-message.repository.impl.ts:276-283"
+    fr_ids: [FR-INJ-004]
+    epic: 5
+    sprint: 2
+
+  - id: INJ-004
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Mongo operator injection vía filter[mongoField]=value"
+    file: "mongo-*.repository.impl.ts (genérico)"
+    fr_ids: [FR-INJ-004]
+    epic: 5
+    sprint: 2
+
+  - id: INJ-005
+    severity: ALTA
+    status_v2: PERSISTE  # V1-INJ-03
+    description: "Campo field dinámico sin whitelist en filtros avanzados"
+    file: "advanced-filter.dto.ts (visitors-v2)"
+    fr_ids: [FR-INJ-001]
+    epic: 5
+    sprint: 2
+
+  - id: INJ-006
+    severity: ALTA
+    status_v2: NUEVO
+    description: "$ne:null bypass en filtros vía operador del cliente"
+    file: "mongo filters"
+    fr_ids: [FR-INJ-004]
+    epic: 5
+    sprint: 2
+
+  - id: INJ-007
+    severity: ALTA
+    status_v2: NUEVO
+    description: "SQL injection específico en field de ORDER BY legacy"
+    file: "criteria-converter.ts"
+    fr_ids: [FR-INJ-001]
+    epic: 5
+    sprint: 1
+    notes: "Sub-hallazgo de INJ-001; mismo fix Sprint 1"
+
+  - id: INJ-008
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Prototype pollution en base64ToCursor (keys __proto__)"
+    file: "base64-to-cursor.util.ts:10-29"
+    fr_ids: [FR-INJ-003]
+    epic: 5
+    sprint: 1
+    notes: "Stretch goal Sprint 1"
+
+  - id: INJ-009
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Prototype pollution via LLM tool executor (prompt injection)"
+    file: "tool-executor.service.impl.ts:104"
+    fr_ids: [FR-INJ-003]
+    epic: 5
+    sprint: 1
+    notes: "Stretch goal Sprint 1"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PARTE IV — Infraestructura (28 hallazgos: 5 CRÍTICOS, 10 ALTOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - id: INFRA-001
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-INFRA-01/02/03 — NO REMEDIADO
+    description: "Credenciales AWS/Resend/Groq reales en .env — NO REVOCADAS"
+    file: ".env:26,29,48,54,117-118,149"
+    fr_ids: [FR-OBS-004, FR-OBS-003]
+    epic: 8
+    sprint: 1
+    notes: "Acción P0 inmediata (≤24h). Revocar en consolas externas + rotar ENCRYPTION_KEY"
+
+  - id: INFRA-002
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "Password MongoDB por defecto 'password' en producción"
+    file: "scripts/mongo-init.js:12"
+    fr_ids: [FR-INFRA-005]
+    epic: 9
+    sprint: 1
+
+  - id: INFRA-003
+    severity: CRÍTICA
+    status_v2: PERSISTE  # Duplicado funcional de AUTH-009
+    description: "Logging de secretos en stdout (ver AUTH-009)"
+    file: "src/app.module.ts:300-315"
+    fr_ids: [FR-OBS-001]
+    epic: 8
+    sprint: 1
+    notes: "Duplicado de AUTH-009; mismo fix"
+
+  - id: INFRA-004
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "ENCRYPTION_KEY reutilizada entre .env y .env.test y hardcodeada en CI"
+    file: ".env, .env.test, .github/workflows/ci.yml:427,721,769"
+    fr_ids: [FR-OBS-003, FR-OBS-004]
+    epic: 8
+    sprint: 1
+
+  - id: INFRA-005
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-INFRA-07, reclasificado ALTA→CRÍTICA
+    description: "GLOBAL_TOKEN_SECRET=your_global_token_secret_here"
+    file: ".env:32"
+    fr_ids: [FR-OBS-005, FR-OBS-004]
+    epic: 8
+    sprint: 1
+
+  - id: INFRA-006
+    severity: ALTA
+    status_v2: PERSISTE  # V1-HTTP-05
+    description: "Helmet ausente (referencia cruzada API-010)"
+    file: "main.ts"
+    fr_ids: [FR-API-001]
+    epic: 3
+    sprint: 2
+    notes: "Duplicado de API-010; mismo fix"
+
+  - id: INFRA-008
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Dockerfile copia .env.production al layer"
+    file: "Dockerfile:33"
+    fr_ids: [FR-INFRA-001]
+    epic: 9
+    sprint: 2
+    notes: "INFRA-007 omitido — duplicado explícito de AUTH-003"
+
+  - id: INFRA-009
+    severity: ALTA
+    status_v2: PERSISTE  # V1-INFRA-10
+    description: "Node 18 EOL + contenedor corre como root"
+    file: "Dockerfile:1"
+    fr_ids: [FR-INFRA-001]
+    epic: 9
+    sprint: 2
+
+  - id: INFRA-010
+    severity: ALTA
+    status_v2: PERSISTE  # V1-INFRA-08
+    description: "Puertos BD expuestos en 0.0.0.0"
+    file: "docker-compose*.yml"
+    fr_ids: [FR-INFRA-006]
+    epic: 9
+    sprint: 2
+
+  - id: INFRA-011
+    severity: ALTA
+    status_v2: PERSISTE  # V1-DB-03
+    description: "TYPEORM_SYNC=true controlable en prod"
+    file: "app.module.ts:176"
+    fr_ids: [FR-INFRA-001]
+    epic: 9
+    sprint: 2
+
+  - id: INFRA-012
+    severity: ALTA
+    status_v2: PERSISTE  # V1-INFRA-09
+    description: "Deps NPM con 4 HIGH vulnerables"
+    file: "package-lock.json"
+    fr_ids: [FR-INFRA-007]
+    epic: 9
+    sprint: 2
+
+  - id: INFRA-013
+    severity: ALTA
+    status_v2: NUEVO
+    description: "GH Actions sin permissions: ni pin por SHA"
+    file: ".github/workflows/*.yml"
+    fr_ids: [FR-INFRA-002]
+    epic: 9
+    sprint: 2
+
+  - id: INFRA-014
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Deploy SSH con sshpass + StrictHostKeyChecking=no"
+    file: "deploy-*.yml"
+    fr_ids: [FR-INFRA-002, FR-INFRA-003]
+    epic: 9
+    sprint: 2
+
+  - id: INFRA-015
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Keycloak prod en start-dev + KC_HOSTNAME_STRICT:false"
+    file: "docker-compose-prod.yml:132"
+    fr_ids: [FR-INFRA-004]
+    epic: 9
+    sprint: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PARTE V — WebSockets (22 hallazgos: 5 CRÍTICOS, 7 ALTOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - id: WS-001
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-WS-01
+    description: "Autenticación de visitantes sin verificación criptográfica"
+    file: "src/websocket/websocket.gateway.ts:249-287"
+    fr_ids: [FR-WS-002]
+    epic: 7
+    sprint: 1
+
+  - id: WS-002
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "Handshake sin token acepta visitorId+tenantId en claro para impersonation"
+    file: "src/websocket/websocket.gateway.ts:248-293"
+    fr_ids: [FR-WS-002]
+    epic: 7
+    sprint: 1
+
+  - id: WS-003
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-WS-02
+    description: "chat:join sin autorización"
+    file: "src/websocket/websocket.gateway.ts:388-442"
+    fr_ids: [FR-WS-003]
+    epic: 7
+    sprint: 1
+
+  - id: WS-004
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-WS-03
+    description: "tenant:join sin restricción cross-tenant"
+    file: "src/websocket/websocket.gateway.ts:613-667"
+    fr_ids: [FR-WS-003]
+    epic: 7
+    sprint: 1
+
+  - id: WS-005
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-WS-04
+    description: "visitor:join / presence:join permite impersonation"
+    file: "src/websocket/websocket.gateway.ts:499-553"
+    fr_ids: [FR-WS-003]
+    epic: 7
+    sprint: 1
+
+  - id: WS-006
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Token inválido NO cierra la conexión"
+    file: "websocket.gateway.ts"
+    fr_ids: [FR-WS-002]
+    epic: 7
+    sprint: 2
+
+  - id: WS-007
+    severity: ALTA
+    status_v2: PERSISTE  # V1-WS-05
+    description: "Sin rate limiting en eventos WS"
+    file: "websocket.gateway.ts"
+    fr_ids: [FR-WS-005, FR-API-003]
+    epic: 7
+    sprint: 2
+
+  - id: WS-008
+    severity: ALTA
+    status_v2: PERSISTE  # V1-WS-06
+    description: "Suplantación en typing:start/stop con userId del cliente"
+    file: "websocket.gateway.ts:931-1015"
+    fr_ids: [FR-WS-003]
+    epic: 7
+    sprint: 2
+
+  - id: WS-009
+    severity: ALTA
+    status_v2: PERSISTE  # V1-WS-07
+    description: "CORS origin:true + credentials:true en WS (CSWSH)"
+    file: "websocket.gateway.ts:98-109"
+    fr_ids: [FR-API-007, FR-WS-002]
+    epic: 7
+    sprint: 2
+
+  - id: WS-010
+    severity: ALTA
+    status_v2: PERSISTE  # V1-WS-08
+    description: "broadcast() método public emite a todos los clientes"
+    file: "websocket.gateway.ts:1307-1311"
+    fr_ids: [FR-WS-003]
+    epic: 7
+    sprint: 2
+
+  - id: WS-011
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Separator injection en nombres de sala (chatId: '<id>:commercial')"
+    file: "websocket.gateway.ts"
+    fr_ids: [FR-WS-004]
+    epic: 7
+    sprint: 2
+
+  - id: WS-012
+    severity: ALTA
+    status_v2: NUEVO
+    description: "Sin Redis adapter — broadcasts se pierden en multi-réplica"
+    file: "websocket.module.ts"
+    fr_ids: [FR-WS-001]
+    epic: 7
+    sprint: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PARTE VI — Persistencia Multi-Tenant (21 hallazgos: 9 CRÍTICOS, 7 ALTOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  - id: DATA-001
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-DB-01
+    description: "ChatSchema carece de companyId/tenantId"
+    file: "src/context/conversations-v2/infrastructure/schemas/chat.schema.ts:81-255"
+    fr_ids: [FR-DATA-001, FR-DATA-002, FR-DATA-004]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-002
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "MessageSchema carece de companyId"
+    file: "src/context/conversations-v2/infrastructure/schemas/message.schema.ts"
+    fr_ids: [FR-DATA-001, FR-DATA-002, FR-DATA-004]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-003
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-DB-04 parcial
+    description: "IDOR end-to-end en GET /v2/chats/:chatId"
+    file: "mongo-chat.repository.impl.ts:83-98"
+    fr_ids: [FR-DATA-003, FR-AUTHZ-004]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-004
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "buildMongoFilter no inyecta companyId"
+    file: "mongo-chat.repository.impl.ts:725-817"
+    fr_ids: [FR-DATA-003, FR-DATA-005]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-005
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "deleteByVisitorId borrado cross-tenant"
+    file: "mongo-chat.repository.impl.ts:822-848"
+    fr_ids: [FR-DATA-005]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-007
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "findAll({}) expone todos los chats"
+    file: "mongo-chat.repository.impl.ts"
+    fr_ids: [FR-DATA-003]
+    epic: 6
+    sprint: 1
+    notes: "DATA-006 no existe en el informe V2 (numeración del audit)"
+
+  - id: DATA-008
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "MongoMessageRepository todas las queries sin companyId"
+    file: "mongo-message.repository.impl.ts (completo)"
+    fr_ids: [FR-DATA-001, FR-DATA-003, FR-DATA-005]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-009
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-DB-02
+    description: "CommercialSchema sin companyId"
+    file: "commercial.schema.ts:1-51"
+    fr_ids: [FR-DATA-001, FR-DATA-002, FR-DATA-004]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-010
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-DB-06
+    description: "MongoCommercialRepository.match() IGNORA criteria"
+    file: "mongo-commercial.repository.impl.ts:193-212"
+    fr_ids: [FR-DATA-003, FR-DATA-005]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-011
+    severity: CRÍTICA
+    status_v2: PERSISTE  # V1-DB-06 amplitud
+    description: "MongoCommercialRepository.findOne() sin filtro tenant"
+    file: "mongo-commercial.repository.impl.ts:218-240"
+    fr_ids: [FR-DATA-003]
+    epic: 6
+    sprint: 1
+
+  - id: DATA-012
+    severity: ALTA
+    status_v2: PERSISTE
+    description: "findByFingerprintAndTenant ignora tenantId (comentario lo admite)"
+    file: "mongo-commercial.repository.impl.ts:274+"
+    fr_ids: [FR-DATA-003, FR-AUTHZ-003]
+    epic: 6
+    sprint: 2
+
+  - id: DATA-013
+    severity: ALTA
+    status_v2: NUEVO
+    description: "VisitorV2MongoRepository.findBy* cross-tenant"
+    file: "visitor-v2-mongo.repository.impl.ts:126-262"
+    fr_ids: [FR-DATA-003, FR-AUTHZ-003]
+    epic: 6
+    sprint: 2
+
+  - id: DATA-014
+    severity: ALTA
+    status_v2: NUEVO
+    description: "IDOR en SavedFilter.findById/.delete"
+    file: "saved-filter-mongo.repository.impl.ts:65-131"
+    fr_ids: [FR-DATA-003, FR-AUTHZ-004]
+    epic: 6
+    sprint: 2
+
+  - id: DATA-015
+    severity: ALTA
+    status_v2: PERSISTE  # V1-DB-07
+    description: "MongoConsentRepository sin filtro de tenant"
+    file: "mongo-consent.repository.impl.ts"
+    fr_ids: [FR-DATA-003, FR-GDPR-002]
+    epic: 6
+    sprint: 2
+
+  - id: DATA-017
+    severity: CRÍTICA
+    status_v2: NUEVO
+    description: "TrackingEventMongoRepository.findById itera TODAS las collections particionadas"
+    file: "mongo-tracking-event.repository.impl.ts:120-153"
+    fr_ids: [FR-DATA-003, FR-DATA-002]
+    epic: 6
+    sprint: 1
+    notes: "DATA-016 omitido (MEDIA — fuera de scope P0+P1); DATA-018 cubierto por FR-DATA-003"
+
+  - id: DATA-018
+    severity: ALTA
+    status_v2: NUEVO
+    description: "findByVisitorId/SessionId/EventType sin tenantId en TrackingRepo"
+    file: "mongo-tracking-event.repository.impl.ts"
+    fr_ids: [FR-DATA-003, FR-AUTHZ-003]
+    epic: 6
+    sprint: 2
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXCEPCIONES — FRs sin hallazgo directo en V2 (justificación requerida)
+# ─────────────────────────────────────────────────────────────────────────────
+fr_exceptions:
+  - fr_id: FR-AUTH-013
+    reason: >
+      FR nuevo identificado en party mode: cubre procedimiento de rotación de claves de firma JWT
+      con kid versionado. No corresponde a un hallazgo V2 específico sino al gap de procedimiento
+      operacional que permitiría la exposición histórica de CRIT-001 (secretos en logs de clave RSA).
+      Cierra riesgo sistémico de no-remediación ante futura exposición.
+
+  - fr_id: FR-AUTHZ-006
+    reason: >
+      Contrato arquitectónico (DA-SEC-08 en security-architecture.md): orden obligatorio de guards
+      AuthGuard → RolesGuard → TenantContextGuard. No hay hallazgo V2 que explícitamente lo viole,
+      pero sí existe riesgo de regresión si en el futuro se reordena (especialmente tras fix de API-006
+      donde @RequiredRoles era inerte). Guard de startup que valida el orden previene regresión.
+
+  - fr_id: FR-CI-001
+    reason: >
+      FR de enforcement CI derivado de todos los hallazgos de API pero no trazable a uno solo.
+      El endpoint-protections.spec.ts valida estructuralmente que toda la cobertura de guards
+      en security-contracts/endpoint-protections.yaml esté implementada en código.
+
+  - fr_id: FR-CI-002
+    reason: >
+      FR de enforcement CI (lint rule) derivado del patrón sistémico DATA-001…DATA-021
+      y de la lección 67% de regresión V1→V2. No hay hallazgo V2 que "sea" una lint rule faltante;
+      la regla previene que los fixes de DATA-* regresen.
+
+  - fr_id: FR-CI-003
+    reason: >
+      FR de enforcement CI que cierra el rodeo de .skip en isolation tests.
+      Derivado del análisis de causa raíz del 67% de regresión V1→V2.
+
+  - fr_id: FR-CI-004
+    reason: >
+      Coverage gate de isolation tests. Derivado del análisis de causa raíz, no de hallazgo específico.
+
+  - fr_id: FR-CI-005
+    reason: >
+      Mutation testing semanal. Capacidad de madurez de testing; no trazable a hallazgo V2 único.
+      Cierra el riesgo de tests que "compilan pero no verifican" en módulos auth y multi-tenant.
+
+  - fr_id: FR-CI-006
+    reason: >
+      TimeProvider refactor para time-travel tests. Prerrequisito técnico de FR-CI-007.
+      No es hallazgo V2 sino deuda técnica detectada al intentar testear grace windows de expiración.
+
+  - fr_id: FR-CI-007
+    reason: >
+      Time-travel tests para grace windows. Capacidad de testing requerida por FRs con lógica temporal
+      (FR-AUTH-008 dual-read 30d, FR-AUTH-009 rotación API key). No hallazgo V2 directo.
+
+  - fr_id: FR-CI-008
+    reason: >
+      WS gateway test driven by YAML. Derivado de los hallazgos WS-003…WS-005 de forma sistémica;
+      el YAML define contratos WS verificados en CI en lugar de en code review manual.
+
+  - fr_id: FR-RISK-001
+    reason: >
+      Plantilla de risk acceptance. Proceso de gobernanza sin hallazgo V2 directo; requerido
+      para gestionar los hasta 3 ALTOS aceptables del Sprint 2 y el SPOF de Redis.
+
+  - fr_id: FR-RISK-002
+    reason: >
+      Reviewer distinto del implementador en risk acceptance. Control de proceso; sin hallazgo V2.
+
+  - fr_id: FR-RISK-003
+    reason: >
+      Límite de 3 risk acceptances activos. Control de proceso; sin hallazgo V2.
+
+  - fr_id: FR-RISK-004
+    reason: >
+      GH Action de revisión periódica de risk acceptances. Automatización del proceso; sin hallazgo V2.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ÍNDICE INVERSO: FR → hallazgos (generado para validación CI)
+# ─────────────────────────────────────────────────────────────────────────────
+fr_to_findings:
+  FR-AUTH-001: [AUTH-005]
+  FR-AUTH-002: [AUTH-006, AUTH-008]
+  FR-AUTH-003: [AUTH-019]
+  FR-AUTH-004: [AUTH-014]
+  FR-AUTH-005: [API-015, AUTH-011]  # backoff exponencial, rate limiting
+  FR-AUTH-006: [AUTH-021]
+  FR-AUTH-007: [AUTH-004, AUTH-016]
+  FR-AUTH-008: [AUTH-002, AUTH-018, AUTH-016]
+  FR-AUTH-009: [AUTH-003]  # ventana de gracia + API-009 del PRD
+  FR-AUTH-010: []  # FR de warning de rotación; no hallazgo directo; aceptado sin exception formal
+  FR-AUTH-011: [AUTH-026]
+  FR-AUTH-012: [AUTH-011, AUTH-012, AUTH-015, AUTH-023]
+  FR-AUTH-013: []  # excepción declarada arriba
+  FR-AUTHZ-001: [AUTH-007, AUTH-010, API-001, API-002, API-003, API-004, API-005, API-006, API-007, AUTH-020, AUTH-027]
+  FR-AUTHZ-002: [DATA-001, DATA-002, DATA-003, DATA-004, DATA-005, DATA-007, DATA-008, DATA-009, DATA-010, DATA-011]
+  FR-AUTHZ-003: [DATA-012, DATA-013, DATA-018, API-011, API-012]
+  FR-AUTHZ-004: [API-012, API-013, DATA-003, DATA-014]
+  FR-AUTHZ-005: [AUTH-019]
+  FR-AUTHZ-006: []  # excepción declarada arriba
+  FR-API-001: [API-001, API-002, API-003, API-004, API-005, API-006, API-007, INFRA-006, API-010]
+  FR-API-002: []  # test de enforcement; no hallazgo directo
+  FR-API-003: [API-015, WS-007]
+  FR-API-004: [API-001, API-018]
+  FR-API-005: [API-008]
+  FR-API-006: []  # headers Deprecation/Sunset; no hallazgo específico en P0+P1
+  FR-API-007: [API-016, AUTH-022, API-020, WS-009]
+  FR-API-008: [API-014]
+  FR-API-009: []  # endpoint nuevo /api-keys/status; no hallazgo directo
+  FR-INJ-001: [INJ-001, INJ-002, INJ-005, INJ-007]
+  FR-INJ-002: [API-009]
+  FR-INJ-003: [INJ-008, INJ-009]
+  FR-INJ-004: [INJ-003, INJ-004, INJ-006]
+  FR-INJ-005: []  # file upload; no hallazgo P0+P1 directo (API-022 MEDIA)
+  FR-DATA-001: [DATA-001, DATA-002, DATA-009, DATA-008]
+  FR-DATA-002: [DATA-001, DATA-002, DATA-009, DATA-017]
+  FR-DATA-003: [DATA-003, DATA-004, DATA-007, DATA-008, DATA-010, DATA-011, DATA-012, DATA-013, DATA-014, DATA-015, DATA-017, DATA-018]
+  FR-DATA-004: [DATA-001, DATA-002, DATA-009]
+  FR-DATA-005: [DATA-004, DATA-005, DATA-008, DATA-010]
+  FR-DATA-006: [AUTH-002]  # cifrado en reposo API keys
+  FR-WS-001: [WS-012]
+  FR-WS-002: [WS-001, WS-002, WS-006, AUTH-025, WS-009]
+  FR-WS-003: [WS-003, WS-004, WS-005, WS-008, WS-010]
+  FR-WS-004: [WS-011]
+  FR-WS-005: [WS-007]
+  FR-OBS-001: [AUTH-001, AUTH-009, INFRA-003, AUTH-013, AUTH-017, AUTH-028, API-017, AUTH-003]
+  FR-OBS-002: [AUTH-001, AUTH-009, API-017]
+  FR-OBS-003: [INFRA-001, INFRA-004]
+  FR-OBS-004: [INFRA-001, INFRA-005]
+  FR-OBS-005: [AUTH-003, INFRA-005]
+  FR-OBS-006: []  # audit trail; nuevo FR sin hallazgo P0+P1 directo (GDPR art. 30)
+  FR-INFRA-001: [INFRA-008, INFRA-009, INFRA-011]
+  FR-INFRA-002: [INFRA-013, INFRA-014]
+  FR-INFRA-003: [INFRA-014]
+  FR-INFRA-004: [INFRA-015]
+  FR-INFRA-005: [INFRA-002]
+  FR-INFRA-006: [INFRA-010]
+  FR-INFRA-007: [INFRA-012]
+  FR-GDPR-001: []  # audit log PII; nuevo FR; GDPR art. 30
+  FR-GDPR-002: [DATA-015]
+  FR-GDPR-003: []  # right-to-erasure; nuevo FR; GDPR art. 17
+  FR-GDPR-004: []  # portabilidad; nuevo FR; GDPR art. 20
+  FR-GDPR-005: [AUTH-013, API-017]
+  FR-CI-001: []  # excepción declarada arriba
+  FR-CI-002: []  # excepción declarada arriba
+  FR-CI-003: []  # excepción declarada arriba
+  FR-CI-004: []  # excepción declarada arriba
+  FR-CI-005: []  # excepción declarada arriba
+  FR-CI-006: []  # excepción declarada arriba
+  FR-CI-007: []  # excepción declarada arriba
+  FR-CI-008: [WS-003, WS-004, WS-005]  # indirecto vía hallazgos WS
+  FR-CI-009: []  # este propio archivo
+  FR-RISK-001: []  # excepción declarada arriba
+  FR-RISK-002: []  # excepción declarada arriba
+  FR-RISK-003: []  # excepción declarada arriba
+  FR-RISK-004: []  # excepción declarada arriba

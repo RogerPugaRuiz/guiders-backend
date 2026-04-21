@@ -1,5 +1,5 @@
 # generated: 30/03/2026
-# last_updated: 30/03/2026
+# last_updated: 21/04/2026
 # project: guiders-backend
 # project_key: NOKEY
 # tracking_system: file-system
@@ -34,26 +34,40 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Stories marcadas 'done' fueron implementadas antes de la creación formal de épicas (brownfield reconciliation)
+# - Épicas con prefijo 'sec-' pertenecen al track de Security Hardening (security-epics.md)
+# - Épicas sin prefijo pertenecen al track de LeadCars/CRM Integration (epics.md)
 
 generated: 30/03/2026
-last_updated: 02/04/2026 (4.7 done)
+last_updated: 21/04/2026 (foco seguridad — LeadCars aplazado)
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
 
 # SPRINT OVERVIEW:
+# ─── LeadCars / CRM Integration ───────────────────────────────────
 # Epic 1: Intereses del Visitante (backlog) — 0/2 stories
-# Epic 2: Config CRM y Admin LeadCars (in-progress) — 4/5 stories done, 1 ready-for-dev
-# Epic 3: Datos Contacto y Sync CRM (in-progress) — 4/5 stories done, 1 ready-for-dev
-# Epic 4: Alineación API LeadCars v2.4 (in-progress) — 1/6 done, 5 ready-for-dev
+# Epic 2: Config CRM y Admin LeadCars (in-progress) — 4/5 done, 1 ready-for-dev
+# Epic 3: Datos Contacto y Sync CRM (in-progress) — 4/5 done, 1 ready-for-dev
+# Epic 4: Alineación API LeadCars v2.4 (in-progress) — 2/7 done, 5 ready-for-dev
+# ─── Security Hardening ────────────────────────────────────────────
+# sec-Epic 1: JWT Hardening y Gestión de Tokens (backlog) — 0/8 stories
+# sec-Epic 2: Cifrado Moderno y API Keys Seguras (backlog) — 0/5 stories
+# sec-Epic 3: Guard Pipeline Fail-Closed y Contexto Tenant (backlog) — 0/6 stories
+# sec-Epic 4: Rate Limiting con Redis y Backoff Progresivo (backlog) — 0/2 stories
+# sec-Epic 5: Injection Prevention (backlog) — 0/4 stories
+# sec-Epic 6: Multi-Tenant Data Isolation (backlog) — 0/4 stories
+# sec-Epic 7: WebSocket Hardening (backlog) — 0/4 stories
+# sec-Epic 8: Observabilidad, Logs y Gestión de Secretos (backlog) — 0/4 stories
+# sec-Epic 9: Infraestructura y Supply Chain (backlog) — 0/4 stories
+# sec-Epic 10: GDPR y Compliance (backlog) — 0/5 stories
+# sec-Epic 11: DevSecOps Pipeline y Enforcement CI (backlog) — 0/7 stories
 
 development_status:
   # ─────────────────────────────────────────────────────────────
   # Epic 1: Intereses del Visitante en la Consola Comercial
   # FRs: FR-01, FR-02
   # Dependencias: tracking-v2, visitors-v2
-  # Prioridad: Puede trabajarse en paralelo con Epic 2/3
   # ─────────────────────────────────────────────────────────────
   epic-1: backlog
   1-1-metodo-gettoppagesbyvisitor-en-trackingeventrepository: backlog
@@ -71,7 +85,7 @@ development_status:
   2-2-cliente-http-leadcars-con-retry: done
   2-3-proxy-discovery-datos-leadcars: done
   2-4-endpoints-test-conexion-crm: done
-  2-5-encriptacion-en-reposo-api-keys-crm: ready-for-dev
+  2-5-encriptacion-en-reposo-api-keys-crm: backlog
   epic-2-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────
@@ -85,23 +99,168 @@ development_status:
   3-2-registros-sincronizacion-crm-dashboard: done
   3-3-sincronizacion-automatica-lead-a-crm: done
   3-4-sincronizacion-automatica-chat-a-crm: done
-  3-5-tests-unitarios-sync-lead-y-chat: ready-for-dev
+  3-5-tests-unitarios-sync-lead-y-chat: backlog
   epic-3-retrospective: optional
 
   # ─────────────────────────────────────────────────────────────
   # Epic 4: Alineación con API LeadCars v2.4
-  # FRs: FR-05 (corrección), FR-12 (corrección), FR-15, FR-16,
-  #       FR-17, FR-18, FR-19
+  # FRs: FR-05 (corrección), FR-12 (corrección), FR-15–FR-19
   # Contexto: leads (adaptador LeadCars)
   # Fuente de verdad: docs/leadcar/LeadCars_API_V2_4.pdf
-  # Prioridad: Alta — los campos actuales no coinciden con la API
   # ─────────────────────────────────────────────────────────────
   epic-4: in-progress
   4-1-corregir-tipos-y-request-crear-lead: done
-  4-2-alinear-estructura-chat-conversation-api-v24: ready-for-dev
-  4-3-validacion-formato-e164-telefonos: ready-for-dev
-  4-4-actualizar-tipos-response-y-comentarios: ready-for-dev
-  4-5-integracion-modulo-automagic-journeys: ready-for-dev
-  4-6-tests-e2e-contra-sandbox-leadcars: ready-for-dev
+  4-2-alinear-estructura-chat-conversation-api-v24: backlog
+  4-3-validacion-formato-e164-telefonos: backlog
+  4-4-actualizar-tipos-response-y-comentarios: backlog
+  4-5-integracion-modulo-automagic-journeys: backlog
+  4-6-tests-e2e-contra-sandbox-leadcars: backlog
   4-7-soporte-api-leadcars-v25-estados-y-temperatura: done
   epic-4-retrospective: optional
+
+  # ═══════════════════════════════════════════════════════════════
+  # SECURITY HARDENING — security-epics.md
+  # Sprint 1 (P0 — CRÍTICOS): sec-Epic 1, 2, 3, 5, 6 (parcial), 8 (parcial)
+  # Sprint 2 (P1 — ALTOS): sec-Epic 4, 6 (resto), 7, 8 (resto), 9, 10, 11
+  # ═══════════════════════════════════════════════════════════════
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 1: JWT Hardening y Gestión de Tokens
+  # Sprint: 1 (P0 committed)
+  # FRs: FR-AUTH-001–004, FR-AUTH-006, FR-AUTH-011–013
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-1: backlog
+  sec-1-1-fix-bug-kid-leer-del-header-jwt-no-del-payload: backlog
+  sec-1-2-whitelist-explicita-de-algoritmos-en-jwt: backlog
+  sec-1-3-validacion-de-iss-y-aud-en-jwt: backlog
+  sec-1-4-validar-exp-y-nbf-con-clock-skew-30s: backlog
+  sec-1-5-eliminar-fallback-hardcodeado-jwt-secret: backlog
+  sec-1-6-blacklist-de-jwt-revocados: backlog
+  sec-1-7-jwks-endpoint-con-claves-versionadas: backlog
+  sec-1-8-validacion-state-y-pkce-en-oauth-bff: backlog
+  sec-epic-1-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 2: Cifrado Moderno y API Keys Seguras
+  # Sprint: 1 (P0 flag) + 2 (migración completa)
+  # FRs: FR-AUTH-007–010, FR-DATA-006
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-2: backlog
+  sec-2-1-deprecacion-aes-256-cbc-con-warning-y-feature-flag: backlog
+  sec-2-2-implementar-encryptionservice-con-aes-256-gcm: backlog
+  sec-2-3-migracion-dual-write-aes-gcm-en-produccion: backlog
+  sec-2-4-api-keys-con-256-bits-aleatorios: backlog
+  sec-2-5-endpoint-estado-y-rotacion-api-keys-con-ventana-gracia: backlog
+  sec-epic-2-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 3: Guard Pipeline Fail-Closed y Contexto Tenant
+  # Sprint: 1 (P0 committed)
+  # FRs: FR-AUTHZ-001–006, FR-API-001–002, FR-API-004–005, FR-API-007–009
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-3: in-progress
+  sec-3-1-prerrequisito-audit-endpoints-con-roles: done
+  sec-3-2-rolesguard-fail-closed-con-activacion-progresiva: backlog
+  sec-3-3-tenantcontextguard-e-implementacion-tres-decoradores: backlog
+  sec-3-4-aplicar-decoradores-tenant-context-a-25-controllers: backlog
+  sec-3-5-cerrar-endpoints-publicos-sin-autenticacion: backlog
+  sec-3-6-contrato-endpoint-protections-yaml-y-validationpipe-global: backlog
+  sec-epic-3-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 4: Rate Limiting con Redis y Backoff Progresivo
+  # Sprint: 2
+  # FRs: FR-AUTH-005, FR-API-003
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-4: backlog
+  sec-4-1-redis-como-store-compartido-para-rate-limiter: backlog
+  sec-4-2-backoff-exponencial-en-endpoints-de-autenticacion: backlog
+  sec-epic-4-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 5: Injection Prevention
+  # Sprint: 1 (stretch) + 2
+  # FRs: FR-INJ-001–005
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-5: backlog
+  sec-5-1-criteriaconverter-con-whitelist-de-campos: backlog
+  sec-5-2-url-allowlist-validator-para-ssrf: backlog
+  sec-5-3-proteccion-contra-prototype-pollution: backlog
+  sec-5-4-queries-mongoose-con-proyeccion-explicita: backlog
+  sec-epic-5-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 6: Multi-Tenant Data Isolation
+  # Sprint: 1 (schemas) + 2 (capas 2 y 3)
+  # FRs: FR-DATA-001–006
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-6: backlog
+  sec-6-1-anadir-companyid-a-schemas-mongo-v2-con-backfill: backlog
+  sec-6-2-basetenantawarerepository-unica-via-acceso-datos: backlog
+  sec-6-3-isolation-tests-por-aggregate-v2: backlog
+  sec-6-4-tenantcontextinterceptor-inyeccion-automatica-companyid: backlog
+  sec-epic-6-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 7: WebSocket Hardening
+  # Sprint: 2
+  # FRs: FR-WS-001–005
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-7: backlog
+  sec-7-1-redis-adapter-para-socketio-en-produccion: backlog
+  sec-7-2-handshake-websocket-con-jwt-obligatorio: backlog
+  sec-7-3-tenant-guard-en-eventos-websocket: backlog
+  sec-7-4-room-name-helper-con-validacion-separator-injection: backlog
+  sec-epic-7-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 8: Observabilidad, Logs y Gestión de Secretos
+  # Sprint: 1 (logger + gitleaks) + 2 (audit trail)
+  # FRs: FR-OBS-001–006
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-8: backlog
+  sec-8-1-sanitizacion-de-logs-eliminar-secretos-y-pii: backlog
+  sec-8-2-gitleaks-y-trufflehog-en-pre-commit-y-ci: backlog
+  sec-8-3-audit-trail-coleccion-inmutable-con-eventos-seguridad: backlog
+  sec-8-4-rotacion-de-credenciales-productivas: backlog
+  sec-epic-8-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 9: Infraestructura y Supply Chain
+  # Sprint: 2
+  # FRs: FR-INFRA-001–007
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-9: backlog
+  sec-9-1-dockerfile-node-lts-20-multistage-non-root: backlog
+  sec-9-2-github-actions-permissions-minimas-y-oidc: backlog
+  sec-9-3-keycloak-en-modo-produccion: backlog
+  sec-9-4-mongodb-con-tls-y-minimo-privilegio: backlog
+  sec-epic-9-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 10: GDPR y Compliance
+  # Sprint: 2
+  # FRs: FR-GDPR-001–005, NFR-COMP-001–004
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-10: backlog
+  sec-10-1-erasure-borrado-en-cascada-datos-personales: backlog
+  sec-10-2-audit-log-de-accesos-a-pii: backlog
+  sec-10-3-legal-basis-en-registros-de-consentimiento: backlog
+  sec-10-4-portabilidad-de-datos-export-json-visitante: backlog
+  sec-10-5-pii-inventory-yaml-con-enforcement-en-ci: backlog
+  sec-epic-10-retrospective: optional
+
+  # ─────────────────────────────────────────────────────────────
+  # sec-Epic 11: DevSecOps Pipeline y Enforcement CI
+  # Sprint: 2
+  # FRs: FR-CI-001–009, FR-RISK-001–004
+  # ─────────────────────────────────────────────────────────────
+  sec-epic-11: backlog
+  sec-11-1-timeprovider-inyectable-para-tests-expiracion: backlog
+  sec-11-2-eslint-plugin-guiders-security-reglas-custom: backlog
+  sec-11-3-test-endpoint-protections-spec-yaml-driven: backlog
+  sec-11-4-test-ws-protections-spec-eventos-websocket: backlog
+  sec-11-5-coverage-gate-e-impedir-skip-en-isolation-tests: backlog
+  sec-11-6-finding-to-fr-mapping-yaml-y-mutation-testing: backlog
+  sec-11-7-risk-acceptance-proceso-formal-con-template: backlog
+  sec-epic-11-retrospective: optional
