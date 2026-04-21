@@ -169,8 +169,17 @@ jobs:
       
       - name: Run unit tests
         run: npm run test:unit
+
+      - name: Generate and validate OpenAPI contract
+        run: |
+          echo "📄 Generando contrato OpenAPI desde código fuente..."
+          npm run openapi:generate
+          echo "✅ Contrato OpenAPI generado: $(wc -l < docs/api/openapi.yaml) líneas YAML"
+          echo "🔍 Validando contrato con Redocly..."
+          npm run openapi:lint
+          echo "✅ Contrato OpenAPI válido (0 errores)"
         
-  # Eliminado: verificación con MongoDB Memory Server, se verificará conectividad con mongosh posteriormente
+   # Eliminado: verificación con MongoDB Memory Server, se verificará conectividad con mongosh posteriormente
         
       - name: Clean dist folder to avoid Jest conflicts
         run: rm -rf dist/
@@ -433,8 +442,8 @@ jobs:
           npm prune --omit=dev
           echo "📦 Dependencias de producción preparadas (node_modules)"
           
-          # Empaquetar dist + node_modules para evitar npm ci en el servidor (bloqueado por políticas)
-          tar czf deploy-staging.tar.gz dist node_modules package-staging.json package-lock.json
+          # Empaquetar dist + node_modules + contrato OpenAPI para evitar npm ci en el servidor (bloqueado por políticas)
+          tar czf deploy-staging.tar.gz dist node_modules docs/api package-staging.json package-lock.json
 
       - name: Create staging environment config
         run: |
@@ -727,6 +736,35 @@ jobs:
             docker ps
           '
 
+      - name: 11.5. Publish OpenAPI contract
+        env:
+          SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
+        run: |
+          echo "📄 Publicando contrato OpenAPI en staging..."
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} '
+            cd /var/www/guiders-backend-staging/
+            
+            if [ -d docs/api ] && [ -f docs/api/openapi.json ]; then
+              echo "✅ Contrato OpenAPI disponible:"
+              echo "   - docs/api/openapi.json ($(wc -c < docs/api/openapi.json) bytes)"
+              echo "   - docs/api/openapi.yaml ($(wc -l < docs/api/openapi.yaml) líneas)"
+              echo ""
+              echo "📋 Estadísticas del contrato:"
+              node -e "
+                const doc = require('"'"'/var/www/guiders-backend-staging/docs/api/openapi.json'"'"');
+                const ops = Object.values(doc.paths || {}).reduce((acc, p) => {
+                  return acc + ['"'"'get'"'"','"'"'post'"'"','"'"'put'"'"','"'"'patch'"'"','"'"'delete'"'"'].filter(m => p[m]).length;
+                }, 0);
+                console.log('"'"'  Versión:    '"'"' + doc.info.version);
+                console.log('"'"'  Paths:      '"'"' + Object.keys(doc.paths || {}).length);
+                console.log('"'"'  Operaciones:'"'"' + ops);
+                console.log('"'"'  Schemas:    '"'"' + Object.keys((doc.components || {}).schemas || {}).length);
+              " 2>/dev/null || echo "  (node no disponible para estadísticas)"
+            else
+              echo "⚠️ Contrato OpenAPI no encontrado en docs/api/ — verificar empaquetado"
+            fi
+          '
+
       - name: 12. Test MongoDB connection
         env:
           SSH_PASSWORD: ${{ secrets.STAGING_SSH_PASSWORD }}
@@ -811,8 +849,9 @@ jobs:
             echo "### 🌐 URLs de Staging:" >> $GITHUB_STEP_SUMMARY
             echo "- App: https://staging.guiders.app" >> $GITHUB_STEP_SUMMARY
             echo "- API: https://staging-api.guiders.app" >> $GITHUB_STEP_SUMMARY
+            echo "- OpenAPI: /var/www/guiders-backend-staging/docs/api/openapi.json" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### � Servicios activos:" >> $GITHUB_STEP_SUMMARY
+            echo "### 🗄️ Servicios activos:" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ PostgreSQL (Base de datos principal)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ MongoDB (Mensajes cifrados)" >> $GITHUB_STEP_SUMMARY
             echo "- ✅ Redis (Cache y sesiones)" >> $GITHUB_STEP_SUMMARY
