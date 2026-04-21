@@ -31,6 +31,7 @@ import {
   AuthGuard,
   AuthenticatedRequest,
 } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 
 // Commands y Queries
 import { CreateAssignmentRulesCommand } from '../../application/commands/create-assignment-rules.command';
@@ -51,6 +52,7 @@ import { AssignmentRules } from '../../domain/value-objects/assignment-rules';
  */
 @ApiTags('Reglas de Auto-asignamiento')
 @ApiBearerAuth()
+@ApiAuthErrors()
 @Controller('v2/assignment-rules')
 @UseGuards(AuthGuard, RolesGuard)
 export class AssignmentRulesController {
@@ -69,7 +71,7 @@ export class AssignmentRulesController {
   @ApiOperation({
     summary: 'Crear reglas de auto-asignamiento',
     description:
-      'Crea nuevas reglas de auto-asignación para una empresa o sitio específico',
+      'Crea un nuevo conjunto de reglas de auto-asignación a nivel de empresa o de sitio (si se especifica siteId). Las reglas incluyen estrategia por defecto, fallback, horarios laborales, prioridades, límites de chats por comercial y routing por skills. Una empresa/sitio puede tener varios conjuntos de reglas; el más específico (empresa+sitio) prevalece sobre el genérico.',
   })
   @ApiResponse({
     status: 201,
@@ -120,7 +122,7 @@ export class AssignmentRulesController {
   @ApiOperation({
     summary: 'Obtener reglas aplicables',
     description:
-      'Obtiene las reglas de auto-asignamiento más específicas para una empresa/sitio',
+      'Devuelve las reglas de auto-asignamiento más específicas que aplican a una empresa y opcionalmente a un sitio. La resolución prioriza reglas con `siteId` coincidente sobre las genéricas de la empresa. Si no hay reglas configuradas devuelve 404. Operación de sólo lectura.',
   })
   @ApiParam({
     name: 'companyId',

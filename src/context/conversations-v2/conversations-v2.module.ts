@@ -12,6 +12,8 @@ import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.modul
 
 // Controllers
 import { ChatV2Controller } from './infrastructure/controllers/chat-v2.controller';
+import { CommercialChatsV2Controller } from './infrastructure/controllers/commercial-chats-v2.controller';
+import { VisitorChatsV2Controller } from './infrastructure/controllers/visitor-chats-v2.controller';
 import { MessageV2Controller } from './infrastructure/controllers/message-v2.controller';
 import { AssignmentRulesController } from './infrastructure/controllers/assignment-rules.controller';
 import { PresenceController } from './infrastructure/controllers/presence.controller';
@@ -106,6 +108,8 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
   ],
   controllers: [
     ChatV2Controller,
+    CommercialChatsV2Controller,
+    VisitorChatsV2Controller,
     MessageV2Controller,
     AssignmentRulesController,
     PresenceController,

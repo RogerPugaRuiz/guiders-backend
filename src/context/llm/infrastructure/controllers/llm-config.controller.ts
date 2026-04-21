@@ -27,6 +27,7 @@ import { Inject } from '@nestjs/common';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
@@ -44,7 +45,8 @@ import {
 @Controller('v2/llm/config')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
-@ApiCookieAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class LlmConfigController {
   private readonly logger = new Logger(LlmConfigController.name);
 

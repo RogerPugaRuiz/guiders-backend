@@ -4,7 +4,6 @@ import {
   Body,
   Get,
   Param,
-  Query,
   NotFoundException,
   UseGuards,
   Req,
@@ -15,7 +14,6 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
-  ApiQuery,
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { CreateCompanyDto } from '../../application/dtos/create-company.dto';
@@ -23,12 +21,11 @@ import { CreateCompanyWithAdminCommand } from '../../application/commands/create
 import { FindCompanyByDomainQuery } from '../../application/queries/find-company-by-domain.query';
 import { FindCompanyByDomainResponseDto } from '../../application/dtos/find-company-by-domain-response.dto';
 import { MyCompanyResponseDto } from '../../application/dtos/my-company-response.dto';
-import { ResolveSiteByHostQuery } from '../../application/queries/resolve-site-by-host.query';
-import { ResolveSiteByHostResponseDto } from '../../application/dtos/resolve-site-by-host-response.dto';
 import { GetCompanySitesQuery } from '../../application/queries/get-company-sites.query';
 import { GetCompanySitesResponseDto } from '../../application/dtos/get-company-sites-response.dto';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { AuthenticatedRequest } from '../../../shared/infrastructure/guards/auth.guard';
+import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
 
 @ApiTags('companies')
 @Controller()
@@ -39,6 +36,7 @@ export class CompanyController {
   ) {}
 
   @Post('company')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Crear nueva empresa con administrador',
     description:
@@ -71,43 +69,8 @@ export class CompanyController {
     await this.commandBus.execute(command);
   }
 
-  @Post('sites/resolve')
-  @ApiOperation({
-    summary: 'Resolver sitio por host',
-    description:
-      'Resuelve el host actual del navegador y determina a qué site y tenant pertenece',
-  })
-  @ApiQuery({
-    name: 'host',
-    description: 'Host/dominio a resolver',
-    example: 'landing.mytech.com',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Sitio resuelto exitosamente',
-    type: ResolveSiteByHostResponseDto,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Sitio no encontrado para el host especificado',
-  })
-  async resolveSiteByHost(
-    @Query('host') host: string,
-  ): Promise<ResolveSiteByHostResponseDto> {
-    const query = new ResolveSiteByHostQuery(host);
-    const result = await this.queryBus.execute<
-      ResolveSiteByHostQuery,
-      ResolveSiteByHostResponseDto | null
-    >(query);
-
-    if (!result) {
-      throw new NotFoundException(`Sitio no encontrado para el host: ${host}`);
-    }
-
-    return result;
-  }
-
   @Get('company/by-domain/:domain')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Buscar empresa por dominio',
     description:

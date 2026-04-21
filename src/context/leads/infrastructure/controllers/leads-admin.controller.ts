@@ -18,11 +18,13 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiCookieAuth,
   ApiParam,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 import {
   CreateCrmConfigDto,
   UpdateCrmConfigDto,
@@ -65,6 +67,8 @@ interface AuthenticatedRequest extends Request {
 
 @ApiTags('Leads - Administración CRM')
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 @Controller('v1/leads/admin')
 @UseGuards(DualAuthGuard, RolesGuard)
 export class LeadsAdminController {

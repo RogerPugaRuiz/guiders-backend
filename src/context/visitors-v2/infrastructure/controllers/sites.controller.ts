@@ -17,8 +17,10 @@ import {
   ApiOkResponse,
   ApiResponse,
   ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
+import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
 import { ResolveSiteCommand } from '../../application/commands/resolve-site.command';
 import { ResolveSiteResponseDto } from '../../application/dtos/resolve-site-response.dto';
 
@@ -26,6 +28,8 @@ import { ResolveSiteResponseDto } from '../../application/dtos/resolve-site-resp
 @Controller('sites')
 @UseGuards(DualAuthGuard)
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class SitesController {
   private readonly logger = new Logger(SitesController.name);
 

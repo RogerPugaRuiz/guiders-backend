@@ -46,6 +46,7 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../../company/domain/company.repository';
+import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
 
 @ApiTags('Pixel Visitor Auth')
 @Controller('pixel')
@@ -61,6 +62,7 @@ export class AuthVisitorController {
   ) {}
 
   @Post('token')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Obtener par de tokens para visitante existente',
     description:
@@ -119,6 +121,7 @@ export class AuthVisitorController {
   }
 
   @Post('register')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Registrar visitante + emitir tokens',
     description:
@@ -196,6 +199,7 @@ export class AuthVisitorController {
   }
 
   @Post('token/refresh')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Refrescar access token',
     description:
@@ -224,6 +228,7 @@ export class AuthVisitorController {
   }
 
   @Get('metadata')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Obtener metadatos del sitio por API Key',
     description:

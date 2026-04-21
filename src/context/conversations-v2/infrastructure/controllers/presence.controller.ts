@@ -15,11 +15,13 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiCookieAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AuthenticatedRequest } from '../../../shared/infrastructure/guards/auth.guard';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
 import { StartTypingCommand } from '../../application/commands/start-typing.command';
 import { StopTypingCommand } from '../../application/commands/stop-typing.command';
 import { GetChatPresenceQuery } from '../../application/queries/get-chat-presence.query';
@@ -33,7 +35,8 @@ import { ChatPresenceDto } from '../../application/dtos/chat-presence.dto';
 @Controller('presence')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
-@ApiCookieAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class PresenceController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -48,7 +51,12 @@ export class PresenceController {
   @ApiOperation({
     summary: 'Obtener estado de presencia de participantes de un chat',
     description:
-      'Retorna el estado de conexión, typing status y última actividad de todos los participantes del chat',
+      'Devuelve el estado de conexión, indicador de typing y timestamp de última actividad para todos los participantes (visitor, agentes, admins) del chat indicado. Operación de sólo lectura.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'UUID del chat cuyo estado de presencia se quiere consultar.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @ApiResponse({
     status: 200,
@@ -71,7 +79,12 @@ export class PresenceController {
   @ApiOperation({
     summary: 'Indicar que el usuario está escribiendo',
     description:
-      'Marca al usuario actual como "escribiendo" en el chat. El estado expira automáticamente en 3 segundos si no se actualiza.',
+      'Marca al usuario autenticado como "escribiendo" en el chat indicado. Emite un evento de typing a los demás participantes vía WebSocket. El estado expira automáticamente a los 3 segundos si no se renueva, por lo que el cliente debe re-emitir mientras el usuario siga tecleando (con debounce recomendado).',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'UUID del chat donde se inicia el indicador de typing.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @ApiResponse({ status: 204, description: 'Typing indicator iniciado' })
   async startTyping(
@@ -99,7 +112,12 @@ export class PresenceController {
   @ApiOperation({
     summary: 'Indicar que el usuario dejó de escribir',
     description:
-      'Limpia el estado de "escribiendo" del usuario actual en el chat.',
+      'Limpia explícitamente el estado de "escribiendo" del usuario autenticado en el chat indicado y notifica a los demás participantes vía WebSocket. Es una operación idempotente: invocarla cuando no hay typing activo no produce error.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'UUID del chat donde se detiene el indicador de typing.',
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @ApiResponse({ status: 204, description: 'Typing indicator detenido' })
   async stopTyping(

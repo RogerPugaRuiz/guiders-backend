@@ -74,6 +74,7 @@ export class AssignedCommercialDto {
 
   @ApiProperty({
     description: 'URL del avatar del comercial',
+    type: 'string',
     example:
       'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
     required: false,
@@ -128,7 +129,8 @@ export class PendingChatDto {
   subject?: string;
 
   @ApiProperty({
-    description: 'Información del comercial asignado al chat',
+    description:
+      'Información del comercial asignado al chat (null si no hay comercial asignado)',
     type: AssignedCommercialDto,
     required: false,
     nullable: true,

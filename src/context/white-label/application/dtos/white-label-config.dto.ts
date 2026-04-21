@@ -116,6 +116,7 @@ export class ColorsDto {
 export class BrandingDto {
   @ApiPropertyOptional({
     description: 'URL del logo',
+    type: 'string',
     example: 'https://example.com/logo.png',
     nullable: true,
   })
@@ -125,6 +126,7 @@ export class BrandingDto {
 
   @ApiPropertyOptional({
     description: 'URL del favicon',
+    type: 'string',
     example: 'https://example.com/favicon.ico',
     nullable: true,
   })
@@ -181,6 +183,7 @@ export class TypographyDto {
 
   @ApiPropertyOptional({
     description: 'Nombre de la fuente personalizada',
+    type: 'string',
     example: 'Mi Fuente Custom',
     nullable: true,
   })

@@ -34,6 +34,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 import {
   IWhiteLabelConfigRepository,
   WHITE_LABEL_CONFIG_REPOSITORY,
@@ -56,7 +57,8 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 @Controller('v2/companies/:companyId/white-label')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
-@ApiCookieAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class WhiteLabelConfigController {
   private readonly logger = new Logger(WhiteLabelConfigController.name);
 
@@ -72,7 +74,12 @@ export class WhiteLabelConfigController {
 
   @Get('defaults')
   @Roles(['admin', 'superadmin'])
-  @ApiOperation({ summary: 'Obtener valores por defecto de White Label' })
+  @ApiOperation({
+    summary: 'Obtener valores por defecto de White Label',
+    description:
+      'Devuelve la paleta de colores, fuentes disponibles y fuente por defecto que el sistema aplica cuando una empresa no ha personalizado su configuración. Útil para inicializar formularios de configuración en el frontend.',
+  })
+  @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({
     status: 200,
     description: 'Valores por defecto',
@@ -98,7 +105,11 @@ export class WhiteLabelConfigController {
 
   @Get()
   @Roles(['admin', 'superadmin', 'commercial'])
-  @ApiOperation({ summary: 'Obtener configuración White Label de una empresa' })
+  @ApiOperation({
+    summary: 'Obtener configuración White Label de una empresa',
+    description:
+      'Devuelve la configuración White Label persistida para la empresa indicada. Si la empresa aún no tiene configuración, devuelve una configuración por defecto generada en memoria (no se persiste). No tiene side-effects de escritura.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({
     status: 200,
@@ -134,7 +145,11 @@ export class WhiteLabelConfigController {
 
   @Patch()
   @Roles(['admin', 'superadmin'])
-  @ApiOperation({ summary: 'Actualizar configuración White Label (upsert)' })
+  @ApiOperation({
+    summary: 'Actualizar configuración White Label (upsert)',
+    description:
+      'Actualiza parcialmente la configuración White Label de la empresa (colores, branding, tipografía, tema). Si no existe configuración previa, se crea una nueva a partir de los valores por defecto y se le aplican los cambios recibidos. Operación idempotente sobre los campos enviados.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({
     status: 200,
@@ -186,7 +201,11 @@ export class WhiteLabelConfigController {
   @Delete()
   @Roles(['admin', 'superadmin'])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar/resetear configuración White Label' })
+  @ApiOperation({
+    summary: 'Eliminar/resetear configuración White Label',
+    description:
+      'Elimina por completo la configuración White Label de la empresa, incluyendo logo, favicon y todas las fuentes personalizadas almacenadas. Tras esta operación, los endpoints de lectura devolverán los valores por defecto. Operación destructiva e irreversible.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Configuración eliminada' })
   async deleteConfig(@Param('companyId') companyId: string): Promise<void> {
@@ -231,7 +250,11 @@ export class WhiteLabelConfigController {
   @Roles(['admin', 'superadmin'])
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Subir logo de la empresa' })
+  @ApiOperation({
+    summary: 'Subir logo de la empresa',
+    description:
+      'Sube un nuevo archivo de logo (PNG, JPEG o SVG, máx. 2MB) al storage configurado y actualiza la URL del logo en la configuración White Label. Si ya existía un logo previo, se elimina del storage antes de guardar el nuevo. Si no existe configuración previa, se crea una por defecto.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiBody({
     schema: {
@@ -274,7 +297,11 @@ export class WhiteLabelConfigController {
   @Delete('logo')
   @Roles(['admin', 'superadmin'])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar logo de la empresa' })
+  @ApiOperation({
+    summary: 'Eliminar logo de la empresa',
+    description:
+      'Elimina el archivo de logo del storage y borra la referencia en la configuración. Requiere que exista configuración White Label para la empresa. Si no hay logo configurado, no realiza ninguna acción.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Logo eliminado' })
   @ApiResponse({ status: 404, description: 'No hay logo configurado' })
@@ -313,7 +340,11 @@ export class WhiteLabelConfigController {
   @Roles(['admin', 'superadmin'])
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Subir favicon de la empresa' })
+  @ApiOperation({
+    summary: 'Subir favicon de la empresa',
+    description:
+      'Sube un nuevo archivo de favicon (PNG o ICO, máx. 500KB) al storage configurado y actualiza la URL del favicon en la configuración White Label. Si ya existía un favicon previo, se elimina del storage antes de guardar el nuevo. Si no existe configuración previa, se crea una por defecto.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiBody({
     schema: {
@@ -356,7 +387,11 @@ export class WhiteLabelConfigController {
   @Delete('favicon')
   @Roles(['admin', 'superadmin'])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar favicon de la empresa' })
+  @ApiOperation({
+    summary: 'Eliminar favicon de la empresa',
+    description:
+      'Elimina el archivo de favicon del storage y borra la referencia en la configuración. Requiere que exista configuración White Label para la empresa. Si no hay favicon configurado, no realiza ninguna acción.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Favicon eliminado' })
   @ApiResponse({ status: 404, description: 'No hay favicon configurado' })
@@ -395,7 +430,11 @@ export class WhiteLabelConfigController {
   @Roles(['admin', 'superadmin'])
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Subir archivo de fuente personalizada' })
+  @ApiOperation({
+    summary: 'Subir archivo de fuente personalizada',
+    description:
+      'Sube un archivo de fuente (TTF, OTF, WOFF o WOFF2, máx. 5MB) al storage y lo añade al listado de fuentes personalizadas de la empresa. Permite múltiples fuentes acumuladas (no reemplaza). Si no existe configuración previa, se crea una por defecto.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiBody({
     schema: {
@@ -438,7 +477,11 @@ export class WhiteLabelConfigController {
   @Delete('font/:fileName')
   @Roles(['admin', 'superadmin'])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar archivo de fuente específico' })
+  @ApiOperation({
+    summary: 'Eliminar archivo de fuente específico',
+    description:
+      'Elimina del storage el archivo de fuente identificado por su nombre y lo retira del listado de fuentes personalizadas de la empresa. Requiere configuración existente; si la fuente no existe, devuelve 404.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiParam({ name: 'fileName', description: 'Nombre del archivo de fuente' })
   @ApiResponse({ status: 204, description: 'Fuente eliminada' })
@@ -483,7 +526,11 @@ export class WhiteLabelConfigController {
   @Delete('fonts')
   @Roles(['admin', 'superadmin'])
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar todas las fuentes personalizadas' })
+  @ApiOperation({
+    summary: 'Eliminar todas las fuentes personalizadas',
+    description:
+      'Elimina del storage todos los archivos de fuente subidos por la empresa y vacía el listado de fuentes personalizadas en la configuración. Si no existe configuración, no realiza ninguna acción. Operación destructiva e irreversible.',
+  })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Todas las fuentes eliminadas' })
   async deleteAllFonts(@Param('companyId') companyId: string): Promise<void> {

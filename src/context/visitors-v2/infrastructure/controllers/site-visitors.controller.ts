@@ -14,10 +14,12 @@ import {
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
 import { GetVisitorsBySiteQuery } from '../../application/queries/get-visitors-by-site.query';
 import { GetVisitorsWithUnassignedChatsBySiteQuery } from '../../application/queries/get-visitors-with-unassigned-chats-by-site.query';
 import { GetVisitorsWithQueuedChatsBySiteQuery } from '../../application/queries/get-visitors-with-queued-chats-by-site.query';
@@ -36,6 +38,8 @@ import {
 @Controller('site-visitors')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class SiteVisitorsController {
   private readonly logger = new Logger(SiteVisitorsController.name);
 

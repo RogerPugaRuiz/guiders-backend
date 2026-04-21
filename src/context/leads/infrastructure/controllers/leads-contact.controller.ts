@@ -17,12 +17,14 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiCookieAuth,
   ApiParam,
 } from '@nestjs/swagger';
 import { CommandBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 import {
   SaveLeadContactDataDto,
   LeadContactDataResponseDto,
@@ -43,6 +45,8 @@ interface AuthenticatedRequest {
 
 @ApiTags('Leads - Contact Data')
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 @Controller('leads')
 @UseGuards(DualAuthGuard, RolesGuard)
 export class LeadsContactController {

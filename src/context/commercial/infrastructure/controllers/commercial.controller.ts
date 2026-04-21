@@ -340,6 +340,10 @@ export class CommercialController {
     type: OnlineCommercialsResponseDto,
   })
   @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
+  })
+  @ApiResponse({
     status: 500,
     description: 'Error interno del servidor',
   })
@@ -376,6 +380,10 @@ export class CommercialController {
     status: 200,
     description: 'Lista de comerciales disponibles obtenida exitosamente',
     type: OnlineCommercialsResponseDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado',
   })
   @ApiResponse({
     status: 500,

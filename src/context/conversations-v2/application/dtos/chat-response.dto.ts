@@ -63,6 +63,7 @@ export class AssignedCommercialResponseDto {
 
   @ApiProperty({
     description: 'URL del avatar del comercial en S3',
+    type: 'string',
     example:
       'https://guiders-avatars-dev.s3.eu-north-1.amazonaws.com/avatars/user-id-123456.jpg',
     required: false,
@@ -170,7 +171,8 @@ export class ChatResponseDto {
   assignedCommercialId?: string;
 
   @ApiProperty({
-    description: 'Información del comercial asignado al chat',
+    description:
+      'Información del comercial asignado al chat (null si no hay comercial asignado)',
     type: AssignedCommercialResponseDto,
     required: false,
     nullable: true,
@@ -401,6 +403,8 @@ export class ChatListResponseDto {
 
   @ApiProperty({
     description: 'Cursor para obtener la siguiente página',
+    type: 'string',
+    nullable: true,
     example:
       'eyJsYXN0TWVzc2FnZUF0IjoiMjAyNS0wNy0yOFQxMDozMDowMC4wMDBaIiwiaWQiOiJjaGF0LTEyMyJ9',
     required: false,

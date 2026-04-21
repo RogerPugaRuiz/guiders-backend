@@ -25,6 +25,7 @@ import {
 } from '../../application/dtos';
 import { IngestTrackingEventsCommand } from '../../application/commands';
 import { GetEventStatsByTenantQuery } from '../../application/queries';
+import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
 
 /**
  * Controller REST para tracking de eventos V2
@@ -45,6 +46,7 @@ export class TrackingV2Controller {
    * Endpoint principal para ingesta de eventos en batch
    */
   @Post('events')
+  @PublicEndpoint()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Ingerir eventos de tracking en batch',
@@ -58,6 +60,7 @@ export class TrackingV2Controller {
   @ApiBody({
     description:
       'Batch de eventos de tracking con tenantId, siteId y array de eventos',
+    type: IngestTrackingEventsBatchDto,
     examples: {
       example1: {
         summary: 'Batch de eventos mixtos',
@@ -159,6 +162,7 @@ export class TrackingV2Controller {
    * Obtiene estadísticas de eventos para un tenant
    */
   @Get('stats/tenant/:tenantId')
+  @PublicEndpoint()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Obtener estadísticas de eventos por tenant',
@@ -231,6 +235,7 @@ export class TrackingV2Controller {
    * Health check del sistema de tracking
    */
   @Get('health')
+  @PublicEndpoint()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Health check del sistema de tracking',
@@ -246,6 +251,14 @@ export class TrackingV2Controller {
         timestamp: { type: 'string', example: '2024-01-15T10:30:00.000Z' },
       },
     },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Petición inválida',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error interno del servidor',
   })
   healthCheck(): { status: string; timestamp: string } {
     return {

@@ -46,7 +46,10 @@ import {
   ApiHeader,
   ApiConsumes,
   ApiParam,
+  ApiInternalServerErrorResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
 import {
   LoginRequestDto,
   TokenResponseDto,
@@ -82,6 +85,7 @@ export class AuthUserController {
   ) {}
 
   @Post('login')
+  @PublicEndpoint()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Iniciar sesión de usuario',
@@ -191,6 +195,7 @@ export class AuthUserController {
   }
 
   @Post('refresh')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Renovar token de acceso',
     description:
@@ -237,6 +242,7 @@ export class AuthUserController {
   }
 
   @Post('logout')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Cerrar sesión',
     description: 'Cierra la sesión del usuario y revoca sus tokens',
@@ -325,6 +331,7 @@ export class AuthUserController {
     }
   }
   @Post('accept-invite')
+  @PublicEndpoint()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Aceptar invitación',
@@ -407,6 +414,8 @@ export class AuthUserController {
     description: 'Listado de usuarios',
     type: UserListResponseDto,
   })
+  @ApiUnauthorizedResponse({ description: 'No autorizado' })
+  @ApiInternalServerErrorResponse({ description: 'Error interno del servidor' })
   @RequiredRoles('admin')
   @UseGuards(AuthGuard, RolesGuard)
   async listCompanyUsers(@Req() req: any): Promise<UserListResponseDto> {
@@ -606,6 +615,7 @@ export class AuthUserController {
   }
 
   @Post('sync-with-keycloak')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Sincronizar usuario con Keycloak',
     description:
@@ -662,6 +672,7 @@ export class AuthUserController {
   }
 
   @Post('verify-role-mapping')
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Verificar mapeo de roles de Keycloak',
     description:

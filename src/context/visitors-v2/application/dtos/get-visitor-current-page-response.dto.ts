@@ -6,6 +6,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class GetVisitorCurrentPageResponseDto {
   @ApiProperty({
     description: 'URL de la página actual del visitante',
+    type: 'string',
     example: 'https://example.com/products/123',
     nullable: true,
   })

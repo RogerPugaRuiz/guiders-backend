@@ -50,10 +50,8 @@ import { Chat } from '../../domain/entities/chat.aggregate';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   GetChatsQueryDto,
-  PaginationDto,
   CommercialMetricsResponseDto,
   ResponseTimeStatsDto,
-  ChatSortDto,
 } from '../../application/dtos/chat-query.dto';
 import { CreateChatRequestDto } from '../../application/dtos/create-chat-request.dto';
 import { CreateChatWithMessageRequestDto } from '../../application/dtos/create-chat-with-message-request.dto';
@@ -70,6 +68,7 @@ import {
   ChatViewResponseDto,
 } from '../../application/dtos/chat-view.dto';
 import { FindUserByIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-id.query';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 
 // Interfaces para respuestas de comandos
 interface CreateChatWithMessageResult {
@@ -85,6 +84,8 @@ interface CreateChatWithMessageResult {
  */
 @ApiTags('Chats V2')
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 @Controller('v2/chats')
 export class ChatV2Controller {
   private readonly logger = new Logger(ChatV2Controller.name);
@@ -689,58 +690,6 @@ export class ChatV2Controller {
     description:
       'Lista de chats obtenida exitosamente con paginación basada en cursor',
     type: ChatListResponseDto,
-    schema: {
-      type: 'object',
-      properties: {
-        chats: {
-          type: 'array',
-          description: 'Lista de chats encontrados',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'chat-123' },
-              visitorId: { type: 'string', example: 'visitor-456' },
-              commercialId: {
-                type: 'string',
-                example: 'commercial-789',
-                nullable: true,
-              },
-              status: { type: 'string', example: 'ACTIVE' },
-              priority: { type: 'string', example: 'HIGH' },
-              createdAt: {
-                type: 'string',
-                format: 'date-time',
-                example: '2025-07-28T10:30:00.000Z',
-              },
-              lastMessageAt: {
-                type: 'string',
-                format: 'date-time',
-                example: '2025-07-28T11:15:00.000Z',
-                nullable: true,
-              },
-            },
-          },
-        },
-        total: {
-          type: 'number',
-          description: 'Número total de chats que coinciden con los filtros',
-          example: 150,
-        },
-        hasMore: {
-          type: 'boolean',
-          description: 'Indica si hay más páginas disponibles',
-          example: true,
-        },
-        nextCursor: {
-          type: 'string',
-          description:
-            'Cursor para obtener la siguiente página (null si no hay más páginas)',
-          example:
-            'eyJjcmVhdGVkQXQiOiIyMDI1LTA3LTI4VDExOjE1OjAwLjAwMFoiLCJpZCI6ImNoYXQtMTIzIn0=',
-          nullable: true,
-        },
-      },
-    },
   })
   @ApiResponse({
     status: 400,
@@ -920,195 +869,6 @@ export class ChatV2Controller {
   }
 
   /**
-   * Obtiene chats asignados a un comercial específico
-   * Soporta autenticación por JWT (Bearer token) o sesión BFF (cookie)
-   */
-  @Get('commercial/:commercialId')
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
-  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
-  @Header('Pragma', 'no-cache')
-  @Header('Expires', '0')
-  @Header('X-Content-Type-Options', 'nosniff')
-  @Header('X-Frame-Options', 'DENY')
-  @Header('X-XSS-Protection', '1; mode=block')
-  @ApiBearerAuth()
-  @ApiCookieAuth('session')
-  @ApiHeader({
-    name: 'X-Guiders-Session',
-    description: 'Session ID como cabecera HTTP alternativa para BFF',
-    required: false,
-    example: 'sess_1758226307441_commercial',
-  })
-  @ApiOperation({
-    summary:
-      'Obtener chats de un comercial con paginación cursor (BFF + SPA compatible)',
-    description:
-      'Retorna los chats asignados a un comercial específico usando paginación basada en cursor. ' +
-      'Soporta múltiples tipos de autenticación:\n' +
-      '1. **Bearer Token (JWT)**: Para acceso directo de API\n' +
-      '2. **Cookie de sesión**: Para BFF con SPA\n' +
-      '3. **Header X-Guiders-Session**: Cabecera alternativa para enviar session ID\n' +
-      'Requiere roles: commercial, admin o supervisor.',
-  })
-  @ApiParam({
-    name: 'commercialId',
-    description: 'ID del comercial',
-    example: '550e8400-e29b-41d4-a716-446655440001',
-  })
-  @ApiQuery({
-    name: 'cursor',
-    description: 'Cursor para paginación (opcional)',
-    required: false,
-    type: String,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Número máximo de chats a retornar (1-100)',
-    required: false,
-    type: Number,
-    example: 20,
-  })
-  @ApiQuery({
-    name: 'filters',
-    description: 'Filtros adicionales para chats',
-    required: false,
-    type: Object,
-  })
-  @ApiQuery({
-    name: 'sort',
-    description: 'Opciones de ordenamiento',
-    required: false,
-    type: Object,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de chats del comercial obtenida exitosamente',
-    type: ChatListResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o sesión BFF',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 401 },
-        message: {
-          type: 'string',
-          example:
-            'Se requiere autenticación - Bearer token o sesión de cookie',
-        },
-        error: { type: 'string', example: 'Unauthorized' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 403 },
-        message: {
-          type: 'string',
-          example: 'Acceso denegado. Permisos insuficientes.',
-        },
-        error: { type: 'string', example: 'Forbidden' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
-  async getCommercialChats(
-    @Param('commercialId') commercialId: string,
-    @Query() queryParams: GetChatsQueryDto,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ChatListResponseDto> {
-    try {
-      // Validar autenticación (Bearer token o cookie de sesión BFF)
-      if (!req.user || !req.user.id) {
-        throw new HttpException(
-          'Se requiere autenticación - Bearer token o sesión de cookie',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
-      // Validar permisos según roles
-      const userRoles = req.user.roles || [];
-      const hasRequiredRole = userRoles.some((role) =>
-        ['commercial', 'admin', 'supervisor'].includes(role),
-      );
-
-      if (!hasRequiredRole) {
-        throw new HttpException(
-          'Acceso denegado. Permisos insuficientes.',
-          HttpStatus.FORBIDDEN,
-        );
-      }
-
-      // Determinar tipo de autenticación para logging
-      const authType = req.headers.authorization ? 'bearer' : 'session';
-
-      this.logger.log(
-        `Obteniendo chats del comercial ${commercialId} para usuario: ${req.user.id} (auth: ${authType})`,
-      );
-
-      // Log the query parameters for debugging
-      this.logger.debug(`Query params: ${JSON.stringify(queryParams)}`);
-      this.logger.debug(`User roles: ${JSON.stringify(userRoles)}`);
-
-      // Parsear sort si viene como string JSON
-      let sortOptions = queryParams.sort;
-      if (typeof queryParams.sort === 'string') {
-        try {
-          sortOptions = JSON.parse(queryParams.sort) as ChatSortDto;
-        } catch (error) {
-          this.logger.warn(
-            `Error al parsear sort: ${error}. Usando valor por defecto.`,
-          );
-          sortOptions = undefined;
-        }
-      }
-
-      // Construir filtros con assignedCommercialId
-      const filters = {
-        ...queryParams.filters,
-        assignedCommercialId: commercialId,
-      };
-
-      // Crear y ejecutar query
-      const query = GetChatsWithFiltersQuery.create({
-        userId: commercialId,
-        userRoles: ['admin'], // Usar admin para evitar que filtre por userId automáticamente
-        filters,
-        sort: sortOptions,
-        cursor: queryParams.cursor,
-        limit: queryParams.limit || 50,
-      });
-
-      return await this.queryBus.execute(query);
-    } catch (error) {
-      // Preservar HttpExceptions específicas
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      this.logger.error(
-        `Error al obtener chats del comercial ${commercialId}:`,
-        error,
-      );
-      throw new HttpException(
-        'Error interno del servidor',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
    * Obtiene un chat específico por ID
    * Requiere autenticación y permisos apropiados
    */
@@ -1171,171 +931,6 @@ export class ChatV2Controller {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       this.logger.error(`Error al obtener chat ${chatId}:`, error);
-      throw new HttpException(
-        'Error interno del servidor',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
-  /**
-   * Obtiene chats de un visitante específico
-   * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
-   */
-  @Get('visitor/:visitorId')
-  @UseGuards(OptionalAuthGuard)
-  @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
-  @Header('Pragma', 'no-cache')
-  @Header('Expires', '0')
-  @ApiBearerAuth()
-  @ApiCookieAuth('sid')
-  @ApiHeader({
-    name: 'X-Guiders-Sid',
-    description: 'Session ID del visitante como cabecera HTTP alternativa',
-    required: false,
-    example: 'temp_1758226307441_5bjqvmz1vf3',
-  })
-  @ApiOperation({
-    summary: 'Obtener chats de un visitante con paginación cursor',
-    description:
-      'Retorna el historial de chats de un visitante específico usando paginación basada en cursor. ' +
-      'Soporta múltiples tipos de autenticación:\n' +
-      '1. **Bearer Token (JWT)**: Para comerciales, administradores y supervisores que pueden acceder a chats de cualquier visitante\n' +
-      '2. **Cookie de sesión (sid)**: Para visitantes que solo pueden acceder a sus propios chats\n' +
-      '3. **Header X-Guiders-Sid**: Cabecera HTTP alternativa para enviar el session ID\n' +
-      '4. **Cookies adicionales**: x-guiders-sid, guiders_session_id (accesibles desde JavaScript)\n' +
-      'La validación de permisos se realiza automáticamente según el tipo de autenticación. ' +
-      'Orden de prioridad: Body > Header X-Guiders-Sid > Cookie sid > Cookie x-guiders-sid > Cookie guiders_session_id',
-  })
-  @ApiParam({
-    name: 'visitorId',
-    description: 'ID del visitante',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @ApiQuery({
-    name: 'cursor',
-    description: 'Cursor para paginación (opcional)',
-    required: false,
-    type: String,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Número máximo de chats a retornar (1-100)',
-    required: false,
-    type: Number,
-    example: 20,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista de chats del visitante obtenida exitosamente',
-    type: ChatListResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Los comerciales/administradores pueden ver cualquier visitante, los visitantes solo sus propios chats',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
-  async getVisitorChats(
-    @Param('visitorId') visitorId: string,
-    @Query() queryParams: PaginationDto,
-    @Req() req: AuthenticatedRequest,
-  ): Promise<ChatListResponseDto> {
-    try {
-      this.logger.log(`Obteniendo chats del visitante ${visitorId}`);
-
-      // Determinar el nivel de acceso según la autenticación
-      let accessLevel: 'public' | 'visitor' | 'staff' = 'public';
-
-      if (req.user) {
-        this.logger.log(
-          `Usuario autenticado: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
-        );
-
-        // Validar autorización según el tipo de usuario
-        const userRoles = req.user.roles || [];
-        const isCommercialOrAdmin = userRoles.some((role) =>
-          ['commercial', 'admin', 'supervisor'].includes(role),
-        );
-        const isVisitor = userRoles.includes('visitor');
-
-        if (isVisitor) {
-          // Los visitantes solo pueden ver sus propios chats
-          if (req.user.id !== visitorId) {
-            throw new HttpException(
-              'Los visitantes solo pueden acceder a sus propios chats',
-              HttpStatus.FORBIDDEN,
-            );
-          }
-          accessLevel = 'visitor';
-        } else if (isCommercialOrAdmin) {
-          accessLevel = 'staff';
-        } else {
-          // Usuarios sin roles apropiados
-          throw new HttpException(
-            'Permisos insuficientes para acceder a chats de visitantes',
-            HttpStatus.FORBIDDEN,
-          );
-        }
-      } else {
-        this.logger.log('Sin autenticación - acceso público a chats básicos');
-      }
-
-      this.logger.log(`Query params recibidos: ${JSON.stringify(queryParams)}`);
-      this.logger.log(`Nivel de acceso determinado: ${accessLevel}`);
-
-      // Crear filtros específicos según el nivel de acceso
-      const filters = {
-        visitorId: visitorId,
-        ...(accessLevel === 'public' && { publicOnly: true }), // Solo chats públicos para acceso no autenticado
-      };
-
-      this.logger.log(`Filtros aplicados: ${JSON.stringify(filters)}`);
-
-      // Determinar userId y userRole según el contexto de autenticación
-      const userId = req.user?.id || visitorId; // Para acceso público, usar el visitorId como fallback
-      const userRoles = req.user?.roles || ['visitor']; // Para acceso público, asumir rol visitor
-
-      // Usar el query handler existente con filtros específicos para el visitante
-      const query = GetChatsWithFiltersQuery.create({
-        userId: userId,
-        userRoles: userRoles,
-        filters: filters,
-        sort: { field: 'createdAt', direction: 'DESC' },
-        cursor: queryParams.cursor,
-        limit: queryParams.limit || 20,
-      });
-
-      this.logger.log(
-        `Query creado: ${JSON.stringify({
-          userId: userId,
-          userRoles: userRoles,
-          filters: filters,
-          cursor: queryParams.cursor,
-          limit: queryParams.limit || 20,
-        })}`,
-      );
-
-      const result: ChatListResponseDto = await this.queryBus.execute(query);
-
-      this.logger.log(
-        `Resultado obtenido: ${result.total} chats encontrados, ${result.chats.length} en esta página`,
-      );
-
-      return result;
-    } catch (error) {
-      this.logger.error(
-        `Error al obtener chats del visitante ${visitorId}:`,
-        error,
-      );
       throw new HttpException(
         'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,

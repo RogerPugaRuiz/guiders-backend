@@ -13,6 +13,7 @@ export class VisitorProfileDto {
 
   @ApiProperty({
     description: 'Nombre del visitante',
+    type: 'string',
     nullable: true,
     example: 'Juan Pérez',
   })
@@ -20,6 +21,7 @@ export class VisitorProfileDto {
 
   @ApiProperty({
     description: 'Correo electrónico del visitante',
+    type: 'string',
     nullable: true,
     example: 'juan.perez@ejemplo.com',
   })
@@ -27,6 +29,7 @@ export class VisitorProfileDto {
 
   @ApiProperty({
     description: 'Teléfono del visitante',
+    type: 'string',
     nullable: true,
     example: '+34 612 345 678',
   })

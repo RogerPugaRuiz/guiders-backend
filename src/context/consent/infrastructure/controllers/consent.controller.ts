@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiCookieAuth,
   ApiParam,
 } from '@nestjs/swagger';
 import { RevokeConsentCommand } from '../../application/commands/revoke-consent.command';
@@ -33,6 +34,7 @@ import { Result } from '../../../shared/domain/result';
 import { VisitorConsentPrimitives } from '../../domain/visitor-consent.aggregate';
 import { ConsentAuditLogPrimitives } from '../../domain/consent-audit-log.aggregate';
 import { ConsentError } from '../../domain/errors/consent.error';
+import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
 
 /**
  * Controller para gestión de consentimientos
@@ -44,6 +46,8 @@ import { ConsentError } from '../../domain/errors/consent.error';
 @Controller('consents')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class ConsentController {
   private readonly logger = new Logger(ConsentController.name);
 

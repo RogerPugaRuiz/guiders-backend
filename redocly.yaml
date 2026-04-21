@@ -1,0 +1,16 @@
+extends:
+  - recommended
+
+rules:
+  # Apagado globalmente: 5 endpoints BFF (POST /bff/auth/{login,refresh,logout},
+  # GET /bff/auth/google, GET /bff/auth/google/callback) responden legítimamente
+  # con redirects 302 sin payload 2xx. Redocly v2 no soporta overrides per-path,
+  # solo per-API, por lo que se deshabilita la regla globalmente de forma consciente.
+  operation-2xx-response: off
+
+  # Apagado: NestJS Swagger (@nestjs/swagger v11) emite el idiom estándar
+  # `{ allOf: [{$ref}], nullable: true }` al combinar un `$ref` con nullable
+  # en OpenAPI 3.0. Es semánticamente correcto y ampliamente aceptado por
+  # herramientas (Swagger UI, codegen), pero choca con esta regla estricta
+  # de Redocly. No existe workaround limpio sin perder el `$ref` (inlining).
+  nullable-type-sibling: off

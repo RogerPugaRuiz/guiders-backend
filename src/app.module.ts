@@ -113,6 +113,19 @@ export class AppModule {
   static createTypeOrmOptions(
     configService: ConfigService,
   ): TypeOrmModuleOptions {
+    // Modo generación OpenAPI: usar SQLite en memoria sin conectar a Postgres real.
+    // Permite a NestJS instanciar el grafo de providers/controllers para que
+    // SwaggerModule pueda escanear metadata, sin requerir infraestructura externa.
+    if (process.env.OPENAPI_GENERATION === 'true') {
+      return {
+        type: 'sqlite',
+        database: ':memory:',
+        entities: [],
+        synchronize: false,
+        autoLoadEntities: false,
+      };
+    }
+
     // Selección dinámica de variables según NODE_ENV
     const nodeEnv = configService.get<string>('NODE_ENV');
     const isTest = nodeEnv === 'test';
@@ -181,6 +194,24 @@ export class AppModule {
   // Método estático para hacer testeable la factory function de Mongoose
   static createMongooseOptions(configService: ConfigService) {
     const logger = new Logger('MongooseConfiguration');
+
+    // Modo generación OpenAPI: usar la URI de MongoDB en memoria que el script
+    // de generación habrá expuesto en OPENAPI_MONGO_URI.
+    if (process.env.OPENAPI_GENERATION === 'true') {
+      logger.log(
+        'OPENAPI_GENERATION=true detectado. Usando MongoDB en memoria para generación.',
+      );
+      return {
+        uri:
+          process.env.OPENAPI_MONGO_URI ||
+          'mongodb://localhost:27017/openapi-generation-noop',
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 5000,
+        retryWrites: false,
+        retryReads: false,
+      };
+    }
+
     const nodeEnv = configService.get<string>('NODE_ENV');
     const isTest = nodeEnv === 'test';
 

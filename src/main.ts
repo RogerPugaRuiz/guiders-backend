@@ -1,7 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import { createOpenApiDocument } from './context/shared/infrastructure/swagger';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import RedisStore from 'connect-redis';
@@ -204,22 +205,17 @@ async function bootstrap() {
     app.enableCors({ ...baseCors, origin: true } as CorsOptions);
   }
 
-  // Configuración de Swagger
-  const config = new DocumentBuilder()
-    .setTitle('API Guiders Backend')
-    .setDescription('Documentación de la API del backend de Guiders')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .addCookieAuth('access_token', {
-      type: 'http',
-      in: 'cookie',
-      scheme: 'bearer',
-    })
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
+  // Configuración de Swagger (centralizada en src/context/shared/infrastructure/swagger)
+  const document = createOpenApiDocument(app);
 
   // Configurar la ruta de Swagger (sin prefijo API porque está excluido)
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      tagsSorter: 'alpha',
+      operationsSorter: 'alpha',
+    },
+  });
 
   // Configuración adicional para WebSockets y proxy reverso
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access

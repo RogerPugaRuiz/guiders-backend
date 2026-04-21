@@ -37,9 +37,12 @@ import { UpdateVisitorTelCommand } from '../../application/commands/update-visit
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
 import { VisitorPrimitives } from '../../domain/visitor.aggregate';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 
 @ApiTags('Visitantes')
 @Controller('visitor')
+@ApiBearerAuth()
+@ApiAuthErrors()
 export class VisitorController {
   private readonly logger = new Logger(VisitorController.name);
 

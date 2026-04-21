@@ -33,6 +33,7 @@ import {
   RolesGuard,
   RequiredRoles,
 } from 'src/context/shared/infrastructure/guards/role.guard';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 
 // DTOs
 import {
@@ -59,6 +60,8 @@ import { MarkMessagesAsReadCommand } from '../../application/commands/mark-messa
  */
 @ApiTags('Messages V2')
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 @Controller('v2/messages')
 export class MessageV2Controller {
   private readonly logger = new Logger(MessageV2Controller.name);
@@ -232,27 +235,6 @@ export class MessageV2Controller {
     status: 200,
     description: 'Mensajes obtenidos exitosamente',
     type: MessageListResponseDto,
-    schema: {
-      example: {
-        messages: [
-          {
-            id: 'msg-123',
-            chatId: 'chat-456',
-            senderId: 'user-789',
-            content: 'Hola, ¿en qué puedo ayudarte?',
-            type: 'text',
-            isInternal: false,
-            isFirstResponse: true,
-            createdAt: '2025-07-28T10:30:00.000Z',
-            updatedAt: '2025-07-28T10:30:00.000Z',
-          },
-        ],
-        total: 25,
-        hasMore: true,
-        nextCursor:
-          'eyJzZW50QXQiOiIyMDI1LTA3LTI4VDEwOjMwOjAwLjAwMFoiLCJpZCI6Im1zZy0xMjMifQ==',
-      },
-    },
   })
   @ApiResponse({
     status: 401,

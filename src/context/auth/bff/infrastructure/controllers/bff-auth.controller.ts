@@ -7,6 +7,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
 import type { Request, Response } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
@@ -160,6 +161,7 @@ export class BffController {
   @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
   @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
   @Get('login')
+  @PublicEndpoint()
   async login(
     @Req()
     req: Request & {
@@ -203,6 +205,7 @@ export class BffController {
   @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
   @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
   @Get('login/:app')
+  @PublicEndpoint()
   async loginForApp(
     @Param('app') app: string,
     @Req()
@@ -247,6 +250,7 @@ export class BffController {
   })
   @ApiResponse({ status: 400, description: 'Callback inválido' })
   @Get('callback/:app')
+  @PublicEndpoint()
   async callback(
     @Param('app') app: string,
     @Req()
@@ -382,6 +386,7 @@ export class BffController {
   })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me')
+  @PublicEndpoint()
   async me(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
@@ -406,6 +411,7 @@ export class BffController {
   })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('me/:app')
+  @PublicEndpoint()
   async meForApp(
     @Param('app') app: string,
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -526,6 +532,7 @@ export class BffController {
   @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('refresh')
+  @PublicEndpoint()
   async refresh(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
@@ -543,6 +550,7 @@ export class BffController {
   @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Post('refresh/:app')
+  @PublicEndpoint()
   async refreshForApp(
     @Param('app') app: string,
     @Req() req: Request & { cookies: Record<string, string | undefined> },
@@ -645,6 +653,7 @@ export class BffController {
   @ApiResponse({ status: 302, description: 'Redirige a /login/console' })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('logout')
+  @PublicEndpoint()
   async logout(
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
@@ -661,6 +670,7 @@ export class BffController {
   @ApiResponse({ status: 302, description: 'Redirige a /login/:app' })
   @ApiResponse({ status: 400, description: 'Solicitud inválida' })
   @Get('logout/:app')
+  @PublicEndpoint()
   async logoutForApp(
     @Param('app') app: string,
     @Req() req: Request & { cookies: Record<string, string | undefined> },

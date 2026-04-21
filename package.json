@@ -34,7 +34,11 @@
     "docs:watch": "node scripts/watch-api-docs.js",
     "docs:validate": "node scripts/validate-api-docs.js",
     "docs:agents:validate": "node scripts/validate-agents.js",
-    "docs:agents:open": "open AGENTS-VALIDATION-REPORT.html"
+    "docs:agents:open": "open AGENTS-VALIDATION-REPORT.html",
+    "openapi:generate": "ts-node -r tsconfig-paths/register scripts/generate-openapi.ts",
+    "openapi:lint": "redocly lint docs/api/openapi.yaml",
+    "openapi:bundle": "redocly bundle docs/api/openapi.yaml -o docs/api/openapi.bundled.yaml",
+    "openapi:preview": "redocly preview-docs docs/api/openapi.yaml"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.933.0",
@@ -95,6 +99,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@redocly/cli": "^2.29.0",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
     "@types/bcrypt": "^5.0.2",

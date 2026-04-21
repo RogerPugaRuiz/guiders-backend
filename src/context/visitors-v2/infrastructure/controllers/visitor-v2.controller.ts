@@ -49,6 +49,7 @@ import { GetVisitorActivityQuery } from '../../application/queries/get-visitor-a
 import { GetVisitorActivityResponseDto } from '../../application/dtos/get-visitor-activity-response.dto';
 import { GetVisitorSiteQuery } from '../../application/queries/get-visitor-site.query';
 import { GetVisitorSiteResponseDto } from '../../application/dtos/get-visitor-site-response.dto';
+import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
 
 @ApiTags('visitors')
 @Controller('visitors')
@@ -61,6 +62,7 @@ export class VisitorV2Controller {
   ) {}
 
   @Post('identify')
+  @PublicEndpoint()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Identificar visitante',
@@ -74,6 +76,7 @@ export class VisitorV2Controller {
   })
   @ApiBody({
     description: 'Datos del visitante para identificación',
+    type: IdentifyVisitorDto,
     examples: {
       example1: {
         summary: 'Visitante nuevo',
@@ -84,6 +87,7 @@ export class VisitorV2Controller {
           domain: 'landing.mytech.com',
           apiKey: 'ak_live_1234567890abcdef',
           currentUrl: 'https://landing.mytech.com/home',
+          hasAcceptedPrivacyPolicy: true,
         },
       },
       example2: {
@@ -93,6 +97,7 @@ export class VisitorV2Controller {
           fingerprint: 'fp_abcdef1234567890',
           domain: 'blog.mytech.com',
           apiKey: 'ak_live_abcdef1234567890',
+          hasAcceptedPrivacyPolicy: true,
         },
       },
     },
@@ -174,6 +179,7 @@ export class VisitorV2Controller {
   }
 
   @Post('session/end')
+  @PublicEndpoint()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Cerrar sesión de visitante',
@@ -253,6 +259,7 @@ export class VisitorV2Controller {
   }
 
   @Put('status')
+  @PublicEndpoint()
   @HttpCode(200)
   @ApiOperation({
     summary: 'Cambiar estado de conexión del visitante',
@@ -351,12 +358,6 @@ export class VisitorV2Controller {
   @ApiOkResponse({
     description: 'Página actual del visitante obtenida exitosamente',
     type: GetVisitorCurrentPageResponseDto,
-    schema: {
-      example: {
-        currentUrl: 'https://example.com/products/laptop-gaming',
-        updatedAt: '2025-11-19T19:30:00.000Z',
-      },
-    },
   })
   @ApiResponse({
     status: 401,

@@ -21,10 +21,12 @@ import {
   ApiResponse,
   ApiParam,
   ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
 import { GetVisitorsByTenantQuery } from '../../application/queries/get-visitors-by-tenant.query';
 import { GetVisitorsWithUnassignedChatsByTenantQuery } from '../../application/queries/get-visitors-with-unassigned-chats-by-tenant.query';
 import { GetVisitorsWithQueuedChatsByTenantQuery } from '../../application/queries/get-visitors-with-queued-chats-by-tenant.query';
@@ -62,6 +64,8 @@ import {
 @Controller('tenant-visitors')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class TenantVisitorsController {
   private readonly logger = new Logger(TenantVisitorsController.name);
 
@@ -215,7 +219,7 @@ export class TenantVisitorsController {
   @ApiOperation({
     summary: 'Buscar visitantes con filtros complejos',
     description:
-      'Permite buscar visitantes aplicando múltiples filtros, ordenamiento y paginación',
+      'Endpoint principal de búsqueda de visitantes del tenant. Permite combinar múltiples filtros (estado, atributos, sesión, fecha), ordenamiento por cualquier campo soportado y paginación. Reemplaza al endpoint deprecado GET /:tenantId/visitors. Registra metadata de auditoría (IP, UserAgent, commercialId) para trazabilidad. Usa HTTP 200 (no 201) por ser una operación de consulta.',
   })
   @ApiParam({
     name: 'tenantId',
@@ -280,7 +284,7 @@ export class TenantVisitorsController {
   @ApiOperation({
     summary: 'Obtener configuración de filtros rápidos',
     description:
-      'Retorna la lista de filtros rápidos disponibles con sus contadores',
+      'Devuelve la lista de filtros rápidos predefinidos disponibles para el tenant junto con el contador de visitantes que cumplen cada filtro en el momento de la consulta. Pensado para alimentar pestañas/chips de filtrado rápido en el dashboard del comercial.',
   })
   @ApiParam({
     name: 'tenantId',
@@ -313,7 +317,8 @@ export class TenantVisitorsController {
   @Roles(['commercial', 'admin'])
   @ApiOperation({
     summary: 'Obtener filtros guardados del usuario',
-    description: 'Retorna la lista de filtros personalizados guardados',
+    description:
+      'Devuelve la lista de filtros personalizados que el usuario autenticado ha guardado dentro del tenant indicado. El listado está ámbitado al user.id extraído del token y al tenantId de la ruta; no expone filtros de otros usuarios.',
   })
   @ApiParam({
     name: 'tenantId',
@@ -348,7 +353,8 @@ export class TenantVisitorsController {
   @Roles(['commercial', 'admin'])
   @ApiOperation({
     summary: 'Guardar un filtro personalizado',
-    description: 'Guarda una configuración de filtros para uso posterior',
+    description:
+      'Persiste una configuración nombrada de filtros, ordenamiento y descripción para uso posterior por el usuario autenticado dentro del tenant. Devuelve el ID generado del filtro guardado. No comprueba unicidad de nombre.',
   })
   @ApiParam({
     name: 'tenantId',
@@ -397,7 +403,8 @@ export class TenantVisitorsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar un filtro guardado',
-    description: 'Elimina un filtro personalizado previamente guardado',
+    description:
+      'Elimina permanentemente un filtro personalizado previamente guardado. La operación valida que el filtro pertenezca al usuario autenticado y al tenant indicado; en caso contrario devuelve 404. Operación irreversible.',
   })
   @ApiParam({
     name: 'tenantId',

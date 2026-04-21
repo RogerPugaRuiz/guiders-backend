@@ -149,6 +149,7 @@ export class LlmConfigResponseDto {
 
   @ApiPropertyOptional({
     description: 'Prompt del sistema personalizado',
+    type: 'string',
     example: 'Eres un asistente de ventas especializado en tecnología.',
     nullable: true,
   })
@@ -236,6 +237,7 @@ export class UpdateLlmConfigDto {
   @ApiPropertyOptional({
     description:
       'Prompt del sistema personalizado. Enviar null o string vacío para volver al prompt por defecto.',
+    type: 'string',
     example: 'Eres un asistente de ventas especializado en tecnología.',
     nullable: true,
   })

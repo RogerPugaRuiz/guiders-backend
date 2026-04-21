@@ -24,6 +24,7 @@ import { CommandBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
+import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 import { GenerateSuggestionCommand } from '../../application/commands/generate-suggestion.command';
 import { ImproveTextCommand } from '../../application/commands/improve-text.command';
 import {
@@ -47,7 +48,8 @@ interface AuthenticatedRequest extends Request {
 @Controller('v2/llm')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
-@ApiCookieAuth()
+@ApiCookieAuth('access_token')
+@ApiAuthErrors()
 export class LlmSuggestionsController {
   private readonly logger = new Logger(LlmSuggestionsController.name);
 
