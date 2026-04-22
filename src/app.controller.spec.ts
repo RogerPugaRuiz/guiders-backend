@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthGuard } from './context/shared/infrastructure/guards/auth.guard';
+import { RolesGuard } from './context/shared/infrastructure/guards/role.guard';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -17,7 +19,12 @@ describe('AppController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      .compile();
 
     appController = app.get<AppController>(AppController);
     appService = app.get<AppService>(AppService);

@@ -29,10 +29,8 @@ import {
   AuthGuard,
 } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
-import {
-  RolesGuard,
-  RequiredRoles,
-} from 'src/context/shared/infrastructure/guards/role.guard';
+import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 
 // DTOs
@@ -74,10 +72,17 @@ export class MessageV2Controller {
   /**
    * Envía un nuevo mensaje a un chat
    * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
+   *
+   * NOTA: Aunque usa OptionalAuthGuard (que no falla si no hay credenciales),
+   * el @Roles(['commercial', 'admin', 'supervisor', 'visitor']) obliga a que
+   * RolesGuard lance UnauthorizedException si request.user es undefined.
+   * En la práctica, este endpoint REQUIERE autenticación — cualquier usuario
+   * anónimo recibirá un 401. El OptionalAuthGuard se usa para soportar múltiples
+   * mecanismos de auth (JWT + cookie de sesión de visitante) de forma unificada.
    */
   @Post()
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @ApiCookieAuth('sid')
   @ApiHeader({
     name: 'X-Guiders-Sid',
@@ -124,14 +129,6 @@ export class MessageV2Controller {
   ): Promise<MessageResponseDto> {
     return (async () => {
       try {
-        // Validar que el usuario esté autenticado (JWT o sesión de visitante)
-        if (!req.user || !req.user.id) {
-          throw new HttpException(
-            'Se requiere autenticación para enviar un mensaje',
-            HttpStatus.UNAUTHORIZED,
-          );
-        }
-
         this.logger.log(
           `Enviando mensaje al chat ${sendMessageDto.chatId} desde usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
         );
@@ -174,10 +171,13 @@ export class MessageV2Controller {
   /**
    * Obtiene los mensajes de un chat específico
    * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
+   *
+   * NOTA: Ver @Post() — aunque usa OptionalAuthGuard, @Roles() hace que RolesGuard
+   * lance 401 si no hay usuario autenticado. Autenticación es obligatoria en la práctica.
    */
   @Get('chat/:chatId')
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -256,14 +256,6 @@ export class MessageV2Controller {
   ): Promise<MessageListResponseDto> {
     return (async () => {
       try {
-        // Validar que el usuario esté autenticado (JWT o sesión de visitante)
-        if (!req.user || !req.user.id) {
-          throw new HttpException(
-            'Se requiere autenticación para acceder a los mensajes',
-            HttpStatus.UNAUTHORIZED,
-          );
-        }
-
         this.logger.log(
           `Obteniendo mensajes del chat ${chatId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
         );
@@ -316,10 +308,13 @@ export class MessageV2Controller {
   /**
    * Obtiene un mensaje específico por ID
    * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
+   *
+   * NOTA: Ver @Post() — aunque usa OptionalAuthGuard, @Roles() hace que RolesGuard
+   * lance 401 si no hay usuario autenticado. Autenticación es obligatoria en la práctica.
    */
   @Get(':messageId')
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @ApiCookieAuth('sid')
   @ApiHeader({
     name: 'X-Guiders-Sid',
@@ -361,14 +356,6 @@ export class MessageV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageResponseDto> {
     try {
-      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
-      if (!req.user || !req.user.id) {
-        throw new HttpException(
-          'Se requiere autenticación para acceder al mensaje',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
       this.logger.log(
         `Obteniendo mensaje ${messageId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
@@ -399,10 +386,13 @@ export class MessageV2Controller {
   /**
    * Marca mensajes como leídos
    * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
+   *
+   * NOTA: Ver @Post() — aunque usa OptionalAuthGuard, @Roles() hace que RolesGuard
+   * lance 401 si no hay usuario autenticado. Autenticación es obligatoria en la práctica.
    */
   @Put('mark-as-read')
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @ApiCookieAuth('sid')
   @ApiHeader({
     name: 'X-Guiders-Sid',
@@ -434,14 +424,6 @@ export class MessageV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<{ success: boolean; markedCount: number }> {
     try {
-      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
-      if (!req.user || !req.user.id) {
-        throw new HttpException(
-          'Se requiere autenticación para marcar mensajes como leídos',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
       this.logger.log(
         `Marcando ${markAsReadDto.messageIds.length} mensajes como leídos para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
@@ -470,10 +452,13 @@ export class MessageV2Controller {
   /**
    * Obtiene mensajes no leídos de un chat
    * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
+   *
+   * NOTA: Ver @Post() — aunque usa OptionalAuthGuard, @Roles() hace que RolesGuard
+   * lance 401 si no hay usuario autenticado. Autenticación es obligatoria en la práctica.
    */
   @Get('chat/:chatId/unread')
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -518,14 +503,6 @@ export class MessageV2Controller {
     @Req() req: AuthenticatedRequest,
   ): Promise<MessageResponseDto[]> {
     try {
-      // Validar que el usuario esté autenticado (JWT o sesión de visitante)
-      if (!req.user || !req.user.id) {
-        throw new HttpException(
-          'Se requiere autenticación para acceder a mensajes no leídos',
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-
       this.logger.log(
         `Obteniendo mensajes no leídos del chat ${chatId} para usuario: ${req.user.id} con roles: ${JSON.stringify(req.user.roles)}`,
       );
@@ -560,7 +537,7 @@ export class MessageV2Controller {
    */
   @Get('search')
   @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -647,7 +624,7 @@ export class MessageV2Controller {
    */
   @Get('chat/:chatId/stats')
   @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @ApiOperation({
     summary: 'Obtener estadísticas de conversación',
     description: 'Retorna estadísticas detalladas de un chat específico',
@@ -727,7 +704,7 @@ export class MessageV2Controller {
    */
   @Get('metrics')
   @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @ApiOperation({
     summary: 'Obtener métricas de mensajería',
     description:
@@ -814,10 +791,13 @@ export class MessageV2Controller {
   /**
    * Obtiene mensajes con archivos adjuntos
    * Soporta autenticación por JWT (Bearer token) o sesión de visitante V2 (cookie 'sid')
+   *
+   * NOTA: Ver @Post() — aunque usa OptionalAuthGuard, @Roles() hace que RolesGuard
+   * lance 401 si no hay usuario autenticado. Autenticación es obligatoria en la práctica.
    */
   @Get('attachments')
-  @UseGuards(OptionalAuthGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @UseGuards(OptionalAuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')

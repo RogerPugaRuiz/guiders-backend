@@ -20,13 +20,16 @@ import {
   ApiCookieAuth,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
+import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
+import { Roles } from '../../../shared/infrastructure/roles.decorator';
 import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
 import { ResolveSiteCommand } from '../../application/commands/resolve-site.command';
 import { ResolveSiteResponseDto } from '../../application/dtos/resolve-site-response.dto';
 
 @ApiTags('sites')
 @Controller('sites')
-@UseGuards(DualAuthGuard)
+@UseGuards(DualAuthGuard, RolesGuard)
+@Roles(['admin', 'commercial', 'supervisor'])
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()

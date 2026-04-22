@@ -58,10 +58,8 @@ import {
   RefreshTokenResponseDto,
   AcceptInviteRequestDto,
 } from '../dtos/auth-user.dto';
-import {
-  RequiredRoles,
-  RolesGuard,
-} from 'src/context/shared/infrastructure/guards/role.guard';
+import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 import { SyncUserWithKeycloakCommand } from '../../application/commands/sync-user-with-keycloak.command';
 import {
   SyncUserWithKeycloakDto,
@@ -163,7 +161,7 @@ export class AuthUserController {
     description: 'Error interno del servidor',
   })
   @ApiBearerAuth()
-  @RequiredRoles('admin')
+  @Roles(['admin'])
   @UseGuards(AuthGuard, RolesGuard)
   async register(
     @Body('email') email: string,
@@ -416,7 +414,7 @@ export class AuthUserController {
   })
   @ApiUnauthorizedResponse({ description: 'No autorizado' })
   @ApiInternalServerErrorResponse({ description: 'Error interno del servidor' })
-  @RequiredRoles('admin')
+  @Roles(['admin'])
   @UseGuards(AuthGuard, RolesGuard)
   async listCompanyUsers(@Req() req: any): Promise<UserListResponseDto> {
     // Extrae el companyId del payload del token (req.user)
@@ -459,7 +457,7 @@ export class AuthUserController {
   @ApiResponse({ status: 401, description: 'No autorizado' })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
-  @RequiredRoles('admin', 'commercial')
+  @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
   async me(@Req() req: AuthenticatedRequest): Promise<CurrentUserResponseDto> {
     const rawUserId: string | undefined = req.user?.id;
@@ -551,7 +549,7 @@ export class AuthUserController {
     description: 'Usuario no encontrado con ese Keycloak ID',
   })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
-  @RequiredRoles('admin', 'commercial')
+  @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
   async getUserById(
     @Param('keycloakId') keycloakId: string,
@@ -615,6 +613,8 @@ export class AuthUserController {
   }
 
   @Post('sync-with-keycloak')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['superadmin'])
   @PublicEndpoint()
   @ApiOperation({
     summary: 'Sincronizar usuario con Keycloak',
@@ -672,6 +672,8 @@ export class AuthUserController {
   }
 
   @Post('verify-role-mapping')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['superadmin'])
   @PublicEndpoint()
   @ApiOperation({
     summary: 'Verificar mapeo de roles de Keycloak',
@@ -756,7 +758,7 @@ export class AuthUserController {
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   @ApiBearerAuth()
-  @RequiredRoles('admin', 'commercial')
+  @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
   @UseInterceptors(FileInterceptor('file'))
   async uploadAvatar(
@@ -883,7 +885,7 @@ export class AuthUserController {
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   @ApiBearerAuth()
-  @RequiredRoles('admin', 'commercial')
+  @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
   async deleteAvatar(
     @Param('keycloakId') keycloakId: string,

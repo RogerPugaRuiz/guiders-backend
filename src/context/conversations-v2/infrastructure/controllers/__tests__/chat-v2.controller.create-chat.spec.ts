@@ -5,6 +5,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ChatV2Controller } from '../chat-v2.controller';
 import { JoinWaitingRoomCommand } from '../../../application/commands/join-waiting-room.command';
 import { AuthGuard } from 'src/context/shared/infrastructure/guards/auth.guard';
+import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
@@ -33,6 +34,10 @@ describe('ChatV2Controller - createChat', () => {
     };
 
     const mockAuthGuard = {
+      canActivate: jest.fn().mockReturnValue(true),
+    };
+
+    const mockDualAuthGuard = {
       canActivate: jest.fn().mockReturnValue(true),
     };
 
@@ -84,6 +89,8 @@ describe('ChatV2Controller - createChat', () => {
     })
       .overrideGuard(AuthGuard)
       .useValue(mockAuthGuard)
+      .overrideGuard(DualAuthGuard)
+      .useValue(mockDualAuthGuard)
       .overrideGuard(RolesGuard)
       .useValue(mockRolesGuard)
       .overrideGuard(OptionalAuthGuard)

@@ -9,7 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
-  // UseGuards,
+  UseGuards,
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
@@ -25,11 +25,10 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
-
-// Guards (comentados hasta implementar)
-// import { WsAuthGuard } from '../../../shared/infrastructure/guards/ws-auth.guard';
-// import { WsRolesGuard } from '../../../shared/infrastructure/guards/ws-roles.guard';
-// import { Roles } from '../../../shared/infrastructure/decorators/roles.decorator';
+import { AuthGuard } from '../../../shared/infrastructure/guards/auth.guard';
+import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
+import { Roles } from '../../../shared/infrastructure/roles.decorator';
+import { Public } from '../../../shared/infrastructure/decorators/public.decorator';
 
 // DTOs
 import {
@@ -77,7 +76,7 @@ import { VisitorAccountApiKey } from '../../../auth/auth-visitor/domain/models/v
 @ApiTags('Commercials')
 @ApiBearerAuth()
 @Controller('v2/commercials')
-// @UseGuards(WsAuthGuard, WsRolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class CommercialController {
   private readonly logger = new Logger(CommercialController.name);
 
@@ -95,7 +94,7 @@ export class CommercialController {
    */
   @Post('connect')
   @HttpCode(HttpStatus.OK)
-  // // @Roles(['commercial', 'admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Conectar comercial',
     description: 'Registra un comercial como conectado en el sistema',
@@ -150,7 +149,7 @@ export class CommercialController {
    */
   @Post('disconnect')
   @HttpCode(HttpStatus.OK)
-  // @Roles(['commercial', 'admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Desconectar comercial',
     description: 'Registra un comercial como desconectado del sistema',
@@ -197,7 +196,7 @@ export class CommercialController {
    */
   @Put('status')
   @HttpCode(HttpStatus.OK)
-  // @Roles(['commercial', 'admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Cambiar estado de conexión del comercial',
     description:
@@ -271,7 +270,7 @@ export class CommercialController {
    * Obtiene el estado de conexión de un comercial
    */
   @Get(':id/status')
-  // @Roles(['commercial', 'admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Obtener estado de comercial',
     description:
@@ -328,7 +327,7 @@ export class CommercialController {
    * Obtiene la lista de comerciales activos/online
    */
   @Get('active')
-  // @Roles(['admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Obtener comerciales activos',
     description:
@@ -370,7 +369,7 @@ export class CommercialController {
    * Obtiene la lista de comerciales disponibles para asignación
    */
   @Get('available')
-  // @Roles(['admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Obtener comerciales disponibles',
     description:
@@ -414,6 +413,7 @@ export class CommercialController {
    */
   @Post('availability')
   @HttpCode(HttpStatus.OK)
+  @Public()
   @ApiOperation({
     summary: 'Consultar disponibilidad de comerciales',
     description:
@@ -528,7 +528,7 @@ export class CommercialController {
    * Elimina un comercial del sistema (admin only)
    */
   @Delete(':id')
-  // @Roles(['admin'])
+  @Roles(['admin', 'supervisor'])
   @ApiOperation({
     summary: 'Eliminar comercial',
     description:
@@ -583,8 +583,7 @@ export class CommercialController {
    */
   @Post('register-fingerprint')
   @HttpCode(HttpStatus.OK)
-  // @UseGuards(AuthGuard, RoleGuard)
-  // @Roles(['commercial', 'admin'])
+  @Roles(['admin', 'supervisor', 'commercial'])
   @ApiOperation({
     summary: 'Registrar fingerprint de comercial',
     description:

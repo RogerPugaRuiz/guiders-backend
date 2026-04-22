@@ -25,6 +25,8 @@ import { GetCompanySitesQuery } from '../../application/queries/get-company-site
 import { GetCompanySitesResponseDto } from '../../application/dtos/get-company-sites-response.dto';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { AuthenticatedRequest } from '../../../shared/infrastructure/guards/auth.guard';
+import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
+import { Roles } from '../../../shared/infrastructure/roles.decorator';
 import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
 
 @ApiTags('companies')
@@ -101,7 +103,8 @@ export class CompanyController {
   }
 
   @Get('companies/:companyId/sites')
-  @UseGuards(DualAuthGuard)
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @Roles(['admin', 'commercial', 'supervisor'])
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Listar sitios de una empresa',
@@ -136,7 +139,8 @@ export class CompanyController {
   }
 
   @Get('me/company')
-  @UseGuards(DualAuthGuard)
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @Roles(['admin', 'commercial', 'supervisor'])
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Obtener empresa del usuario autenticado',

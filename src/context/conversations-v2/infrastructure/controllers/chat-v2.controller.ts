@@ -32,10 +32,8 @@ import {
 } from 'src/context/shared/infrastructure/guards/auth.guard';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
-import {
-  RolesGuard,
-  RequiredRoles,
-} from 'src/context/shared/infrastructure/guards/role.guard';
+import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
+import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
 
 // DTOs
 import {
@@ -134,7 +132,8 @@ export class ChatV2Controller {
    * Crea un nuevo chat para el visitante autenticado
    */
   @Post()
-  @RequiredRoles('visitor', 'commercial', 'admin')
+  @UseGuards(DualAuthGuard, RolesGuard)
+  @Roles(['visitor', 'commercial', 'admin'])
   @ApiOperation({
     summary: 'Crear nuevo chat',
     description:
@@ -253,7 +252,7 @@ export class ChatV2Controller {
    */
   @Post('with-message')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @RequiredRoles('visitor', 'commercial', 'admin')
+  @Roles(['visitor', 'commercial', 'admin'])
   @ApiOperation({
     summary: 'Crear nuevo chat con primer mensaje',
     description:
@@ -567,7 +566,7 @@ export class ChatV2Controller {
    */
   @Get()
   @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -781,7 +780,7 @@ export class ChatV2Controller {
    */
   @Get('response-time-stats')
   @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin')
+  @Roles(['commercial', 'admin'])
   @ApiOperation({
     summary: 'Obtener estadísticas de tiempo de respuesta',
     description:
@@ -874,7 +873,7 @@ export class ChatV2Controller {
    */
   @Get(':chatId')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor', 'visitor')
+  @Roles(['commercial', 'admin', 'supervisor', 'visitor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -945,7 +944,7 @@ export class ChatV2Controller {
    */
   @Get('visitor/:visitorId/my-chat')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -1077,10 +1076,12 @@ export class ChatV2Controller {
         assignedCommercialId: commercialId,
       };
 
-      // Usar el query handler existente con filtros específicos
+      // Usar el query handler existente con filtros específicos.
+      // Se pasan los roles reales del usuario para que el query handler aplique
+      // los filtros de acceso correctos (ej: filtro por companyId para comerciales).
       const query = GetChatsWithFiltersQuery.create({
         userId: commercialId,
-        userRoles: ['admin'], // Usar admin para evitar filtros automáticos adicionales
+        userRoles: req.user.roles ?? [],
         filters: filters,
         sort: { field: 'createdAt', direction: 'DESC' }, // Más reciente primero
         cursor: undefined,
@@ -1103,7 +1104,7 @@ export class ChatV2Controller {
 
       const totalVisitorQuery = GetChatsWithFiltersQuery.create({
         userId: commercialId,
-        userRoles: ['admin'],
+        userRoles: req.user.roles ?? [],
         filters: totalVisitorFilters,
         sort: { field: 'createdAt', direction: 'DESC' },
         cursor: undefined,
@@ -1147,7 +1148,8 @@ export class ChatV2Controller {
    * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Get('queue/pending')
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor'])
   @Header('Cache-Control', 'no-cache, no-store, must-revalidate')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
@@ -1256,7 +1258,8 @@ export class ChatV2Controller {
    * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Get('metrics/commercial/:commercialId')
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor'])
   @ApiOperation({
     summary: 'Obtener métricas de comercial',
     description:
@@ -1345,7 +1348,7 @@ export class ChatV2Controller {
    */
   @Put(':chatId/assign/:commercialId')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @ApiBearerAuth()
   @ApiCookieAuth()
   @ApiOperation({
@@ -1532,7 +1535,7 @@ export class ChatV2Controller {
    */
   @Put(':chatId/view-open')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @RequiredRoles('visitor', 'commercial', 'admin', 'supervisor')
+  @Roles(['visitor', 'commercial', 'admin', 'supervisor'])
   @ApiBearerAuth()
   @ApiCookieAuth()
   @ApiOperation({
@@ -1651,7 +1654,7 @@ export class ChatV2Controller {
    */
   @Put(':chatId/view-close')
   @UseGuards(DualAuthGuard, RolesGuard)
-  @RequiredRoles('visitor', 'commercial', 'admin', 'supervisor')
+  @Roles(['visitor', 'commercial', 'admin', 'supervisor'])
   @ApiBearerAuth()
   @ApiCookieAuth()
   @ApiOperation({
@@ -1770,7 +1773,8 @@ export class ChatV2Controller {
    * Requiere autenticación y permisos de comercial, administrador o supervisor
    */
   @Put(':chatId/close')
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor'])
   @ApiOperation({
     summary: 'Cerrar chat',
     description:
@@ -1835,7 +1839,8 @@ export class ChatV2Controller {
    * Requiere autenticación y permisos de administrador
    */
   @Delete('visitor/:visitorId/clear')
-  @RequiredRoles('admin')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['admin'])
   @ApiOperation({
     summary: 'Eliminar todos los chats de un visitante',
     description:
@@ -1940,7 +1945,7 @@ export class ChatV2Controller {
    */
   @Get('visitor/:visitorId/pending')
   @UseGuards(AuthGuard, RolesGuard)
-  @RequiredRoles('commercial', 'admin', 'supervisor')
+  @Roles(['commercial', 'admin', 'supervisor'])
   @ApiOperation({
     summary: 'Obtener chats pendientes de un visitante',
     description:

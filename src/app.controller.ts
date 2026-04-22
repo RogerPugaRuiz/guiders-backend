@@ -1,5 +1,4 @@
 import { Controller, Get, Head, Res, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -18,6 +17,9 @@ import {
   PublicEndpoint,
 } from './context/shared/infrastructure/swagger';
 import { AppService } from './app.service';
+import { AuthGuard } from './context/shared/infrastructure/guards/auth.guard';
+import { RolesGuard } from './context/shared/infrastructure/guards/role.guard';
+import { Roles } from './context/shared/infrastructure/roles.decorator';
 
 @ApiTags('health')
 @Controller()
@@ -82,7 +84,8 @@ export class AppController {
   }
 
   @Get('protected')
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['admin'])
   @ApiBearerAuth()
   @ApiAuthErrors()
   @ApiOperation({

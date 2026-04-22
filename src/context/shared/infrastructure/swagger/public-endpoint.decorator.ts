@@ -12,10 +12,16 @@ import { ApiSecurity } from '@nestjs/swagger';
  * operación tenga el campo `security` definido — bien con un esquema concreto
  * o bien vacío para indicar acceso anónimo.
  *
- * Uso:
+ * ⚠️ ATENCIÓN: Este decorador es SOLO para documentación Swagger/OpenAPI.
+ * NO afecta a los guards de NestJS (AuthGuard, RolesGuard).
+ * Para hacer que un endpoint sea realmente público (sin JWT ni roles),
+ * usa el decorador @Public() de `src/context/shared/infrastructure/decorators/public.decorator`.
+ *
+ * Uso correcto para un endpoint verdaderamente público:
  *
  * ```ts
- * @PublicEndpoint()
+ * @Public()          // <-- para AuthGuard y RolesGuard
+ * @PublicEndpoint()  // <-- para Swagger
  * @Get('health')
  * health() {
  *   return { status: 'ok' };
