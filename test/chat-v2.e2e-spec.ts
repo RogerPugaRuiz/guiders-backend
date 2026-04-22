@@ -630,7 +630,7 @@ describe('ChatV2Controller (e2e)', () => {
   });
 
   describe('GET /v2/chats/metrics/commercial/:commercialId', () => {
-    it('debe retornar chats de un comercial específico', async () => {
+    it('debe retornar métricas de un comercial específico', async () => {
       const mockToken = 'mock-commercial-token';
       const commercialId = 'commercial-123';
 
@@ -639,10 +639,11 @@ describe('ChatV2Controller (e2e)', () => {
         .set('Authorization', `Bearer ${mockToken}`)
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('chats');
-          expect(res.body).toHaveProperty('total');
-          expect(res.body).toHaveProperty('hasMore');
-          expect(res.body).toHaveProperty('nextCursor');
+          expect(res.body).toHaveProperty('totalChats');
+          expect(res.body).toHaveProperty('activeChats');
+          expect(res.body).toHaveProperty('closedChats');
+          expect(res.body).toHaveProperty('averageResponseTime');
+          expect(res.body).toHaveProperty('resolutionRate');
         });
     });
   });
