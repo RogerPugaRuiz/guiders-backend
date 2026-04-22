@@ -20,6 +20,10 @@ import {
   LeadcarsListStatesResponse,
   LeadcarsEditLeadRequest,
   LeadcarsEditLeadResponse,
+  LeadcarsConcesionario,
+  LeadcarsSede,
+  LeadcarsCampana,
+  LeadcarsTipoLeadItem,
   LEADCARS_API_URLS,
   LEADCARS_RETRY_CONFIG,
   LEADCARS_REQUIRED_HEADERS,
@@ -91,13 +95,20 @@ export class LeadcarsApiService {
    */
   async listConcesionarios(
     config: LeadcarsConfig,
-  ): Promise<Result<LeadcarsListConcesionariosResponse, DomainError>> {
+  ): Promise<Result<LeadcarsConcesionario[], DomainError>> {
     const url = `${this.getBaseUrl(config)}/concesionarios`;
 
-    return this.executeWithRetry<LeadcarsListConcesionariosResponse>(
+    const raw = await this.executeWithRetry<
+      LeadcarsListConcesionariosResponse
+    >(
       () => this.get<LeadcarsListConcesionariosResponse>(url, config),
       'listConcesionarios',
     );
+
+    if (raw.isErr()) return err(raw.error);
+    const items = this.normalizeListResponse<LeadcarsConcesionario>(raw.unwrap() as any);
+    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de concesionarios'));
+    return ok(items);
   }
 
   /**
@@ -106,13 +117,18 @@ export class LeadcarsApiService {
   async listSedes(
     concesionarioId: number,
     config: LeadcarsConfig,
-  ): Promise<Result<LeadcarsListSedesResponse, DomainError>> {
+  ): Promise<Result<LeadcarsSede[], DomainError>> {
     const url = `${this.getBaseUrl(config)}/sedes/${concesionarioId}`;
 
-    return this.executeWithRetry<LeadcarsListSedesResponse>(
+    const raw = await this.executeWithRetry<LeadcarsListSedesResponse>(
       () => this.get<LeadcarsListSedesResponse>(url, config),
       'listSedes',
     );
+
+    if (raw.isErr()) return err(raw.error);
+    const items = this.normalizeListResponse<LeadcarsSede>(raw.unwrap() as any);
+    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de sedes'));
+    return ok(items);
   }
 
   /**
@@ -121,7 +137,7 @@ export class LeadcarsApiService {
   async listCampanas(
     concesionarioId: number,
     config: LeadcarsConfig,
-  ): Promise<Result<LeadcarsListCampanasResponse, DomainError>> {
+  ): Promise<Result<LeadcarsCampana[], DomainError>> {
     if (!Number.isInteger(concesionarioId) || concesionarioId <= 0) {
       return err(
         new CrmApiError(
@@ -133,10 +149,15 @@ export class LeadcarsApiService {
 
     const url = `${this.getBaseUrl(config)}/campanas/${concesionarioId}`;
 
-    return this.executeWithRetry<LeadcarsListCampanasResponse>(
+    const raw = await this.executeWithRetry<LeadcarsListCampanasResponse>(
       () => this.get<LeadcarsListCampanasResponse>(url, config),
       'listCampanas',
     );
+
+    if (raw.isErr()) return err(raw.error);
+    const items = this.normalizeListResponse<LeadcarsCampana>(raw.unwrap() as any);
+    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de campañas'));
+    return ok(items);
   }
 
   /**
@@ -144,13 +165,18 @@ export class LeadcarsApiService {
    */
   async listTipos(
     config: LeadcarsConfig,
-  ): Promise<Result<LeadcarsListTiposResponse, DomainError>> {
+  ): Promise<Result<LeadcarsTipoLeadItem[], DomainError>> {
     const url = `${this.getBaseUrl(config)}/tipos`;
 
-    return this.executeWithRetry<LeadcarsListTiposResponse>(
+    const raw = await this.executeWithRetry<LeadcarsListTiposResponse>(
       () => this.get<LeadcarsListTiposResponse>(url, config),
       'listTipos',
     );
+
+    if (raw.isErr()) return err(raw.error);
+    const items = this.normalizeListResponse<LeadcarsTipoLeadItem>(raw.unwrap() as any);
+    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de tipos de lead'));
+    return ok(items);
   }
 
   /**
@@ -205,11 +231,25 @@ export class LeadcarsApiService {
       return err(result.error);
     }
 
-    const response = result.unwrap();
-    return ok(response.success === true);
+    return ok(result.unwrap().length >= 0);
   }
 
   // ============ Métodos privados ============
+
+  /**
+   * Normaliza respuestas de discovery que pueden ser array directo o wrapper { success, data }
+   */
+  private normalizeListResponse<T>(
+    raw: T[] | { success?: boolean; data?: T[] },
+  ): T[] | null {
+    if (Array.isArray(raw)) {
+      return raw;
+    }
+    if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray(raw.data)) {
+      return raw.data;
+    }
+    return null;
+  }
 
   private getBaseUrl(config: LeadcarsConfig): string {
     return config.useSandbox

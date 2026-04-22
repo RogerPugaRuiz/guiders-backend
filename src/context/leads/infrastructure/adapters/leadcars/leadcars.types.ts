@@ -271,39 +271,39 @@ export interface LeadcarsCampana {
 
 /**
  * Response de listar concesionarios
+ * La API puede devolver el array directamente o dentro de { success, data }
  */
-export interface LeadcarsListConcesionariosResponse {
-  success: boolean;
-  data?: LeadcarsConcesionario[];
-  error?: {
-    code: string;
-    message: string;
-  };
-}
+export type LeadcarsListConcesionariosResponse =
+  | LeadcarsConcesionario[]
+  | {
+      success: boolean;
+      data?: LeadcarsConcesionario[];
+      error?: { code: string; message: string };
+    };
 
 /**
  * Response de listar sedes
+ * La API puede devolver el array directamente o dentro de { success, data }
  */
-export interface LeadcarsListSedesResponse {
-  success: boolean;
-  data?: LeadcarsSede[];
-  error?: {
-    code: string;
-    message: string;
-  };
-}
+export type LeadcarsListSedesResponse =
+  | LeadcarsSede[]
+  | {
+      success: boolean;
+      data?: LeadcarsSede[];
+      error?: { code: string; message: string };
+    };
 
 /**
  * Response de listar campañas
+ * La API puede devolver el array directamente o dentro de { success, data }
  */
-export interface LeadcarsListCampanasResponse {
-  success: boolean;
-  data?: LeadcarsCampana[];
-  error?: {
-    code: string;
-    message: string;
-  };
-}
+export type LeadcarsListCampanasResponse =
+  | LeadcarsCampana[]
+  | {
+      success: boolean;
+      data?: LeadcarsCampana[];
+      error?: { code: string; message: string };
+    };
 
 /**
  * Tipo de lead de LeadCars (obtenido de GET /tipos)
@@ -315,15 +315,15 @@ export interface LeadcarsTipoLeadItem {
 
 /**
  * Response de listar tipos de lead
+ * La API puede devolver el array directamente o dentro de { success, data }
  */
-export interface LeadcarsListTiposResponse {
-  success: boolean;
-  data?: LeadcarsTipoLeadItem[];
-  error?: {
-    code: string;
-    message: string;
-  };
-}
+export type LeadcarsListTiposResponse =
+  | LeadcarsTipoLeadItem[]
+  | {
+      success: boolean;
+      data?: LeadcarsTipoLeadItem[];
+      error?: { code: string; message: string };
+    };
 
 /**
  * URLs base de LeadCars API v2.5

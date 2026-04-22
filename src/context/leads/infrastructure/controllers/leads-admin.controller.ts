@@ -653,14 +653,7 @@ export class LeadsAdminController {
       );
     }
 
-    const response = result.unwrap();
-    if (!response.success || !response.data) {
-      throw new InternalServerErrorException(
-        'LeadCars no devolvió datos de concesionarios',
-      );
-    }
-
-    return response.data.map((c) => ({ id: c.id, nombre: c.nombre }));
+    return result.unwrap().map((c) => ({ id: c.id, nombre: c.nombre }));
   }
 
   @Get('leadcars/sedes/:concesionarioId')
@@ -708,14 +701,7 @@ export class LeadsAdminController {
       );
     }
 
-    const response = result.unwrap();
-    if (!response.success || !response.data) {
-      throw new InternalServerErrorException(
-        'LeadCars no devolvió datos de sedes',
-      );
-    }
-
-    return response.data.map((s) => ({
+    return result.unwrap().map((s) => ({
       id: s.id,
       nombre: s.nombre,
       concesionarioId: s.concesionario_id,
@@ -773,14 +759,7 @@ export class LeadsAdminController {
       );
     }
 
-    const response = result.unwrap();
-    if (!response.success || !response.data) {
-      throw new InternalServerErrorException(
-        'LeadCars no devolvió datos de campañas',
-      );
-    }
-
-    return response.data.map((c) => ({
+    return result.unwrap().map((c) => ({
       id: c.id,
       nombre: c.nombre,
       codigo: c.codigo,
@@ -845,14 +824,7 @@ export class LeadsAdminController {
       );
     }
 
-    const response = result.unwrap();
-    if (!response.success || !response.data) {
-      throw new InternalServerErrorException(
-        'LeadCars no devolvió datos de tipos de lead',
-      );
-    }
-
-    return response.data.map((t) => ({ id: t.id, nombre: t.nombre }));
+    return result.unwrap().map((t) => ({ id: t.id, nombre: t.nombre }));
   }
 
   @Get('leadcars/states')
