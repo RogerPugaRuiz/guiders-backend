@@ -629,13 +629,13 @@ describe('ChatV2Controller (e2e)', () => {
     });
   });
 
-  describe('GET /v2/chats/commercial/:commercialId', () => {
+  describe('GET /v2/chats/metrics/commercial/:commercialId', () => {
     it('debe retornar chats de un comercial específico', async () => {
       const mockToken = 'mock-commercial-token';
       const commercialId = 'commercial-123';
 
       return request(app.getHttpServer())
-        .get(`/v2/chats/commercial/${commercialId}`)
+        .get(`/v2/chats/metrics/commercial/${commercialId}`)
         .set('Authorization', `Bearer ${mockToken}`)
         .expect(200)
         .expect((res) => {
