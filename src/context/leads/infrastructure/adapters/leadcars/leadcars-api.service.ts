@@ -238,16 +238,21 @@ export class LeadcarsApiService {
 
   /**
    * Normaliza respuestas de discovery que pueden ser array directo o wrapper { success, data }
+   * Loguea la respuesta raw para diagnóstico cuando el formato es desconocido
    */
   private normalizeListResponse<T>(
-    raw: T[] | { success?: boolean; data?: T[] },
+    raw: T[] | { success?: boolean; data?: T[] } | unknown,
   ): T[] | null {
     if (Array.isArray(raw)) {
       return raw;
     }
-    if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray(raw.data)) {
-      return raw.data;
+    if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray((raw as any).data)) {
+      return (raw as any).data;
     }
+    // Formato desconocido — loguear para diagnóstico
+    this.logger.warn(
+      `Formato de respuesta de discovery desconocido: ${JSON.stringify(raw).substring(0, 500)}`,
+    );
     return null;
   }
 
