@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { AppController } from './../src/app.controller';
 import { AppService } from './../src/app.service';
+import { TokenVerifyService } from './../src/context/shared/infrastructure/token-verify.service';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
@@ -11,7 +12,13 @@ describe('AppController (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        AppService,
+        {
+          provide: TokenVerifyService,
+          useValue: { verifyToken: jest.fn() },
+        },
+      ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
