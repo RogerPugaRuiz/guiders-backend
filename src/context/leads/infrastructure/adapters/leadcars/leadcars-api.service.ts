@@ -98,16 +98,22 @@ export class LeadcarsApiService {
   ): Promise<Result<LeadcarsConcesionario[], DomainError>> {
     const url = `${this.getBaseUrl(config)}/concesionarios`;
 
-    const raw = await this.executeWithRetry<
-      LeadcarsListConcesionariosResponse
-    >(
+    const raw = await this.executeWithRetry<LeadcarsListConcesionariosResponse>(
       () => this.get<LeadcarsListConcesionariosResponse>(url, config),
       'listConcesionarios',
     );
 
     if (raw.isErr()) return err(raw.error);
-    const items = this.normalizeListResponse<LeadcarsConcesionario>(raw.unwrap() as any);
-    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de concesionarios'));
+    const items = this.normalizeListResponse<LeadcarsConcesionario>(
+      raw.unwrap() as any,
+    );
+    if (!items)
+      return err(
+        new CrmApiError(
+          'leadcars',
+          'LeadCars no devolvió datos de concesionarios',
+        ),
+      );
     return ok(items);
   }
 
@@ -127,7 +133,10 @@ export class LeadcarsApiService {
 
     if (raw.isErr()) return err(raw.error);
     const items = this.normalizeListResponse<LeadcarsSede>(raw.unwrap() as any);
-    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de sedes'));
+    if (!items)
+      return err(
+        new CrmApiError('leadcars', 'LeadCars no devolvió datos de sedes'),
+      );
     return ok(items);
   }
 
@@ -155,8 +164,13 @@ export class LeadcarsApiService {
     );
 
     if (raw.isErr()) return err(raw.error);
-    const items = this.normalizeListResponse<LeadcarsCampana>(raw.unwrap() as any);
-    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de campañas'));
+    const items = this.normalizeListResponse<LeadcarsCampana>(
+      raw.unwrap() as any,
+    );
+    if (!items)
+      return err(
+        new CrmApiError('leadcars', 'LeadCars no devolvió datos de campañas'),
+      );
     return ok(items);
   }
 
@@ -174,8 +188,16 @@ export class LeadcarsApiService {
     );
 
     if (raw.isErr()) return err(raw.error);
-    const items = this.normalizeListResponse<LeadcarsTipoLeadItem>(raw.unwrap() as any);
-    if (!items) return err(new CrmApiError('leadcars', 'LeadCars no devolvió datos de tipos de lead'));
+    const items = this.normalizeListResponse<LeadcarsTipoLeadItem>(
+      raw.unwrap() as any,
+    );
+    if (!items)
+      return err(
+        new CrmApiError(
+          'leadcars',
+          'LeadCars no devolvió datos de tipos de lead',
+        ),
+      );
     return ok(items);
   }
 
@@ -240,14 +262,17 @@ export class LeadcarsApiService {
    * Normaliza respuestas de discovery que pueden ser array directo o wrapper { success, data }
    * Loguea la respuesta raw para diagnóstico cuando el formato es desconocido
    */
-  private normalizeListResponse<T>(
-    raw: T[] | { success?: boolean; data?: T[] } | unknown,
-  ): T[] | null {
+  private normalizeListResponse<T>(raw: unknown): T[] | null {
     if (Array.isArray(raw)) {
-      return raw;
+      return raw as T[];
     }
-    if (raw && typeof raw === 'object' && 'data' in raw && Array.isArray((raw as any).data)) {
-      return (raw as any).data;
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      'data' in raw &&
+      Array.isArray((raw as Record<string, unknown>).data)
+    ) {
+      return (raw as Record<string, unknown>).data as T[];
     }
     // Formato desconocido — loguear para diagnóstico
     this.logger.warn(
