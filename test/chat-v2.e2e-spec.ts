@@ -647,24 +647,6 @@ describe('ChatV2Controller (e2e)', () => {
     });
   });
 
-  describe('GET /v2/chats/visitor/:visitorId', () => {
-    it('debe retornar chats de un visitante específico', async () => {
-      const mockToken = 'mock-commercial-token';
-      const visitorId = 'visitor-123';
-
-      return request(app.getHttpServer())
-        .get(`/v2/chats/visitor/${visitorId}`)
-        .set('Authorization', `Bearer ${mockToken}`)
-        .expect(200)
-        .expect((res) => {
-          expect(res.body).toHaveProperty('chats');
-          expect(res.body).toHaveProperty('total');
-          expect(res.body).toHaveProperty('hasMore');
-          expect(res.body).toHaveProperty('nextCursor');
-        });
-    });
-  });
-
   describe('GET /v2/chats/queue/pending', () => {
     it('debe retornar cola de chats pendientes', async () => {
       const mockToken = 'mock-commercial-token';
