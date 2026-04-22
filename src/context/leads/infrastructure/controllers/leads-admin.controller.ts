@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Req,
   BadRequestException,
@@ -20,6 +21,7 @@ import {
   ApiBearerAuth,
   ApiCookieAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
@@ -598,7 +600,17 @@ export class LeadsAdminController {
   @ApiOperation({
     summary: 'Listar concesionarios disponibles en LeadCars',
     description:
-      'Proxy al endpoint GET /concesionarios de LeadCars usando el token guardado',
+      'Proxy al endpoint GET /concesionarios de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada)',
+  })
+  @ApiQuery({
+    name: 'clienteToken',
+    required: false,
+    description: 'Token de cliente LeadCars (alternativa a config guardada)',
+  })
+  @ApiQuery({
+    name: 'useSandbox',
+    required: false,
+    description: 'Usar entorno sandbox (default: false)',
   })
   @ApiResponse({
     status: 200,
@@ -608,9 +620,30 @@ export class LeadsAdminController {
   @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
   async getLeadcarsConcesionarios(
     @Req() request: AuthenticatedRequest,
+    @Query('clienteToken') clienteToken?: string,
+    @Query('useSandbox') useSandbox?: string,
   ): Promise<LeadcarsConcesionarioDto[]> {
     const companyId = request.user.companyId;
-    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+
+    let leadcarsConfig: {
+      clienteToken: string;
+      useSandbox: boolean;
+      concesionarioId: number;
+      sedeId?: number;
+      campanaCode?: string;
+      tipoLeadDefault: number;
+    };
+
+    if (clienteToken) {
+      leadcarsConfig = {
+        clienteToken,
+        useSandbox: useSandbox === 'true',
+        concesionarioId: 0,
+        tipoLeadDefault: 0,
+      };
+    } else {
+      leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+    }
 
     const result =
       await this.leadcarsApiService.listConcesionarios(leadcarsConfig);
@@ -760,7 +793,17 @@ export class LeadsAdminController {
   @ApiOperation({
     summary: 'Listar tipos de lead disponibles en LeadCars',
     description:
-      'Proxy al endpoint GET /tipos de LeadCars usando el token guardado',
+      'Proxy al endpoint GET /tipos de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada)',
+  })
+  @ApiQuery({
+    name: 'clienteToken',
+    required: false,
+    description: 'Token de cliente LeadCars (alternativa a config guardada)',
+  })
+  @ApiQuery({
+    name: 'useSandbox',
+    required: false,
+    description: 'Usar entorno sandbox (default: false)',
   })
   @ApiResponse({
     status: 200,
@@ -770,9 +813,30 @@ export class LeadsAdminController {
   @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
   async getLeadcarsTipos(
     @Req() request: AuthenticatedRequest,
+    @Query('clienteToken') clienteToken?: string,
+    @Query('useSandbox') useSandbox?: string,
   ): Promise<LeadcarsTipoLeadDto[]> {
     const companyId = request.user.companyId;
-    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+
+    let leadcarsConfig: {
+      clienteToken: string;
+      useSandbox: boolean;
+      concesionarioId: number;
+      sedeId?: number;
+      campanaCode?: string;
+      tipoLeadDefault: number;
+    };
+
+    if (clienteToken) {
+      leadcarsConfig = {
+        clienteToken,
+        useSandbox: useSandbox === 'true',
+        concesionarioId: 0,
+        tipoLeadDefault: 0,
+      };
+    } else {
+      leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+    }
 
     const result = await this.leadcarsApiService.listTipos(leadcarsConfig);
     if (result.isErr()) {
