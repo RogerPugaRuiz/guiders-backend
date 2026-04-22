@@ -1,6 +1,10 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
+import { HttpModule } from '@nestjs/axios';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
+import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
 
 // Domain
 import { COMMERCIAL_CONNECTION_DOMAIN_SERVICE } from './domain/commercial-connection.domain-service';
@@ -47,6 +51,9 @@ import { CompanyModule } from '../company/company.module';
 @Module({
   imports: [
     CqrsModule,
+    HttpModule,
+    JwtModule.register({}),
+    ConfigModule,
     MongooseModule.forFeature([
       { name: 'Commercial', schema: CommercialSchemaDefinition },
     ]),
@@ -91,6 +98,9 @@ import { CompanyModule } from '../company/company.module';
 
     // Schedulers
     CommercialInactivityScheduler,
+
+    // Servicios compartidos necesarios para AuthGuard
+    TokenVerifyService,
   ],
   exports: [COMMERCIAL_REPOSITORY, COMMERCIAL_CONNECTION_DOMAIN_SERVICE],
 })
