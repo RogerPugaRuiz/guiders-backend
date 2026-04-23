@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
-import { createOpenApiDocument } from './context/shared/infrastructure/swagger';
+import {
+  createOpenApiDocument,
+  createPublicOpenApiDocument,
+} from './context/shared/infrastructure/swagger';
 import * as cookieParser from 'cookie-parser';
 import * as session from 'express-session';
 import RedisStore from 'connect-redis';
@@ -115,10 +118,10 @@ async function bootstrap() {
     }),
   );
 
-  // Configurar el prefijo global para todas las rutas (Nginx maneja el proxy)
-  // Excluir docs del prefijo API para que sean accesibles directamente
-  // Excluimos docs y jwks; health queda bajo /api/health
-  app.setGlobalPrefix('api', { exclude: ['/docs', '/docs-json', '/jwks'] });
+  // Prefijo global: excluir docs, spec público y jwks
+  app.setGlobalPrefix('api', {
+    exclude: ['/docs', '/docs-json', '/jwks', '/public/openapi.json'],
+  });
 
   // Configurar validación global para DTOs
   app.useGlobalPipes(
@@ -205,16 +208,48 @@ async function bootstrap() {
     app.enableCors({ ...baseCors, origin: true } as CorsOptions);
   }
 
-  // Configuración de Swagger (centralizada en src/context/shared/infrastructure/swagger)
+  // Documentación OpenAPI
+  // - Documento completo (interno): usado por Scalar UI y /docs-json
+  // - Documento público filtrado: servido en /public/openapi.json sin auth
   const document = createOpenApiDocument(app);
+  const publicDocument = createPublicOpenApiDocument(app);
 
-  // Configurar la ruta de Swagger (sin prefijo API porque está excluido)
-  SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
-    },
+  // Scalar UI en /docs (reemplaza Swagger UI)
+  const { apiReference } = await import('@scalar/nestjs-api-reference');
+  app.use(
+    '/docs',
+    apiReference({
+      spec: { content: document },
+      theme: 'default',
+      metaData: {
+        title: 'Guiders API Docs',
+        description: 'Documentación oficial de la API de Guiders',
+      },
+    }),
+  );
+
+  // Spec JSON completo en /docs-json (compatibilidad con herramientas existentes)
+  SwaggerModule.setup('docs-json-raw', app, document);
+
+  // Spec público sin autenticación — accesible por LLMs, Postman, integradores externos
+  // CORS abierto para este endpoint específico
+  const expressApp = app.getHttpAdapter().getInstance() as {
+    get: (
+      path: string,
+      handler: (
+        req: unknown,
+        res: {
+          json: (data: unknown) => void;
+          setHeader: (key: string, value: string) => void;
+        },
+      ) => void,
+    ) => void;
+  };
+  expressApp.get('/public/openapi.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 min cache
+    res.json(publicDocument);
   });
 
   // Configuración adicional para WebSockets y proxy reverso
@@ -225,13 +260,21 @@ async function bootstrap() {
   logger.log(
     `Application is running in ${process.env.NODE_ENV || 'development'} mode`,
   );
-  logger.log(`Global prefix: api (excluded: /docs, /docs-json, /jwks)`);
+  logger.log(
+    `Global prefix: api (excluded: /docs, /docs-json, /jwks, /public/openapi.json)`,
+  );
 
   const port = process.env.PORT ?? 3000;
   const protocol = useHttps ? 'https' : 'http';
 
   logger.log(`Application is running on ${protocol}://0.0.0.0:${port}`);
-  logger.log(`Swagger docs available at: ${protocol}://localhost:${port}/docs`);
+  logger.log(`Scalar docs at: ${protocol}://localhost:${port}/docs`);
+  logger.log(
+    `OpenAPI spec (internal) at: ${protocol}://localhost:${port}/docs-json`,
+  );
+  logger.log(
+    `OpenAPI spec (public) at: ${protocol}://localhost:${port}/public/openapi.json`,
+  );
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }

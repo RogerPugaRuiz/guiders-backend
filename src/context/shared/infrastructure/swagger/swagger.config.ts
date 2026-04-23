@@ -2,6 +2,29 @@ import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 
 /**
+ * Tags que forman parte de la API pública de Guiders.
+ * Estos endpoints son los que se exponen en el spec público accesible
+ * sin autenticación en /public/openapi.json.
+ *
+ * Los tags internos (admin, backoffice, diagnóstico) NO deben incluirse aquí.
+ */
+export const PUBLIC_API_TAGS = [
+  'tracking-v2', // Ingesta de eventos del SDK embebido
+  'visitors', // Identificación y datos de visitantes
+  'chats', // Conversaciones (widget público)
+  'messages', // Mensajes del widget
+  'auth', // Autenticación (login, refresh, logout)
+  'bff-auth', // BFF auth para frontends web
+  'api-keys', // Gestión de API Keys de tenants
+  'sites', // Sitios web registrados
+  'companies', // Compañías y tenants
+  'leads', // Gestión de leads
+  'llm', // Integración LLM
+  'consents', // Consentimientos RGPD
+  'health', // Health check público
+];
+
+/**
  * Configuración centralizada del documento OpenAPI de la API de Guiders.
  *
  * Esta función se utiliza tanto por `main.ts` (para servir Swagger UI en runtime
@@ -172,7 +195,9 @@ export function operationIdFactory(
 }
 
 /**
- * Crea el documento OpenAPI completo a partir de la aplicación NestJS.
+ * Crea el documento OpenAPI completo (interno) a partir de la aplicación NestJS.
+ * Incluye todos los endpoints, incluidos los administrativos e internos.
+ * Se sirve en /docs (Scalar UI) y /docs-json (spec JSON).
  */
 export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
   const config = buildSwaggerConfig();
@@ -180,4 +205,86 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     operationIdFactory,
     deepScanRoutes: true,
   });
+}
+
+/**
+ * Construye la configuración del documento OpenAPI público.
+ * Solo incluye los endpoints de la API pública — nunca endpoints internos,
+ * de administración o de diagnóstico.
+ */
+export function buildPublicSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
+  return new DocumentBuilder()
+    .setTitle('Guiders Public API')
+    .setDescription(
+      [
+        'API pública de Guiders para integraciones externas.',
+        '',
+        'Consulta la documentación completa en https://guiders.es/docs',
+        '',
+        '## Autenticación',
+        '',
+        '- **API Key** (`x-api-key`): para SDK de tracking y integraciones server-to-server.',
+        '- **Bearer JWT** (`Authorization: Bearer <token>`): para operaciones autenticadas.',
+        '',
+        '## Convenciones',
+        '',
+        '- Todos los identificadores son UUID v4.',
+        '- Las fechas siguen ISO 8601 (`YYYY-MM-DDTHH:mm:ss.sssZ`).',
+        '- Los errores siguen el formato: `{ statusCode, message, error }`.',
+      ].join('\n'),
+    )
+    .setVersion('1.0')
+    .setContact('Equipo Guiders', 'https://guiders.es', 'support@guiders.com')
+    .setLicense('MIT', 'https://opensource.org/licenses/MIT')
+    .addServer('https://guiders.es', 'Producción')
+    .addApiKey(
+      {
+        type: 'apiKey',
+        name: 'x-api-key',
+        in: 'header',
+        description: 'API Key del tenant para ingesta de eventos del SDK',
+      },
+      'api-key',
+    )
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Token JWT emitido por el servidor de autenticación',
+      },
+      'bearer',
+    )
+    .build();
+}
+
+/**
+ * Crea el documento OpenAPI público filtrado solo a los tags de la API pública.
+ * Se sirve en /public/openapi.json (sin autenticación, con CORS abierto).
+ */
+export function createPublicOpenApiDocument(
+  app: INestApplication,
+): OpenAPIObject {
+  const config = buildPublicSwaggerConfig();
+  const fullDoc = SwaggerModule.createDocument(app, config, {
+    operationIdFactory,
+    deepScanRoutes: true,
+  });
+
+  // Filtrar paths: conservar solo los que pertenecen a tags públicos
+  const filteredPaths: OpenAPIObject['paths'] = {};
+  for (const [path, pathItem] of Object.entries(fullDoc.paths ?? {})) {
+    const filteredMethods: typeof pathItem = {};
+    for (const [method, operation] of Object.entries(pathItem ?? {})) {
+      const op = operation as { tags?: string[] };
+      if (op?.tags?.some((tag) => PUBLIC_API_TAGS.includes(tag))) {
+        filteredMethods[method] = operation;
+      }
+    }
+    if (Object.keys(filteredMethods).length > 0) {
+      filteredPaths[path] = filteredMethods;
+    }
+  }
+
+  return { ...fullDoc, paths: filteredPaths };
 }
