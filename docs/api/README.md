@@ -31,33 +31,34 @@ mejor encaje con tu pipeline.
 
 ## Cobertura
 
-- **131 paths** documentados
-- **144 operaciones** (GET/POST/PUT/PATCH/DELETE)
+- **134 paths** documentados
+- **147 operaciones** (GET/POST/PUT/PATCH/DELETE)
 - **158 schemas** (DTOs de request/response)
-- **18 tags** agrupando operaciones por dominio
+- **19 tags** agrupando operaciones por dominio
 
 ### Tags principales
 
-| Tag                  | Responsabilidad                                    |
-| -------------------- | -------------------------------------------------- |
-| `auth`               | Login, registro, refresh token, usuarios           |
-| `bff-auth`           | Flujo OAuth Google (BFF con redirects)             |
-| `api-keys`           | Gestión y rotación de API keys                     |
-| `chats`              | Conversaciones (V2, MongoDB)                       |
-| `messages`           | Mensajes dentro de chats                           |
-| `presence`           | Estado online/offline de comerciales y visitantes  |
-| `assignment-rules`   | Reglas de asignación automática de chats           |
-| `visitors`           | Identificación y gestión de visitantes             |
-| `sites`              | Dominios y tenants                                 |
-| `tracking-v2`        | Ingesta de eventos de analytics desde el SDK       |
-| `leads`              | Captura y gestión de leads                         |
-| `llm`                | Configuración y sugerencias del asistente IA       |
-| `white-label`        | Personalización visual por tenant                  |
-| `commercials`        | Comerciales disponibles / activos                  |
-| `companies`          | Gestión de empresas (multi-tenant)                 |
-| `consents`           | Consentimiento GDPR                                |
-| `health`             | Smoke tests y liveness probes                      |
-| `internal-opensearch`| Operaciones internas OpenSearch (no uso externo)   |
+| Tag                       | Responsabilidad                                    |
+| ------------------------- | -------------------------------------------------- |
+| `auth`                    | Login, registro, refresh token, usuarios           |
+| `bff-auth`                | Flujo OAuth Google (BFF con redirects)             |
+| `api-keys`                | Gestión y rotación de API keys (widget RSA/JWKS)   |
+| `integration-api-keys`    | API keys REST para integraciones server-to-server  |
+| `chats`                   | Conversaciones (V2, MongoDB)                       |
+| `messages`                | Mensajes dentro de chats                           |
+| `presence`                | Estado online/offline de comerciales y visitantes  |
+| `assignment-rules`        | Reglas de asignación automática de chats           |
+| `visitors`                | Identificación y gestión de visitantes             |
+| `sites`                   | Dominios y tenants                                 |
+| `tracking-v2`             | Ingesta de eventos de analytics desde el SDK       |
+| `leads`                   | Captura y gestión de leads                         |
+| `llm`                     | Configuración y sugerencias del asistente IA       |
+| `white-label`             | Personalización visual por tenant                  |
+| `commercials`             | Comerciales disponibles / activos                  |
+| `companies`               | Gestión de empresas (multi-tenant)                 |
+| `consents`                | Consentimiento GDPR                                |
+| `health`                  | Smoke tests y liveness probes                      |
+| `internal-opensearch`     | Operaciones internas OpenSearch (no uso externo)   |
 
 ## Autenticación
 
@@ -84,15 +85,27 @@ Cookie: access_token=<jwt>
 
 Los endpoints protegidos aceptan **indistintamente** Bearer o cookie (DualAuthGuard).
 
-### 3. API Key (`api-key`)
+### 3. Widget API Key (`api-key`)
 
-Header HTTP personalizado para integraciones server-to-server:
+Header HTTP personalizado para el chat widget (autenticación de visitantes):
 
 ```http
 X-API-Key: <api_key>
 ```
 
-Se crea con `POST /api/api-keys` y se firma con JWKS publicado en `/jwks`.
+Se crea con `POST /api/api-keys` y se firma con RSA 4096 + JWKS publicado en `/jwks`.
+
+### 4. Integration API Key (`x-api-key`)
+
+Header HTTP para integraciones **server-to-server** de backends externos:
+
+```http
+x-api-key: gdr_live_<32hex>
+```
+
+Se crea con `POST /api/integration-api-keys` (requiere JWT Bearer de admin). Solo
+el hash SHA-256 se almacena en base de datos; el token en claro se devuelve
+**una única vez** al momento de la creación. Entorno sandbox usa prefijo `gdr_test_xxx`.
 
 > **Nota**: Existen endpoints públicos (login, register, tracking-v2 events,
 > health, JWKS, root) que no requieren ninguno de los tres esquemas. Están

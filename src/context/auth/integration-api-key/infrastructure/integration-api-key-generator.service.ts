@@ -11,7 +11,7 @@ import { IntegrationApiKeyGenerator } from '../application/services/integration-
 export class IntegrationApiKeyGeneratorService
   implements IntegrationApiKeyGenerator
 {
-  async generate(environment: 'live' | 'test'): Promise<{
+  generate(environment: 'live' | 'test'): Promise<{
     plainToken: string;
     tokenPrefix: string;
     tokenHash: string;
@@ -22,6 +22,6 @@ export class IntegrationApiKeyGeneratorService
     const tokenPrefix = `gdr_${environment}_${randomPart.substring(0, 4)}...`;
     const tokenHash = createHash('sha256').update(plainToken).digest('hex');
 
-    return { plainToken, tokenPrefix, tokenHash };
+    return Promise.resolve({ plainToken, tokenPrefix, tokenHash });
   }
 }

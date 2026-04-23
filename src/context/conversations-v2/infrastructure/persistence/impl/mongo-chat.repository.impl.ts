@@ -817,6 +817,37 @@ export class MongoChatRepositoryImpl implements IChatRepository {
   }
 
   /**
+   * Busca si existe una conversación activa para un visitante en una empresa.
+   * Usa el índice { companyId, visitorId, status } para eficiencia.
+   */
+  async findActiveByVisitorAndCompany(
+    visitorId: string,
+    companyId: string,
+  ): Promise<Result<Chat | null, DomainError>> {
+    try {
+      const activeStatuses = ['PENDING', 'ASSIGNED', 'ACTIVE', 'TRANSFERRED'];
+      const schema = await this.chatModel.findOne({
+        visitorId,
+        companyId,
+        status: { $in: activeStatuses },
+      });
+
+      if (!schema) {
+        return ok(null);
+      }
+
+      const chat = this.chatMapper.toDomain(schema);
+      return ok(chat);
+    } catch (error) {
+      return err(
+        new ChatPersistenceError(
+          `Error al buscar conversación activa: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
+
+  /**
    * Elimina todos los chats de un visitante (operación administrativa)
    */
   async deleteByVisitorId(

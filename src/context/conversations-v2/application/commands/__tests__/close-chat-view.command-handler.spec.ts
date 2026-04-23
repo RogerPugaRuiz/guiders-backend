@@ -30,6 +30,8 @@ describe('CloseChatViewCommandHandler', () => {
       status: 'PENDING',
       priority: 'NORMAL',
       visitorId: visitorId,
+      companyId: 'company-id-placeholder',
+      channel: 'chat' as const,
       availableCommercialIds: [],
       totalMessages: 0,
       visitorInfo: { name: 'Test Visitor' },

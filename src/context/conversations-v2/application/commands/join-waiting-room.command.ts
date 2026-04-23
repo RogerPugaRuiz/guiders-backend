@@ -5,5 +5,6 @@ export class JoinWaitingRoomCommand implements ICommand {
     public readonly visitorId: string,
     public readonly visitorInfo: Record<string, any> = {},
     public readonly metadata: Record<string, any> = {},
+    public readonly companyId: string = '',
   ) {}
 }

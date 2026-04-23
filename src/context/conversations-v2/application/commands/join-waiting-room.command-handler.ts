@@ -27,6 +27,7 @@ export class JoinWaitingRoomCommandHandler
   ): Promise<{ chatId: string; position: number }> {
     const chat = Chat.createPendingChat({
       visitorId: command.visitorId,
+      companyId: command.companyId,
       visitorInfo: command.visitorInfo,
       availableCommercialIds: [],
       metadata: ChatMetadata.fromPrimitives(command.metadata).toPrimitives(),

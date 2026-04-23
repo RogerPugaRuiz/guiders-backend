@@ -17,6 +17,8 @@ export class ChatMapper {
     schema.id = chat.id.value;
     schema.status = chat.status.value;
     schema.priority = chat.priority.value;
+    schema.companyId = chat.companyId;
+    schema.channel = chat.channel;
     schema.assignedCommercialId = chatPrimitives.assignedCommercialId;
     schema.availableCommercialIds = chatPrimitives.availableCommercialIds;
     schema.createdAt = chat.createdAt;
@@ -65,7 +67,6 @@ export class ChatMapper {
     schema.visitorId = chatPrimitives.visitorId;
     schema.department = metadataData.department || 'general';
     schema.tags = metadataData.tags || [];
-
     return schema;
   }
 
@@ -78,6 +79,8 @@ export class ChatMapper {
       status: schema.status,
       priority: schema.priority,
       visitorId: schema.visitorId,
+      companyId: schema.companyId,
+      channel: (schema.channel as 'chat' | 'email' | 'whatsapp') ?? 'chat',
       assignedCommercialId: schema.assignedCommercialId,
       availableCommercialIds: schema.availableCommercialIds || [], // Se cargarán por separado si es necesario
       lastMessageDate: schema.lastMessageDate,

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 describe('Chat', () => {
   const mockVisitorId = uuidv4();
   const mockCommercialId = uuidv4();
+  const mockCompanyId = uuidv4();
   const mockVisitorInfo = {
     name: 'Juan Pérez',
     email: 'juan@example.com',
@@ -20,6 +21,7 @@ describe('Chat', () => {
       // Act
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
         priority: 'NORMAL',
@@ -29,6 +31,8 @@ describe('Chat', () => {
       // Assert
       expect(chat).toBeInstanceOf(Chat);
       expect(chat.visitorId.getValue()).toBe(mockVisitorId);
+      expect(chat.companyId).toBe(mockCompanyId);
+      expect(chat.channel).toBe('chat');
       expect(chat.status.isPending()).toBe(true);
       expect(chat.priority.value).toBe('NORMAL');
       expect(chat.availableCommercialIds).toHaveLength(1);
@@ -42,12 +46,38 @@ describe('Chat', () => {
       // Act
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
 
       // Assert
       expect(chat.priority.value).toBe('NORMAL');
+    });
+
+    it('debería crear un chat con canal email', () => {
+      const chat = Chat.createPendingChat({
+        visitorId: mockVisitorId,
+        companyId: mockCompanyId,
+        channel: 'email',
+        visitorInfo: mockVisitorInfo,
+        availableCommercialIds: [],
+      });
+
+      expect(chat.channel).toBe('email');
+    });
+
+    it('debería incluir companyId en toPrimitives', () => {
+      const chat = Chat.createPendingChat({
+        visitorId: mockVisitorId,
+        companyId: mockCompanyId,
+        visitorInfo: mockVisitorInfo,
+        availableCommercialIds: [],
+      });
+
+      const primitives = chat.toPrimitives();
+      expect(primitives.companyId).toBe(mockCompanyId);
+      expect(primitives.channel).toBe('chat');
     });
   });
 
@@ -56,6 +86,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -76,6 +107,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -109,6 +141,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -126,6 +159,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -142,6 +176,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -160,6 +195,7 @@ describe('Chat', () => {
       const commercialId2 = uuidv4();
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId, commercialId2],
       });
@@ -176,6 +212,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -189,6 +226,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
       });
@@ -204,6 +242,7 @@ describe('Chat', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
         visitorInfo: mockVisitorInfo,
         availableCommercialIds: [mockCommercialId],
         priority: 'HIGH',
@@ -216,6 +255,8 @@ describe('Chat', () => {
       // Assert
       expect(primitives).toHaveProperty('id');
       expect(primitives).toHaveProperty('visitorId', mockVisitorId);
+      expect(primitives).toHaveProperty('companyId', mockCompanyId);
+      expect(primitives).toHaveProperty('channel', 'chat');
       expect(primitives).toHaveProperty('status', 'PENDING');
       expect(primitives).toHaveProperty('priority', 'HIGH');
       expect(primitives).toHaveProperty('totalMessages', 0);
@@ -239,6 +280,8 @@ describe('Chat', () => {
         status: 'PENDING',
         priority: 'NORMAL',
         visitorId: mockVisitorId,
+        companyId: mockCompanyId,
+        channel: 'chat' as const,
         availableCommercialIds: [mockCommercialId],
         totalMessages: 0,
         visitorInfo: mockVisitorInfo,
@@ -254,6 +297,8 @@ describe('Chat', () => {
       expect(chat).toBeInstanceOf(Chat);
       expect(chat.id.getValue()).toBe(chatId);
       expect(chat.visitorId.getValue()).toBe(mockVisitorId);
+      expect(chat.companyId).toBe(mockCompanyId);
+      expect(chat.channel).toBe('chat');
       expect(chat.status.isPending()).toBe(true);
       expect(chat.priority.value).toBe('NORMAL');
       expect(chat.totalMessages).toBe(0);

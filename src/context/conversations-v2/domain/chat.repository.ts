@@ -208,6 +208,16 @@ export interface IChatRepository {
   deleteByVisitorId(visitorId: VisitorId): Promise<Result<number, DomainError>>;
 
   /**
+   * Busca si existe una conversación activa para un visitante en una empresa.
+   * Estados activos: PENDING, ASSIGNED, ACTIVE, TRANSFERRED.
+   * Devuelve ok(chat) si existe, ok(null) si no existe.
+   */
+  findActiveByVisitorAndCompany(
+    visitorId: string,
+    companyId: string,
+  ): Promise<Result<Chat | null, DomainError>>;
+
+  /**
    * Cuenta chats agrupados por visitante para un conjunto de IDs de visitantes
    * Retorna un mapa de visitorId -> cantidad de chats
    */

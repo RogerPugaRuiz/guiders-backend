@@ -10,6 +10,7 @@ import { AppService } from './app.service';
 import { AuthVisitorModule } from './context/auth/auth-visitor/infrastructure/auth-visitor.module';
 import { ApiKeyModule } from './context/auth/api-key/infrastructure/api-key.module';
 import { IntegrationApiKeyModule } from './context/auth/integration-api-key/infrastructure/integration-api-key.module';
+import { IntegrationModule } from './context/integration/integration.module';
 // import { OpenSearchModule } from './context/shared/infrastructure/open-search/open-search.module';
 import { AuthUserModule } from './context/auth/auth-user/infrastructure/auth-user.module';
 import { BFFModule } from './context/auth/bff/infrastructure/bff.module';
@@ -39,6 +40,7 @@ import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/sh
     BFFModule,
     ApiKeyModule,
     IntegrationApiKeyModule,
+    IntegrationModule,
     VisitorsModule,
     VisitorsV2Module,
     CompanyModule,

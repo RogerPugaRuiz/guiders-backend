@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Result, ok, err } from 'src/context/shared/domain/result';
+import { Result, ok } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   INTEGRATION_API_KEY_REPOSITORY,

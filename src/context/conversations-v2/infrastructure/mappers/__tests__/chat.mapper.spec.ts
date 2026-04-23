@@ -24,6 +24,7 @@ describe('ChatMapper', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: 'company-id-placeholder',
         visitorInfo: {
           name: 'Juan Pérez',
           email: 'juan@example.com',
@@ -80,6 +81,7 @@ describe('ChatMapper', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: 'company-id-placeholder',
         visitorInfo: {
           name: 'Ana García',
           email: 'ana@example.com',
@@ -104,6 +106,7 @@ describe('ChatMapper', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: 'company-id-placeholder',
         visitorInfo: {
           name: 'Carlos López',
           email: 'carlos@example.com',
@@ -128,6 +131,7 @@ describe('ChatMapper', () => {
       // Arrange
       const chat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: 'company-id-placeholder',
         visitorInfo: {
           name: 'Usuario Mínimo',
           email: 'minimo@example.com',
@@ -336,11 +340,13 @@ describe('ChatMapper', () => {
       const chats = [
         Chat.createPendingChat({
           visitorId: Uuid.random().value,
+          companyId: 'company-id-placeholder',
           visitorInfo: { name: 'Chat 1', email: 'chat1@example.com' },
           availableCommercialIds: [mockCommercialId],
         }),
         Chat.createPendingChat({
           visitorId: Uuid.random().value,
+          companyId: 'company-id-placeholder',
           visitorInfo: { name: 'Chat 2', email: 'chat2@example.com' },
           availableCommercialIds: [mockCommercialId],
         }),
@@ -376,6 +382,7 @@ describe('ChatMapper', () => {
 
       const updatedChat = Chat.createPendingChat({
         visitorId: mockVisitorId,
+        companyId: 'company-id-placeholder',
         visitorInfo: {
           name: 'Usuario Actualizado',
           email: 'actualizado@example.com',
@@ -427,6 +434,8 @@ describe('ChatMapper', () => {
         status: 'CLOSED', // En el dominio está en mayúsculas
         priority: 'NORMAL',
         visitorId: mockVisitorId,
+        companyId: 'company-id-placeholder',
+        channel: 'chat' as const,
         assignedCommercialId: mockCommercialId,
         availableCommercialIds: [mockCommercialId],
         totalMessages: 0,

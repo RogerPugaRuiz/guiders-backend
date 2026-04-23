@@ -210,6 +210,21 @@ export class ChatSchema {
     required: true,
     index: true,
   })
+  companyId: string;
+
+  @Prop({
+    type: String,
+    required: true,
+    enum: ['chat', 'email', 'whatsapp'],
+    default: 'chat',
+  })
+  channel: string;
+
+  @Prop({
+    type: String,
+    required: true,
+    index: true,
+  })
   department: string;
 
   @Prop({
@@ -265,6 +280,9 @@ ChatSchemaDefinition.index({ department: 1, status: 1 });
 ChatSchemaDefinition.index({ createdAt: 1, department: 1 });
 ChatSchemaDefinition.index({ lastMessageDate: -1, status: 1 });
 ChatSchemaDefinition.index({ isActive: 1, status: 1, priority: 1 });
+
+// Índice para aislamiento multi-tenant y deduplicación de conversaciones activas
+ChatSchemaDefinition.index({ companyId: 1, visitorId: 1, status: 1 });
 
 // Índices para consultas de métricas
 ChatSchemaDefinition.index({

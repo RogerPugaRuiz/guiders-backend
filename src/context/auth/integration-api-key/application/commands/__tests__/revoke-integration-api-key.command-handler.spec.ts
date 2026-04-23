@@ -6,7 +6,6 @@ import { IntegrationApiKeyCompanyId } from '../../../domain/model/integration-ap
 import { IntegrationApiKeyName } from '../../../domain/model/integration-api-key-name';
 import { IntegrationApiKeyToken } from '../../../domain/model/integration-api-key-token';
 import { IntegrationApiKeyEnvironment } from '../../../domain/model/integration-api-key-environment';
-import { IntegrationApiKeyId } from '../../../domain/model/integration-api-key-id';
 import {
   IntegrationApiKeyNotFoundError,
   IntegrationApiKeyAlreadyRevokedError,
@@ -67,7 +66,9 @@ describe('RevokeIntegrationApiKeyCommandHandler', () => {
     const result = await handler.execute(command);
 
     expect(result.isErr()).toBe(true);
-    expect((result as any).error).toBeInstanceOf(IntegrationApiKeyNotFoundError);
+    expect((result as any).error).toBeInstanceOf(
+      IntegrationApiKeyNotFoundError,
+    );
   });
 
   it('debe retornar error si la API Key pertenece a otra compañía', async () => {
@@ -82,7 +83,9 @@ describe('RevokeIntegrationApiKeyCommandHandler', () => {
     const result = await handler.execute(command);
 
     expect(result.isErr()).toBe(true);
-    expect((result as any).error).toBeInstanceOf(IntegrationApiKeyNotFoundError);
+    expect((result as any).error).toBeInstanceOf(
+      IntegrationApiKeyNotFoundError,
+    );
   });
 
   it('debe retornar error si la API Key ya está revocada', async () => {
@@ -97,6 +100,8 @@ describe('RevokeIntegrationApiKeyCommandHandler', () => {
     const result = await handler.execute(command);
 
     expect(result.isErr()).toBe(true);
-    expect((result as any).error).toBeInstanceOf(IntegrationApiKeyAlreadyRevokedError);
+    expect((result as any).error).toBeInstanceOf(
+      IntegrationApiKeyAlreadyRevokedError,
+    );
   });
 });

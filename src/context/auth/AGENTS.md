@@ -20,10 +20,14 @@ This context is **shared across all other contexts** and acts as a foundational 
 
 ```
 src/context/auth/
-├── api-key/                    # API key subdomain
-│   ├── domain/                 # Business logic for API keys
+├── api-key/                    # Widget API key subdomain (RSA/JWKS, visitor auth)
+│   ├── domain/                 # Business logic for widget API keys
 │   ├── application/            # Commands and queries
 │   └── infrastructure/         # Repository implementations
+├── integration-api-key/        # Integration API key subdomain (REST, server-to-server)
+│   ├── domain/                 # IntegrationApiKey aggregate, value objects, errors
+│   ├── application/            # Commands and queries
+│   └── infrastructure/         # Repository, guard, controller, module
 ├── auth-user/                  # User authentication subdomain
 │   ├── domain/                 # User aggregates and value objects
 │   ├── application/            # Auth commands (login, register)
@@ -53,7 +57,7 @@ User {
 }
 ```
 
-### API Key Aggregate
+### API Key Aggregate (Widget — RSA/JWKS)
 
 ```typescript
 // src/context/auth/api-key/domain/api-key.aggregate.ts
@@ -66,6 +70,24 @@ ApiKey {
   lastUsedAt: Date | null
   status: ApiKeyStatus (ACTIVE, REVOKED)
 }
+```
+
+### IntegrationApiKey Aggregate (REST — server-to-server)
+
+```typescript
+// src/context/auth/integration-api-key/domain/integration-api-key.aggregate.ts
+IntegrationApiKey {
+  id: IntegrationApiKeyId (UUID)
+  companyId: CompanyId
+  name: IntegrationApiKeyName
+  tokenHash: IntegrationApiKeyHash  // SHA-256, nunca el token en claro
+  tokenPrefix: IntegrationApiKeyPrefix  // primeros chars para mostrar en UI
+  environment: IntegrationApiKeyEnvironment  // 'live' | 'test'
+  status: IntegrationApiKeyStatus  // 'active' | 'revoked'
+  lastUsedAt: Date | null
+  createdAt: Date
+}
+// Tokens: gdr_live_<32hex> (producción) / gdr_test_<32hex> (sandbox)
 ```
 
 ### Visitor Auth
@@ -91,12 +113,19 @@ VisitorSession {
 - **Logout**: Invalidate current token
 - **Reset Password**: Secure password recovery flow
 
-### API Key Management
+### API Key Management (Widget)
 
-- **Create API Key**: Generate new key for external integrations
+- **Create API Key**: Generate new RSA-signed key for widget authentication
 - **List API Keys**: Show user's active keys
 - **Revoke API Key**: Disable specific key
-- **Validate API Key**: Verify key in requests
+- **Validate API Key**: Verify key in requests (JWKS)
+
+### Integration API Key Management (Server-to-Server)
+
+- **Create Integration API Key**: Generate `gdr_live_xxx` / `gdr_test_xxx` token for external backend integrations. Token returned only once; hash stored.
+- **List Integration API Keys**: Show company's active integration keys (with prefix for UI display)
+- **Revoke Integration API Key**: Disable specific integration key by ID
+- **Validate via Guard**: `IntegrationApiKeyGuard` validates `x-api-key` header, checks SHA-256 hash, updates `lastUsedAt` fire-and-forget
 
 ### Visitor Authentication
 
@@ -114,12 +143,17 @@ VisitorSession {
 - `UpdatePasswordCommand` → Change user password
 - `UpdateUserRoleCommand` → Admin role assignment
 
-### ApiKeyContext
+### ApiKeyContext (Widget)
 
-- `CreateApiKeyCommand` → Generate new API key
-- `RevokeApiKeyCommand` → Disable API key
+- `CreateApiKeyCommand` → Generate new widget API key
+- `RevokeApiKeyCommand` → Disable widget API key
 - `ValidateApiKeyCommand` → Check key validity
 - `UpdateApiKeyCommand` → Modify metadata
+
+### IntegrationApiKeyContext (Server-to-Server)
+
+- `CreateIntegrationApiKeyCommand` → Generate new integration API key (hashes token, returns plain once)
+- `RevokeIntegrationApiKeyCommand` → Disable integration API key by ID
 
 ### VisitorAuthContext
 
@@ -135,11 +169,15 @@ VisitorSession {
 - `GetUserByEmailQuery` → Look up user by email
 - `GetUserRoleQuery` → Check user permissions
 
-### ApiKeyContext
+### ApiKeyContext (Widget)
 
 - `GetApiKeyQuery` → Fetch key details
-- `ListUserApiKeysQuery` → User's active keys
+- `ListUserApiKeysQuery` → User's active widget keys
 - `ValidateApiKeyQuery` → Check key status
+
+### IntegrationApiKeyContext (Server-to-Server)
+
+- `ListIntegrationApiKeysQuery` → Company's integration keys (paginated, with prefix)
 
 ### VisitorAuthContext
 
@@ -152,12 +190,32 @@ VisitorSession {
 - `UserLoggedInEvent` → Successful login
 - `UserLoggedOutEvent` → Session ended
 - `PasswordChangedEvent` → Password updated
-- `ApiKeyCreatedEvent` → New API key generated
-- `ApiKeyRevokedEvent` → API key disabled
+- `ApiKeyCreatedEvent` → New widget API key generated
+- `ApiKeyRevokedEvent` → Widget API key disabled
+- `IntegrationApiKeyCreatedEvent` → New integration API key generated
+- `IntegrationApiKeyRevokedEvent` → Integration API key revoked
 - `VisitorSessionInitializedEvent` → New visitor session
 - `VisitorIdentifiedEvent` → Visitor linked to user
 
-## Database Schema (PostgreSQL)
+### integration_api_keys table
+
+```sql
+CREATE TABLE integration_api_keys (
+  id UUID PRIMARY KEY,
+  company_id UUID NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  token_hash VARCHAR(255) UNIQUE NOT NULL,   -- SHA-256 del token en claro
+  token_prefix VARCHAR(50) NOT NULL,          -- e.g. "gdr_live_a1b2c3..." para UI
+  environment VARCHAR(10) NOT NULL,           -- 'live' | 'test'
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  last_used_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+> **Nota de seguridad**: el token en claro (`gdr_live_xxx` / `gdr_test_xxx`) se
+> devuelve **una única vez** en la respuesta de creación y **nunca** se almacena
+> en base de datos. Solo el hash SHA-256 persiste.
 
 ### users table
 

@@ -21,5 +21,6 @@ export class CreateChatWithMessageCommand implements ICommand {
     public readonly visitorInfo?: VisitorInfoData,
     public readonly metadata?: ChatMetadataData,
     public readonly commercialId?: string, // ID del comercial que crea el chat (solo si es comercial/admin)
+    public readonly companyId?: string,
   ) {}
 }

@@ -6,7 +6,6 @@ import {
   IntegrationApiKeyRepository,
 } from '../../domain/repository/integration-api-key.repository';
 import { IntegrationApiKeyId } from '../../domain/model/integration-api-key-id';
-import { IntegrationApiKeyCompanyId } from '../../domain/model/integration-api-key-company-id';
 import {
   IntegrationApiKeyNotFoundError,
   IntegrationApiKeyAlreadyRevokedError,

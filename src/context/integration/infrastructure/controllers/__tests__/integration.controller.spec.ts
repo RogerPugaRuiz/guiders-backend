@@ -3,7 +3,6 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { EventPublisher } from '@nestjs/cqrs';
 import { IntegrationController } from '../integration.controller';
@@ -13,18 +12,21 @@ import { ok, err, okVoid } from 'src/context/shared/domain/result';
 import { Chat } from 'src/context/conversations-v2/domain/entities/chat.aggregate';
 import { Message } from 'src/context/conversations-v2/domain/entities/message.aggregate';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
-import { DomainError } from 'src/context/shared/domain/domain.error';
 import { RepositoryError } from 'src/context/shared/domain/errors/repository.error';
 import { CreateIntegrationConversationDto } from '../dtos/create-integration-conversation.dto';
 import { SendIntegrationMessageDto } from '../dtos/send-integration-message.dto';
+import { IntegrationApiKeyGuard, IntegrationApiKeyRequest } from 'src/context/auth/integration-api-key/infrastructure/integration-api-key.guard';
 
 /**
  * Crea un mock de IntegrationApiKeyRequest con companyId y environment dados.
  */
-function makeRequest(companyId: string, environment = 'live') {
+function makeRequest(
+  companyId: string,
+  environment = 'live',
+): IntegrationApiKeyRequest {
   return {
     integrationApiKey: { id: Uuid.random().value, companyId, environment },
-  } as any;
+  } as unknown as IntegrationApiKeyRequest;
 }
 
 describe('IntegrationController', () => {
@@ -46,10 +48,12 @@ describe('IntegrationController', () => {
     };
     // mergeObjectContext devuelve el mismo aggregate con commit() mockeado
     publisher = {
-      mergeObjectContext: jest.fn().mockImplementation((aggregate: any) => {
-        aggregate.commit = jest.fn();
-        return aggregate;
-      }),
+      mergeObjectContext: jest
+        .fn()
+        .mockImplementation((aggregate: Record<string, unknown>) => {
+          aggregate['commit'] = jest.fn();
+          return aggregate;
+        }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -60,10 +64,7 @@ describe('IntegrationController', () => {
         { provide: EventPublisher, useValue: publisher },
       ],
     })
-      .overrideGuard(
-        require('src/context/auth/integration-api-key/infrastructure/integration-api-key.guard')
-          .IntegrationApiKeyGuard,
-      )
+      .overrideGuard(IntegrationApiKeyGuard)
       .useValue({ canActivate: () => true })
       .compile();
 

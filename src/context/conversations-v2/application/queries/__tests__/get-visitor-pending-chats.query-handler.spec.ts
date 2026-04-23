@@ -109,6 +109,8 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         status: 'PENDING',
         priority: 'HIGH',
         visitorId: 'de919e41-f06f-4a43-b0ea-cbd0886315a9',
+        companyId: 'company-id-placeholder',
+        channel: 'chat' as const,
         availableCommercialIds: [],
         totalMessages: 0,
         visitorInfo: {
@@ -153,6 +155,8 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         status: 'PENDING',
         priority: 'HIGH',
         visitorId: 'de919e41-f06f-4a43-b0ea-cbd0886315a9',
+        companyId: 'company-id-placeholder',
+        channel: 'chat' as const,
         availableCommercialIds: [],
         totalMessages: 0,
         visitorInfo: {
@@ -167,6 +171,8 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         status: 'PENDING',
         priority: 'NORMAL',
         visitorId: 'de919e41-f06f-4a43-b0ea-cbd0886315a9',
+        companyId: 'company-id-placeholder',
+        channel: 'chat' as const,
         availableCommercialIds: [],
         totalMessages: 0,
         visitorInfo: {
@@ -210,6 +216,8 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         status: 'PENDING',
         priority: 'HIGH',
         visitorId: 'de919e41-f06f-4a43-b0ea-cbd0886315a9',
+        companyId: 'company-id-placeholder',
+        channel: 'chat' as const,
         availableCommercialIds: [],
         totalMessages: 0,
         visitorInfo: {
@@ -224,6 +232,8 @@ describe('GetVisitorPendingChatsQueryHandler', () => {
         status: 'ACTIVE',
         priority: 'NORMAL',
         visitorId: 'de919e41-f06f-4a43-b0ea-cbd0886315a9',
+        companyId: 'company-id-placeholder',
+        channel: 'chat' as const,
         availableCommercialIds: [],
         totalMessages: 5,
         visitorInfo: {

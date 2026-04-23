@@ -14,6 +14,11 @@ import { AgentRequestedEvent } from '../events/agent-requested.event';
 import { Optional } from 'src/context/shared/domain/optional';
 
 /**
+ * Tipos válidos de canal para una conversación
+ */
+export type ChatChannelType = 'chat' | 'email' | 'whatsapp';
+
+/**
  * Interfaz para los datos primitivos del chat V2
  */
 export interface ChatPrimitives {
@@ -21,6 +26,8 @@ export interface ChatPrimitives {
   status: string;
   priority: string;
   visitorId: string;
+  companyId: string;
+  channel: ChatChannelType;
   assignedCommercialId?: string;
   availableCommercialIds: string[];
   lastMessageDate?: Date;
@@ -45,6 +52,8 @@ export interface ChatProperties {
   status: ChatStatus;
   priority: ChatPriority;
   visitorId: VisitorId;
+  companyId: string;
+  channel?: ChatChannelType;
   assignedCommercialId?: CommercialId;
   availableCommercialIds: CommercialId[];
   lastMessageDate?: Date;
@@ -70,6 +79,8 @@ export class Chat extends AggregateRoot {
     private readonly _status: ChatStatus,
     private readonly _priority: ChatPriority,
     private readonly _visitorId: VisitorId,
+    private readonly _companyId: string,
+    private readonly _channel: ChatChannelType,
     private readonly _assignedCommercialId: CommercialId | null,
     private readonly _availableCommercialIds: CommercialId[],
     private readonly _lastMessageDate: Date | null,
@@ -97,6 +108,8 @@ export class Chat extends AggregateRoot {
       props.status,
       props.priority,
       props.visitorId,
+      props.companyId,
+      props.channel ?? 'chat',
       props.assignedCommercialId || null,
       props.availableCommercialIds,
       props.lastMessageDate || null,
@@ -119,7 +132,7 @@ export class Chat extends AggregateRoot {
         chat: {
           chatId: chat._id.getValue(),
           visitorId: chat._visitorId.getValue(),
-          companyId: 'TODO', // Se obtendrá del contexto
+          companyId: chat._companyId,
           status: chat._status.value,
           priority: chat._priority.value,
           visitorInfo: chat._visitorInfo.toPrimitives(),
@@ -141,6 +154,8 @@ export class Chat extends AggregateRoot {
       new ChatStatus(params.status),
       new ChatPriority(params.priority),
       VisitorId.create(params.visitorId),
+      params.companyId,
+      params.channel ?? 'chat',
       params.assignedCommercialId
         ? CommercialId.create(params.assignedCommercialId)
         : null,
@@ -165,6 +180,8 @@ export class Chat extends AggregateRoot {
    */
   public static createPendingChat(params: {
     visitorId: string;
+    companyId: string;
+    channel?: ChatChannelType;
     visitorInfo: VisitorInfoData;
     availableCommercialIds: string[];
     priority?: string;
@@ -183,6 +200,8 @@ export class Chat extends AggregateRoot {
       status: ChatStatus.PENDING,
       priority: new ChatPriority(params.priority || 'NORMAL'),
       visitorId: VisitorId.create(params.visitorId),
+      companyId: params.companyId,
+      channel: params.channel ?? 'chat',
       availableCommercialIds: params.availableCommercialIds.map((id) =>
         CommercialId.create(id),
       ),
@@ -223,6 +242,8 @@ export class Chat extends AggregateRoot {
       ChatStatus.ASSIGNED,
       this._priority,
       this._visitorId,
+      this._companyId,
+      this._channel,
       commercial,
       this._availableCommercialIds,
       this._lastMessageDate,
@@ -322,6 +343,8 @@ export class Chat extends AggregateRoot {
       ChatStatus.CLOSED,
       this._priority,
       this._visitorId,
+      this._companyId,
+      this._channel,
       this._assignedCommercialId,
       this._availableCommercialIds,
       this._lastMessageDate,
@@ -398,6 +421,8 @@ export class Chat extends AggregateRoot {
       this._status,
       ChatPriority.URGENT,
       this._visitorId,
+      this._companyId,
+      this._channel,
       this._assignedCommercialId,
       this._availableCommercialIds,
       this._lastMessageDate,
@@ -444,6 +469,8 @@ export class Chat extends AggregateRoot {
       status: this._status.value,
       priority: this._priority.value,
       visitorId: this._visitorId.getValue(),
+      companyId: this._companyId,
+      channel: this._channel,
       assignedCommercialId: this._assignedCommercialId?.getValue(),
       availableCommercialIds: this._availableCommercialIds.map((id) =>
         id.getValue(),
@@ -478,6 +505,14 @@ export class Chat extends AggregateRoot {
 
   get visitorId(): VisitorId {
     return this._visitorId;
+  }
+
+  get companyId(): string {
+    return this._companyId;
+  }
+
+  get channel(): ChatChannelType {
+    return this._channel;
   }
 
   get assignedCommercialId(): Optional<CommercialId> {
@@ -554,6 +589,8 @@ export class Chat extends AggregateRoot {
       this._status,
       this._priority,
       this._visitorId,
+      this._companyId,
+      this._channel,
       this._assignedCommercialId,
       this._availableCommercialIds,
       messageDate,

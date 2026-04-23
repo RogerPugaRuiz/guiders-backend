@@ -112,7 +112,9 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  private extractTokenFromRequest(request: AuthenticatedRequest): string | null {
+  private extractTokenFromRequest(
+    request: AuthenticatedRequest,
+  ): string | null {
     // 1. Intentar extraer desde el header Authorization (Bearer token)
     if (request.headers.authorization) {
       const { prefix, token } = this.extractToken(
@@ -124,7 +126,9 @@ export class AuthGuard implements CanActivate {
     }
 
     // 2. Fallback: extraer desde la cookie BFF (console o admin session)
-    const cookies = (request as any).cookies as Record<string, string> | undefined;
+    const cookies = (request as any).cookies as
+      | Record<string, string>
+      | undefined;
     if (cookies) {
       const consoleCookieName =
         process.env.SESSION_COOKIE_CONSOLE ||

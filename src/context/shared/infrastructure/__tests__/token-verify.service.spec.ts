@@ -160,7 +160,7 @@ describe('TokenVerifyService', () => {
 
       // Act & Assert
       await expect(service.verifyToken(mockToken)).rejects.toThrow(
-        new UnauthorizedException('Token inválido'),
+        new UnauthorizedException('No kid en token'),
       );
     });
 
@@ -201,7 +201,7 @@ describe('TokenVerifyService', () => {
 
       // Act & Assert
       await expect(service.verifyToken(mockToken)).rejects.toThrow(
-        new UnauthorizedException('Token inválido'),
+        new UnauthorizedException('Token inválido: kid no encontrado'),
       );
     });
 
@@ -258,7 +258,7 @@ describe('TokenVerifyService', () => {
 
       // Act & Assert
       await expect(service.verifyToken(mockToken)).rejects.toThrow(
-        new UnauthorizedException('Token inválido'),
+        new UnauthorizedException('HTTP error'),
       );
     });
 

@@ -549,6 +549,8 @@ test(visitors-v2): agregar tests de integración para repositorio
 - JWT con `passport-jwt` + `jwks-rsa` (verificación con JWKS remoto)
 - Guards: `AuthGuard`, `JwtCookieAuthGuard`, `DualAuthGuard`, `OptionalAuthGuard`
 - Roles via `@Roles()` decorator + `RoleGuard`
+- **Widget API keys** (`api-key/`): RSA 4096 + JWKS por dominio, tabla `api_key_entity` — autenticación de visitantes del widget. **No modificar.**
+- **Integration API keys** (`integration-api-key/`): tokens `gdr_live_<32hex>` / `gdr_test_<32hex>` por compañía, hash SHA-256, tabla `integration_api_keys`. Guard: `IntegrationApiKeyGuard` (header `x-api-key`). Uso: backends externos que integran con Guiders via REST. El token en claro se devuelve **una única vez** al crear; solo el hash persiste en BD.
 
 ### company
 - Toda query de negocio debe estar filtrada por `companyId`

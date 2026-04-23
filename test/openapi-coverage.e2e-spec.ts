@@ -271,7 +271,7 @@ describe('OpenAPI — Cobertura de documentación', () => {
       'package.json',
     );
 
-    const mongoPkg = require(mongoPkgPath) as { main?: string };
+    const mongoPkg = (await import(mongoPkgPath)) as { main?: string };
     const mongoMainPath = resolve(
       __dirname,
       '..',
@@ -280,7 +280,7 @@ describe('OpenAPI — Cobertura de documentación', () => {
       mongoPkg.main || 'lib/index.js',
     );
 
-    const mongoMemoryServerModule = require(mongoMainPath);
+    const mongoMemoryServerModule = await import(mongoMainPath);
 
     const MongoMemoryServer = mongoMemoryServerModule.MongoMemoryServer as {
       create(): Promise<{ getUri(): string; stop(): Promise<boolean> }>;

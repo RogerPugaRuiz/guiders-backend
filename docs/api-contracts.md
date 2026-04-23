@@ -1,9 +1,9 @@
 # Guiders Backend - Contratos de API
 
-**Fecha:** 2026-04-01
-**Total de endpoints REST:** ~145
+**Fecha:** 2026-04-23
+**Total de endpoints REST:** ~148
 **Eventos WebSocket:** 13
-**Controladores:** 25
+**Controladores:** 26
 
 ## Resumen Ejecutivo
 

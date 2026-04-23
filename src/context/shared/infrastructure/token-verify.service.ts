@@ -105,7 +105,9 @@ export class TokenVerifyService {
 
     if (!jwksUri) {
       this.logger.error('No se ha configurado KEYCLOAK_JWKS_URI');
-      throw new UnauthorizedException('Configuración JWKS Keycloak no disponible');
+      throw new UnauthorizedException(
+        'Configuración JWKS Keycloak no disponible',
+      );
     }
 
     const { data } = await firstValueFrom(
@@ -114,7 +116,9 @@ export class TokenVerifyService {
 
     const foundKey = data.keys.find((k) => k.kid === kid);
     if (!foundKey) {
-      throw new UnauthorizedException('Token Keycloak inválido: kid no encontrado');
+      throw new UnauthorizedException(
+        'Token Keycloak inválido: kid no encontrado',
+      );
     }
 
     const publicKey = createPublicKey({
@@ -137,7 +141,8 @@ export class TokenVerifyService {
 
     // Mapear realm_access.roles al campo role[] esperado por el resto del sistema
     const realmRoles =
-      (verified['realm_access'] as { roles?: string[] } | undefined)?.roles ?? [];
+      (verified['realm_access'] as { roles?: string[] } | undefined)?.roles ??
+      [];
 
     return {
       ...verified,
@@ -157,7 +162,12 @@ export class TokenVerifyService {
     token: string,
     decoded: {
       header: { kid?: string };
-      payload: { sub: string; typ: string; role?: string[]; companyId?: string };
+      payload: {
+        sub: string;
+        typ: string;
+        role?: string[];
+        companyId?: string;
+      };
     },
   ): Promise<TokenPayload> {
     const { kid } = decoded.header;
