@@ -107,6 +107,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
           content: 'Hola, necesito ayuda',
           type: 'text',
         },
+        undefined, // visitorInfo
+        undefined, // metadata
+        undefined, // commercialId
+        '123e4567-e89b-12d3-a456-426614174999', // companyId
       );
 
       const mockChat = {
@@ -162,6 +166,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
             mimeType: 'application/pdf',
           },
         },
+        undefined, // visitorInfo
+        undefined, // metadata
+        undefined, // commercialId
+        '123e4567-e89b-12d3-a456-426614174999', // companyId
       );
 
       const mockChat = {
@@ -210,6 +218,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
         {
           content: 'Solo mensaje básico',
         },
+        undefined, // visitorInfo
+        undefined, // metadata
+        undefined, // commercialId
+        '123e4567-e89b-12d3-a456-426614174999', // companyId
       );
 
       const mockChat = {
@@ -253,6 +265,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
         {
           content: 'Test message',
         },
+        undefined, // visitorInfo
+        undefined, // metadata
+        undefined, // commercialId
+        '123e4567-e89b-12d3-a456-426614174999', // companyId
       );
 
       const mockChat = {
@@ -286,6 +302,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
         {
           content: 'Test message',
         },
+        undefined, // visitorInfo
+        undefined, // metadata
+        undefined, // commercialId
+        '123e4567-e89b-12d3-a456-426614174999', // companyId
       );
 
       const mockChat = {
@@ -328,6 +348,10 @@ describe('CreateChatWithMessageCommandHandler', () => {
         {
           content: 'Test message',
         },
+        undefined, // visitorInfo
+        undefined, // metadata
+        undefined, // commercialId
+        '123e4567-e89b-12d3-a456-426614174999', // companyId
       );
 
       const mockChat = {

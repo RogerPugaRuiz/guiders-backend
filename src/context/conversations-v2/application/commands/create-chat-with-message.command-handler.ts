@@ -47,8 +47,12 @@ export class CreateChatWithMessageCommandHandler
     );
 
     // Crear el chat con configuración apropiada
+    if (!command.companyId) {
+      throw new Error('companyId es requerido para crear un chat');
+    }
     let chat = Chat.createPendingChat({
       visitorId: command.visitorId,
+      companyId: command.companyId,
       visitorInfo: command.visitorInfo || {},
       availableCommercialIds: [], // Se asignarán comerciales disponibles según la lógica de negocio
       priority: defaultPriority,
