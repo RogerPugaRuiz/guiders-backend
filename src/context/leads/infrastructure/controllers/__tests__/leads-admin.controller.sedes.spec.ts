@@ -1,23 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException, CanActivate, ExecutionContext } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  CanActivate,
+  ExecutionContext,
+} from '@nestjs/common';
 import { LeadsAdminController } from '../leads-admin.controller';
 import { LeadcarsApiService } from '../../adapters/leadcars/leadcars-api.service';
 import {
   ICrmCompanyConfigRepository,
   CRM_COMPANY_CONFIG_REPOSITORY,
 } from '../../../domain/crm-company-config.repository';
-import {
-  ICrmSyncRecordRepository,
-  CRM_SYNC_RECORD_REPOSITORY,
-} from '../../../domain/crm-sync-record.repository';
-import {
-  ILeadContactDataRepository,
-  LEAD_CONTACT_DATA_REPOSITORY,
-} from '../../../domain/lead-contact-data.repository';
-import {
-  ICrmSyncServiceFactory,
-  CRM_SYNC_SERVICE_FACTORY,
-} from '../../../domain/services/crm-sync.service';
+import { CRM_SYNC_RECORD_REPOSITORY } from '../../../domain/crm-sync-record.repository';
+import { LEAD_CONTACT_DATA_REPOSITORY } from '../../../domain/lead-contact-data.repository';
+import { CRM_SYNC_SERVICE_FACTORY } from '../../../domain/services/crm-sync.service';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { ok, err } from 'src/context/shared/domain/result';
@@ -70,9 +66,28 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
       providers: [
         { provide: LeadcarsApiService, useValue: leadcarsApiService },
         { provide: CRM_COMPANY_CONFIG_REPOSITORY, useValue: configRepository },
-        { provide: CRM_SYNC_RECORD_REPOSITORY, useValue: { findByCompany: jest.fn(), findFailed: jest.fn(), findByVisitorAndCompany: jest.fn(), save: jest.fn() } },
-        { provide: CRM_SYNC_SERVICE_FACTORY, useValue: { getService: jest.fn() } },
-        { provide: LEAD_CONTACT_DATA_REPOSITORY, useValue: { findByVisitorAndCompany: jest.fn(), findByCompany: jest.fn(), findById: jest.fn(), save: jest.fn() } },
+        {
+          provide: CRM_SYNC_RECORD_REPOSITORY,
+          useValue: {
+            findByCompany: jest.fn(),
+            findFailed: jest.fn(),
+            findByVisitorAndCompany: jest.fn(),
+            save: jest.fn(),
+          },
+        },
+        {
+          provide: CRM_SYNC_SERVICE_FACTORY,
+          useValue: { getService: jest.fn() },
+        },
+        {
+          provide: LEAD_CONTACT_DATA_REPOSITORY,
+          useValue: {
+            findByVisitorAndCompany: jest.fn(),
+            findByCompany: jest.fn(),
+            findById: jest.fn(),
+            save: jest.fn(),
+          },
+        },
       ],
     })
       .overrideGuard(DualAuthGuard)
@@ -87,7 +102,11 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
   describe('cuando concesionarioId no es un número válido', () => {
     it('debe lanzar BadRequestException si concesionarioId es texto', async () => {
       await expect(
-        controller.getLeadcarsSedes('abc', makeRequest(), 'token-de-prueba-1234'),
+        controller.getLeadcarsSedes(
+          'abc',
+          makeRequest(),
+          'token-de-prueba-1234',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -99,7 +118,11 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
 
     it('debe lanzar BadRequestException si concesionarioId es negativo', async () => {
       await expect(
-        controller.getLeadcarsSedes('-1', makeRequest(), 'token-de-prueba-1234'),
+        controller.getLeadcarsSedes(
+          '-1',
+          makeRequest(),
+          'token-de-prueba-1234',
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -112,7 +135,12 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
     it('debe usar concesionario_id de la sede si está presente en la respuesta', async () => {
       leadcarsApiService.listSedes.mockResolvedValue(
         ok([
-          { id: 1, nombre: 'Sede Central', concesionario_id: concesionarioIdNum, activo: true },
+          {
+            id: 1,
+            nombre: 'Sede Central',
+            concesionario_id: concesionarioIdNum,
+            activo: true,
+          },
         ]),
       );
 
@@ -130,7 +158,12 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
       // La API puede devolver sedes sin concesionario_id
       leadcarsApiService.listSedes.mockResolvedValue(
         ok([
-          { id: 7, nombre: 'Sede Sin Id', concesionario_id: undefined as any, activo: true },
+          {
+            id: 7,
+            nombre: 'Sede Sin Id',
+            concesionario_id: undefined as any,
+            activo: true,
+          },
         ]),
       );
 
@@ -148,7 +181,12 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
     it('debe aplicar fallback cuando concesionario_id es null', async () => {
       leadcarsApiService.listSedes.mockResolvedValue(
         ok([
-          { id: 8, nombre: 'Sede Null Id', concesionario_id: null as any, activo: true },
+          {
+            id: 8,
+            nombre: 'Sede Null Id',
+            concesionario_id: null as any,
+            activo: true,
+          },
         ]),
       );
 
@@ -164,7 +202,12 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
     it('debe mapear nombre a undefined cuando no está presente', async () => {
       leadcarsApiService.listSedes.mockResolvedValue(
         ok([
-          { id: 9, nombre: undefined as any, concesionario_id: concesionarioIdNum, activo: true },
+          {
+            id: 9,
+            nombre: undefined as any,
+            concesionario_id: concesionarioIdNum,
+            activo: true,
+          },
         ]),
       );
 
@@ -197,7 +240,11 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
       );
 
       await expect(
-        controller.getLeadcarsSedes('42', makeRequest(), 'token-de-prueba-12345678'),
+        controller.getLeadcarsSedes(
+          '42',
+          makeRequest(),
+          'token-de-prueba-12345678',
+        ),
       ).rejects.toThrow(InternalServerErrorException);
     });
   });

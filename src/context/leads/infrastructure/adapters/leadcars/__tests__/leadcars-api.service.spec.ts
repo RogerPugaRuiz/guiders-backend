@@ -227,8 +227,18 @@ describe('LeadcarsApiService', () => {
 
     it('debe llamar a GET /sedes/:id y devolver el array de sedes', async () => {
       const mockSedes: LeadcarsListSedesResponse = [
-        { id: 1, nombre: 'Sede Central', concesionario_id: concesionarioId, activo: true },
-        { id: 2, nombre: 'Sede Norte', concesionario_id: concesionarioId, activo: true },
+        {
+          id: 1,
+          nombre: 'Sede Central',
+          concesionario_id: concesionarioId,
+          activo: true,
+        },
+        {
+          id: 2,
+          nombre: 'Sede Norte',
+          concesionario_id: concesionarioId,
+          activo: true,
+        },
       ];
 
       httpService.get.mockReturnValue(of(mockAxiosResponse(mockSedes)));
@@ -240,7 +250,9 @@ describe('LeadcarsApiService', () => {
       expect(httpService.get).toHaveBeenCalledWith(
         `https://apisandbox.leadcars.es/api/v2/sedes/${concesionarioId}`,
         expect.objectContaining({
-          headers: expect.objectContaining({ 'cliente-token': config.clienteToken }),
+          headers: expect.objectContaining({
+            'cliente-token': config.clienteToken,
+          }),
         }),
       );
     });
@@ -248,7 +260,14 @@ describe('LeadcarsApiService', () => {
     it('debe normalizar respuesta con wrapper { success, data }', async () => {
       const mockSedes: LeadcarsListSedesResponse = {
         success: true,
-        data: [{ id: 5, nombre: 'Sede Sur', concesionario_id: concesionarioId, activo: true }],
+        data: [
+          {
+            id: 5,
+            nombre: 'Sede Sur',
+            concesionario_id: concesionarioId,
+            activo: true,
+          },
+        ],
       };
 
       httpService.get.mockReturnValue(of(mockAxiosResponse(mockSedes)));
