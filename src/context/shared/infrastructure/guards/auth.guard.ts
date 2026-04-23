@@ -5,10 +5,16 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { TokenVerifyService } from '../token-verify.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { FindUserByKeycloakIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-keycloak-id.query';
+import { UserResponseDto } from 'src/context/auth/auth-user/application/dtos/user-list-response.dto';
+import { Result } from 'src/context/shared/domain/result';
+import { DomainError } from 'src/context/shared/domain/domain.error';
+import { QueryBus } from '@nestjs/cqrs';
 
 export interface AuthenticatedRequest extends Request {
   user: {
@@ -29,6 +35,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly service: TokenVerifyService,
     private readonly reflector: Reflector,
+    private readonly moduleRef: ModuleRef,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -43,32 +50,55 @@ export class AuthGuard implements CanActivate {
 
     try {
       const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-      // ...validación del token o usuario...
-      if (!request.headers.authorization) {
-        throw new UnauthorizedException('No se a encontrado el token');
+
+      // Extraer token: primero del header Authorization, luego de la cookie BFF
+      const token = this.extractTokenFromRequest(request);
+      if (!token) {
+        throw new UnauthorizedException('No se encontró el token');
       }
-      // Forzamos el tipo string para evitar problemas de tipado
-      const { prefix, token } = this.extractToken(
-        String(request.headers.authorization),
-      );
-      if (prefix !== 'Bearer') {
-        throw new UnauthorizedException('No se permite el tipo de token');
-      }
+
       try {
-        // Extraemos companyId del payload del token
-        const { sub, typ, role, username, email, companyId } =
-          await this.service.verifyToken(token);
-        if (typ !== 'access') {
+        const payload = await this.service.verifyToken(token);
+        const { sub, typ, role, username, email, companyId } = payload;
+
+        // typ="access" para tokens internos; typ="Bearer" para tokens Keycloak BFF
+        if (typ !== 'access' && typ !== 'Bearer') {
           throw new UnauthorizedException('Token inválido');
         }
-        request.user = {
-          id: sub,
-          roles: role,
-          username: (username as string) ?? '',
-          email: (email as string) ?? '',
-          companyId: (companyId as string) ?? undefined, // Inyectamos companyId si está presente
-        };
+
+        // Para tokens Keycloak (BFF), sub = keycloakId → buscar usuario en BD para obtener id interno y companyId
+        if (typ === 'Bearer') {
+          const queryBus = this.moduleRef.get(QueryBus, { strict: false });
+          const userResult: Result<UserResponseDto, DomainError> =
+            await queryBus.execute(new FindUserByKeycloakIdQuery(sub));
+
+          if (userResult.isErr()) {
+            throw new UnauthorizedException(
+              `Usuario no encontrado: ${userResult.error.message}`,
+            );
+          }
+
+          const user = userResult.unwrap();
+          request.user = {
+            id: user.id,
+            roles: user.roles,
+            username: user.name,
+            email: user.email,
+            companyId: user.companyId ?? undefined,
+          };
+        } else {
+          request.user = {
+            id: sub,
+            roles: role,
+            username: (username as string) ?? '',
+            email: (email as string) ?? '',
+            companyId: (companyId as string) ?? undefined,
+          };
+        }
       } catch (error) {
+        if (error instanceof UnauthorizedException) {
+          throw error;
+        }
         if (error instanceof Error) {
           throw new UnauthorizedException(error.message);
         }
@@ -80,6 +110,37 @@ export class AuthGuard implements CanActivate {
     }
 
     return true;
+  }
+
+  private extractTokenFromRequest(request: AuthenticatedRequest): string | null {
+    // 1. Intentar extraer desde el header Authorization (Bearer token)
+    if (request.headers.authorization) {
+      const { prefix, token } = this.extractToken(
+        String(request.headers.authorization),
+      );
+      if (prefix === 'Bearer' && token) {
+        return token;
+      }
+    }
+
+    // 2. Fallback: extraer desde la cookie BFF (console o admin session)
+    const cookies = (request as any).cookies as Record<string, string> | undefined;
+    if (cookies) {
+      const consoleCookieName =
+        process.env.SESSION_COOKIE_CONSOLE ||
+        process.env.SESSION_COOKIE ||
+        'console_session';
+      const adminCookieName =
+        process.env.SESSION_COOKIE_ADMIN || 'admin_session';
+
+      const cookieToken =
+        cookies[consoleCookieName] || cookies[adminCookieName];
+      if (cookieToken) {
+        return cookieToken;
+      }
+    }
+
+    return null;
   }
 
   private extractToken(authorization: string): {
