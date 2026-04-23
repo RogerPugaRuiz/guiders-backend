@@ -168,6 +168,7 @@ export function buildSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
       'Reglas de asignación automática de comerciales',
     )
     .addTag('visitors', 'Visitantes y sesiones de tracking')
+    .addTag('Visitantes', 'Visitantes (V1 - legacy, PostgreSQL)')
     .addTag('Site Visitors Management', 'Gestión de visitantes por sitio')
     .addTag('Tenant Visitors Management', 'Gestión de visitantes por tenant')
     .addTag('sites', 'Sitios web monitorizados')
