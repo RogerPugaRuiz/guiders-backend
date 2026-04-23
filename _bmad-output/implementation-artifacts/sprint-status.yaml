@@ -38,7 +38,7 @@
 # - Épicas sin prefijo pertenecen al track de LeadCars/CRM Integration (epics.md)
 
 generated: 30/03/2026
-last_updated: 21/04/2026 (foco seguridad — LeadCars aplazado)
+last_updated: 22/04/2026 (sec-3-2 review)
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
@@ -160,7 +160,7 @@ development_status:
   # ─────────────────────────────────────────────────────────────
   sec-epic-3: in-progress
   sec-3-1-prerrequisito-audit-endpoints-con-roles: done
-  sec-3-2-rolesguard-fail-closed-con-activacion-progresiva: backlog
+  sec-3-2-rolesguard-fail-closed-con-activacion-progresiva: review
   sec-3-3-tenantcontextguard-e-implementacion-tres-decoradores: backlog
   sec-3-4-aplicar-decoradores-tenant-context-a-25-controllers: backlog
   sec-3-5-cerrar-endpoints-publicos-sin-autenticacion: backlog
