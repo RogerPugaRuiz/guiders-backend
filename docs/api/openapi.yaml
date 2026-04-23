@@ -561,7 +561,10 @@ paths:
             type: string
       responses:
         '302':
-          description: Redirección a returnTo tras login
+          description: |-
+            Redirección a login en caso de error
+
+            Redirección a returnTo tras login
         '400':
           description: Callback inválido
       security:
@@ -768,6 +771,168 @@ paths:
       summary: Obtener JWKS público
       tags:
         - JWKS
+  /api/integration-api-keys:
+    post:
+      description: >-
+        Genera una nueva API Key para llamar a la API pública de Guiders desde un backend externo. El token solo se
+        devuelve una vez: guárdalo de forma segura.
+      operationId: integration-api-key_create
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntegrationApiKeyDto'
+      responses:
+        '201':
+          description: API Key creada. El token solo se muestra en esta respuesta.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationApiKeyCreatedResponseDto'
+        '401': &ref_4
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+        '403': &ref_5
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+      security: &ref_6
+        - bearer: []
+      summary: Crear API Key de integración
+      tags: &ref_7
+        - integration-api-keys
+    get:
+      description: Devuelve todas las API Keys de integración de la compañía. No incluye los tokens completos.
+      operationId: integration-api-key_list
+      parameters: []
+      responses:
+        '200':
+          description: Listado de API Keys
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationApiKeyListItemDto'
+        '401': *ref_4
+        '403': *ref_5
+      security: *ref_6
+      summary: Listar API Keys de integración
+      tags: *ref_7
+  /api/integration-api-keys/{id}:
+    delete:
+      description: Revoca una API Key de integración. No se puede deshacer.
+      operationId: integration-api-key_revoke
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        '204':
+          description: API Key revocada
+        '401': *ref_4
+        '403': *ref_5
+        '404':
+          description: API Key no encontrada
+        '409':
+          description: La API Key ya está revocada
+      security: *ref_6
+      summary: Revocar API Key de integración
+      tags: *ref_7
+  /api/integration/conversations:
+    post:
+      operationId: integration_createConversation
+      parameters:
+        - &ref_8
+          name: x-api-key
+          in: header
+          description: Integration API Key (gdr_live_xxx o gdr_test_xxx)
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntegrationConversationDto'
+      responses:
+        '201':
+          description: Conversación creada exitosamente
+        '401':
+          description: API Key inválida o ausente
+        '409':
+          description: Ya existe una conversación activa para este visitante
+      security: &ref_9
+        - api-key: []
+      summary: Crear conversación via Integration API
+      tags: &ref_10
+        - integration
+  /api/integration/conversations/{id}/messages:
+    post:
+      operationId: integration_sendMessage
+      parameters:
+        - *ref_8
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendIntegrationMessageDto'
+      responses:
+        '201':
+          description: Mensaje enviado exitosamente
+        '401':
+          description: API Key inválida o ausente
+        '403':
+          description: La conversación no pertenece a esta empresa
+        '404':
+          description: Conversación no encontrada
+        '422':
+          description: La conversación está cerrada
+      security: *ref_9
+      summary: Enviar mensaje via Integration API
+      tags: *ref_10
+  /api/integration/conversations/{id}:
+    get:
+      operationId: integration_getConversation
+      parameters:
+        - *ref_8
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: includeMessages
+          required: true
+          in: query
+          schema:
+            type: string
+        - name: messagesLimit
+          required: true
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Conversación obtenida exitosamente
+        '400':
+          description: Parámetros de consulta inválidos
+        '401':
+          description: API Key inválida o ausente
+        '403':
+          description: La conversación no pertenece a esta empresa
+        '404':
+          description: Conversación no encontrada
+      security: *ref_9
+      summary: Obtener conversación via Integration API
+      tags: *ref_10
   /api/visitor/me:
     get:
       description: >-
@@ -791,11 +956,11 @@ paths:
         '500':
           description: Error interno del servidor
       security:
-        - &ref_4
+        - &ref_11
           bearer: []
         - bearer: []
       summary: Obtener información del visitante autenticado
-      tags: &ref_5
+      tags: &ref_12
         - Visitantes
   /api/visitor/{visitorId}:
     get:
@@ -821,10 +986,10 @@ paths:
         '404':
           description: Visitante no encontrado
       security:
-        - *ref_4
+        - *ref_11
         - bearer: []
       summary: Obtener datos del visitante por ID
-      tags: *ref_5
+      tags: *ref_12
   /api/visitor/{visitorId}/email:
     put:
       description: Actualiza el correo electrónico del visitante
@@ -853,10 +1018,10 @@ paths:
         '404':
           description: Visitante no encontrado
       security:
-        - *ref_4
+        - *ref_11
         - bearer: []
       summary: Actualizar email del visitante
-      tags: *ref_5
+      tags: *ref_12
   /api/visitor/{visitorId}/name:
     put:
       description: Actualiza el nombre del visitante
@@ -885,10 +1050,10 @@ paths:
         '404':
           description: Visitante no encontrado
       security:
-        - *ref_4
+        - *ref_11
         - bearer: []
       summary: Actualizar nombre del visitante
-      tags: *ref_5
+      tags: *ref_12
   /api/visitor/{visitorId}/tel:
     put:
       description: Actualiza el número de teléfono del visitante
@@ -917,10 +1082,10 @@ paths:
         '404':
           description: Visitante no encontrado
       security:
-        - *ref_4
+        - *ref_11
         - bearer: []
       summary: Actualizar teléfono del visitante
-      tags: *ref_5
+      tags: *ref_12
   /api/visitors/identify:
     post:
       description: >-
@@ -974,7 +1139,7 @@ paths:
       security:
         - {}
       summary: Identificar visitante
-      tags: &ref_6
+      tags: &ref_13
         - visitors
   /api/visitors/session/end:
     post:
@@ -999,7 +1164,7 @@ paths:
       security:
         - {}
       summary: Cerrar sesión de visitante
-      tags: *ref_6
+      tags: *ref_13
   /api/visitors/status:
     put:
       description: >-
@@ -1025,7 +1190,7 @@ paths:
       security:
         - {}
       summary: Cambiar estado de conexión del visitante
-      tags: *ref_6
+      tags: *ref_13
   /api/visitors/{visitorId}/current-page:
     get:
       description: >-
@@ -1070,7 +1235,7 @@ paths:
       security:
         - bearer: []
       summary: Obtener la página actual del visitante
-      tags: *ref_6
+      tags: *ref_13
   /api/visitors/{visitorId}/activity:
     get:
       description: |-
@@ -1110,7 +1275,7 @@ paths:
       security:
         - bearer: []
       summary: Obtener estadísticas de actividad del visitante
-      tags: *ref_6
+      tags: *ref_13
   /api/visitors/{visitorId}/site:
     get:
       description: |-
@@ -1144,7 +1309,7 @@ paths:
       security:
         - bearer: []
       summary: Obtener el siteId de un visitante
-      tags: *ref_6
+      tags: *ref_13
   /api/sites/resolve:
     post:
       description: >-
@@ -1231,17 +1396,17 @@ paths:
                 $ref: '#/components/schemas/SiteVisitorsResponseDto'
         '400':
           description: ID de sitio inválido o parámetros de consulta inválidos
-        '401': &ref_7
+        '401': &ref_14
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_8
+        '403': &ref_15
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
         '404':
           description: Sitio no encontrado
-      security: &ref_9
+      security: &ref_16
         - access_token: []
         - bearer: []
       summary: Obtener visitantes del sitio
-      tags: &ref_10
+      tags: &ref_17
         - Site Visitors Management
   /api/site-visitors/{siteId}/visitors/unassigned-chats:
     get:
@@ -1283,13 +1448,13 @@ paths:
                 $ref: '#/components/schemas/SiteVisitorsUnassignedChatsResponseDto'
         '400':
           description: ID de sitio inválido o parámetros de consulta inválidos
-        '401': *ref_7
-        '403': *ref_8
+        '401': *ref_14
+        '403': *ref_15
         '404':
           description: Sitio no encontrado
-      security: *ref_9
+      security: *ref_16
       summary: Obtener visitantes con chats sin asignar
-      tags: *ref_10
+      tags: *ref_17
   /api/site-visitors/{siteId}/visitors/queued-chats:
     get:
       description: Retorna visitantes que están en cola esperando ser atendidos
@@ -1330,13 +1495,13 @@ paths:
                 $ref: '#/components/schemas/SiteVisitorsQueuedChatsResponseDto'
         '400':
           description: ID de sitio inválido o parámetros de consulta inválidos
-        '401': *ref_7
-        '403': *ref_8
+        '401': *ref_14
+        '403': *ref_15
         '404':
           description: Sitio no encontrado
-      security: *ref_9
+      security: *ref_16
       summary: Obtener visitantes con chats en cola
-      tags: *ref_10
+      tags: *ref_17
   /api/tenant-visitors/{tenantId}/visitors:
     get:
       deprecated: true
@@ -1412,17 +1577,17 @@ paths:
                 $ref: '#/components/schemas/TenantVisitorsResponseDto'
         '400':
           description: ID de tenant inválido o parámetros de consulta inválidos
-        '401': &ref_11
+        '401': &ref_18
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_12
+        '403': &ref_19
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
         '404':
           description: Tenant no encontrado
-      security: &ref_13
+      security: &ref_20
         - access_token: []
         - bearer: []
       summary: '[DEPRECADO] Obtener visitantes del tenant (empresa)'
-      tags: &ref_14
+      tags: &ref_21
         - Tenant Visitors Management
   /api/tenant-visitors/{tenantId}/visitors/unassigned-chats:
     get:
@@ -1466,13 +1631,13 @@ paths:
                 $ref: '#/components/schemas/TenantVisitorsUnassignedChatsResponseDto'
         '400':
           description: ID de tenant inválido o parámetros de consulta inválidos
-        '401': *ref_11
-        '403': *ref_12
+        '401': *ref_18
+        '403': *ref_19
         '404':
           description: Tenant no encontrado
-      security: *ref_13
+      security: *ref_20
       summary: Obtener visitantes con chats sin asignar
-      tags: *ref_14
+      tags: *ref_21
   /api/tenant-visitors/{tenantId}/visitors/queued-chats:
     get:
       description: Retorna visitantes de todos los sitios del tenant que están en cola esperando ser atendidos
@@ -1513,13 +1678,13 @@ paths:
                 $ref: '#/components/schemas/TenantVisitorsQueuedChatsResponseDto'
         '400':
           description: ID de tenant inválido o parámetros de consulta inválidos
-        '401': *ref_11
-        '403': *ref_12
+        '401': *ref_18
+        '403': *ref_19
         '404':
           description: Tenant no encontrado
-      security: *ref_13
+      security: *ref_20
       summary: Obtener visitantes con chats en cola
-      tags: *ref_14
+      tags: *ref_21
   /api/tenant-visitors/{tenantId}/visitors/search:
     post:
       description: >-
@@ -1548,11 +1713,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchVisitorsResponseDto'
-        '401': *ref_11
-        '403': *ref_12
-      security: *ref_13
+        '401': *ref_18
+        '403': *ref_19
+      security: *ref_20
       summary: Buscar visitantes con filtros complejos
-      tags: *ref_14
+      tags: *ref_21
   /api/tenant-visitors/{tenantId}/visitors/filters/quick:
     get:
       description: >-
@@ -1574,11 +1739,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QuickFiltersConfigResponseDto'
-        '401': *ref_11
-        '403': *ref_12
-      security: *ref_13
+        '401': *ref_18
+        '403': *ref_19
+      security: *ref_20
       summary: Obtener configuración de filtros rápidos
-      tags: *ref_14
+      tags: *ref_21
   /api/tenant-visitors/{tenantId}/visitors/filters/saved:
     get:
       description: >-
@@ -1600,11 +1765,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SavedFiltersListResponseDto'
-        '401': *ref_11
-        '403': *ref_12
-      security: *ref_13
+        '401': *ref_18
+        '403': *ref_19
+      security: *ref_20
       summary: Obtener filtros guardados del usuario
-      tags: *ref_14
+      tags: *ref_21
     post:
       description: >-
         Persiste una configuración nombrada de filtros, ordenamiento y descripción para uso posterior por el usuario
@@ -1634,11 +1799,11 @@ paths:
                   id:
                     type: string
                     description: ID del filtro guardado
-        '401': *ref_11
-        '403': *ref_12
-      security: *ref_13
+        '401': *ref_18
+        '403': *ref_19
+      security: *ref_20
       summary: Guardar un filtro personalizado
-      tags: *ref_14
+      tags: *ref_21
   /api/tenant-visitors/{tenantId}/visitors/filters/saved/{filterId}:
     delete:
       description: >-
@@ -1661,13 +1826,13 @@ paths:
       responses:
         '204':
           description: Filtro eliminado exitosamente
-        '401': *ref_11
-        '403': *ref_12
+        '401': *ref_18
+        '403': *ref_19
         '404':
           description: Filtro no encontrado
-      security: *ref_13
+      security: *ref_20
       summary: Eliminar un filtro guardado
-      tags: *ref_14
+      tags: *ref_21
   /api/company:
     post:
       description: Crea una nueva empresa junto con su usuario administrador inicial
@@ -1687,7 +1852,7 @@ paths:
       security:
         - {}
       summary: Crear nueva empresa con administrador
-      tags: &ref_15
+      tags: &ref_22
         - companies
   /api/company/by-domain/{domain}:
     get:
@@ -1713,7 +1878,7 @@ paths:
       security:
         - {}
       summary: Buscar empresa por dominio
-      tags: *ref_15
+      tags: *ref_22
   /api/companies/{companyId}/sites:
     get:
       description: Devuelve la lista de sites asociados a la empresa indicada por su companyId (UUID).
@@ -1740,7 +1905,7 @@ paths:
       security:
         - bearer: []
       summary: Listar sitios de una empresa
-      tags: *ref_15
+      tags: *ref_22
   /api/me/company:
     get:
       description: >-
@@ -1750,7 +1915,10 @@ paths:
       parameters: []
       responses:
         '200':
-          description: Información de la empresa obtenida exitosamente
+          description: |-
+            Información de la empresa del usuario con siteId resuelto
+
+            Información de la empresa obtenida exitosamente
           content:
             application/json:
               schema:
@@ -1764,7 +1932,7 @@ paths:
       security:
         - bearer: []
       summary: Obtener empresa del usuario autenticado
-      tags: *ref_15
+      tags: *ref_22
   /api/v2/chats:
     post:
       description: Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera
@@ -1799,13 +1967,13 @@ paths:
           description: Usuario no autenticado
         '403':
           description: Usuario sin permisos suficientes
-      security: &ref_16
-        - &ref_18
+      security: &ref_23
+        - &ref_25
           access_token: []
-        - &ref_19
+        - &ref_26
           bearer: []
       summary: Crear nuevo chat
-      tags: &ref_17
+      tags: &ref_24
         - Chats V2
     get:
       description: >-
@@ -1974,9 +2142,9 @@ paths:
                   statusCode:
                     type: number
                     example: 500
-      security: *ref_16
+      security: *ref_23
       summary: Obtener lista de chats con filtros y paginación con cursor
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/with-message:
     post:
       description: |-
@@ -2138,9 +2306,9 @@ paths:
                   error:
                     type: string
                     example: Internal Server Error
-      security: *ref_16
+      security: *ref_23
       summary: Crear nuevo chat con primer mensaje
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/response-time-stats:
     get:
       description: Retorna estadísticas agregadas de tiempo de respuesta para comerciales y administradores autenticados
@@ -2185,9 +2353,9 @@ paths:
           description: Usuario sin permisos suficientes - Requiere rol de comercial o administrador
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Obtener estadísticas de tiempo de respuesta
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/{chatId}:
     get:
       description: Retorna los detalles completos de un chat específico para usuarios autenticados
@@ -2215,9 +2383,9 @@ paths:
           description: Chat no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Obtener chat por ID
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/visitor/{visitorId}/my-chat:
     get:
       description: >-
@@ -2320,12 +2488,12 @@ paths:
         '500':
           description: Error interno del servidor
       security:
-        - *ref_18
-        - *ref_19
+        - *ref_25
+        - *ref_26
         - cookie: []
         - bearer: []
       summary: Obtener chat asignado a comercial para un visitante específico
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/queue/pending:
     get:
       description: Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.
@@ -2360,9 +2528,9 @@ paths:
           description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Obtener cola de chats pendientes
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/metrics/commercial/{commercialId}:
     get:
       description: Retorna métricas agregadas de rendimiento de un comercial. Requiere autenticación.
@@ -2404,9 +2572,9 @@ paths:
           description: Comercial no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Obtener métricas de comercial
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/{chatId}/assign/{commercialId}:
     put:
       description: Asigna un chat específico a un comercial. Requiere autenticación y permisos apropiados.
@@ -2442,12 +2610,12 @@ paths:
         '500':
           description: Error interno del servidor
       security:
-        - *ref_18
-        - *ref_19
+        - *ref_25
+        - *ref_26
         - cookie: []
         - bearer: []
       summary: Asignar chat a comercial
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/{chatId}/request-agent:
     post:
       description: >-
@@ -2488,9 +2656,9 @@ paths:
           description: Chat no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Solicitar atención de un agente
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/{chatId}/view-open:
     put:
       description: >-
@@ -2529,12 +2697,12 @@ paths:
         '500':
           description: Error interno del servidor
       security:
-        - *ref_18
-        - *ref_19
+        - *ref_25
+        - *ref_26
         - cookie: []
         - bearer: []
       summary: Notificar apertura de vista del chat
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/{chatId}/view-close:
     put:
       description: >-
@@ -2574,12 +2742,12 @@ paths:
         '500':
           description: Error interno del servidor
       security:
-        - *ref_18
-        - *ref_19
+        - *ref_25
+        - *ref_26
         - cookie: []
         - bearer: []
       summary: Notificar cierre de vista del chat
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/{chatId}/close:
     put:
       description: Marca un chat como cerrado. Requiere autenticación y permisos apropiados.
@@ -2607,9 +2775,9 @@ paths:
           description: Chat no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Cerrar chat
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/visitor/{visitorId}/clear:
     delete:
       description: >-
@@ -2650,9 +2818,9 @@ paths:
           description: Visitante no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Eliminar todos los chats de un visitante
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/chats/visitor/{visitorId}/pending:
     get:
       description: >-
@@ -2687,9 +2855,9 @@ paths:
           description: Sin permisos suficientes
         '500':
           description: Error interno del servidor
-      security: *ref_16
+      security: *ref_23
       summary: Obtener chats pendientes de un visitante
-      tags: *ref_17
+      tags: *ref_24
   /api/v2/commercials/{commercialId}/chats:
     get:
       description: >-
@@ -2732,21 +2900,26 @@ paths:
         - name: filters
           required: false
           in: query
-          description: Filtros adicionales para chats
+          description: 'Filtros adicionales para chats en formato JSON serializado. Ej: {"status":"OPEN"}'
           schema:
-            $ref: '#/components/schemas/Object'
+            type: object
+            additionalProperties: true
+            $ref: '#/components/schemas/ChatFiltersDto'
         - name: sort
           required: false
           in: query
-          description: Opciones de ordenamiento
+          description: 'Opciones de ordenamiento en formato JSON serializado. Ej: {"createdAt":"desc"}'
           schema:
-            $ref: '#/components/schemas/Object'
+            type: object
+            additionalProperties: true
+            $ref: '#/components/schemas/ChatSortDto'
         - name: X-Guiders-Session
           in: header
           description: Session ID como cabecera HTTP alternativa para BFF
           required: false
           schema:
             type: string
+            example: sess_1758226307441_commercial
       responses:
         '200':
           description: Lista de chats del comercial obtenida exitosamente
@@ -2845,6 +3018,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       responses:
         '200':
           description: Lista de chats del visitante obtenida exitosamente
@@ -2885,6 +3059,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       requestBody:
         required: true
         content:
@@ -2907,13 +3082,13 @@ paths:
         '404':
           description: Chat no encontrado
       security:
-        - &ref_20
+        - &ref_27
           access_token: []
-        - &ref_21
+        - &ref_28
           bearer: []
         - sid: []
       summary: Enviar un nuevo mensaje
-      tags: &ref_22
+      tags: &ref_29
         - Messages V2
   /api/v2/messages/chat/{chatId}:
     get:
@@ -2943,15 +3118,19 @@ paths:
         - name: filters
           required: false
           in: query
-          description: Filtros de búsqueda para mensajes
+          description: 'Filtros de búsqueda para mensajes en formato JSON serializado. Ej: {"senderId":"uuid"}'
           schema:
-            $ref: '#/components/schemas/Object'
+            type: object
+            additionalProperties: true
+            $ref: '#/components/schemas/MessageFiltersDto'
         - name: sort
           required: false
           in: query
-          description: Opciones de ordenamiento
+          description: 'Opciones de ordenamiento en formato JSON serializado. Ej: {"createdAt":"desc"}'
           schema:
-            $ref: '#/components/schemas/Object'
+            type: object
+            additionalProperties: true
+            $ref: '#/components/schemas/MessageSortDto'
         - name: cursor
           required: false
           in: query
@@ -2972,6 +3151,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       responses:
         '200':
           description: Mensajes obtenidos exitosamente
@@ -2986,11 +3166,11 @@ paths:
         '404':
           description: Chat no encontrado
       security:
-        - *ref_20
-        - *ref_21
+        - *ref_27
+        - *ref_28
         - sid: []
       summary: Obtener mensajes de un chat
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/{messageId}:
     get:
       description: Retorna los detalles de un mensaje específico. Soporta autenticación JWT y sesiones de visitante.
@@ -3009,6 +3189,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       responses:
         '200':
           description: Mensaje encontrado exitosamente
@@ -3023,11 +3204,11 @@ paths:
         '404':
           description: Mensaje no encontrado
       security:
-        - *ref_20
-        - *ref_21
+        - *ref_27
+        - *ref_28
         - sid: []
       summary: Obtener mensaje por ID
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/mark-as-read:
     put:
       description: >-
@@ -3041,6 +3222,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       requestBody:
         required: true
         content:
@@ -3054,14 +3236,14 @@ paths:
           description: Lista de mensajes inválida
         '401':
           description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
-        '403': &ref_23
+        '403': &ref_30
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
       security:
-        - *ref_20
-        - *ref_21
+        - *ref_27
+        - *ref_28
         - sid: []
       summary: Marcar mensajes como leídos
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/chat/{chatId}/unread:
     get:
       description: Retorna los mensajes no leídos de un chat específico. Soporta autenticación JWT y sesiones de visitante.
@@ -3080,6 +3262,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       responses:
         '200':
           description: Mensajes no leídos obtenidos exitosamente
@@ -3096,11 +3279,11 @@ paths:
         '404':
           description: Chat no encontrado
       security:
-        - *ref_20
-        - *ref_21
+        - *ref_27
+        - *ref_28
         - sid: []
       summary: Obtener mensajes no leídos de un chat
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/search:
     get:
       description: Busca mensajes que contengan palabras clave específicas
@@ -3123,9 +3306,11 @@ paths:
         - name: filters
           required: false
           in: query
-          description: Filtros adicionales de búsqueda
+          description: 'Filtros adicionales de búsqueda en formato JSON serializado. Ej: {"senderId":"uuid"}'
           schema:
-            $ref: '#/components/schemas/Object'
+            type: object
+            additionalProperties: true
+            $ref: '#/components/schemas/MessageFiltersDto'
         - name: limit
           required: false
           in: query
@@ -3142,14 +3327,14 @@ paths:
                 $ref: '#/components/schemas/MessageListResponseDto'
         '400':
           description: Parámetros de búsqueda inválidos
-        '401': &ref_24
+        '401': &ref_31
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': *ref_23
-      security: &ref_25
-        - *ref_20
-        - *ref_21
+        '403': *ref_30
+      security: &ref_32
+        - *ref_27
+        - *ref_28
       summary: Buscar mensajes por contenido
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/chat/{chatId}/stats:
     get:
       description: Retorna estadísticas detalladas de un chat específico
@@ -3183,14 +3368,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConversationStatsResponseDto'
-        '401': *ref_24
+        '401': *ref_31
         '403':
           description: Sin permisos para acceder a las estadísticas
         '404':
           description: Chat no encontrado
-      security: *ref_25
+      security: *ref_32
       summary: Obtener estadísticas de conversación
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/metrics:
     get:
       description: Retorna métricas agregadas de mensajería por período de tiempo
@@ -3238,11 +3423,11 @@ paths:
                   $ref: '#/components/schemas/MessageMetricsResponseDto'
         '400':
           description: Parámetros de consulta inválidos
-        '401': *ref_24
-        '403': *ref_23
-      security: *ref_25
+        '401': *ref_31
+        '403': *ref_30
+      security: *ref_32
       summary: Obtener métricas de mensajería
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/messages/attachments:
     get:
       description: Retorna mensajes que contienen archivos adjuntos. Soporta autenticación JWT y sesiones de visitante.
@@ -3276,6 +3461,7 @@ paths:
           required: false
           schema:
             type: string
+            example: temp_1758226307441_5bjqvmz1vf3
       responses:
         '200':
           description: Mensajes con adjuntos obtenidos exitosamente
@@ -3285,14 +3471,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MessageResponseDto'
-        '401': *ref_24
-        '403': *ref_23
+        '401': *ref_31
+        '403': *ref_30
       security:
-        - *ref_20
-        - *ref_21
+        - *ref_27
+        - *ref_28
         - sid: []
       summary: Obtener mensajes con archivos adjuntos
-      tags: *ref_22
+      tags: *ref_29
   /api/v2/assignment-rules:
     post:
       description: >-
@@ -3324,14 +3510,14 @@ paths:
                     example: Reglas creadas exitosamente
         '400':
           description: Datos inválidos
-        '401': &ref_26
+        '401': &ref_33
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
         '403':
           description: Sin permisos suficientes
-      security: &ref_27
+      security: &ref_34
         - bearer: []
       summary: Crear reglas de auto-asignamiento
-      tags: &ref_28
+      tags: &ref_35
         - Reglas de Auto-asignamiento
   /api/v2/assignment-rules/companies/{companyId}/applicable:
     get:
@@ -3362,14 +3548,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AssignmentRulesResponseDto'
-        '401': *ref_26
+        '401': *ref_33
         '403':
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
         '404':
           description: No se encontraron reglas
-      security: *ref_27
+      security: *ref_34
       summary: Obtener reglas aplicables
-      tags: *ref_28
+      tags: *ref_35
   /api/presence/chat/{chatId}:
     get:
       description: >-
@@ -3391,17 +3577,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatPresenceDto'
-        '401': &ref_29
+        '401': &ref_36
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_30
+        '403': &ref_37
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
         '404':
           description: Chat no encontrado
-      security: &ref_31
+      security: &ref_38
         - access_token: []
         - bearer: []
       summary: Obtener estado de presencia de participantes de un chat
-      tags: &ref_32
+      tags: &ref_39
         - Presence & Typing
   /api/presence/chat/{chatId}/typing/start:
     post:
@@ -3421,11 +3607,11 @@ paths:
       responses:
         '204':
           description: Typing indicator iniciado
-        '401': *ref_29
-        '403': *ref_30
-      security: *ref_31
+        '401': *ref_36
+        '403': *ref_37
+      security: *ref_38
       summary: Indicar que el usuario está escribiendo
-      tags: *ref_32
+      tags: *ref_39
   /api/presence/chat/{chatId}/typing/stop:
     post:
       description: >-
@@ -3444,11 +3630,11 @@ paths:
       responses:
         '204':
           description: Typing indicator detenido
-        '401': *ref_29
-        '403': *ref_30
-      security: *ref_31
+        '401': *ref_36
+        '403': *ref_37
+      security: *ref_38
       summary: Indicar que el usuario dejó de escribir
-      tags: *ref_32
+      tags: *ref_39
   /api/v2/commercials/connect:
     post:
       description: Registra un comercial como conectado en el sistema
@@ -3471,10 +3657,10 @@ paths:
           description: Datos de entrada inválidos
         '500':
           description: Error interno del servidor
-      security: &ref_33
+      security: &ref_40
         - bearer: []
       summary: Conectar comercial
-      tags: &ref_34
+      tags: &ref_41
         - Commercials
   /api/v2/commercials/disconnect:
     post:
@@ -3498,9 +3684,9 @@ paths:
           description: Datos de entrada inválidos
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Desconectar comercial
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/status:
     put:
       description: Permite a un comercial cambiar manualmente su estado de conexión (online, busy, away, offline)
@@ -3525,9 +3711,9 @@ paths:
           description: Comercial no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Cambiar estado de conexión del comercial
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/{id}/status:
     get:
       description: Obtiene el estado de conexión actual de un comercial específico
@@ -3551,9 +3737,9 @@ paths:
           description: Comercial no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Obtener estado de comercial
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/active:
     get:
       description: Obtiene la lista de todos los comerciales que están actualmente online
@@ -3570,9 +3756,9 @@ paths:
           description: No autorizado
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Obtener comerciales activos
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/available:
     get:
       description: Obtiene la lista de comerciales que están online y disponibles para atender chats
@@ -3589,9 +3775,9 @@ paths:
           description: No autorizado
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Obtener comerciales disponibles
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/availability:
     post:
       description: >-
@@ -3620,9 +3806,9 @@ paths:
           description: Dominio no encontrado en el sistema
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Consultar disponibilidad de comerciales
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/{id}:
     delete:
       description: Elimina un comercial del sistema completamente (solo administradores)
@@ -3646,9 +3832,9 @@ paths:
           description: Comercial no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Eliminar comercial
-      tags: *ref_34
+      tags: *ref_41
   /api/v2/commercials/register-fingerprint:
     post:
       description: >-
@@ -3673,9 +3859,9 @@ paths:
           description: Comercial no encontrado
         '500':
           description: Error interno del servidor
-      security: *ref_33
+      security: *ref_40
       summary: Registrar fingerprint de comercial
-      tags: *ref_34
+      tags: *ref_41
   /api/consents/revoke:
     post:
       description: Permite a un visitante revocar un consentimiento previamente otorgado (RGPD Art. 7.3)
@@ -3692,17 +3878,17 @@ paths:
           description: Consentimiento revocado exitosamente
         '400':
           description: Datos inválidos
-        '401': &ref_35
+        '401': &ref_42
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_36
+        '403': &ref_43
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
         '404':
           description: Consentimiento no encontrado
-      security: &ref_37
+      security: &ref_44
         - access_token: []
         - bearer: []
       summary: Revocar un consentimiento
-      tags: &ref_38
+      tags: &ref_45
         - Consent
   /api/consents/renew:
     post:
@@ -3720,13 +3906,13 @@ paths:
           description: Consentimiento renovado exitosamente
         '400':
           description: Datos inválidos o consentimiento no renovable
-        '401': *ref_35
-        '403': *ref_36
+        '401': *ref_42
+        '403': *ref_43
         '404':
           description: Consentimiento no encontrado
-      security: *ref_37
+      security: *ref_44
       summary: Renovar un consentimiento
-      tags: *ref_38
+      tags: *ref_45
   /api/consents/visitors/{visitorId}:
     get:
       description: 'Obtiene todos los consentimientos de un visitante (RGPD Art. 15: Derecho de acceso)'
@@ -3748,11 +3934,11 @@ paths:
                 $ref: '#/components/schemas/ConsentHistoryResponseDto'
         '400':
           description: ID de visitante inválido
-        '401': *ref_35
-        '403': *ref_36
-      security: *ref_37
+        '401': *ref_42
+        '403': *ref_43
+      security: *ref_44
       summary: Obtener historial de consentimientos
-      tags: *ref_38
+      tags: *ref_45
   /api/consents/visitors/{visitorId}/audit-logs:
     get:
       description: Obtiene todos los registros de auditoría de consentimientos de un visitante (RGPD Art. 5.2 y Art. 30)
@@ -3774,11 +3960,11 @@ paths:
                 $ref: '#/components/schemas/AuditLogListResponseDto'
         '400':
           description: ID de visitante inválido
-        '401': *ref_35
-        '403': *ref_36
-      security: *ref_37
+        '401': *ref_42
+        '403': *ref_43
+      security: *ref_44
       summary: Obtener audit logs de consentimientos
-      tags: *ref_38
+      tags: *ref_45
   /api/tracking-v2/events:
     post:
       description: >-
@@ -3846,7 +4032,7 @@ paths:
       security:
         - {}
       summary: Ingerir eventos de tracking en batch
-      tags: &ref_39
+      tags: &ref_46
         - tracking-v2
   /api/tracking-v2/stats/tenant/{tenantId}:
     get:
@@ -3888,7 +4074,7 @@ paths:
       security:
         - {}
       summary: Obtener estadísticas de eventos por tenant
-      tags: *ref_39
+      tags: *ref_46
   /api/tracking-v2/health:
     get:
       description: Verifica que el sistema de tracking esté funcionando correctamente
@@ -3915,7 +4101,7 @@ paths:
       security:
         - {}
       summary: Health check del sistema de tracking
-      tags: *ref_39
+      tags: *ref_46
   /api/v2/llm/config/providers:
     get:
       operationId: llm-config_getAvailableProviders
@@ -3927,15 +4113,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LlmModelsListResponseDto'
-        '401': &ref_40
+        '401': &ref_47
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_41
+        '403': &ref_48
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_42
+      security: &ref_49
         - access_token: []
         - bearer: []
       summary: Obtener lista de proveedores LLM disponibles con sus modelos
-      tags: &ref_43
+      tags: &ref_50
         - LLM Configuration
   /api/v2/llm/config/{companyId}:
     get:
@@ -3954,13 +4140,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LlmConfigResponseDto'
-        '401': *ref_40
-        '403': *ref_41
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Configuración no encontrada
-      security: *ref_42
+      security: *ref_49
       summary: Obtener configuración LLM de una empresa
-      tags: *ref_43
+      tags: *ref_50
     patch:
       operationId: llm-config_updateConfig
       parameters:
@@ -3983,13 +4169,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LlmConfigResponseDto'
-        '401': *ref_40
-        '403': *ref_41
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Configuración no encontrada
-      security: *ref_42
+      security: *ref_49
       summary: Actualizar configuración LLM de una empresa
-      tags: *ref_43
+      tags: *ref_50
     delete:
       operationId: llm-config_deleteConfig
       parameters:
@@ -4002,13 +4188,13 @@ paths:
       responses:
         '204':
           description: Configuración eliminada
-        '401': *ref_40
-        '403': *ref_41
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Configuración no encontrada
-      security: *ref_42
+      security: *ref_49
       summary: Eliminar configuración LLM de una empresa
-      tags: *ref_43
+      tags: *ref_50
   /api/v2/llm/config:
     post:
       operationId: llm-config_createConfig
@@ -4028,11 +4214,11 @@ paths:
                 $ref: '#/components/schemas/LlmConfigResponseDto'
         '400':
           description: Datos inválidos
-        '401': *ref_40
-        '403': *ref_41
-      security: *ref_42
+        '401': *ref_47
+        '403': *ref_48
+      security: *ref_49
       summary: Crear configuración LLM para una empresa
-      tags: *ref_43
+      tags: *ref_50
   /api/v2/llm/suggestions:
     post:
       description: >-
@@ -4059,11 +4245,11 @@ paths:
           description: No autenticado
         '403':
           description: No tiene permisos (requiere rol commercial, admin o supervisor)
-      security: &ref_44
+      security: &ref_51
         - access_token: []
         - bearer: []
       summary: Generar sugerencias de respuesta para comercial
-      tags: &ref_45
+      tags: &ref_52
         - LLM Suggestions
   /api/v2/llm/improve:
     post:
@@ -4091,9 +4277,9 @@ paths:
           description: No autenticado
         '403':
           description: No tiene permisos (requiere rol commercial, admin o supervisor)
-      security: *ref_44
+      security: *ref_51
       summary: Mejorar texto para hacerlo más profesional
-      tags: *ref_45
+      tags: *ref_52
   /api/v2/companies/{companyId}/white-label/defaults:
     get:
       description: >-
@@ -4113,15 +4299,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WhiteLabelDefaultsDto'
-        '401': &ref_46
+        '401': &ref_53
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_47
+        '403': &ref_54
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_48
+      security: &ref_55
         - access_token: []
         - bearer: []
       summary: Obtener valores por defecto de White Label
-      tags: &ref_49
+      tags: &ref_56
         - White Label Configuration
   /api/v2/companies/{companyId}/white-label:
     get:
@@ -4144,13 +4330,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WhiteLabelConfigResponseDto'
-        '401': *ref_46
-        '403': *ref_47
+        '401': *ref_53
+        '403': *ref_54
         '404':
           description: Configuración no encontrada - se devuelven valores por defecto
-      security: *ref_48
+      security: *ref_55
       summary: Obtener configuración White Label de una empresa
-      tags: *ref_49
+      tags: *ref_56
     patch:
       description: >-
         Actualiza parcialmente la configuración White Label de la empresa (colores, branding, tipografía, tema). Si no
@@ -4179,11 +4365,11 @@ paths:
                 $ref: '#/components/schemas/WhiteLabelConfigResponseDto'
         '400':
           description: Datos inválidos
-        '401': *ref_46
-        '403': *ref_47
-      security: *ref_48
+        '401': *ref_53
+        '403': *ref_54
+      security: *ref_55
       summary: Actualizar configuración White Label (upsert)
-      tags: *ref_49
+      tags: *ref_56
     delete:
       description: >-
         Elimina por completo la configuración White Label de la empresa, incluyendo logo, favicon y todas las fuentes
@@ -4200,11 +4386,11 @@ paths:
       responses:
         '204':
           description: Configuración eliminada
-        '401': *ref_46
-        '403': *ref_47
-      security: *ref_48
+        '401': *ref_53
+        '403': *ref_54
+      security: *ref_55
       summary: Eliminar/resetear configuración White Label
-      tags: *ref_49
+      tags: *ref_56
   /api/v2/companies/{companyId}/white-label/logo:
     post:
       description: >-
@@ -4241,11 +4427,11 @@ paths:
                 $ref: '#/components/schemas/UploadResponseDto'
         '400':
           description: Archivo inválido
-        '401': *ref_46
-        '403': *ref_47
-      security: *ref_48
+        '401': *ref_53
+        '403': *ref_54
+      security: *ref_55
       summary: Subir logo de la empresa
-      tags: *ref_49
+      tags: *ref_56
     delete:
       description: >-
         Elimina el archivo de logo del storage y borra la referencia en la configuración. Requiere que exista
@@ -4261,13 +4447,13 @@ paths:
       responses:
         '204':
           description: Logo eliminado
-        '401': *ref_46
-        '403': *ref_47
+        '401': *ref_53
+        '403': *ref_54
         '404':
           description: No hay logo configurado
-      security: *ref_48
+      security: *ref_55
       summary: Eliminar logo de la empresa
-      tags: *ref_49
+      tags: *ref_56
   /api/v2/companies/{companyId}/white-label/favicon:
     post:
       description: >-
@@ -4304,11 +4490,11 @@ paths:
                 $ref: '#/components/schemas/UploadResponseDto'
         '400':
           description: Archivo inválido
-        '401': *ref_46
-        '403': *ref_47
-      security: *ref_48
+        '401': *ref_53
+        '403': *ref_54
+      security: *ref_55
       summary: Subir favicon de la empresa
-      tags: *ref_49
+      tags: *ref_56
     delete:
       description: >-
         Elimina el archivo de favicon del storage y borra la referencia en la configuración. Requiere que exista
@@ -4324,13 +4510,13 @@ paths:
       responses:
         '204':
           description: Favicon eliminado
-        '401': *ref_46
-        '403': *ref_47
+        '401': *ref_53
+        '403': *ref_54
         '404':
           description: No hay favicon configurado
-      security: *ref_48
+      security: *ref_55
       summary: Eliminar favicon de la empresa
-      tags: *ref_49
+      tags: *ref_56
   /api/v2/companies/{companyId}/white-label/font:
     post:
       description: >-
@@ -4367,11 +4553,11 @@ paths:
                 $ref: '#/components/schemas/FontFileDto'
         '400':
           description: Archivo inválido
-        '401': *ref_46
-        '403': *ref_47
-      security: *ref_48
+        '401': *ref_53
+        '403': *ref_54
+      security: *ref_55
       summary: Subir archivo de fuente personalizada
-      tags: *ref_49
+      tags: *ref_56
   /api/v2/companies/{companyId}/white-label/font/{fileName}:
     delete:
       description: >-
@@ -4394,13 +4580,13 @@ paths:
       responses:
         '204':
           description: Fuente eliminada
-        '401': *ref_46
-        '403': *ref_47
+        '401': *ref_53
+        '403': *ref_54
         '404':
           description: Fuente no encontrada
-      security: *ref_48
+      security: *ref_55
       summary: Eliminar archivo de fuente específico
-      tags: *ref_49
+      tags: *ref_56
   /api/v2/companies/{companyId}/white-label/fonts:
     delete:
       description: >-
@@ -4418,11 +4604,11 @@ paths:
       responses:
         '204':
           description: Todas las fuentes eliminadas
-        '401': *ref_46
-        '403': *ref_47
-      security: *ref_48
+        '401': *ref_53
+        '403': *ref_54
+      security: *ref_55
       summary: Eliminar todas las fuentes personalizadas
-      tags: *ref_49
+      tags: *ref_56
   /api/leads/contact-data/{visitorId}:
     post:
       description: Crea o actualiza los datos de contacto de un visitor. Si ya existen datos, se hace merge parcial.
@@ -4453,11 +4639,11 @@ paths:
           description: No autorizado
         '403':
           description: Sin permisos suficientes
-      security: &ref_50
+      security: &ref_57
         - access_token: []
         - bearer: []
       summary: Guardar datos de contacto del lead
-      tags: &ref_51
+      tags: &ref_58
         - Leads - Contact Data
     get:
       description: Retorna los datos de contacto asociados a un visitor
@@ -4476,15 +4662,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeadContactDataResponseDto'
-        '401': &ref_52
+        '401': &ref_59
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_53
+        '403': &ref_60
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
         '404':
           description: No se encontraron datos de contacto
-      security: *ref_50
+      security: *ref_57
       summary: Obtener datos de contacto de un visitor
-      tags: *ref_51
+      tags: *ref_58
   /api/leads/contact-data:
     get:
       description: Retorna todos los datos de contacto de la empresa
@@ -4499,11 +4685,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/LeadContactDataResponseDto'
-        '401': *ref_52
-        '403': *ref_53
-      security: *ref_50
+        '401': *ref_59
+        '403': *ref_60
+      security: *ref_57
       summary: Listar todos los datos de contacto
-      tags: *ref_51
+      tags: *ref_58
   /api/v1/leads/admin/config:
     post:
       operationId: leads-admin_createConfig
@@ -4523,15 +4709,15 @@ paths:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
         '400':
           description: Datos inválidos o CRM ya configurado
-        '401': &ref_54
+        '401': &ref_61
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_55
+        '403': &ref_62
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_56
+      security: &ref_63
         - access_token: []
         - bearer: []
       summary: Crear configuración de CRM para la empresa
-      tags: &ref_57
+      tags: &ref_64
         - Leads - Administración CRM
     get:
       operationId: leads-admin_getConfig
@@ -4543,13 +4729,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
-        '401': *ref_54
-        '403': *ref_55
+        '401': *ref_61
+        '403': *ref_62
         '404':
           description: No hay configuración CRM creada
-      security: *ref_56
+      security: *ref_63
       summary: Obtener la configuración CRM de la empresa (primera activa) o 404 si no existe
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/config/{id}:
     get:
       operationId: leads-admin_getConfigById
@@ -4567,13 +4753,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
-        '401': *ref_54
-        '403': *ref_55
+        '401': *ref_61
+        '403': *ref_62
         '404':
           description: Configuración no encontrada
-      security: *ref_56
+      security: *ref_63
       summary: Obtener configuración CRM por ID
-      tags: *ref_57
+      tags: *ref_64
     put:
       operationId: leads-admin_updateConfig
       parameters:
@@ -4596,13 +4782,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
-        '401': *ref_54
-        '403': *ref_55
+        '401': *ref_61
+        '403': *ref_62
         '404':
           description: Configuración no encontrada
-      security: *ref_56
+      security: *ref_63
       summary: Actualizar configuración CRM
-      tags: *ref_57
+      tags: *ref_64
     delete:
       operationId: leads-admin_deleteConfig
       parameters:
@@ -4615,13 +4801,13 @@ paths:
       responses:
         '200':
           description: Configuración eliminada
-        '401': *ref_54
-        '403': *ref_55
+        '401': *ref_61
+        '403': *ref_62
         '404':
           description: Configuración no encontrada
-      security: *ref_56
+      security: *ref_63
       summary: Eliminar configuración CRM
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/config/{configId}/test:
     post:
       operationId: leads-admin_testConnectionById
@@ -4639,13 +4825,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestConnectionByIdResponseDto'
-        '401': *ref_54
-        '403': *ref_55
+        '401': *ref_61
+        '403': *ref_62
         '404':
           description: Configuración no encontrada
-      security: *ref_56
+      security: *ref_63
       summary: Probar conexión con LeadCars usando la configuración guardada por ID
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/test-connection:
     post:
       operationId: leads-admin_testConnection
@@ -4663,11 +4849,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestConnectionResponseDto'
-        '401': *ref_54
-        '403': *ref_55
-      security: *ref_56
+        '401': *ref_61
+        '403': *ref_62
+      security: *ref_63
       summary: Probar conexión con CRM con credenciales manuales
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/sync-records/failed:
     get:
       operationId: leads-admin_getFailedSyncRecords
@@ -4681,11 +4867,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CrmSyncRecordResponseDto'
-        '401': *ref_54
-        '403': *ref_55
-      security: *ref_56
+        '401': *ref_61
+        '403': *ref_62
+      security: *ref_63
       summary: Obtener sincronizaciones fallidas
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/sync-records/visitor/{visitorId}:
     get:
       operationId: leads-admin_getSyncRecordsByVisitor
@@ -4705,11 +4891,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CrmSyncRecordResponseDto'
-        '401': *ref_54
-        '403': *ref_55
-      security: *ref_56
+        '401': *ref_61
+        '403': *ref_62
+      security: *ref_63
       summary: Obtener registros de sincronización por visitor
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/sync-records:
     get:
       operationId: leads-admin_getSyncRecords
@@ -4723,16 +4909,33 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CrmSyncRecordResponseDto'
-        '401': *ref_54
-        '403': *ref_55
-      security: *ref_56
+        '401': *ref_61
+        '403': *ref_62
+      security: *ref_63
       summary: Obtener registros de sincronización de la empresa
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/leadcars/concesionarios:
     get:
-      description: Proxy al endpoint GET /concesionarios de LeadCars usando el token guardado
+      description: >-
+        Proxy al endpoint GET /concesionarios de LeadCars. Usa el token guardado en config o el token pasado como query
+        param (para setup inicial sin config guardada)
       operationId: leads-admin_getLeadcarsConcesionarios
-      parameters: []
+      parameters:
+        - name: clienteToken
+          required: false
+          in: query
+          description: Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)
+          schema:
+            type: string
+        - name: useSandbox
+          required: false
+          in: query
+          description: 'Usar entorno sandbox de LeadCars. Pasar la cadena ''true'' para activarlo (default: ''false'')'
+          schema:
+            enum:
+              - 'true'
+              - 'false'
+            type: string
       responses:
         '200':
           description: Lista de concesionarios
@@ -4742,103 +4945,229 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/LeadcarsConcesionarioDto'
-        '401': *ref_54
-        '403': *ref_55
+        '400':
+          description: La configuración de LeadCars está deshabilitada para esta empresa
+        '401': *ref_61
+        '403': *ref_62
         '404':
-          description: No hay configuración de LeadCars
-      security: *ref_56
+          description: >-
+            Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
+            empresa
+        '500':
+          description: Error al comunicarse con la API de LeadCars
+      security: *ref_63
       summary: Listar concesionarios disponibles en LeadCars
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/leadcars/sedes/{concesionarioId}:
     get:
-      description: Proxy al endpoint GET /sedes/:id de LeadCars usando el token guardado
+      description: >-
+        Proxy al endpoint GET /sedes/:id de LeadCars. Usa el token guardado en config o el token pasado como query param
+        (para setup inicial sin config guardada)
       operationId: leads-admin_getLeadcarsSedes
       parameters:
         - name: concesionarioId
           required: true
           in: path
-          description: ID del concesionario en LeadCars
+          description: ID numérico del concesionario en LeadCars (obtenido de GET /leadcars/concesionarios)
           schema:
+            example: 400
+            type: number
+        - name: clienteToken
+          required: false
+          in: query
+          description: Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)
+          schema:
+            type: string
+        - name: useSandbox
+          required: false
+          in: query
+          description: 'Usar entorno sandbox de LeadCars. Pasar la cadena ''true'' para activarlo (default: ''false'')'
+          schema:
+            enum:
+              - 'true'
+              - 'false'
             type: string
       responses:
         '200':
-          description: Lista de sedes
+          description: Lista de sedes del concesionario
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/LeadcarsSedeDto'
-        '401': *ref_54
-        '403': *ref_55
+        '400':
+          description: concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada
+        '401': *ref_61
+        '403': *ref_62
         '404':
-          description: No hay configuración de LeadCars
-      security: *ref_56
+          description: >-
+            Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
+            empresa
+        '500':
+          description: Error al comunicarse con la API de LeadCars
+      security: *ref_63
       summary: Listar sedes de un concesionario en LeadCars
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/leadcars/campanas/{concesionarioId}:
     get:
-      description: Proxy al endpoint GET /campanas/:id de LeadCars usando el token guardado
+      description: >-
+        Proxy al endpoint GET /campanas/:id de LeadCars. Usa el token guardado en config o el token pasado como query
+        param (para setup inicial sin config guardada). El concesionarioId del path siempre prevalece sobre el de la
+        config guardada.
       operationId: leads-admin_getLeadcarsCampanas
       parameters:
         - name: concesionarioId
           required: true
           in: path
-          description: ID del concesionario en LeadCars
+          description: ID numérico del concesionario en LeadCars (obtenido de GET /leadcars/concesionarios)
           schema:
+            example: 400
+            type: number
+        - name: clienteToken
+          required: false
+          in: query
+          description: Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)
+          schema:
+            type: string
+        - name: useSandbox
+          required: false
+          in: query
+          description: 'Usar entorno sandbox de LeadCars. Pasar la cadena ''true'' para activarlo (default: ''false'')'
+          schema:
+            enum:
+              - 'true'
+              - 'false'
             type: string
       responses:
         '200':
-          description: Lista de campañas
+          description: Lista de campañas del concesionario
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/LeadcarsCampanaDto'
-        '401': *ref_54
-        '403': *ref_55
+        '400':
+          description: concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada
+        '401': *ref_61
+        '403': *ref_62
         '404':
-          description: No hay configuración de LeadCars
-      security: *ref_56
+          description: >-
+            Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
+            empresa
+        '500':
+          description: Error al comunicarse con la API de LeadCars
+      security: *ref_63
       summary: Listar campañas de un concesionario en LeadCars
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/leadcars/tipos:
     get:
-      description: Proxy al endpoint GET /tipos de LeadCars usando el token guardado
+      description: >-
+        Proxy al endpoint GET /tipos de LeadCars. Usa el token guardado en config o el token pasado como query param
+        (para setup inicial sin config guardada)
       operationId: leads-admin_getLeadcarsTipos
-      parameters: []
+      parameters:
+        - name: clienteToken
+          required: false
+          in: query
+          description: Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)
+          schema:
+            type: string
+        - name: useSandbox
+          required: false
+          in: query
+          description: 'Usar entorno sandbox de LeadCars. Pasar la cadena ''true'' para activarlo (default: ''false'')'
+          schema:
+            enum:
+              - 'true'
+              - 'false'
+            type: string
       responses:
         '200':
-          description: Lista de tipos de lead
+          description: 'Lista de tipos de lead. Nota: la API de LeadCars puede devolver solo el campo id sin nombre.'
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/LeadcarsTipoLeadDto'
-        '401': *ref_54
-        '403': *ref_55
+        '400':
+          description: La configuración de LeadCars está deshabilitada para esta empresa
+        '401': *ref_61
+        '403': *ref_62
         '404':
-          description: No hay configuración de LeadCars
-      security: *ref_56
+          description: >-
+            Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
+            empresa
+        '500':
+          description: Error al comunicarse con la API de LeadCars
+      security: *ref_63
       summary: Listar tipos de lead disponibles en LeadCars
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/leadcars/states:
     get:
-      description: Proxy al endpoint GET /listStates de LeadCars (API v2.5) usando el token guardado
+      description: >-
+        Proxy al endpoint GET /listStates de LeadCars (API v2.5). Devuelve un mapa de nombre de estado → detalle del
+        estado con sus campos dinámicos. Usa el token guardado en config o el token pasado como query param.
       operationId: leads-admin_getLeadcarsStates
-      parameters: []
+      parameters:
+        - name: clienteToken
+          required: false
+          in: query
+          description: Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)
+          schema:
+            type: string
+        - name: useSandbox
+          required: false
+          in: query
+          description: 'Usar entorno sandbox de LeadCars. Pasar la cadena ''true'' para activarlo (default: ''false'')'
+          schema:
+            enum:
+              - 'true'
+              - 'false'
+            type: string
       responses:
         '200':
-          description: Mapa de estados disponibles con sus campos dinámicos
-        '401': *ref_54
-        '403': *ref_55
+          description: >-
+            Mapa de estados disponibles. Clave = nombre del estado (string), valor = objeto con id, group y fields
+            (campos dinámicos del estado).
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/LeadcarsStateItemDto'
+                example:
+                  Pendiente:
+                    id: 1
+                    group: Abierto
+                    fields:
+                      - name: comentario
+                        type: text
+                        title: Comentario
+                        required: false
+                  Vendido:
+                    id: 5
+                    group: Cerrado
+                    fields:
+                      - name: motivo
+                        type: textarea
+                        title: Motivo de venta
+                        required: true
+        '400':
+          description: La configuración de LeadCars está deshabilitada para esta empresa
+        '401': *ref_61
+        '403': *ref_62
         '404':
-          description: No hay configuración de LeadCars
-      security: *ref_56
+          description: >-
+            Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
+            empresa
+        '500':
+          description: Error al comunicarse con la API de LeadCars
+      security: *ref_63
       summary: Listar estados disponibles en LeadCars
-      tags: *ref_57
+      tags: *ref_64
   /api/v1/leads/admin/supported-crms:
     get:
       operationId: leads-admin_getSupportedCrms
@@ -4852,11 +5181,11 @@ paths:
                 type: array
                 items:
                   type: string
-        '401': *ref_54
-        '403': *ref_55
-      security: *ref_56
+        '401': *ref_61
+        '403': *ref_62
+      security: *ref_63
       summary: Obtener lista de CRMs soportados
-      tags: *ref_57
+      tags: *ref_64
   /:
     get:
       description: >-
@@ -4879,7 +5208,7 @@ paths:
       security:
         - {}
       summary: Mensaje de bienvenida
-      tags: &ref_58
+      tags: &ref_65
         - health
   /health:
     head:
@@ -4898,7 +5227,7 @@ paths:
       security:
         - {}
       summary: Health check (HEAD)
-      tags: *ref_58
+      tags: *ref_65
   /api/websocket-test:
     get:
       description: >-
@@ -4916,7 +5245,7 @@ paths:
       security:
         - {}
       summary: Página HTML de prueba para WebSocket
-      tags: *ref_58
+      tags: *ref_65
   /api/protected:
     get:
       description: >-
@@ -4939,7 +5268,7 @@ paths:
       security:
         - bearer: []
       summary: Endpoint de prueba protegido por JWT
-      tags: *ref_58
+      tags: *ref_65
 info:
   title: API Guiders Backend
   description: |-
@@ -4977,38 +5306,54 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 tags:
-  - name: auth
-    description: Autenticación y emisión de tokens
-  - name: bff-auth
+  - name: Autenticación de Usuarios
+    description: Autenticación y emisión de tokens para usuarios
+  - name: BFF Auth
     description: Backend-for-Frontend de autenticación basado en cookies
-  - name: api-keys
+  - name: API Keys
     description: Gestión de API Keys de tenants
-  - name: chats
+  - name: integration-api-keys
+    description: API Keys de integración REST para developers externos
+  - name: Chats V2
     description: Conversaciones (V2 - MongoDB)
-  - name: messages
-    description: Mensajes de conversaciones
-  - name: presence
+  - name: Messages V2
+    description: Mensajes de conversaciones (V2 - MongoDB)
+  - name: Presence & Typing
     description: Estado de presencia en chats
-  - name: assignment-rules
+  - name: Reglas de Auto-asignamiento
     description: Reglas de asignación automática de comerciales
   - name: visitors
     description: Visitantes y sesiones de tracking
+  - name: Visitantes
+    description: Visitantes (V1 - legacy, PostgreSQL)
+  - name: Site Visitors Management
+    description: Gestión de visitantes por sitio
+  - name: Tenant Visitors Management
+    description: Gestión de visitantes por tenant
   - name: sites
     description: Sitios web monitorizados
   - name: tracking-v2
     description: Ingesta de eventos de tracking
-  - name: leads
-    description: Gestión de leads y contactos comerciales
-  - name: llm
-    description: Integración con modelos de lenguaje (LLM)
-  - name: white-label
+  - name: Leads - Administración CRM
+    description: Gestión de leads y contactos comerciales (admin)
+  - name: Leads - Contact Data
+    description: Datos de contacto de leads
+  - name: LLM Suggestions
+    description: Sugerencias de IA para comerciales
+  - name: LLM Configuration
+    description: Configuración de modelos de lenguaje
+  - name: White Label Configuration
     description: Configuración white-label por compañía
-  - name: commercials
+  - name: Commercials
     description: Operaciones comerciales
   - name: companies
     description: Gestión de compañías y tenants
-  - name: consents
+  - name: Consent
     description: Gestión de consentimientos y RGPD
+  - name: Pixel Visitor Auth
+    description: Autenticación de visitantes para el pixel de tracking
+  - name: JWKS
+    description: Claves públicas de verificación JWT (JWKS)
   - name: health
     description: Endpoints de salud y diagnóstico
   - name: internal-opensearch
@@ -5568,6 +5913,145 @@ components:
             $ref: '#/components/schemas/JwkDto'
       required:
         - keys
+    CreateIntegrationApiKeyDto:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Mi integración CRM
+          description: Nombre descriptivo para esta API Key
+        environment:
+          type: string
+          example: live
+          enum:
+            - live
+            - test
+          description: Entorno de la key
+      required:
+        - name
+        - environment
+    IntegrationApiKeyCreatedResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID de la API Key
+        name:
+          type: string
+          description: Nombre descriptivo
+        token:
+          type: string
+          description: Token completo. Solo se muestra una vez. Guárdalo de forma segura.
+          example: gdr_live_a1b2c3d4e5f6...
+        tokenPrefix:
+          type: string
+          description: Prefijo del token para identificación en UI
+        environment:
+          type: string
+          enum:
+            - live
+            - test
+        createdAt:
+          format: date-time
+          type: string
+      required:
+        - id
+        - name
+        - token
+        - tokenPrefix
+        - environment
+        - createdAt
+    IntegrationApiKeyListItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tokenPrefix:
+          type: string
+          description: Prefijo del token para identificación
+          example: gdr_live_a1b2...
+        environment:
+          type: string
+          enum:
+            - live
+            - test
+        status:
+          type: string
+          enum:
+            - active
+            - revoked
+        createdAt:
+          format: date-time
+          type: string
+        lastUsedAt:
+          type: object
+          nullable: true
+        revokedAt:
+          type: object
+          nullable: true
+      required:
+        - id
+        - name
+        - tokenPrefix
+        - environment
+        - status
+        - createdAt
+        - lastUsedAt
+        - revokedAt
+    CreateIntegrationConversationDto:
+      type: object
+      properties:
+        visitorId:
+          type: string
+          description: ID UUID del visitante existente en Guiders
+        message:
+          type: string
+          description: Mensaje inicial de la conversación
+        channel:
+          type: string
+          description: Canal de la conversación
+          enum:
+            - chat
+            - email
+            - whatsapp
+          default: chat
+        metadata:
+          type: object
+          description: Metadatos adicionales
+      required:
+        - visitorId
+        - message
+    SendIntegrationMessageDto:
+      type: object
+      properties:
+        content:
+          type: string
+          description: Contenido del mensaje
+        contentType:
+          type: string
+          description: Tipo de contenido
+          enum:
+            - text
+            - html
+            - markdown
+          default: text
+        senderType:
+          type: string
+          description: Tipo de remitente
+          enum:
+            - bot
+            - system
+            - agent
+          default: bot
+        externalMessageId:
+          type: string
+          description: >-
+            ID externo para idempotencia. Si ya existe un mensaje con este ID para el mismo companyId, se devuelve el
+            original.
+      required:
+        - content
     VisitorProfileDto:
       type: object
       properties:
@@ -5934,7 +6418,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: &ref_59
+          enum: &ref_66
             - ONLINE
             - AWAY
             - OFFLINE
@@ -6019,7 +6503,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: *ref_59
+          enum: *ref_66
           example: ONLINE
         currentUrl:
           type: string
@@ -6227,7 +6711,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: &ref_60
+          enum: &ref_67
             - ONLINE
             - AWAY
             - OFFLINE
@@ -6264,7 +6748,7 @@ components:
           nullable: true
         pendingChatIds:
           description: IDs de chats pendientes asociados al visitante
-          example: &ref_61
+          example: &ref_68
             - db9f4882-a0d4-41f4-9915-4cffb88874dd
           nullable: true
           type: array
@@ -6347,7 +6831,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: *ref_60
+          enum: *ref_67
           example: ONLINE
         siteId:
           type: string
@@ -6380,7 +6864,7 @@ components:
           nullable: true
         pendingChatIds:
           description: IDs de chats pendientes asociados al visitante
-          example: *ref_61
+          example: *ref_68
           nullable: true
           type: array
           items:
@@ -7052,10 +7536,76 @@ components:
         - admin
     FindCompanyByDomainResponseDto:
       type: object
-      properties: {}
+      properties:
+        id:
+          type: string
+          description: Identificador único de la empresa
+          example: 550e8400-e29b-41d4-a716-446655440000
+        companyName:
+          type: string
+          description: Nombre de la empresa
+          example: Acme Corporation
+        domains:
+          description: Lista de todos los dominios registrados en la empresa (dominios canónicos y alias)
+          example:
+            - example.com
+            - www.example.com
+            - shop.example.com
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - companyName
+        - domains
+    CompanySiteDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador único del sitio
+          example: 550e8400-e29b-41d4-a716-446655440000
+        name:
+          type: string
+          description: Nombre del sitio
+          example: Tienda Principal
+        canonicalDomain:
+          type: string
+          description: Dominio canónico del sitio
+          example: example.com
+        domainAliases:
+          description: Dominios alias adicionales del sitio
+          example:
+            - www.example.com
+            - shop.example.com
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - name
+        - canonicalDomain
+        - domainAliases
     GetCompanySitesResponseDto:
       type: object
-      properties: {}
+      properties:
+        companyId:
+          type: string
+          description: Identificador único de la empresa
+          example: 550e8400-e29b-41d4-a716-446655440000
+        companyName:
+          type: string
+          description: Nombre de la empresa
+          example: Acme Corporation
+        sites:
+          description: Lista de sitios web registrados en la empresa
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanySiteDto'
+      required:
+        - companyId
+        - companyName
+        - sites
     CreateChatVisitorInfoDto:
       type: object
       properties:
@@ -7362,6 +7912,7 @@ components:
         assignedCommercial:
           description: Información del comercial asignado al chat (null si no hay comercial asignado)
           nullable: true
+          type: object
           allOf:
             - $ref: '#/components/schemas/AssignedCommercialResponseDto'
         availableCommercialIds:
@@ -7729,6 +8280,7 @@ components:
         assignedCommercial:
           description: Información del comercial asignado al chat (null si no hay comercial asignado)
           nullable: true
+          type: object
           allOf:
             - $ref: '#/components/schemas/AssignedCommercialDto'
         queuePosition:
@@ -7818,9 +8370,92 @@ components:
             $ref: '#/components/schemas/VisitorActivityDto'
       required:
         - pendingChats
-    Object:
+    ChatFiltersDto:
       type: object
-      properties: {}
+      properties:
+        status:
+          type: array
+          description: Estados de chat a filtrar
+          example:
+            - PENDING
+            - ASSIGNED
+          items:
+            type: string
+            enum:
+              - PENDING
+              - ASSIGNED
+              - ACTIVE
+              - CLOSED
+              - TRANSFERRED
+              - ABANDONED
+        priority:
+          type: array
+          description: Prioridades de chat a filtrar
+          example:
+            - HIGH
+            - URGENT
+          items:
+            type: string
+            enum:
+              - LOW
+              - MEDIUM
+              - NORMAL
+              - HIGH
+              - URGENT
+        visitorId:
+          type: string
+          description: ID del visitante para filtrar
+          example: 550e8400-e29b-41d4-a716-446655440000
+        assignedCommercialId:
+          type: string
+          description: ID del comercial asignado para filtrar
+          example: 550e8400-e29b-41d4-a716-446655440001
+        availableCommercialIds:
+          description: IDs de comerciales disponibles para filtrar
+          example:
+            - 550e8400-e29b-41d4-a716-446655440001
+            - 550e8400-e29b-41d4-a716-446655440002
+          type: array
+          items:
+            type: string
+        dateFrom:
+          type: string
+          description: Fecha de inicio del rango (ISO 8601)
+          example: '2025-07-01T00:00:00Z'
+        dateTo:
+          type: string
+          description: Fecha de fin del rango (ISO 8601)
+          example: '2025-07-31T23:59:59Z'
+        department:
+          type: string
+          description: Departamento para filtrar
+          example: ventas
+        hasUnreadMessages:
+          type: boolean
+          description: Filtrar solo chats con mensajes no leídos
+          example: true
+    ChatSortDto:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Campo por el cual ordenar
+          enum:
+            - createdAt
+            - lastMessageDate
+            - priority
+            - totalMessages
+          example: createdAt
+        direction:
+          type: string
+          description: Dirección del ordenamiento
+          enum:
+            - ASC
+            - DESC
+          example: DESC
+      required:
+        - field
+        - direction
     SendMessageDto:
       type: object
       properties:
@@ -7955,6 +8590,70 @@ components:
         - updatedAt
         - isRead
         - isAI
+    MessageFiltersDto:
+      type: object
+      properties:
+        types:
+          description: Tipos de mensaje a incluir
+          example:
+            - text
+            - image
+          type: array
+          items:
+            type: string
+        dateFrom:
+          type: string
+          description: Fecha de inicio del rango
+          example: '2025-07-01T00:00:00Z'
+        dateTo:
+          type: string
+          description: Fecha de fin del rango
+          example: '2025-07-31T23:59:59Z'
+        senderId:
+          type: string
+          description: ID del remitente del mensaje
+          example: 550e8400-e29b-41d4-a716-446655440001
+        senderType:
+          type: string
+          description: Tipo de remitente
+          enum:
+            - visitor
+            - commercial
+            - system
+          example: commercial
+        isRead:
+          type: boolean
+          description: Filtrar por mensajes leídos/no leídos
+          example: false
+        hasAttachments:
+          type: boolean
+          description: Filtrar por mensajes con archivos adjuntos
+          example: true
+        keyword:
+          type: string
+          description: Palabra clave para búsqueda en el contenido
+          example: problema técnico
+    MessageSortDto:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Campo por el cual ordenar
+          enum:
+            - sentAt
+            - readAt
+            - type
+          example: sentAt
+        direction:
+          type: string
+          description: Dirección del ordenamiento
+          enum:
+            - ASC
+            - DESC
+          example: DESC
+      required:
+        - field
+        - direction
     MessageListResponseDto:
       type: object
       properties:
@@ -9512,6 +10211,58 @@ components:
         - extractedAt
         - createdAt
         - updatedAt
+    LeadcarsStateFieldDto:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre interno del campo
+          example: comentario
+        type:
+          type: string
+          description: Tipo del campo ('text', 'textarea', 'checkbox', etc.)
+          example: text
+        title:
+          type: string
+          description: Etiqueta legible del campo
+          example: Comentario
+        required:
+          type: boolean
+          description: Si el campo es obligatorio al editar el lead con este estado
+          example: false
+        options:
+          description: Opciones disponibles (solo para campos tipo checkbox/select)
+          example:
+            - Sí
+            - 'No'
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - type
+        - title
+        - required
+    LeadcarsStateItemDto:
+      type: object
+      properties:
+        id:
+          type: number
+          description: ID numérico del estado en LeadCars
+          example: 1
+        group:
+          type: string
+          description: Grupo al que pertenece el estado
+          example: Abierto
+        fields:
+          description: Campos dinámicos requeridos/opcionales al editar un lead con este estado
+          type: array
+          items:
+            $ref: '#/components/schemas/LeadcarsStateFieldDto'
+      required:
+        - id
+        - group
+        - fields
     LeadcarsConfigDto:
       type: object
       properties:
@@ -9785,57 +10536,64 @@ components:
       properties:
         id:
           type: number
-          description: ID del concesionario
+          description: ID del concesionario en LeadCars
+          example: 400
         nombre:
           type: string
-          description: Nombre del concesionario
+          description: Nombre del concesionario (puede estar ausente en algunas respuestas de la API)
+          example: Concesionario Madrid
       required:
         - id
-        - nombre
     LeadcarsSedeDto:
       type: object
       properties:
         id:
           type: number
-          description: ID de la sede
+          description: ID de la sede en LeadCars
+          example: 12
         nombre:
           type: string
-          description: Nombre de la sede
+          description: Nombre de la sede (puede estar ausente en algunas respuestas de la API)
+          example: Sede Central
         concesionarioId:
           type: number
           description: ID del concesionario al que pertenece
+          example: 400
       required:
         - id
-        - nombre
         - concesionarioId
     LeadcarsCampanaDto:
       type: object
       properties:
         id:
           type: number
-          description: ID de la campaña
+          description: ID de la campaña en LeadCars
+          example: 55
         nombre:
           type: string
-          description: Nombre de la campaña
+          description: Nombre de la campaña (puede estar ausente en algunas respuestas de la API)
+          example: Campaña Verano 2024
         codigo:
           type: string
-          description: Código de la campaña
+          description: Código de texto de la campaña (se usa en el campo campana al crear un lead)
+          example: VERANO24
         concesionarioId:
           type: number
           description: ID del concesionario al que pertenece
+          example: 400
       required:
         - id
-        - nombre
         - concesionarioId
     LeadcarsTipoLeadDto:
       type: object
       properties:
         id:
           type: number
-          description: ID del tipo de lead
+          description: ID del tipo de lead en LeadCars (se usa en el campo tipo_lead al crear un lead)
+          example: 445
         nombre:
           type: string
-          description: Nombre del tipo de lead
+          description: 'Nombre del tipo de lead. Puede estar ausente: la API de LeadCars puede devolver solo el id sin nombre.'
+          example: Compra
       required:
         - id
-        - nombre

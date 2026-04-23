@@ -867,7 +867,7 @@
         ],
         "responses": {
           "302": {
-            "description": "Redirección a returnTo tras login"
+            "description": "Redirección a login en caso de error\n\nRedirección a returnTo tras login"
           },
           "400": {
             "description": "Callback inválido"
@@ -1180,6 +1180,299 @@
         "summary": "Obtener JWKS público",
         "tags": [
           "JWKS"
+        ]
+      }
+    },
+    "/api/integration-api-keys": {
+      "post": {
+        "description": "Genera una nueva API Key para llamar a la API pública de Guiders desde un backend externo. El token solo se devuelve una vez: guárdalo de forma segura.",
+        "operationId": "integration-api-key_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntegrationApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API Key creada. El token solo se muestra en esta respuesta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationApiKeyCreatedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
+          },
+          "403": {
+            "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Crear API Key de integración",
+        "tags": [
+          "integration-api-keys"
+        ]
+      },
+      "get": {
+        "description": "Devuelve todas las API Keys de integración de la compañía. No incluye los tokens completos.",
+        "operationId": "integration-api-key_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Listado de API Keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntegrationApiKeyListItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
+          },
+          "403": {
+            "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Listar API Keys de integración",
+        "tags": [
+          "integration-api-keys"
+        ]
+      }
+    },
+    "/api/integration-api-keys/{id}": {
+      "delete": {
+        "description": "Revoca una API Key de integración. No se puede deshacer.",
+        "operationId": "integration-api-key_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "API Key revocada"
+          },
+          "401": {
+            "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
+          },
+          "403": {
+            "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
+          },
+          "404": {
+            "description": "API Key no encontrada"
+          },
+          "409": {
+            "description": "La API Key ya está revocada"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Revocar API Key de integración",
+        "tags": [
+          "integration-api-keys"
+        ]
+      }
+    },
+    "/api/integration/conversations": {
+      "post": {
+        "operationId": "integration_createConversation",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "description": "Integration API Key (gdr_live_xxx o gdr_test_xxx)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntegrationConversationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conversación creada exitosamente"
+          },
+          "401": {
+            "description": "API Key inválida o ausente"
+          },
+          "409": {
+            "description": "Ya existe una conversación activa para este visitante"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Crear conversación via Integration API",
+        "tags": [
+          "integration"
+        ]
+      }
+    },
+    "/api/integration/conversations/{id}/messages": {
+      "post": {
+        "operationId": "integration_sendMessage",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "description": "Integration API Key (gdr_live_xxx o gdr_test_xxx)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendIntegrationMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mensaje enviado exitosamente"
+          },
+          "401": {
+            "description": "API Key inválida o ausente"
+          },
+          "403": {
+            "description": "La conversación no pertenece a esta empresa"
+          },
+          "404": {
+            "description": "Conversación no encontrada"
+          },
+          "422": {
+            "description": "La conversación está cerrada"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Enviar mensaje via Integration API",
+        "tags": [
+          "integration"
+        ]
+      }
+    },
+    "/api/integration/conversations/{id}": {
+      "get": {
+        "operationId": "integration_getConversation",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "description": "Integration API Key (gdr_live_xxx o gdr_test_xxx)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeMessages",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "messagesLimit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversación obtenida exitosamente"
+          },
+          "400": {
+            "description": "Parámetros de consulta inválidos"
+          },
+          "401": {
+            "description": "API Key inválida o ausente"
+          },
+          "403": {
+            "description": "La conversación no pertenece a esta empresa"
+          },
+          "404": {
+            "description": "Conversación no encontrada"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Obtener conversación via Integration API",
+        "tags": [
+          "integration"
         ]
       }
     },
@@ -2702,7 +2995,7 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Información de la empresa obtenida exitosamente",
+            "description": "Información de la empresa del usuario con siteId resuelto\n\nInformación de la empresa obtenida exitosamente",
             "content": {
               "application/json": {
                 "schema": {
@@ -4212,18 +4505,22 @@
             "name": "filters",
             "required": false,
             "in": "query",
-            "description": "Filtros adicionales para chats",
+            "description": "Filtros adicionales para chats en formato JSON serializado. Ej: {\"status\":\"OPEN\"}",
             "schema": {
-              "$ref": "#/components/schemas/Object"
+              "type": "object",
+              "additionalProperties": true,
+              "$ref": "#/components/schemas/ChatFiltersDto"
             }
           },
           {
             "name": "sort",
             "required": false,
             "in": "query",
-            "description": "Opciones de ordenamiento",
+            "description": "Opciones de ordenamiento en formato JSON serializado. Ej: {\"createdAt\":\"desc\"}",
             "schema": {
-              "$ref": "#/components/schemas/Object"
+              "type": "object",
+              "additionalProperties": true,
+              "$ref": "#/components/schemas/ChatSortDto"
             }
           },
           {
@@ -4232,7 +4529,8 @@
             "description": "Session ID como cabecera HTTP alternativa para BFF",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "sess_1758226307441_commercial"
             }
           }
         ],
@@ -4363,7 +4661,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -4419,7 +4718,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -4493,18 +4793,22 @@
             "name": "filters",
             "required": false,
             "in": "query",
-            "description": "Filtros de búsqueda para mensajes",
+            "description": "Filtros de búsqueda para mensajes en formato JSON serializado. Ej: {\"senderId\":\"uuid\"}",
             "schema": {
-              "$ref": "#/components/schemas/Object"
+              "type": "object",
+              "additionalProperties": true,
+              "$ref": "#/components/schemas/MessageFiltersDto"
             }
           },
           {
             "name": "sort",
             "required": false,
             "in": "query",
-            "description": "Opciones de ordenamiento",
+            "description": "Opciones de ordenamiento en formato JSON serializado. Ej: {\"createdAt\":\"desc\"}",
             "schema": {
-              "$ref": "#/components/schemas/Object"
+              "type": "object",
+              "additionalProperties": true,
+              "$ref": "#/components/schemas/MessageSortDto"
             }
           },
           {
@@ -4533,7 +4837,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -4596,7 +4901,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -4649,7 +4955,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -4715,7 +5022,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -4789,9 +5097,11 @@
             "name": "filters",
             "required": false,
             "in": "query",
-            "description": "Filtros adicionales de búsqueda",
+            "description": "Filtros adicionales de búsqueda en formato JSON serializado. Ej: {\"senderId\":\"uuid\"}",
             "schema": {
-              "$ref": "#/components/schemas/Object"
+              "type": "object",
+              "additionalProperties": true,
+              "$ref": "#/components/schemas/MessageFiltersDto"
             }
           },
           {
@@ -5042,7 +5352,8 @@
             "description": "Session ID del visitante como cabecera HTTP alternativa",
             "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "example": "temp_1758226307441_5bjqvmz1vf3"
             }
           }
         ],
@@ -7619,9 +7930,32 @@
     },
     "/api/v1/leads/admin/leadcars/concesionarios": {
       "get": {
-        "description": "Proxy al endpoint GET /concesionarios de LeadCars usando el token guardado",
+        "description": "Proxy al endpoint GET /concesionarios de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada)",
         "operationId": "leads-admin_getLeadcarsConcesionarios",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "clienteToken",
+            "required": false,
+            "in": "query",
+            "description": "Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useSandbox",
+            "required": false,
+            "in": "query",
+            "description": "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista de concesionarios",
@@ -7636,6 +7970,9 @@
               }
             }
           },
+          "400": {
+            "description": "La configuración de LeadCars está deshabilitada para esta empresa"
+          },
           "401": {
             "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
           },
@@ -7643,7 +7980,10 @@
             "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
           },
           "404": {
-            "description": "No hay configuración de LeadCars"
+            "description": "Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa"
+          },
+          "500": {
+            "description": "Error al comunicarse con la API de LeadCars"
           }
         },
         "security": [
@@ -7662,22 +8002,45 @@
     },
     "/api/v1/leads/admin/leadcars/sedes/{concesionarioId}": {
       "get": {
-        "description": "Proxy al endpoint GET /sedes/:id de LeadCars usando el token guardado",
+        "description": "Proxy al endpoint GET /sedes/:id de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada)",
         "operationId": "leads-admin_getLeadcarsSedes",
         "parameters": [
           {
             "name": "concesionarioId",
             "required": true,
             "in": "path",
-            "description": "ID del concesionario en LeadCars",
+            "description": "ID numérico del concesionario en LeadCars (obtenido de GET /leadcars/concesionarios)",
             "schema": {
+              "example": 400,
+              "type": "number"
+            }
+          },
+          {
+            "name": "clienteToken",
+            "required": false,
+            "in": "query",
+            "description": "Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useSandbox",
+            "required": false,
+            "in": "query",
+            "description": "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lista de sedes",
+            "description": "Lista de sedes del concesionario",
             "content": {
               "application/json": {
                 "schema": {
@@ -7689,6 +8052,9 @@
               }
             }
           },
+          "400": {
+            "description": "concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada"
+          },
           "401": {
             "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
           },
@@ -7696,7 +8062,10 @@
             "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
           },
           "404": {
-            "description": "No hay configuración de LeadCars"
+            "description": "Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa"
+          },
+          "500": {
+            "description": "Error al comunicarse con la API de LeadCars"
           }
         },
         "security": [
@@ -7715,22 +8084,45 @@
     },
     "/api/v1/leads/admin/leadcars/campanas/{concesionarioId}": {
       "get": {
-        "description": "Proxy al endpoint GET /campanas/:id de LeadCars usando el token guardado",
+        "description": "Proxy al endpoint GET /campanas/:id de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada). El concesionarioId del path siempre prevalece sobre el de la config guardada.",
         "operationId": "leads-admin_getLeadcarsCampanas",
         "parameters": [
           {
             "name": "concesionarioId",
             "required": true,
             "in": "path",
-            "description": "ID del concesionario en LeadCars",
+            "description": "ID numérico del concesionario en LeadCars (obtenido de GET /leadcars/concesionarios)",
             "schema": {
+              "example": 400,
+              "type": "number"
+            }
+          },
+          {
+            "name": "clienteToken",
+            "required": false,
+            "in": "query",
+            "description": "Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useSandbox",
+            "required": false,
+            "in": "query",
+            "description": "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Lista de campañas",
+            "description": "Lista de campañas del concesionario",
             "content": {
               "application/json": {
                 "schema": {
@@ -7742,6 +8134,9 @@
               }
             }
           },
+          "400": {
+            "description": "concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada"
+          },
           "401": {
             "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
           },
@@ -7749,7 +8144,10 @@
             "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
           },
           "404": {
-            "description": "No hay configuración de LeadCars"
+            "description": "Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa"
+          },
+          "500": {
+            "description": "Error al comunicarse con la API de LeadCars"
           }
         },
         "security": [
@@ -7768,12 +8166,35 @@
     },
     "/api/v1/leads/admin/leadcars/tipos": {
       "get": {
-        "description": "Proxy al endpoint GET /tipos de LeadCars usando el token guardado",
+        "description": "Proxy al endpoint GET /tipos de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada)",
         "operationId": "leads-admin_getLeadcarsTipos",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "clienteToken",
+            "required": false,
+            "in": "query",
+            "description": "Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useSandbox",
+            "required": false,
+            "in": "query",
+            "description": "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Lista de tipos de lead",
+            "description": "Lista de tipos de lead. Nota: la API de LeadCars puede devolver solo el campo id sin nombre.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7785,6 +8206,9 @@
               }
             }
           },
+          "400": {
+            "description": "La configuración de LeadCars está deshabilitada para esta empresa"
+          },
           "401": {
             "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
           },
@@ -7792,7 +8216,10 @@
             "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
           },
           "404": {
-            "description": "No hay configuración de LeadCars"
+            "description": "Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa"
+          },
+          "500": {
+            "description": "Error al comunicarse con la API de LeadCars"
           }
         },
         "security": [
@@ -7811,12 +8238,74 @@
     },
     "/api/v1/leads/admin/leadcars/states": {
       "get": {
-        "description": "Proxy al endpoint GET /listStates de LeadCars (API v2.5) usando el token guardado",
+        "description": "Proxy al endpoint GET /listStates de LeadCars (API v2.5). Devuelve un mapa de nombre de estado → detalle del estado con sus campos dinámicos. Usa el token guardado en config o el token pasado como query param.",
         "operationId": "leads-admin_getLeadcarsStates",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "clienteToken",
+            "required": false,
+            "in": "query",
+            "description": "Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "useSandbox",
+            "required": false,
+            "in": "query",
+            "description": "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
+            "schema": {
+              "enum": [
+                "true",
+                "false"
+              ],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Mapa de estados disponibles con sus campos dinámicos"
+            "description": "Mapa de estados disponibles. Clave = nombre del estado (string), valor = objeto con id, group y fields (campos dinámicos del estado).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/LeadcarsStateItemDto"
+                  },
+                  "example": {
+                    "Pendiente": {
+                      "id": 1,
+                      "group": "Abierto",
+                      "fields": [
+                        {
+                          "name": "comentario",
+                          "type": "text",
+                          "title": "Comentario",
+                          "required": false
+                        }
+                      ]
+                    },
+                    "Vendido": {
+                      "id": 5,
+                      "group": "Cerrado",
+                      "fields": [
+                        {
+                          "name": "motivo",
+                          "type": "textarea",
+                          "title": "Motivo de venta",
+                          "required": true
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "La configuración de LeadCars está deshabilitada para esta empresa"
           },
           "401": {
             "description": "No autenticado: faltan credenciales, token ausente, inválido o expirado."
@@ -7825,7 +8314,10 @@
             "description": "Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación."
           },
           "404": {
-            "description": "No hay configuración de LeadCars"
+            "description": "Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa"
+          },
+          "500": {
+            "description": "Error al comunicarse con la API de LeadCars"
           }
         },
         "security": [
@@ -8016,36 +8508,52 @@
   },
   "tags": [
     {
-      "name": "auth",
-      "description": "Autenticación y emisión de tokens"
+      "name": "Autenticación de Usuarios",
+      "description": "Autenticación y emisión de tokens para usuarios"
     },
     {
-      "name": "bff-auth",
+      "name": "BFF Auth",
       "description": "Backend-for-Frontend de autenticación basado en cookies"
     },
     {
-      "name": "api-keys",
+      "name": "API Keys",
       "description": "Gestión de API Keys de tenants"
     },
     {
-      "name": "chats",
+      "name": "integration-api-keys",
+      "description": "API Keys de integración REST para developers externos"
+    },
+    {
+      "name": "Chats V2",
       "description": "Conversaciones (V2 - MongoDB)"
     },
     {
-      "name": "messages",
-      "description": "Mensajes de conversaciones"
+      "name": "Messages V2",
+      "description": "Mensajes de conversaciones (V2 - MongoDB)"
     },
     {
-      "name": "presence",
+      "name": "Presence & Typing",
       "description": "Estado de presencia en chats"
     },
     {
-      "name": "assignment-rules",
+      "name": "Reglas de Auto-asignamiento",
       "description": "Reglas de asignación automática de comerciales"
     },
     {
       "name": "visitors",
       "description": "Visitantes y sesiones de tracking"
+    },
+    {
+      "name": "Visitantes",
+      "description": "Visitantes (V1 - legacy, PostgreSQL)"
+    },
+    {
+      "name": "Site Visitors Management",
+      "description": "Gestión de visitantes por sitio"
+    },
+    {
+      "name": "Tenant Visitors Management",
+      "description": "Gestión de visitantes por tenant"
     },
     {
       "name": "sites",
@@ -8056,19 +8564,27 @@
       "description": "Ingesta de eventos de tracking"
     },
     {
-      "name": "leads",
-      "description": "Gestión de leads y contactos comerciales"
+      "name": "Leads - Administración CRM",
+      "description": "Gestión de leads y contactos comerciales (admin)"
     },
     {
-      "name": "llm",
-      "description": "Integración con modelos de lenguaje (LLM)"
+      "name": "Leads - Contact Data",
+      "description": "Datos de contacto de leads"
     },
     {
-      "name": "white-label",
+      "name": "LLM Suggestions",
+      "description": "Sugerencias de IA para comerciales"
+    },
+    {
+      "name": "LLM Configuration",
+      "description": "Configuración de modelos de lenguaje"
+    },
+    {
+      "name": "White Label Configuration",
       "description": "Configuración white-label por compañía"
     },
     {
-      "name": "commercials",
+      "name": "Commercials",
       "description": "Operaciones comerciales"
     },
     {
@@ -8076,8 +8592,16 @@
       "description": "Gestión de compañías y tenants"
     },
     {
-      "name": "consents",
+      "name": "Consent",
       "description": "Gestión de consentimientos y RGPD"
+    },
+    {
+      "name": "Pixel Visitor Auth",
+      "description": "Autenticación de visitantes para el pixel de tracking"
+    },
+    {
+      "name": "JWKS",
+      "description": "Claves públicas de verificación JWT (JWKS)"
     },
     {
       "name": "health",
@@ -8830,6 +9354,189 @@
         },
         "required": [
           "keys"
+        ]
+      },
+      "CreateIntegrationApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Mi integración CRM",
+            "description": "Nombre descriptivo para esta API Key"
+          },
+          "environment": {
+            "type": "string",
+            "example": "live",
+            "enum": [
+              "live",
+              "test"
+            ],
+            "description": "Entorno de la key"
+          }
+        },
+        "required": [
+          "name",
+          "environment"
+        ]
+      },
+      "IntegrationApiKeyCreatedResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID de la API Key"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre descriptivo"
+          },
+          "token": {
+            "type": "string",
+            "description": "Token completo. Solo se muestra una vez. Guárdalo de forma segura.",
+            "example": "gdr_live_a1b2c3d4e5f6..."
+          },
+          "tokenPrefix": {
+            "type": "string",
+            "description": "Prefijo del token para identificación en UI"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "live",
+              "test"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "token",
+          "tokenPrefix",
+          "environment",
+          "createdAt"
+        ]
+      },
+      "IntegrationApiKeyListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "tokenPrefix": {
+            "type": "string",
+            "description": "Prefijo del token para identificación",
+            "example": "gdr_live_a1b2..."
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "live",
+              "test"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "revoked"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "type": "object",
+            "nullable": true
+          },
+          "revokedAt": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tokenPrefix",
+          "environment",
+          "status",
+          "createdAt",
+          "lastUsedAt",
+          "revokedAt"
+        ]
+      },
+      "CreateIntegrationConversationDto": {
+        "type": "object",
+        "properties": {
+          "visitorId": {
+            "type": "string",
+            "description": "ID UUID del visitante existente en Guiders"
+          },
+          "message": {
+            "type": "string",
+            "description": "Mensaje inicial de la conversación"
+          },
+          "channel": {
+            "type": "string",
+            "description": "Canal de la conversación",
+            "enum": [
+              "chat",
+              "email",
+              "whatsapp"
+            ],
+            "default": "chat"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Metadatos adicionales"
+          }
+        },
+        "required": [
+          "visitorId",
+          "message"
+        ]
+      },
+      "SendIntegrationMessageDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Contenido del mensaje"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "Tipo de contenido",
+            "enum": [
+              "text",
+              "html",
+              "markdown"
+            ],
+            "default": "text"
+          },
+          "senderType": {
+            "type": "string",
+            "description": "Tipo de remitente",
+            "enum": [
+              "bot",
+              "system",
+              "agent"
+            ],
+            "default": "bot"
+          },
+          "externalMessageId": {
+            "type": "string",
+            "description": "ID externo para idempotencia. Si ya existe un mensaje con este ID para el mismo companyId, se devuelve el original."
+          }
+        },
+        "required": [
+          "content"
         ]
       },
       "VisitorProfileDto": {
@@ -10740,11 +11447,99 @@
       },
       "FindCompanyByDomainResponseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador único de la empresa",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Nombre de la empresa",
+            "example": "Acme Corporation"
+          },
+          "domains": {
+            "description": "Lista de todos los dominios registrados en la empresa (dominios canónicos y alias)",
+            "example": [
+              "example.com",
+              "www.example.com",
+              "shop.example.com"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "companyName",
+          "domains"
+        ]
+      },
+      "CompanySiteDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Identificador único del sitio",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del sitio",
+            "example": "Tienda Principal"
+          },
+          "canonicalDomain": {
+            "type": "string",
+            "description": "Dominio canónico del sitio",
+            "example": "example.com"
+          },
+          "domainAliases": {
+            "description": "Dominios alias adicionales del sitio",
+            "example": [
+              "www.example.com",
+              "shop.example.com"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "canonicalDomain",
+          "domainAliases"
+        ]
       },
       "GetCompanySitesResponseDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "description": "Identificador único de la empresa",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "companyName": {
+            "type": "string",
+            "description": "Nombre de la empresa",
+            "example": "Acme Corporation"
+          },
+          "sites": {
+            "description": "Lista de sitios web registrados en la empresa",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompanySiteDto"
+            }
+          }
+        },
+        "required": [
+          "companyId",
+          "companyName",
+          "sites"
+        ]
       },
       "CreateChatVisitorInfoDto": {
         "type": "object",
@@ -11161,6 +11956,7 @@
           "assignedCommercial": {
             "description": "Información del comercial asignado al chat (null si no hay comercial asignado)",
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AssignedCommercialResponseDto"
@@ -11634,6 +12430,7 @@
           "assignedCommercial": {
             "description": "Información del comercial asignado al chat (null si no hay comercial asignado)",
             "nullable": true,
+            "type": "object",
             "allOf": [
               {
                 "$ref": "#/components/schemas/AssignedCommercialDto"
@@ -11764,9 +12561,117 @@
           "pendingChats"
         ]
       },
-      "Object": {
+      "ChatFiltersDto": {
         "type": "object",
-        "properties": {}
+        "properties": {
+          "status": {
+            "type": "array",
+            "description": "Estados de chat a filtrar",
+            "example": [
+              "PENDING",
+              "ASSIGNED"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "ASSIGNED",
+                "ACTIVE",
+                "CLOSED",
+                "TRANSFERRED",
+                "ABANDONED"
+              ]
+            }
+          },
+          "priority": {
+            "type": "array",
+            "description": "Prioridades de chat a filtrar",
+            "example": [
+              "HIGH",
+              "URGENT"
+            ],
+            "items": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "NORMAL",
+                "HIGH",
+                "URGENT"
+              ]
+            }
+          },
+          "visitorId": {
+            "type": "string",
+            "description": "ID del visitante para filtrar",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "assignedCommercialId": {
+            "type": "string",
+            "description": "ID del comercial asignado para filtrar",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "availableCommercialIds": {
+            "description": "IDs de comerciales disponibles para filtrar",
+            "example": [
+              "550e8400-e29b-41d4-a716-446655440001",
+              "550e8400-e29b-41d4-a716-446655440002"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Fecha de inicio del rango (ISO 8601)",
+            "example": "2025-07-01T00:00:00Z"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Fecha de fin del rango (ISO 8601)",
+            "example": "2025-07-31T23:59:59Z"
+          },
+          "department": {
+            "type": "string",
+            "description": "Departamento para filtrar",
+            "example": "ventas"
+          },
+          "hasUnreadMessages": {
+            "type": "boolean",
+            "description": "Filtrar solo chats con mensajes no leídos",
+            "example": true
+          }
+        }
+      },
+      "ChatSortDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Campo por el cual ordenar",
+            "enum": [
+              "createdAt",
+              "lastMessageDate",
+              "priority",
+              "totalMessages"
+            ],
+            "example": "createdAt"
+          },
+          "direction": {
+            "type": "string",
+            "description": "Dirección del ordenamiento",
+            "enum": [
+              "ASC",
+              "DESC"
+            ],
+            "example": "DESC"
+          }
+        },
+        "required": [
+          "field",
+          "direction"
+        ]
       },
       "SendMessageDto": {
         "type": "object",
@@ -11934,6 +12839,90 @@
           "updatedAt",
           "isRead",
           "isAI"
+        ]
+      },
+      "MessageFiltersDto": {
+        "type": "object",
+        "properties": {
+          "types": {
+            "description": "Tipos de mensaje a incluir",
+            "example": [
+              "text",
+              "image"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Fecha de inicio del rango",
+            "example": "2025-07-01T00:00:00Z"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Fecha de fin del rango",
+            "example": "2025-07-31T23:59:59Z"
+          },
+          "senderId": {
+            "type": "string",
+            "description": "ID del remitente del mensaje",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "senderType": {
+            "type": "string",
+            "description": "Tipo de remitente",
+            "enum": [
+              "visitor",
+              "commercial",
+              "system"
+            ],
+            "example": "commercial"
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Filtrar por mensajes leídos/no leídos",
+            "example": false
+          },
+          "hasAttachments": {
+            "type": "boolean",
+            "description": "Filtrar por mensajes con archivos adjuntos",
+            "example": true
+          },
+          "keyword": {
+            "type": "string",
+            "description": "Palabra clave para búsqueda en el contenido",
+            "example": "problema técnico"
+          }
+        }
+      },
+      "MessageSortDto": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "Campo por el cual ordenar",
+            "enum": [
+              "sentAt",
+              "readAt",
+              "type"
+            ],
+            "example": "sentAt"
+          },
+          "direction": {
+            "type": "string",
+            "description": "Dirección del ordenamiento",
+            "enum": [
+              "ASC",
+              "DESC"
+            ],
+            "example": "DESC"
+          }
+        },
+        "required": [
+          "field",
+          "direction"
         ]
       },
       "MessageListResponseDto": {
@@ -13968,6 +14957,75 @@
           "updatedAt"
         ]
       },
+      "LeadcarsStateFieldDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Nombre interno del campo",
+            "example": "comentario"
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo del campo ('text', 'textarea', 'checkbox', etc.)",
+            "example": "text"
+          },
+          "title": {
+            "type": "string",
+            "description": "Etiqueta legible del campo",
+            "example": "Comentario"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Si el campo es obligatorio al editar el lead con este estado",
+            "example": false
+          },
+          "options": {
+            "description": "Opciones disponibles (solo para campos tipo checkbox/select)",
+            "example": [
+              "Sí",
+              "No"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "title",
+          "required"
+        ]
+      },
+      "LeadcarsStateItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "ID numérico del estado en LeadCars",
+            "example": 1
+          },
+          "group": {
+            "type": "string",
+            "description": "Grupo al que pertenece el estado",
+            "example": "Abierto"
+          },
+          "fields": {
+            "description": "Campos dinámicos requeridos/opcionales al editar un lead con este estado",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeadcarsStateFieldDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "group",
+          "fields"
+        ]
+      },
       "LeadcarsConfigDto": {
         "type": "object",
         "properties": {
@@ -14342,16 +15400,17 @@
         "properties": {
           "id": {
             "type": "number",
-            "description": "ID del concesionario"
+            "description": "ID del concesionario en LeadCars",
+            "example": 400
           },
           "nombre": {
             "type": "string",
-            "description": "Nombre del concesionario"
+            "description": "Nombre del concesionario (puede estar ausente en algunas respuestas de la API)",
+            "example": "Concesionario Madrid"
           }
         },
         "required": [
-          "id",
-          "nombre"
+          "id"
         ]
       },
       "LeadcarsSedeDto": {
@@ -14359,20 +15418,22 @@
         "properties": {
           "id": {
             "type": "number",
-            "description": "ID de la sede"
+            "description": "ID de la sede en LeadCars",
+            "example": 12
           },
           "nombre": {
             "type": "string",
-            "description": "Nombre de la sede"
+            "description": "Nombre de la sede (puede estar ausente en algunas respuestas de la API)",
+            "example": "Sede Central"
           },
           "concesionarioId": {
             "type": "number",
-            "description": "ID del concesionario al que pertenece"
+            "description": "ID del concesionario al que pertenece",
+            "example": 400
           }
         },
         "required": [
           "id",
-          "nombre",
           "concesionarioId"
         ]
       },
@@ -14381,24 +15442,27 @@
         "properties": {
           "id": {
             "type": "number",
-            "description": "ID de la campaña"
+            "description": "ID de la campaña en LeadCars",
+            "example": 55
           },
           "nombre": {
             "type": "string",
-            "description": "Nombre de la campaña"
+            "description": "Nombre de la campaña (puede estar ausente en algunas respuestas de la API)",
+            "example": "Campaña Verano 2024"
           },
           "codigo": {
             "type": "string",
-            "description": "Código de la campaña"
+            "description": "Código de texto de la campaña (se usa en el campo campana al crear un lead)",
+            "example": "VERANO24"
           },
           "concesionarioId": {
             "type": "number",
-            "description": "ID del concesionario al que pertenece"
+            "description": "ID del concesionario al que pertenece",
+            "example": 400
           }
         },
         "required": [
           "id",
-          "nombre",
           "concesionarioId"
         ]
       },
@@ -14407,16 +15471,17 @@
         "properties": {
           "id": {
             "type": "number",
-            "description": "ID del tipo de lead"
+            "description": "ID del tipo de lead en LeadCars (se usa en el campo tipo_lead al crear un lead)",
+            "example": 445
           },
           "nombre": {
             "type": "string",
-            "description": "Nombre del tipo de lead"
+            "description": "Nombre del tipo de lead. Puede estar ausente: la API de LeadCars puede devolver solo el id sin nombre.",
+            "example": "Compra"
           }
         },
         "required": [
-          "id",
-          "nombre"
+          "id"
         ]
       }
     }

@@ -13,7 +13,13 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiHeader,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+  ApiTags,
+} from '@nestjs/swagger';
 import { EventPublisher } from '@nestjs/cqrs';
 import {
   IntegrationApiKeyGuard,
@@ -45,6 +51,7 @@ import { SendIntegrationMessageDto } from './dtos/send-integration-message.dto';
  * El companyId SIEMPRE se extrae del API key — nunca del body.
  */
 @ApiTags('integration')
+@ApiSecurity('api-key')
 @ApiHeader({
   name: 'x-api-key',
   description: 'Integration API Key (gdr_live_xxx o gdr_test_xxx)',
@@ -68,6 +75,12 @@ export class IntegrationController {
   @Post('conversations')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Crear conversación via Integration API' })
+  @ApiResponse({ status: 201, description: 'Conversación creada exitosamente' })
+  @ApiResponse({ status: 401, description: 'API Key inválida o ausente' })
+  @ApiResponse({
+    status: 409,
+    description: 'Ya existe una conversación activa para este visitante',
+  })
   async createConversation(
     @Req() req: IntegrationApiKeyRequest,
     @Body() dto: CreateIntegrationConversationDto,
@@ -163,6 +176,11 @@ export class IntegrationController {
   @Post('conversations/:id/messages')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Enviar mensaje via Integration API' })
+  @ApiResponse({ status: 201, description: 'Mensaje enviado exitosamente' })
+  @ApiResponse({ status: 401, description: 'API Key inválida o ausente' })
+  @ApiResponse({ status: 403, description: 'La conversación no pertenece a esta empresa' })
+  @ApiResponse({ status: 404, description: 'Conversación no encontrada' })
+  @ApiResponse({ status: 422, description: 'La conversación está cerrada' })
   async sendMessage(
     @Req() req: IntegrationApiKeyRequest,
     @Param('id') conversationId: string,
@@ -227,6 +245,11 @@ export class IntegrationController {
   @Get('conversations/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener conversación via Integration API' })
+  @ApiResponse({ status: 200, description: 'Conversación obtenida exitosamente' })
+  @ApiResponse({ status: 400, description: 'Parámetros de consulta inválidos' })
+  @ApiResponse({ status: 401, description: 'API Key inválida o ausente' })
+  @ApiResponse({ status: 403, description: 'La conversación no pertenece a esta empresa' })
+  @ApiResponse({ status: 404, description: 'Conversación no encontrada' })
   async getConversation(
     @Req() req: IntegrationApiKeyRequest,
     @Param('id') conversationId: string,
