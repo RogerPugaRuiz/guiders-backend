@@ -221,15 +221,17 @@ export class MessageV2Controller {
   })
   @ApiQuery({
     name: 'filters',
-    description: 'Filtros de búsqueda para mensajes',
+    description:
+      'Filtros de búsqueda para mensajes en formato JSON serializado. Ej: {"senderId":"uuid"}',
     required: false,
-    type: Object,
+    schema: { type: 'object', additionalProperties: true },
   })
   @ApiQuery({
     name: 'sort',
-    description: 'Opciones de ordenamiento',
+    description:
+      'Opciones de ordenamiento en formato JSON serializado. Ej: {"createdAt":"desc"}',
     required: false,
-    type: Object,
+    schema: { type: 'object', additionalProperties: true },
   })
   @ApiResponse({
     status: 200,
@@ -558,9 +560,10 @@ export class MessageV2Controller {
   })
   @ApiQuery({
     name: 'filters',
-    description: 'Filtros adicionales de búsqueda',
+    description:
+      'Filtros adicionales de búsqueda en formato JSON serializado. Ej: {"senderId":"uuid"}',
     required: false,
-    type: Object,
+    schema: { type: 'object', additionalProperties: true },
   })
   @ApiQuery({
     name: 'limit',

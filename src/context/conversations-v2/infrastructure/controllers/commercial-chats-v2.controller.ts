@@ -100,15 +100,17 @@ export class CommercialChatsV2Controller {
   })
   @ApiQuery({
     name: 'filters',
-    description: 'Filtros adicionales para chats',
+    description:
+      'Filtros adicionales para chats en formato JSON serializado. Ej: {"status":"OPEN"}',
     required: false,
-    type: Object,
+    schema: { type: 'object', additionalProperties: true },
   })
   @ApiQuery({
     name: 'sort',
-    description: 'Opciones de ordenamiento',
+    description:
+      'Opciones de ordenamiento en formato JSON serializado. Ej: {"createdAt":"desc"}',
     required: false,
-    type: Object,
+    schema: { type: 'object', additionalProperties: true },
   })
   @ApiResponse({
     status: 200,

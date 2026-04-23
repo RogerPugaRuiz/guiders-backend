@@ -8,7 +8,7 @@
  * Métricas evaluadas por operación (endpoint + método HTTP):
  *   - summary presente en @ApiOperation
  *   - Al menos un @ApiResponse documentado
- *   - Al menos una respuesta 2xx documentada
+ *   - Al menos una respuesta 2xx o 3xx documentada (los redirects OAuth cuentan como éxito)
  *
  * Métricas evaluadas por schema (DTO):
  *   - Al menos una propiedad con @ApiProperty (schema no vacío)
@@ -47,13 +47,13 @@ import { createOpenApiDocument } from '../src/context/shared/infrastructure/swag
 // Modifica estos valores para ajustar el nivel de exigencia del test.
 const THRESHOLDS = {
   /** % mínimo de operaciones con summary */
-  operationSummary: 80,
+  operationSummary: 95,
   /** % mínimo de operaciones con al menos un @ApiResponse */
-  operationResponses: 80,
-  /** % mínimo de operaciones con al menos una respuesta 2xx */
-  operation2xxResponse: 80,
+  operationResponses: 95,
+  /** % mínimo de operaciones con al menos una respuesta 2xx o 3xx */
+  operation2xxResponse: 95,
   /** % mínimo de schemas de respuesta con propiedades documentadas */
-  schemaProperties: 70,
+  schemaProperties: 95,
 };
 
 // ─── Tipos auxiliares ─────────────────────────────────────────────────────────
@@ -84,7 +84,15 @@ interface CoverageReport {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
+const HTTP_METHODS = [
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'head',
+  'options',
+] as const;
 
 /**
  * Extrae todas las operaciones del documento OpenAPI como una lista plana.
@@ -92,11 +100,14 @@ const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'
 function extractOperations(
   doc: OpenAPIObject,
 ): Array<{ path: string; method: string; op: OperationObject }> {
-  const result: Array<{ path: string; method: string; op: OperationObject }> = [];
+  const result: Array<{ path: string; method: string; op: OperationObject }> =
+    [];
   for (const [path, pathItem] of Object.entries(doc.paths ?? {})) {
     if (!pathItem) continue;
     for (const method of HTTP_METHODS) {
-      const op = (pathItem as Record<string, unknown>)[method] as OperationObject | undefined;
+      const op = (pathItem as Record<string, unknown>)[method] as
+        | OperationObject
+        | undefined;
       if (op) result.push({ path, method, op });
     }
   }
@@ -120,7 +131,10 @@ function analyzeCoverage(doc: OpenAPIObject): CoverageReport {
     const responses = op.responses ?? {};
     const responseCodes = Object.keys(responses);
     const hasResponses = responseCodes.length > 0;
-    const has2xx = responseCodes.some((code) => code.startsWith('2') || code === 'default');
+    const has2xx = responseCodes.some(
+      (code) =>
+        code.startsWith('2') || code.startsWith('3') || code === 'default',
+    );
 
     if (hasSummary) operationsWithSummary++;
     if (hasResponses) operationsWithResponses++;
@@ -156,7 +170,8 @@ function analyzeCoverage(doc: OpenAPIObject): CoverageReport {
     } else {
       schemaIssues.push({
         name,
-        reason: 'Sin propiedades documentadas (posibles @ApiProperty faltantes)',
+        reason:
+          'Sin propiedades documentadas (posibles @ApiProperty faltantes)',
       });
     }
   }
@@ -186,7 +201,10 @@ function pct(value: number, total: number): number {
  */
 function printReport(report: CoverageReport): void {
   const summaryPct = pct(report.operationsWithSummary, report.totalOperations);
-  const responsesPct = pct(report.operationsWithResponses, report.totalOperations);
+  const responsesPct = pct(
+    report.operationsWithResponses,
+    report.totalOperations,
+  );
   const twoxxPct = pct(report.operationsWith2xx, report.totalOperations);
   const schemaPct = pct(report.schemasWithProperties, report.totalSchemas);
 
@@ -196,11 +214,19 @@ function printReport(report: CoverageReport): void {
   console.log(`\n  Operaciones totales : ${report.totalOperations}`);
   console.log(`  Schemas totales     : ${report.totalSchemas}`);
   console.log('\n  ── Cobertura de operaciones ─────────────────────────');
-  console.log(`  Con summary         : ${report.operationsWithSummary}/${report.totalOperations}  (${summaryPct}%) [umbral: ${THRESHOLDS.operationSummary}%]`);
-  console.log(`  Con @ApiResponse    : ${report.operationsWithResponses}/${report.totalOperations}  (${responsesPct}%) [umbral: ${THRESHOLDS.operationResponses}%]`);
-  console.log(`  Con respuesta 2xx   : ${report.operationsWith2xx}/${report.totalOperations}  (${twoxxPct}%) [umbral: ${THRESHOLDS.operation2xxResponse}%]`);
+  console.log(
+    `  Con summary         : ${report.operationsWithSummary}/${report.totalOperations}  (${summaryPct}%) [umbral: ${THRESHOLDS.operationSummary}%]`,
+  );
+  console.log(
+    `  Con @ApiResponse    : ${report.operationsWithResponses}/${report.totalOperations}  (${responsesPct}%) [umbral: ${THRESHOLDS.operationResponses}%]`,
+  );
+  console.log(
+    `  Con respuesta 2xx/3xx : ${report.operationsWith2xx}/${report.totalOperations}  (${twoxxPct}%) [umbral: ${THRESHOLDS.operation2xxResponse}%]`,
+  );
   console.log('\n  ── Cobertura de schemas (DTOs) ─────────────────────');
-  console.log(`  Con propiedades     : ${report.schemasWithProperties}/${report.totalSchemas}  (${schemaPct}%) [umbral: ${THRESHOLDS.schemaProperties}%]`);
+  console.log(
+    `  Con propiedades     : ${report.schemasWithProperties}/${report.totalSchemas}  (${schemaPct}%) [umbral: ${THRESHOLDS.schemaProperties}%]`,
+  );
 
   if (report.operationIssues.length > 0) {
     console.log('\n  ── Operaciones con problemas ────────────────────────');
@@ -208,7 +234,7 @@ function printReport(report: CoverageReport): void {
       const flags: string[] = [];
       if (issue.missingSummary) flags.push('sin summary');
       if (issue.missingResponses) flags.push('sin @ApiResponse');
-      if (issue.missing2xx) flags.push('sin respuesta 2xx');
+      if (issue.missing2xx) flags.push('sin respuesta 2xx/3xx');
       console.log(`  [${issue.method}] ${issue.path}`);
       console.log(`       → ${flags.join(', ')}`);
     }
@@ -244,7 +270,7 @@ describe('OpenAPI — Cobertura de documentación', () => {
       'mongodb-memory-server',
       'package.json',
     );
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
+
     const mongoPkg = require(mongoPkgPath) as { main?: string };
     const mongoMainPath = resolve(
       __dirname,
@@ -253,9 +279,9 @@ describe('OpenAPI — Cobertura de documentación', () => {
       'mongodb-memory-server',
       mongoPkg.main || 'lib/index.js',
     );
-    // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-assignment
+
     const mongoMemoryServerModule = require(mongoMainPath);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     const MongoMemoryServer = mongoMemoryServerModule.MongoMemoryServer as {
       create(): Promise<{ getUri(): string; stop(): Promise<boolean> }>;
     };
@@ -304,7 +330,10 @@ describe('OpenAPI — Cobertura de documentación', () => {
   });
 
   it(`cobertura de @ApiResponse >= ${THRESHOLDS.operationResponses}%`, () => {
-    const coverage = pct(report.operationsWithResponses, report.totalOperations);
+    const coverage = pct(
+      report.operationsWithResponses,
+      report.totalOperations,
+    );
     if (coverage < THRESHOLDS.operationResponses) {
       const missing = report.operationIssues
         .filter((i) => i.missingResponses)
@@ -318,7 +347,7 @@ describe('OpenAPI — Cobertura de documentación', () => {
     expect(coverage).toBeGreaterThanOrEqual(THRESHOLDS.operationResponses);
   });
 
-  it(`cobertura de respuesta 2xx >= ${THRESHOLDS.operation2xxResponse}%`, () => {
+  it(`cobertura de respuesta 2xx/3xx >= ${THRESHOLDS.operation2xxResponse}%`, () => {
     const coverage = pct(report.operationsWith2xx, report.totalOperations);
     if (coverage < THRESHOLDS.operation2xxResponse) {
       const missing = report.operationIssues
@@ -326,8 +355,8 @@ describe('OpenAPI — Cobertura de documentación', () => {
         .map((i) => `  [${i.method}] ${i.path}`)
         .join('\n');
       throw new Error(
-        `Cobertura de respuesta 2xx: ${coverage}% (umbral: ${THRESHOLDS.operation2xxResponse}%)\n` +
-          `Operaciones sin respuesta 2xx:\n${missing}`,
+        `Cobertura de respuesta 2xx/3xx: ${coverage}% (umbral: ${THRESHOLDS.operation2xxResponse}%)\n` +
+          `Operaciones sin respuesta 2xx/3xx:\n${missing}`,
       );
     }
     expect(coverage).toBeGreaterThanOrEqual(THRESHOLDS.operation2xxResponse);
@@ -364,7 +393,9 @@ describe('OpenAPI — Cobertura de documentación', () => {
     for (const { path, method, op } of operations) {
       for (const tag of op.tags ?? []) {
         if (!definedTags.has(tag)) {
-          undefinedTags.push(`[${method.toUpperCase()}] ${path} → tag: "${tag}"`);
+          undefinedTags.push(
+            `[${method.toUpperCase()}] ${path} → tag: "${tag}"`,
+          );
         }
       }
     }
@@ -397,7 +428,10 @@ describe('OpenAPI — Cobertura de documentación', () => {
     }
 
     if (duplicates.length > 0) {
-      throw new Error(`OperationIds duplicados:\n` + duplicates.map((d) => `  ${d}`).join('\n'));
+      throw new Error(
+        `OperationIds duplicados:\n` +
+          duplicates.map((d) => `  ${d}`).join('\n'),
+      );
     }
 
     expect(duplicates.length).toBe(0);
