@@ -10,17 +10,19 @@ import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
  */
 export const PUBLIC_API_TAGS = [
   'tracking-v2', // Ingesta de eventos del SDK embebido
-  'visitors', // Identificación y datos de visitantes
-  'chats', // Conversaciones (widget público)
-  'messages', // Mensajes del widget
-  'auth', // Autenticación (login, refresh, logout)
-  'bff-auth', // BFF auth para frontends web
-  'api-keys', // Gestión de API Keys de tenants
-  'sites', // Sitios web registrados
-  'companies', // Compañías y tenants
-  'leads', // Gestión de leads
-  'llm', // Integración LLM
-  'consents', // Consentimientos RGPD
+  'visitors', // Identificación y datos de visitantes (visitor-v2.controller)
+  'Chats V2', // Conversaciones (chat-v2, visitor-chats-v2, commercial-chats-v2)
+  'Messages V2', // Mensajes del widget (message-v2.controller)
+  'Autenticación de Usuarios', // Autenticación (auth-user.controller)
+  'BFF Auth', // BFF auth para frontends web (bff-auth.controller)
+  'API Keys', // Gestión de API Keys (api-key.controller)
+  'sites', // Sitios web registrados (sites.controller)
+  'companies', // Compañías y tenants (company.controller)
+  'Leads - Administración CRM', // Gestión de leads admin (leads-admin.controller)
+  'Leads - Contact Data', // Datos de contacto de leads (leads-contact.controller)
+  'LLM Suggestions', // Sugerencias LLM (llm-suggestions.controller)
+  'LLM Configuration', // Configuración LLM (llm-config.controller)
+  'Consent', // Consentimientos RGPD (consent.controller)
   'health', // Health check público
 ];
 
@@ -149,28 +151,46 @@ export function buildSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
       },
       'api-key',
     )
-    .addTag('auth', 'Autenticación y emisión de tokens')
     .addTag(
-      'bff-auth',
+      'Autenticación de Usuarios',
+      'Autenticación y emisión de tokens para usuarios',
+    )
+    .addTag(
+      'BFF Auth',
       'Backend-for-Frontend de autenticación basado en cookies',
     )
-    .addTag('api-keys', 'Gestión de API Keys de tenants')
-    .addTag('chats', 'Conversaciones (V2 - MongoDB)')
-    .addTag('messages', 'Mensajes de conversaciones')
-    .addTag('presence', 'Estado de presencia en chats')
+    .addTag('API Keys', 'Gestión de API Keys de tenants')
+    .addTag('Chats V2', 'Conversaciones (V2 - MongoDB)')
+    .addTag('Messages V2', 'Mensajes de conversaciones (V2 - MongoDB)')
+    .addTag('Presence & Typing', 'Estado de presencia en chats')
     .addTag(
-      'assignment-rules',
+      'Reglas de Auto-asignamiento',
       'Reglas de asignación automática de comerciales',
     )
     .addTag('visitors', 'Visitantes y sesiones de tracking')
+    .addTag('Site Visitors Management', 'Gestión de visitantes por sitio')
+    .addTag('Tenant Visitors Management', 'Gestión de visitantes por tenant')
     .addTag('sites', 'Sitios web monitorizados')
     .addTag('tracking-v2', 'Ingesta de eventos de tracking')
-    .addTag('leads', 'Gestión de leads y contactos comerciales')
-    .addTag('llm', 'Integración con modelos de lenguaje (LLM)')
-    .addTag('white-label', 'Configuración white-label por compañía')
-    .addTag('commercials', 'Operaciones comerciales')
+    .addTag(
+      'Leads - Administración CRM',
+      'Gestión de leads y contactos comerciales (admin)',
+    )
+    .addTag('Leads - Contact Data', 'Datos de contacto de leads')
+    .addTag('LLM Suggestions', 'Sugerencias de IA para comerciales')
+    .addTag('LLM Configuration', 'Configuración de modelos de lenguaje')
+    .addTag(
+      'White Label Configuration',
+      'Configuración white-label por compañía',
+    )
+    .addTag('Commercials', 'Operaciones comerciales')
     .addTag('companies', 'Gestión de compañías y tenants')
-    .addTag('consents', 'Gestión de consentimientos y RGPD')
+    .addTag('Consent', 'Gestión de consentimientos y RGPD')
+    .addTag(
+      'Pixel Visitor Auth',
+      'Autenticación de visitantes para el pixel de tracking',
+    )
+    .addTag('JWKS', 'Claves públicas de verificación JWT (JWKS)')
     .addTag('health', 'Endpoints de salud y diagnóstico')
     .addTag(
       'internal-opensearch',
