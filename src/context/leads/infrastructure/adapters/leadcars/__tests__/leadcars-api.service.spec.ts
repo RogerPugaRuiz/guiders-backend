@@ -6,6 +6,8 @@ import { LeadcarsApiService } from '../leadcars-api.service';
 import {
   LeadcarsConfig,
   LeadcarsListStatesResponse,
+  LeadcarsListSedesResponse,
+  LeadcarsListCampanasResponse,
   LeadcarsEditLeadRequest,
   LeadcarsEditLeadResponse,
 } from '../leadcars.types';
@@ -213,6 +215,133 @@ describe('LeadcarsApiService', () => {
       if (result.isErr()) {
         expect(result.error.message).toContain('leadId inválido');
       }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // listSedes
+  // ─────────────────────────────────────────────────────────────────
+
+  describe('listSedes', () => {
+    const concesionarioId = 42;
+
+    it('debe llamar a GET /sedes/:id y devolver el array de sedes', async () => {
+      const mockSedes: LeadcarsListSedesResponse = [
+        { id: 1, nombre: 'Sede Central', concesionario_id: concesionarioId, activo: true },
+        { id: 2, nombre: 'Sede Norte', concesionario_id: concesionarioId, activo: true },
+      ];
+
+      httpService.get.mockReturnValue(of(mockAxiosResponse(mockSedes)));
+
+      const result = await service.listSedes(concesionarioId, config);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toHaveLength(2);
+      expect(httpService.get).toHaveBeenCalledWith(
+        `https://apisandbox.leadcars.es/api/v2/sedes/${concesionarioId}`,
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'cliente-token': config.clienteToken }),
+        }),
+      );
+    });
+
+    it('debe normalizar respuesta con wrapper { success, data }', async () => {
+      const mockSedes: LeadcarsListSedesResponse = {
+        success: true,
+        data: [{ id: 5, nombre: 'Sede Sur', concesionario_id: concesionarioId, activo: true }],
+      };
+
+      httpService.get.mockReturnValue(of(mockAxiosResponse(mockSedes)));
+
+      const result = await service.listSedes(concesionarioId, config);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toHaveLength(1);
+      expect(result.unwrap()[0].id).toBe(5);
+    });
+
+    it('debe devolver sedes incluso cuando concesionario_id no está presente en la respuesta', async () => {
+      // La API puede devolver solo { id } sin otros campos
+      const mockSedes = [{ id: 10 }] as any;
+
+      httpService.get.mockReturnValue(of(mockAxiosResponse(mockSedes)));
+
+      const result = await service.listSedes(concesionarioId, config);
+
+      // El servicio devuelve el array tal cual; el fallback concesionario_id ?? param
+      // se aplica en el controller, no aquí
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()[0].id).toBe(10);
+    });
+
+    it('debe propagar error de la API como CrmApiError', async () => {
+      httpService.get.mockReturnValue(
+        throwError(() => mockAxiosError(401, 'Token inválido')),
+      );
+
+      const result = await service.listSedes(concesionarioId, config);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('Token inválido');
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // listCampanas
+  // ─────────────────────────────────────────────────────────────────
+
+  describe('listCampanas', () => {
+    const concesionarioId = 42;
+
+    it('debe llamar a GET /campanas/:id y devolver el array de campañas', async () => {
+      const mockCampanas: LeadcarsListCampanasResponse = [
+        { id: 100, nombre: 'Campaña Verano', activo: true },
+        { id: 101, nombre: 'Campaña Otoño', activo: false },
+      ];
+
+      httpService.get.mockReturnValue(of(mockAxiosResponse(mockCampanas)));
+
+      const result = await service.listCampanas(concesionarioId, config);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toHaveLength(2);
+      expect(httpService.get).toHaveBeenCalledWith(
+        `https://apisandbox.leadcars.es/api/v2/campanas/${concesionarioId}`,
+        expect.any(Object),
+      );
+    });
+
+    it('debe retornar error sin llamar a la API si concesionarioId es 0', async () => {
+      const result = await service.listCampanas(0, config);
+
+      expect(result.isErr()).toBe(true);
+      expect(httpService.get).not.toHaveBeenCalled();
+      if (result.isErr()) {
+        expect(result.error.message).toContain('concesionarioId inválido');
+      }
+    });
+
+    it('debe retornar error sin llamar a la API si concesionarioId es negativo', async () => {
+      const result = await service.listCampanas(-5, config);
+
+      expect(result.isErr()).toBe(true);
+      expect(httpService.get).not.toHaveBeenCalled();
+    });
+
+    it('debe normalizar respuesta con wrapper { success, data }', async () => {
+      const mockCampanas: LeadcarsListCampanasResponse = {
+        success: true,
+        data: [{ id: 200, nombre: 'Campaña Invierno', activo: true }],
+      };
+
+      httpService.get.mockReturnValue(of(mockAxiosResponse(mockCampanas)));
+
+      const result = await service.listCampanas(concesionarioId, config);
+
+      expect(result.isOk()).toBe(true);
+      expect(result.unwrap()).toHaveLength(1);
     });
   });
 });
