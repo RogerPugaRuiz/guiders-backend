@@ -15,44 +15,154 @@ import { Type } from 'class-transformer';
 import { CrmType } from '../../domain/services/crm-sync.service';
 
 export class LeadcarsConcesionarioDto {
-  @ApiProperty({ description: 'ID del concesionario' })
+  @ApiProperty({
+    type: Number,
+    description: 'ID del concesionario en LeadCars',
+    example: 400,
+  })
   id: number;
 
-  @ApiProperty({ description: 'Nombre del concesionario' })
-  nombre: string;
+  @ApiPropertyOptional({
+    type: String,
+    description:
+      'Nombre del concesionario (puede estar ausente en algunas respuestas de la API)',
+    example: 'Concesionario Madrid',
+  })
+  nombre?: string;
 }
 
 export class LeadcarsSedeDto {
-  @ApiProperty({ description: 'ID de la sede' })
+  @ApiProperty({
+    type: Number,
+    description: 'ID de la sede en LeadCars',
+    example: 12,
+  })
   id: number;
 
-  @ApiProperty({ description: 'Nombre de la sede' })
-  nombre: string;
+  @ApiPropertyOptional({
+    type: String,
+    description:
+      'Nombre de la sede (puede estar ausente en algunas respuestas de la API)',
+    example: 'Sede Central',
+  })
+  nombre?: string;
 
-  @ApiProperty({ description: 'ID del concesionario al que pertenece' })
+  @ApiProperty({
+    type: Number,
+    description: 'ID del concesionario al que pertenece',
+    example: 400,
+  })
   concesionarioId: number;
 }
 
 export class LeadcarsCampanaDto {
-  @ApiProperty({ description: 'ID de la campa\u00f1a' })
+  @ApiProperty({
+    type: Number,
+    description: 'ID de la campaña en LeadCars',
+    example: 55,
+  })
   id: number;
 
-  @ApiProperty({ description: 'Nombre de la campa\u00f1a' })
-  nombre: string;
+  @ApiPropertyOptional({
+    type: String,
+    description:
+      'Nombre de la campaña (puede estar ausente en algunas respuestas de la API)',
+    example: 'Campaña Verano 2024',
+  })
+  nombre?: string;
 
-  @ApiPropertyOptional({ description: 'C\u00f3digo de la campa\u00f1a' })
+  @ApiPropertyOptional({
+    type: String,
+    description:
+      'Código de texto de la campaña (se usa en el campo campana al crear un lead)',
+    example: 'VERANO24',
+  })
   codigo?: string;
 
-  @ApiProperty({ description: 'ID del concesionario al que pertenece' })
+  @ApiProperty({
+    type: Number,
+    description: 'ID del concesionario al que pertenece',
+    example: 400,
+  })
   concesionarioId: number;
 }
 
 export class LeadcarsTipoLeadDto {
-  @ApiProperty({ description: 'ID del tipo de lead' })
+  @ApiProperty({
+    type: Number,
+    description:
+      'ID del tipo de lead en LeadCars (se usa en el campo tipo_lead al crear un lead)',
+    example: 445,
+  })
   id: number;
 
-  @ApiProperty({ description: 'Nombre del tipo de lead' })
-  nombre: string;
+  @ApiPropertyOptional({
+    type: String,
+    description:
+      'Nombre del tipo de lead. Puede estar ausente: la API de LeadCars puede devolver solo el id sin nombre.',
+    example: 'Compra',
+  })
+  nombre?: string;
+}
+
+export class LeadcarsStateFieldDto {
+  @ApiProperty({
+    type: String,
+    description: 'Nombre interno del campo',
+    example: 'comentario',
+  })
+  name: string;
+
+  @ApiProperty({
+    type: String,
+    description: "Tipo del campo ('text', 'textarea', 'checkbox', etc.)",
+    example: 'text',
+  })
+  type: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'Etiqueta legible del campo',
+    example: 'Comentario',
+  })
+  title: string;
+
+  @ApiProperty({
+    type: Boolean,
+    description: 'Si el campo es obligatorio al editar el lead con este estado',
+    example: false,
+  })
+  required: boolean;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Opciones disponibles (solo para campos tipo checkbox/select)',
+    example: ['Sí', 'No'],
+  })
+  options?: string[];
+}
+
+export class LeadcarsStateItemDto {
+  @ApiProperty({
+    type: Number,
+    description: 'ID numérico del estado en LeadCars',
+    example: 1,
+  })
+  id: number;
+
+  @ApiProperty({
+    type: String,
+    description: 'Grupo al que pertenece el estado',
+    example: 'Abierto',
+  })
+  group: string;
+
+  @ApiProperty({
+    type: [LeadcarsStateFieldDto],
+    description:
+      'Campos dinámicos requeridos/opcionales al editar un lead con este estado',
+  })
+  fields: LeadcarsStateFieldDto[];
 }
 
 export class TestConnectionByIdResponseDto {

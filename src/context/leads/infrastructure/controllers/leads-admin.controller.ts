@@ -22,6 +22,7 @@ import {
   ApiCookieAuth,
   ApiParam,
   ApiQuery,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
@@ -39,6 +40,8 @@ import {
   LeadcarsSedeDto,
   LeadcarsCampanaDto,
   LeadcarsTipoLeadDto,
+  LeadcarsStateItemDto,
+  LeadcarsStateFieldDto,
 } from '../../application/dtos/crm-config.dto';
 import {
   ICrmCompanyConfigRepository,
@@ -71,6 +74,7 @@ interface AuthenticatedRequest extends Request {
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
+@ApiExtraModels(LeadcarsStateItemDto, LeadcarsStateFieldDto)
 @Controller('v1/leads/admin')
 @UseGuards(DualAuthGuard, RolesGuard)
 export class LeadsAdminController {
@@ -605,19 +609,37 @@ export class LeadsAdminController {
   @ApiQuery({
     name: 'clienteToken',
     required: false,
-    description: 'Token de cliente LeadCars (alternativa a config guardada)',
+    type: String,
+    description:
+      'Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)',
   })
   @ApiQuery({
     name: 'useSandbox',
     required: false,
-    description: 'Usar entorno sandbox (default: false)',
+    type: String,
+    enum: ['true', 'false'],
+    description:
+      "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
   })
   @ApiResponse({
     status: 200,
     description: 'Lista de concesionarios',
     type: [LeadcarsConcesionarioDto],
   })
-  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'La configuración de LeadCars está deshabilitada para esta empresa',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al comunicarse con la API de LeadCars',
+  })
   async getLeadcarsConcesionarios(
     @Req() request: AuthenticatedRequest,
     @Query('clienteToken') clienteToken?: string,
@@ -661,24 +683,56 @@ export class LeadsAdminController {
   @ApiOperation({
     summary: 'Listar sedes de un concesionario en LeadCars',
     description:
-      'Proxy al endpoint GET /sedes/:id de LeadCars usando el token guardado',
+      'Proxy al endpoint GET /sedes/:id de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada)',
   })
   @ApiParam({
     name: 'concesionarioId',
-    description: 'ID del concesionario en LeadCars',
+    type: Number,
+    example: 400,
+    description:
+      'ID numérico del concesionario en LeadCars (obtenido de GET /leadcars/concesionarios)',
+  })
+  @ApiQuery({
+    name: 'clienteToken',
+    required: false,
+    type: String,
+    description:
+      'Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)',
+  })
+  @ApiQuery({
+    name: 'useSandbox',
+    required: false,
+    type: String,
+    enum: ['true', 'false'],
+    description:
+      "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de sedes',
+    description: 'Lista de sedes del concesionario',
     type: [LeadcarsSedeDto],
   })
-  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al comunicarse con la API de LeadCars',
+  })
   async getLeadcarsSedes(
     @Param('concesionarioId') concesionarioId: string,
     @Req() request: AuthenticatedRequest,
+    @Query('clienteToken') clienteToken?: string,
+    @Query('useSandbox') useSandbox?: string,
   ): Promise<LeadcarsSedeDto[]> {
     const companyId = request.user.companyId;
-    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
     const concesionarioIdNum = parseInt(concesionarioId, 10);
 
     if (
@@ -689,6 +743,26 @@ export class LeadsAdminController {
       throw new BadRequestException(
         'concesionarioId debe ser un número entero positivo',
       );
+    }
+
+    let leadcarsConfig: {
+      clienteToken: string;
+      useSandbox: boolean;
+      concesionarioId: number;
+      sedeId?: number;
+      campanaCode?: string;
+      tipoLeadDefault: number;
+    };
+
+    if (clienteToken) {
+      leadcarsConfig = {
+        clienteToken,
+        useSandbox: useSandbox === 'true',
+        concesionarioId: concesionarioIdNum,
+        tipoLeadDefault: 0,
+      };
+    } else {
+      leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
     }
 
     const result = await this.leadcarsApiService.listSedes(
@@ -703,8 +777,8 @@ export class LeadsAdminController {
 
     return result.unwrap().map((s) => ({
       id: s.id,
-      nombre: s.nombre,
-      concesionarioId: s.concesionario_id,
+      nombre: s.nombre ?? undefined,
+      concesionarioId: s.concesionario_id ?? concesionarioIdNum,
     }));
   }
 
@@ -713,24 +787,56 @@ export class LeadsAdminController {
   @ApiOperation({
     summary: 'Listar campañas de un concesionario en LeadCars',
     description:
-      'Proxy al endpoint GET /campanas/:id de LeadCars usando el token guardado',
+      'Proxy al endpoint GET /campanas/:id de LeadCars. Usa el token guardado en config o el token pasado como query param (para setup inicial sin config guardada). El concesionarioId del path siempre prevalece sobre el de la config guardada.',
   })
   @ApiParam({
     name: 'concesionarioId',
-    description: 'ID del concesionario en LeadCars',
+    type: Number,
+    example: 400,
+    description:
+      'ID numérico del concesionario en LeadCars (obtenido de GET /leadcars/concesionarios)',
+  })
+  @ApiQuery({
+    name: 'clienteToken',
+    required: false,
+    type: String,
+    description:
+      'Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)',
+  })
+  @ApiQuery({
+    name: 'useSandbox',
+    required: false,
+    type: String,
+    enum: ['true', 'false'],
+    description:
+      "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de campañas',
+    description: 'Lista de campañas del concesionario',
     type: [LeadcarsCampanaDto],
   })
-  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al comunicarse con la API de LeadCars',
+  })
   async getLeadcarsCampanas(
     @Param('concesionarioId') concesionarioId: string,
     @Req() request: AuthenticatedRequest,
+    @Query('clienteToken') clienteToken?: string,
+    @Query('useSandbox') useSandbox?: string,
   ): Promise<LeadcarsCampanaDto[]> {
     const companyId = request.user.companyId;
-    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
     const concesionarioIdNum = parseInt(concesionarioId, 10);
 
     if (
@@ -743,9 +849,29 @@ export class LeadsAdminController {
       );
     }
 
+    let baseConfig: {
+      clienteToken: string;
+      useSandbox: boolean;
+      concesionarioId: number;
+      sedeId?: number;
+      campanaCode?: string;
+      tipoLeadDefault: number;
+    };
+
+    if (clienteToken) {
+      baseConfig = {
+        clienteToken,
+        useSandbox: useSandbox === 'true',
+        concesionarioId: concesionarioIdNum,
+        tipoLeadDefault: 0,
+      };
+    } else {
+      baseConfig = await this.getLeadcarsConfigForCompany(companyId);
+    }
+
     // Usar el concesionarioId del parámetro (no el de la config)
     const configForRequest = {
-      ...leadcarsConfig,
+      ...baseConfig,
       concesionarioId: concesionarioIdNum,
     };
 
@@ -777,19 +903,38 @@ export class LeadsAdminController {
   @ApiQuery({
     name: 'clienteToken',
     required: false,
-    description: 'Token de cliente LeadCars (alternativa a config guardada)',
+    type: String,
+    description:
+      'Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)',
   })
   @ApiQuery({
     name: 'useSandbox',
     required: false,
-    description: 'Usar entorno sandbox (default: false)',
+    type: String,
+    enum: ['true', 'false'],
+    description:
+      "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de tipos de lead',
+    description:
+      'Lista de tipos de lead. Nota: la API de LeadCars puede devolver solo el campo id sin nombre.',
     type: [LeadcarsTipoLeadDto],
   })
-  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'La configuración de LeadCars está deshabilitada para esta empresa',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al comunicarse con la API de LeadCars',
+  })
   async getLeadcarsTipos(
     @Req() request: AuthenticatedRequest,
     @Query('clienteToken') clienteToken?: string,
@@ -832,18 +977,100 @@ export class LeadsAdminController {
   @ApiOperation({
     summary: 'Listar estados disponibles en LeadCars',
     description:
-      'Proxy al endpoint GET /listStates de LeadCars (API v2.5) usando el token guardado',
+      'Proxy al endpoint GET /listStates de LeadCars (API v2.5). Devuelve un mapa de nombre de estado → detalle del estado con sus campos dinámicos. Usa el token guardado en config o el token pasado como query param.',
+  })
+  @ApiQuery({
+    name: 'clienteToken',
+    required: false,
+    type: String,
+    description:
+      'Token de cliente LeadCars de 20 caracteres (alternativa a config guardada, útil durante el setup inicial)',
+  })
+  @ApiQuery({
+    name: 'useSandbox',
+    required: false,
+    type: String,
+    enum: ['true', 'false'],
+    description:
+      "Usar entorno sandbox de LeadCars. Pasar la cadena 'true' para activarlo (default: 'false')",
   })
   @ApiResponse({
     status: 200,
-    description: 'Mapa de estados disponibles con sus campos dinámicos',
+    description:
+      'Mapa de estados disponibles. Clave = nombre del estado (string), valor = objeto con id, group y fields (campos dinámicos del estado).',
+    schema: {
+      type: 'object',
+      additionalProperties: {
+        $ref: '#/components/schemas/LeadcarsStateItemDto',
+      },
+      example: {
+        Pendiente: {
+          id: 1,
+          group: 'Abierto',
+          fields: [
+            {
+              name: 'comentario',
+              type: 'text',
+              title: 'Comentario',
+              required: false,
+            },
+          ],
+        },
+        Vendido: {
+          id: 5,
+          group: 'Cerrado',
+          fields: [
+            {
+              name: 'motivo',
+              type: 'textarea',
+              title: 'Motivo de venta',
+              required: true,
+            },
+          ],
+        },
+      },
+    },
   })
-  @ApiResponse({ status: 404, description: 'No hay configuración de LeadCars' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'La configuración de LeadCars está deshabilitada para esta empresa',
+  })
+  @ApiResponse({
+    status: 404,
+    description:
+      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Error al comunicarse con la API de LeadCars',
+  })
   async getLeadcarsStates(
     @Req() request: AuthenticatedRequest,
-  ): Promise<Record<string, unknown>> {
+    @Query('clienteToken') clienteToken?: string,
+    @Query('useSandbox') useSandbox?: string,
+  ): Promise<Record<string, LeadcarsStateItemDto>> {
     const companyId = request.user.companyId;
-    const leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+
+    let leadcarsConfig: {
+      clienteToken: string;
+      useSandbox: boolean;
+      concesionarioId: number;
+      sedeId?: number;
+      campanaCode?: string;
+      tipoLeadDefault: number;
+    };
+
+    if (clienteToken) {
+      leadcarsConfig = {
+        clienteToken,
+        useSandbox: useSandbox === 'true',
+        concesionarioId: 0,
+        tipoLeadDefault: 0,
+      };
+    } else {
+      leadcarsConfig = await this.getLeadcarsConfigForCompany(companyId);
+    }
 
     const result = await this.leadcarsApiService.listStates(leadcarsConfig);
     if (result.isErr()) {
@@ -852,7 +1079,7 @@ export class LeadsAdminController {
       );
     }
 
-    return result.unwrap() as Record<string, unknown>;
+    return result.unwrap() as Record<string, LeadcarsStateItemDto>;
   }
 
   // ==================== Información del Sistema ====================

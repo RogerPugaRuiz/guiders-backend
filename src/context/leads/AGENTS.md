@@ -370,6 +370,7 @@ CrmSyncServiceFactory → resuelve adapter por CrmType
 | `GET`  | `/v1/leads/admin/leadcars/sedes/:concesionarioId`    | admin | Sedes del concesionario    |
 | `GET`  | `/v1/leads/admin/leadcars/campanas/:concesionarioId` | admin | Campañas del concesionario |
 | `GET`  | `/v1/leads/admin/leadcars/tipos`                     | admin | Tipos de lead              |
+| `GET`  | `/v1/leads/admin/leadcars/states`                    | admin | Estados disponibles (API v2.5) — mapa nombre→{id,group,fields} |
 
 ## Testing Strategy
 
