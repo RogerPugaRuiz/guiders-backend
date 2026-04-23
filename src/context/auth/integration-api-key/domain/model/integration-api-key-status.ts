@@ -6,11 +6,15 @@ export class IntegrationApiKeyStatus extends PrimitiveValueObject<IntegrationApi
   public static readonly ACTIVE = new IntegrationApiKeyStatus('active');
   public static readonly REVOKED = new IntegrationApiKeyStatus('revoked');
 
-  private constructor(value: IntegrationApiKeyStatusValue) {
-    super(value, (v) => v === 'active' || v === 'revoked', 'El estado debe ser active o revoked');
+  constructor(value: IntegrationApiKeyStatusValue) {
+    super(
+      value,
+      (v) => v === 'active' || v === 'revoked',
+      'El estado debe ser active o revoked',
+    );
   }
 
-  public static create(value: string): IntegrationApiKeyStatus {
+  public static of(value: string): IntegrationApiKeyStatus {
     if (value !== 'active' && value !== 'revoked') {
       throw new Error('El estado debe ser active o revoked');
     }

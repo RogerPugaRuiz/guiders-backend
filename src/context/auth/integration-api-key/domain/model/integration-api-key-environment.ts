@@ -6,15 +6,21 @@ export class IntegrationApiKeyEnvironment extends PrimitiveValueObject<Integrati
   public static readonly LIVE = new IntegrationApiKeyEnvironment('live');
   public static readonly TEST = new IntegrationApiKeyEnvironment('test');
 
-  private constructor(value: IntegrationApiKeyEnvironmentValue) {
-    super(value, (v) => v === 'live' || v === 'test', 'El entorno debe ser live o test');
+  constructor(value: IntegrationApiKeyEnvironmentValue) {
+    super(
+      value,
+      (v) => v === 'live' || v === 'test',
+      'El entorno debe ser live o test',
+    );
   }
 
-  public static create(value: string): IntegrationApiKeyEnvironment {
+  public static of(value: string): IntegrationApiKeyEnvironment {
     if (value !== 'live' && value !== 'test') {
       throw new Error('El entorno debe ser live o test');
     }
-    return new IntegrationApiKeyEnvironment(value as IntegrationApiKeyEnvironmentValue);
+    return new IntegrationApiKeyEnvironment(
+      value as IntegrationApiKeyEnvironmentValue,
+    );
   }
 
   public isLive(): boolean {

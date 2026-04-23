@@ -16,6 +16,7 @@ export const PUBLIC_API_TAGS = [
   'Autenticación de Usuarios', // Autenticación (auth-user.controller)
   'BFF Auth', // BFF auth para frontends web (bff-auth.controller)
   'API Keys', // Gestión de API Keys (api-key.controller)
+  'integration-api-keys', // API Keys de integración REST para developers externos
   'sites', // Sitios web registrados (sites.controller)
   'companies', // Compañías y tenants (company.controller)
   'Leads - Administración CRM', // Gestión de leads admin (leads-admin.controller)
@@ -160,6 +161,10 @@ export function buildSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
       'Backend-for-Frontend de autenticación basado en cookies',
     )
     .addTag('API Keys', 'Gestión de API Keys de tenants')
+    .addTag(
+      'integration-api-keys',
+      'API Keys de integración REST para developers externos',
+    )
     .addTag('Chats V2', 'Conversaciones (V2 - MongoDB)')
     .addTag('Messages V2', 'Mensajes de conversaciones (V2 - MongoDB)')
     .addTag('Presence & Typing', 'Estado de presencia en chats')

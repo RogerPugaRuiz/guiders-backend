@@ -24,7 +24,9 @@ export class ListIntegrationApiKeysQueryHandler {
     private readonly repository: IntegrationApiKeyRepository,
   ) {}
 
-  async execute(query: ListIntegrationApiKeysQuery): Promise<IntegrationApiKeyListItem[]> {
+  async execute(
+    query: ListIntegrationApiKeysQuery,
+  ): Promise<IntegrationApiKeyListItem[]> {
     const keys = await this.repository.findByCompanyId(
       IntegrationApiKeyCompanyId.create(query.companyId),
     );

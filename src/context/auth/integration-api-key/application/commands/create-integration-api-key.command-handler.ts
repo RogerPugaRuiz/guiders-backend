@@ -42,10 +42,10 @@ export class CreateIntegrationApiKeyCommandHandler {
 
     const key = IntegrationApiKey.create({
       companyId: IntegrationApiKeyCompanyId.create(command.companyId),
-      name: IntegrationApiKeyName.create(command.name),
-      tokenHash: IntegrationApiKeyToken.create(tokenHash),
+      name: IntegrationApiKeyName.of(command.name),
+      tokenHash: IntegrationApiKeyToken.of(tokenHash),
       tokenPrefix,
-      environment: IntegrationApiKeyEnvironment.create(command.environment),
+      environment: IntegrationApiKeyEnvironment.of(command.environment),
     });
 
     await this.repository.save(key);

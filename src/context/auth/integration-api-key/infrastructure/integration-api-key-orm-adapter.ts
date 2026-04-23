@@ -10,7 +10,9 @@ import { IntegrationApiKeyEntity } from './integration-api-key.entity';
 import { IntegrationApiKeyMapper } from './integration-api-key.mapper';
 
 @Injectable()
-export class IntegrationApiKeyOrmAdapter implements IntegrationApiKeyRepository {
+export class IntegrationApiKeyOrmAdapter
+  implements IntegrationApiKeyRepository
+{
   constructor(
     @InjectRepository(IntegrationApiKeyEntity)
     private readonly repo: Repository<IntegrationApiKeyEntity>,
@@ -28,7 +30,9 @@ export class IntegrationApiKeyOrmAdapter implements IntegrationApiKeyRepository 
     return this.mapper.toDomain(entity);
   }
 
-  async findByCompanyId(companyId: IntegrationApiKeyCompanyId): Promise<IntegrationApiKey[]> {
+  async findByCompanyId(
+    companyId: IntegrationApiKeyCompanyId,
+  ): Promise<IntegrationApiKey[]> {
     const entities = await this.repo.find({
       where: { companyId: companyId.getValue() },
       order: { createdAt: 'DESC' },
@@ -36,7 +40,9 @@ export class IntegrationApiKeyOrmAdapter implements IntegrationApiKeyRepository 
     return entities.map((e) => this.mapper.toDomain(e));
   }
 
-  async findByTokenHash(tokenHash: IntegrationApiKeyToken): Promise<IntegrationApiKey | null> {
+  async findByTokenHash(
+    tokenHash: IntegrationApiKeyToken,
+  ): Promise<IntegrationApiKey | null> {
     const entity = await this.repo.findOne({
       where: { tokenHash: tokenHash.getValue() },
     });
