@@ -165,6 +165,7 @@ export function buildSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
       'integration-api-keys',
       'API Keys de integración REST para developers externos',
     )
+    .addTag('integration', 'API de integración REST para developers externos')
     .addTag('Chats V2', 'Conversaciones (V2 - MongoDB)')
     .addTag('Messages V2', 'Mensajes de conversaciones (V2 - MongoDB)')
     .addTag('Presence & Typing', 'Estado de presencia en chats')

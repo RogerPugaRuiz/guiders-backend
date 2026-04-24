@@ -178,7 +178,10 @@ export class IntegrationController {
   @ApiOperation({ summary: 'Enviar mensaje via Integration API' })
   @ApiResponse({ status: 201, description: 'Mensaje enviado exitosamente' })
   @ApiResponse({ status: 401, description: 'API Key inválida o ausente' })
-  @ApiResponse({ status: 403, description: 'La conversación no pertenece a esta empresa' })
+  @ApiResponse({
+    status: 403,
+    description: 'La conversación no pertenece a esta empresa',
+  })
   @ApiResponse({ status: 404, description: 'Conversación no encontrada' })
   @ApiResponse({ status: 422, description: 'La conversación está cerrada' })
   async sendMessage(
@@ -245,10 +248,16 @@ export class IntegrationController {
   @Get('conversations/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Obtener conversación via Integration API' })
-  @ApiResponse({ status: 200, description: 'Conversación obtenida exitosamente' })
+  @ApiResponse({
+    status: 200,
+    description: 'Conversación obtenida exitosamente',
+  })
   @ApiResponse({ status: 400, description: 'Parámetros de consulta inválidos' })
   @ApiResponse({ status: 401, description: 'API Key inválida o ausente' })
-  @ApiResponse({ status: 403, description: 'La conversación no pertenece a esta empresa' })
+  @ApiResponse({
+    status: 403,
+    description: 'La conversación no pertenece a esta empresa',
+  })
   @ApiResponse({ status: 404, description: 'Conversación no encontrada' })
   async getConversation(
     @Req() req: IntegrationApiKeyRequest,

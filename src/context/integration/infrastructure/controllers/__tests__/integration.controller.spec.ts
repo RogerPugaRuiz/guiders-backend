@@ -15,7 +15,10 @@ import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { RepositoryError } from 'src/context/shared/domain/errors/repository.error';
 import { CreateIntegrationConversationDto } from '../dtos/create-integration-conversation.dto';
 import { SendIntegrationMessageDto } from '../dtos/send-integration-message.dto';
-import { IntegrationApiKeyGuard, IntegrationApiKeyRequest } from 'src/context/auth/integration-api-key/infrastructure/integration-api-key.guard';
+import {
+  IntegrationApiKeyGuard,
+  IntegrationApiKeyRequest,
+} from 'src/context/auth/integration-api-key/infrastructure/integration-api-key.guard';
 
 /**
  * Crea un mock de IntegrationApiKeyRequest con companyId y environment dados.
