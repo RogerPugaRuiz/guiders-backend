@@ -71,10 +71,10 @@ export class CrmCompanyConfigSchema {
   @Prop({ type: Object, required: true })
   config: Record<string, unknown>;
 
-  @Prop({ type: Date, required: true })
+  @Prop({ type: Date })
   createdAt: Date;
 
-  @Prop({ type: Date, required: true })
+  @Prop({ type: Date })
   updatedAt: Date;
 }
 
