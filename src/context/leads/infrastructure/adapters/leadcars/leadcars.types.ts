@@ -307,10 +307,13 @@ export type LeadcarsListCampanasResponse =
 
 /**
  * Tipo de lead de LeadCars (obtenido de GET /tipos)
+ * La API devuelve el nombre en el campo NOMBRE (mayúsculas) y un slug en VALOR
  */
 export interface LeadcarsTipoLeadItem {
   id: number;
-  nombre: string;
+  NOMBRE: string;
+  VALOR?: string;
+  custom?: boolean;
 }
 
 /**

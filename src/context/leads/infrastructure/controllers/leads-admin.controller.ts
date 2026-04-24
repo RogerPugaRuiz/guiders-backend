@@ -969,7 +969,7 @@ export class LeadsAdminController {
       );
     }
 
-    return result.unwrap().map((t) => ({ id: t.id, nombre: t.nombre }));
+    return result.unwrap().map((t) => ({ id: t.id, nombre: t.NOMBRE }));
   }
 
   @Get('leadcars/states')
