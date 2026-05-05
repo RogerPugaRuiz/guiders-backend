@@ -11,8 +11,10 @@ import {
   UseGuards,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
   InternalServerErrorException,
   Logger,
+  Inject,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
@@ -36,6 +38,7 @@ import { IdentifyVisitorResponseDto } from '../../application/dtos/identify-visi
 import { IdentifyVisitorCommand } from '../../application/commands/identify-visitor.command';
 import { EndSessionDto } from '../../application/dtos/end-session.dto';
 import { EndSessionCommand } from '../../application/commands/end-session.command';
+import { HeartbeatDto } from '../../application/dtos/heartbeat.dto';
 import { ChangeVisitorStatusDto } from '../../application/dtos/change-visitor-status.dto';
 import { ChangeVisitorConnectionStatusCommand } from '../../application/commands/change-visitor-connection-status.command';
 import {
@@ -50,6 +53,16 @@ import { GetVisitorActivityResponseDto } from '../../application/dtos/get-visito
 import { GetVisitorSiteQuery } from '../../application/queries/get-visitor-site.query';
 import { GetVisitorSiteResponseDto } from '../../application/dtos/get-visitor-site-response.dto';
 import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
+import {
+  VISITOR_V2_REPOSITORY,
+  VisitorV2Repository,
+} from '../../domain/visitor-v2.repository';
+import {
+  VISITOR_CONNECTION_DOMAIN_SERVICE,
+  VisitorConnectionDomainService,
+} from '../../domain/visitor-connection.domain-service';
+import { SessionId } from '../../domain/value-objects/session-id';
+import { VisitorLastActivity } from '../../domain/value-objects/visitor-last-activity';
 
 @ApiTags('visitors')
 @Controller('visitors')
@@ -59,6 +72,10 @@ export class VisitorV2Controller {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    @Inject(VISITOR_V2_REPOSITORY)
+    private readonly visitorRepository: VisitorV2Repository,
+    @Inject(VISITOR_CONNECTION_DOMAIN_SERVICE)
+    private readonly connectionService: VisitorConnectionDomainService,
   ) {}
 
   @Post('identify')
@@ -256,6 +273,75 @@ export class VisitorV2Controller {
       // Error genérico del servidor
       throw new InternalServerErrorException('Error interno al cerrar sesión');
     }
+  }
+
+  @Post('session/heartbeat')
+  @PublicEndpoint()
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Mantener sesión de visitante activa',
+    description:
+      'Renueva el TTL de la sesión de un visitante en Redis. ' +
+      'Llamado periódicamente por el SDK (cada 30 segundos) mientras el visitante está activo en la página. ' +
+      'No modifica el aggregate ni emite eventos de dominio — solo actualiza la actividad en Redis.',
+  })
+  @ApiBody({ type: HeartbeatDto })
+  @ApiOkResponse({
+    description: 'Sesión renovada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Sesión renovada' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'SessionId no proporcionado',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Sesión inválida o expirada',
+  })
+  async heartbeat(
+    @Body() heartbeatDto: HeartbeatDto,
+    @Req() request: ExpressRequest,
+  ): Promise<{ success: boolean; message: string }> {
+    const sessionId = resolveVisitorSessionId(request, heartbeatDto.sessionId);
+
+    if (!sessionId?.trim()) {
+      throw new BadRequestException('SessionId no proporcionado');
+    }
+
+    let visitorResult;
+    try {
+      visitorResult = await this.visitorRepository.findBySessionId(
+        new SessionId(sessionId),
+      );
+    } catch (error) {
+      this.logger.error('Error al buscar visitante por sessionId en heartbeat:', error);
+      throw new InternalServerErrorException('Error interno al renovar sesión');
+    }
+
+    if (visitorResult.isErr()) {
+      this.logger.warn(`Heartbeat con sesión inválida o expirada: ${sessionId}`);
+      throw new UnauthorizedException('Sesión inválida o expirada');
+    }
+
+    const visitor = visitorResult.unwrap();
+
+    try {
+      await this.connectionService.updateLastActivity(
+        visitor.getId(),
+        VisitorLastActivity.now(),
+      );
+    } catch (error) {
+      this.logger.error('Error al actualizar actividad en Redis durante heartbeat:', error);
+      throw new InternalServerErrorException('Error interno al renovar sesión');
+    }
+
+    return { success: true, message: 'Sesión renovada' };
   }
 
   @Put('status')

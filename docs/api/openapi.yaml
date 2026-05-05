@@ -1141,6 +1141,48 @@ paths:
       summary: Identificar visitante
       tags: &ref_13
         - visitors
+  /api/visitors/session/heartbeat:
+    post:
+      description: >-
+        Renueva el TTL de la sesión de un visitante en Redis. Llamado periódicamente por el SDK
+        (cada 30 segundos) mientras el visitante está activo en la página.
+        No modifica el aggregate ni emite eventos de dominio — solo actualiza la actividad en Redis.
+      operationId: visitor-v2_heartbeat
+      parameters:
+        - name: x-guiders-sid
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Session ID del visitante (alternativa al body.sessionId y a la cookie)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatDto'
+      responses:
+        '200':
+          description: Sesión renovada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Sesión renovada
+        '400':
+          description: SessionId no proporcionado
+        '401':
+          description: Sesión inválida o expirada
+      security:
+        - {}
+      summary: Mantener sesión de visitante activa
+      tags: *ref_13
   /api/visitors/session/end:
     post:
       description: >-
@@ -6223,6 +6265,22 @@ components:
         - sessionId
         - lifecycle
         - isNewVisitor
+    HeartbeatDto:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: >-
+            ID de la sesión del visitante (puede venir de cookie x-guiders-sid,
+            header x-guiders-sid o este campo body). Prioridad: body > header > cookie.
+          example: sess_1758226307441_visitor
+        activityType:
+          type: string
+          enum:
+            - heartbeat
+            - user-interaction
+          description: Tipo de actividad que origina el heartbeat
+          example: heartbeat
     EndSessionDto:
       type: object
       properties:

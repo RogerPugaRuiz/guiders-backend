@@ -9,6 +9,10 @@
 
 - El flujo principal de creación aún no puede enviar `estado` ni `temperature` (`src/context/leads/infrastructure/adapters/leadcars/leadcars-crm-sync.adapter.ts:266`): Aunque `LeadcarsCreateLeadRequest` ya soporta ambos campos, el camino real `SaveLeadContactData -> syncLead -> buildCreateLeadRequest` no recibe ni mapea esos valores. Razón: Fuera del alcance de la story 4.7; se abordará en una story separada para el flujo de creación end-to-end.
 
+## Deferred from: sdk-missing-endpoints spec (2026-05-05)
+
+- `POST /api/consents/grant` — El `RecordConsentCommand` ya existe en aplicación pero no se expone como endpoint HTTP. Diferido porque el flujo `identify → renew` cubre todos los casos actuales. Implementar solo si el producto necesita granularidad post-identificación (ej. banner de cookies por categoría con consentimiento explícito por tipo). El SDK puede reactivar el método `grantConsents()` que fue eliminado en v1.6.0 cuando este endpoint esté disponible.
+
 ## Deferred from: code review of sec-3-2 (2026-04-22)
 
 - `STRICT_ROLES` leído en cada request en `RolesGuard.canActivate` (`src/context/shared/infrastructure/guards/role.guard.ts`): Acceso a `process.env` por invocación. Impacto mínimo pero podría cachearse en constructor. Se eligió este diseño para compatibilidad con tests que modifican la env var en tiempo de ejecución.
