@@ -43,8 +43,16 @@ export class ChangeCommercialConnectionStatusCommandHandler
       const commercialId = new CommercialId(command.commercialId);
       const newStatus = new CommercialConnectionStatus(command.newStatus);
 
-      // Actualizar estado en el domain service
-      await this.connectionService.setConnectionStatus(commercialId, newStatus);
+      // Recuperar companyId desde Redis para actualizar sets por tenant correctamente
+      const companyId =
+        await this.connectionService.getCompanyIdByCommercial(commercialId);
+
+      // Actualizar estado en el domain service propagando companyId (puede ser undefined)
+      await this.connectionService.setConnectionStatus(
+        commercialId,
+        newStatus,
+        companyId,
+      );
 
       // Buscar el comercial para actualizar el aggregate
       const commercialResult =

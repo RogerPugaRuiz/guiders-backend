@@ -11,9 +11,8 @@ import {
  * Handler para la query GetCommercialAvailabilityBySiteQuery
  * Obtiene la disponibilidad de comerciales para un sitio específico
  *
- * NOTA: La implementación actual retorna disponibilidad de TODOS los comerciales online
- * porque el modelo Commercial actual NO tiene tenantId/siteId.
- * TODO: Agregar tenantId al modelo Commercial y filtrar por tenantId del siteId recibido
+ * La consulta filtra por companyId usando los sets Redis por tenant,
+ * eliminando el bug cross-tenant donde se devolvían comerciales de otros tenants.
  */
 @QueryHandler(GetCommercialAvailabilityBySiteQuery)
 export class GetCommercialAvailabilityBySiteQueryHandler
@@ -37,20 +36,18 @@ export class GetCommercialAvailabilityBySiteQueryHandler
   ): Promise<CommercialAvailabilityResponseDto> {
     try {
       this.logger.log(
-        `Consultando disponibilidad de comerciales para siteId: ${query.siteId}`,
+        `Consultando disponibilidad de comerciales para siteId: ${query.siteId}, companyId: ${query.companyId}`,
       );
 
-      // Obtener comerciales disponibles (online + no busy) del domain service
-      // NOTA: Actualmente retorna TODOS los comerciales disponibles del sistema
-      // porque Commercial no tiene tenantId/siteId
+      // Obtener comerciales disponibles filtrados por tenant (companyId)
       const availableCommercialIds =
-        await this.connectionService.getAvailableCommercials();
+        await this.connectionService.getAvailableCommercials(query.companyId);
 
       const onlineCount = availableCommercialIds.length;
       const available = onlineCount > 0;
 
       this.logger.log(
-        `Disponibilidad para siteId ${query.siteId}: ${available} (${onlineCount} comerciales online)`,
+        `Disponibilidad para siteId ${query.siteId} (tenant ${query.companyId}): ${available} (${onlineCount} comerciales online)`,
       );
 
       return {

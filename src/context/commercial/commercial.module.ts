@@ -30,6 +30,9 @@ import { LogActivityOnCommercialHeartbeatReceivedEventHandler } from './applicat
 import { UpdateMetricsOnCommercialDisconnectedEventHandler } from './application/events/update-metrics-on-commercial-disconnected.event-handler';
 import { EmitPresenceChangedOnCommercialConnectionStatusChangedEventHandler } from './application/events/emit-presence-changed-on-commercial-connection-status-changed.event-handler';
 
+// Infrastructure - Events
+import { NotifyTenantOnCommercialPresenceChangedEventHandler } from './infrastructure/events/notify-tenant-on-commercial-presence-changed.event-handler';
+
 // Infrastructure
 import { MongoCommercialRepositoryImpl } from './infrastructure/persistence/impl/mongo-commercial.repository.impl';
 import { CommercialController } from './infrastructure/controllers/commercial.controller';
@@ -43,6 +46,7 @@ import { CommercialSchemaDefinition } from './infrastructure/persistence/schemas
 import { AuthVisitorModule } from '../auth/auth-visitor/infrastructure/auth-visitor.module';
 import { AuthUserModule } from '../auth/auth-user/infrastructure/auth-user.module';
 import { CompanyModule } from '../company/company.module';
+import { WebSocketModule } from 'src/websocket/websocket.module';
 
 /**
  * Módulo del contexto Commercial
@@ -61,6 +65,7 @@ import { CompanyModule } from '../company/company.module';
     AuthVisitorModule, // Para validación de API Key
     forwardRef(() => AuthUserModule), // Para obtener datos de UserAccount (nombre, avatar) - forwardRef para evitar dependencia circular
     CompanyModule, // Para resolver dominio a tenantId/siteId
+    forwardRef(() => WebSocketModule), // Para emitir eventos WS al tenant — forwardRef por posible ciclo
   ],
   controllers: [CommercialController],
   providers: [
@@ -95,6 +100,7 @@ import { CompanyModule } from '../company/company.module';
     LogActivityOnCommercialHeartbeatReceivedEventHandler,
     UpdateMetricsOnCommercialDisconnectedEventHandler,
     EmitPresenceChangedOnCommercialConnectionStatusChangedEventHandler,
+    NotifyTenantOnCommercialPresenceChangedEventHandler,
 
     // Schedulers
     CommercialInactivityScheduler,

@@ -418,18 +418,24 @@ export class CommercialController {
     summary: 'Consultar disponibilidad de comerciales',
     description:
       'Endpoint público que permite a visitantes consultar si hay comerciales disponibles ' +
-      'para atender antes de iniciar sesión. Valida el dominio y API Key del sitio.',
+      'para atender antes de iniciar sesión. Valida el dominio y API Key del sitio.\n\n' +
+      '**Aislamiento por tenant**: el resultado (`available` y `onlineCount`) refleja únicamente ' +
+      'los comerciales online pertenecientes a la empresa propietaria del dominio proporcionado. ' +
+      'Los comerciales de otras empresas no se incluyen en el conteo.',
   })
   @ApiBody({ type: CheckCommercialAvailabilityDto })
   @ApiResponse({
     status: 200,
     description:
-      'Disponibilidad consultada exitosamente (retorna disponibilidad incluso si no hay comerciales)',
+      'Disponibilidad consultada exitosamente. ' +
+      'La respuesta siempre se retorna (incluso si no hay comerciales disponibles). ' +
+      'El campo `onlineCount` y `available` están acotados al tenant del dominio consultado.',
     type: CommercialAvailabilityResponseDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Datos inválidos (domain o apiKey faltantes)',
+    description:
+      'Datos inválidos (domain o apiKey faltantes o con formato incorrecto)',
   })
   @ApiResponse({
     status: 401,
@@ -437,7 +443,8 @@ export class CommercialController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Dominio no encontrado en el sistema',
+    description:
+      'Dominio no encontrado en el sistema o no asociado a ningún sitio registrado',
   })
   @ApiResponse({
     status: 500,
@@ -494,8 +501,11 @@ export class CommercialController {
         `Sitio resuelto: ${targetSite.id} (domain: ${normalizedDomain})`,
       );
 
-      // 3. Consultar disponibilidad de comerciales para el sitio
-      const query = new GetCommercialAvailabilityBySiteQuery(targetSite.id);
+      // 3. Consultar disponibilidad de comerciales para el sitio (filtrada por tenant)
+      const query = new GetCommercialAvailabilityBySiteQuery(
+        targetSite.id,
+        company.getId().value,
+      );
       const result = await this.queryBus.execute<
         GetCommercialAvailabilityBySiteQuery,
         CommercialAvailabilityResponseDto

@@ -33,6 +33,11 @@ export class RedisCommercialConnectionDomainService
   private readonly SET_ONLINE = 'commercials:online';
   private readonly SET_AVAILABLE = 'commercials:available';
   private readonly SET_BUSY = 'commercials:busy';
+  // Sets por tenant para filtrado eficiente O(1)
+  private readonly PREFIX_SET_ONLINE = 'commercials:online:'; // + companyId
+  private readonly PREFIX_SET_AVAILABLE = 'commercials:available:'; // + companyId
+  // Key para recuperar companyId de un comercial (usada por el scheduler de inactividad)
+  private readonly PREFIX_TENANT = 'commercial:tenant:'; // + commercialId → companyId
 
   async onModuleInit() {
     this.client = createClient({
@@ -62,6 +67,7 @@ export class RedisCommercialConnectionDomainService
   async setConnectionStatus(
     commercialId: CommercialId,
     connectionStatus: CommercialConnectionStatus,
+    companyId?: string,
   ): Promise<void> {
     const statusKey = this.statusKey(commercialId);
     const status = connectionStatus.value;
@@ -72,20 +78,65 @@ export class RedisCommercialConnectionDomainService
       .expire(statusKey, this.TTL_SECONDS)
       .exec();
 
-    // Actualizar sets
-    // Remover de todos los sets para estado limpio
+    // Remover de todos los sets globales para estado limpio
     await this.client.sRem(this.SET_ONLINE, commercialId.value);
     await this.client.sRem(this.SET_AVAILABLE, commercialId.value);
     await this.client.sRem(this.SET_BUSY, commercialId.value);
 
+    // Remover de sets por tenant si se conoce el companyId
+    if (companyId) {
+      await this.client.sRem(
+        `${this.PREFIX_SET_ONLINE}${companyId}`,
+        commercialId.value,
+      );
+      await this.client.sRem(
+        `${this.PREFIX_SET_AVAILABLE}${companyId}`,
+        commercialId.value,
+      );
+      // Almacenar relación commercialId → companyId con TTL para uso del scheduler
+      await this.client
+        .multi()
+        .set(`${this.PREFIX_TENANT}${commercialId.value}`, companyId)
+        .expire(`${this.PREFIX_TENANT}${commercialId.value}`, this.TTL_SECONDS)
+        .exec();
+    }
+
     if (connectionStatus.isOnline()) {
+      // Sets globales (retrocompatibilidad)
       await this.client.sAdd(this.SET_ONLINE, commercialId.value);
       await this.client.sAdd(this.SET_AVAILABLE, commercialId.value);
+      // Sets por tenant
+      if (companyId) {
+        await this.client.sAdd(
+          `${this.PREFIX_SET_ONLINE}${companyId}`,
+          commercialId.value,
+        );
+        await this.client.sAdd(
+          `${this.PREFIX_SET_AVAILABLE}${companyId}`,
+          commercialId.value,
+        );
+      }
     } else if (connectionStatus.isBusy()) {
+      // Sets globales (retrocompatibilidad)
       await this.client.sAdd(this.SET_ONLINE, commercialId.value);
       await this.client.sAdd(this.SET_BUSY, commercialId.value);
+      // En busy: online pero NO disponible
+      if (companyId) {
+        await this.client.sAdd(
+          `${this.PREFIX_SET_ONLINE}${companyId}`,
+          commercialId.value,
+        );
+      }
     } else if (connectionStatus.isAway()) {
+      // Sets globales (retrocompatibilidad)
       await this.client.sAdd(this.SET_ONLINE, commercialId.value);
+      // En away: online pero NO disponible (no se añade a available)
+      if (companyId) {
+        await this.client.sAdd(
+          `${this.PREFIX_SET_ONLINE}${companyId}`,
+          commercialId.value,
+        );
+      }
     }
   }
 
@@ -131,12 +182,28 @@ export class RedisCommercialConnectionDomainService
     return new CommercialLastActivity(new Date(timestamp));
   }
 
-  async removeConnection(commercialId: CommercialId): Promise<void> {
+  async removeConnection(
+    commercialId: CommercialId,
+    companyId?: string,
+  ): Promise<void> {
     await this.client.del(this.statusKey(commercialId));
     await this.client.del(this.activityKey(commercialId));
+    // Limpiar sets globales
     await this.client.sRem(this.SET_ONLINE, commercialId.value);
     await this.client.sRem(this.SET_AVAILABLE, commercialId.value);
     await this.client.sRem(this.SET_BUSY, commercialId.value);
+    // Limpiar sets por tenant si se conoce el companyId
+    if (companyId) {
+      await this.client.sRem(
+        `${this.PREFIX_SET_ONLINE}${companyId}`,
+        commercialId.value,
+      );
+      await this.client.sRem(
+        `${this.PREFIX_SET_AVAILABLE}${companyId}`,
+        commercialId.value,
+      );
+      await this.client.del(`${this.PREFIX_TENANT}${commercialId.value}`);
+    }
   }
 
   async isCommercialOnline(commercialId: CommercialId): Promise<boolean> {
@@ -177,8 +244,13 @@ export class RedisCommercialConnectionDomainService
     return validCommercials;
   }
 
-  async getAvailableCommercials(): Promise<CommercialId[]> {
-    const members = await this.client.sMembers(this.SET_AVAILABLE);
+  async getAvailableCommercials(companyId?: string): Promise<CommercialId[]> {
+    // Si se proporciona companyId, usar el set por tenant (filtrado correcto)
+    const setKey = companyId
+      ? `${this.PREFIX_SET_AVAILABLE}${companyId}`
+      : this.SET_AVAILABLE;
+
+    const members = await this.client.sMembers(setKey);
     const validCommercials: CommercialId[] = [];
 
     // Validar que cada comercial en el set realmente tenga su key de status activa
@@ -194,13 +266,34 @@ export class RedisCommercialConnectionDomainService
         this.logger.warn(
           `Comercial ${id} encontrado en set pero sin key de status. Limpiando...`,
         );
-        await this.client.sRem(this.SET_AVAILABLE, id);
-        await this.client.sRem(this.SET_ONLINE, id);
-        await this.client.sRem(this.SET_BUSY, id);
+        await this.client.sRem(setKey, id);
+        // Limpiar también del set global si aplica
+        if (companyId) {
+          await this.client.sRem(this.SET_AVAILABLE, id);
+          await this.client.sRem(this.SET_ONLINE, id);
+          await this.client.sRem(this.SET_BUSY, id);
+        } else {
+          await this.client.sRem(this.SET_ONLINE, id);
+          await this.client.sRem(this.SET_BUSY, id);
+        }
       }
     }
 
     return validCommercials;
+  }
+
+  async getOnlineCountByTenant(companyId: string): Promise<number> {
+    // SCARD es O(1) en Redis — ideal para emisión de eventos WS en tiempo real
+    return this.client.sCard(`${this.PREFIX_SET_AVAILABLE}${companyId}`);
+  }
+
+  async getCompanyIdByCommercial(
+    commercialId: CommercialId,
+  ): Promise<string | undefined> {
+    const value = await this.client.get(
+      `${this.PREFIX_TENANT}${commercialId.value}`,
+    );
+    return value ?? undefined;
   }
 
   async getBusyCommercials(): Promise<CommercialId[]> {

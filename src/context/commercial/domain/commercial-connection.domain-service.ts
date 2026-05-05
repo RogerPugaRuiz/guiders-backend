@@ -10,10 +10,12 @@ import { CommercialLastActivity } from './value-objects/commercial-last-activity
 export interface CommercialConnectionDomainService {
   /**
    * Establece o actualiza el estado de conexión de un comercial
+   * @param companyId - Identificador de la empresa del comercial (para filtrado por tenant en Redis)
    */
   setConnectionStatus(
     commercialId: CommercialId,
     connectionStatus: CommercialConnectionStatus,
+    companyId?: string,
   ): Promise<void>;
 
   /**
@@ -38,8 +40,12 @@ export interface CommercialConnectionDomainService {
 
   /**
    * Elimina el registro de conexión de un comercial (cuando se desconecta definitivamente)
+   * @param companyId - Identificador de la empresa, para limpiar sets por tenant
    */
-  removeConnection(commercialId: CommercialId): Promise<void>;
+  removeConnection(
+    commercialId: CommercialId,
+    companyId?: string,
+  ): Promise<void>;
 
   /**
    * Verifica si un comercial está actualmente online
@@ -61,8 +67,24 @@ export interface CommercialConnectionDomainService {
 
   /**
    * Obtiene todos los comerciales que están disponibles (online y no busy)
+   * @param companyId - Si se proporciona, filtra por tenant. Sin él, devuelve todos (uso interno).
    */
-  getAvailableCommercials(): Promise<CommercialId[]>;
+  getAvailableCommercials(companyId?: string): Promise<CommercialId[]>;
+
+  /**
+   * Obtiene el número de comerciales disponibles para un tenant específico
+   * Operación O(1) usando SCARD en Redis — optimizada para emisión de eventos WS
+   */
+  getOnlineCountByTenant(companyId: string): Promise<number>;
+
+  /**
+   * Recupera el companyId asociado a un comercial desde la key de tenant en Redis
+   * Útil para el scheduler de inactividad, que no tiene el JWT del comercial
+   * Devuelve undefined si la key expiró (comercial inactivo mucho tiempo)
+   */
+  getCompanyIdByCommercial(
+    commercialId: CommercialId,
+  ): Promise<string | undefined>;
 
   /**
    * Obtiene todos los comerciales que están ocupados (busy)

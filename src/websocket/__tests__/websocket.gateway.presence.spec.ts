@@ -337,4 +337,106 @@ describe('WebSocketGatewayBasic - Presence Handlers', () => {
       );
     });
   });
+
+  describe('tenant:join handler - validación anti tenant-hopping', () => {
+    const tenantId = '550e8400-e29b-41d4-a716-446655440099';
+
+    it('debe permitir a un comercial unirse a su propio tenant', async () => {
+      // Simular comercial autenticado registrado en clientUsers
+      const commercialId = '550e8400-e29b-41d4-a716-446655440050';
+      (gateway as any).clientUsers.set(mockSocket.id, {
+        userId: commercialId,
+        roles: ['commercial'],
+        chatIds: [],
+        tenantId,
+      });
+
+      const result = await gateway.handleJoinTenantRoom(mockSocket as Socket, {
+        tenantId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockSocket.join).toHaveBeenCalledWith(`tenant:${tenantId}`);
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'tenant:joined',
+        expect.objectContaining({ companyId: tenantId }),
+      );
+    });
+
+    it('debe bloquear tenant-hopping: comercial que intenta unirse a otro tenant', async () => {
+      const commercialId = '550e8400-e29b-41d4-a716-446655440051';
+      const otherTenant = '550e8400-e29b-41d4-a716-999999999999';
+
+      // Registrar comercial con tenantId diferente al solicitado
+      (gateway as any).clientUsers.set(mockSocket.id, {
+        userId: commercialId,
+        roles: ['commercial'],
+        chatIds: [],
+        tenantId,
+      });
+
+      const result = await gateway.handleJoinTenantRoom(mockSocket as Socket, {
+        tenantId: otherTenant,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('autorizado');
+      expect(mockSocket.join).not.toHaveBeenCalled();
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'error',
+        expect.objectContaining({
+          message: expect.stringContaining('autorizado'),
+        }),
+      );
+    });
+
+    it('debe permitir unirse si el comercial no tiene tenantId registrado (legacy/sin JWT tenant)', async () => {
+      const commercialId = '550e8400-e29b-41d4-a716-446655440052';
+
+      // Comercial autenticado pero sin tenantId (no debe ser bloqueado)
+      (gateway as any).clientUsers.set(mockSocket.id, {
+        userId: commercialId,
+        roles: ['commercial'],
+        chatIds: [],
+        tenantId: undefined,
+        companyId: undefined,
+      });
+
+      const result = await gateway.handleJoinTenantRoom(mockSocket as Socket, {
+        tenantId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockSocket.join).toHaveBeenCalledWith(`tenant:${tenantId}`);
+    });
+
+    it('debe permitir a un visitante (no comercial) unirse a cualquier tenant', async () => {
+      const visitorId = '550e8400-e29b-41d4-a716-446655440053';
+
+      (gateway as any).clientUsers.set(mockSocket.id, {
+        userId: visitorId,
+        roles: ['visitor'],
+        chatIds: [],
+        tenantId: 'another-tenant',
+      });
+
+      const result = await gateway.handleJoinTenantRoom(mockSocket as Socket, {
+        tenantId,
+      });
+
+      // Visitantes no tienen restricción de tenant-hopping
+      expect(result.success).toBe(true);
+      expect(mockSocket.join).toHaveBeenCalledWith(`tenant:${tenantId}`);
+    });
+
+    it('debe rechazar si no se proporciona tenantId', async () => {
+      const result = await gateway.handleJoinTenantRoom(mockSocket as Socket, {
+        tenantId: '',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('requerido');
+      expect(mockSocket.join).not.toHaveBeenCalled();
+    });
+  });
 });

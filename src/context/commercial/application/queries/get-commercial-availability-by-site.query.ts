@@ -5,5 +5,8 @@ import { IQuery } from '@nestjs/cqrs';
  * Usado por el endpoint público para que visitantes sepan si hay comerciales disponibles
  */
 export class GetCommercialAvailabilityBySiteQuery implements IQuery {
-  constructor(public readonly siteId: string) {}
+  constructor(
+    public readonly siteId: string,
+    public readonly companyId: string,
+  ) {}
 }

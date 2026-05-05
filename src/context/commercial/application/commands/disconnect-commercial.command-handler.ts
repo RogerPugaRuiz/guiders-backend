@@ -50,10 +50,15 @@ export class DisconnectCommercialCommandHandler
       const updatedCommercial =
         commercial.changeConnectionStatus(offlineStatus);
 
-      // Actualizar estado en Redis
+      // Recuperar companyId antes de actualizar para limpiar sets por tenant
+      const companyId =
+        await this.connectionService.getCompanyIdByCommercial(commercialId);
+
+      // Actualizar estado en Redis propagando companyId (puede ser undefined)
       await this.connectionService.setConnectionStatus(
         commercialId,
         offlineStatus,
+        companyId,
       );
 
       // Guardar y publicar eventos

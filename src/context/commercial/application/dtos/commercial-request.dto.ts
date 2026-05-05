@@ -81,11 +81,15 @@ export class DisconnectCommercialDto {
 
 /**
  * DTO para consultar disponibilidad de comerciales (endpoint público)
- * Usa el patrón de validación domain + apiKey
+ * Usa el patrón de validación domain + apiKey.
+ * La respuesta estará acotada al tenant propietario del dominio proporcionado.
  */
 export class CheckCommercialAvailabilityDto {
   @ApiProperty({
-    description: 'Dominio del sitio web desde donde se consulta',
+    description:
+      'Dominio del sitio web desde donde se consulta. ' +
+      'Determina el tenant cuya disponibilidad se consulta. ' +
+      'El prefijo www. se normaliza automáticamente.',
     example: 'landing.mytech.com',
   })
   @IsString()
@@ -93,7 +97,8 @@ export class CheckCommercialAvailabilityDto {
   domain: string;
 
   @ApiProperty({
-    description: 'API Key del sitio para validación',
+    description:
+      'API Key del sitio para validación. Debe corresponder al dominio proporcionado.',
     example: 'ak_live_1234567890abcdef',
   })
   @IsString()

@@ -17,7 +17,11 @@ import { CommercialModule } from '../context/commercial/commercial.module';
     forwardRef(() => VisitorsV2Module),
     forwardRef(() => CommercialModule),
   ],
-  providers: [WebSocketGatewayBasic, TokenVerifyService],
-  exports: [WebSocketGatewayBasic],
+  providers: [
+    WebSocketGatewayBasic,
+    TokenVerifyService,
+    { provide: 'WEBSOCKET_GATEWAY', useExisting: WebSocketGatewayBasic },
+  ],
+  exports: [WebSocketGatewayBasic, 'WEBSOCKET_GATEWAY'],
 })
 export class WebSocketModule {}

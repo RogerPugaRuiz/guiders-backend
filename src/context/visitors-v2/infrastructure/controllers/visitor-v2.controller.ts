@@ -320,12 +320,17 @@ export class VisitorV2Controller {
         new SessionId(sessionId),
       );
     } catch (error) {
-      this.logger.error('Error al buscar visitante por sessionId en heartbeat:', error);
+      this.logger.error(
+        'Error al buscar visitante por sessionId en heartbeat:',
+        error,
+      );
       throw new InternalServerErrorException('Error interno al renovar sesión');
     }
 
     if (visitorResult.isErr()) {
-      this.logger.warn(`Heartbeat con sesión inválida o expirada: ${sessionId}`);
+      this.logger.warn(
+        `Heartbeat con sesión inválida o expirada: ${sessionId}`,
+      );
       throw new UnauthorizedException('Sesión inválida o expirada');
     }
 
@@ -337,7 +342,10 @@ export class VisitorV2Controller {
         VisitorLastActivity.now(),
       );
     } catch (error) {
-      this.logger.error('Error al actualizar actividad en Redis durante heartbeat:', error);
+      this.logger.error(
+        'Error al actualizar actividad en Redis durante heartbeat:',
+        error,
+      );
       throw new InternalServerErrorException('Error interno al renovar sesión');
     }
 

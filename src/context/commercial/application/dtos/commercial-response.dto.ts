@@ -119,26 +119,31 @@ export class CommercialOperationResponseDto {
  */
 export class CommercialAvailabilityResponseDto {
   @ApiProperty({
-    description: 'Indica si hay comerciales disponibles para atender',
+    description:
+      'Indica si hay al menos un comercial online y disponible para atender ' +
+      'en el tenant propietario del dominio consultado',
     example: true,
   })
   available: boolean;
 
   @ApiProperty({
-    description: 'Número de comerciales online y disponibles',
+    description:
+      'Número de comerciales online en el tenant propietario del dominio consultado. ' +
+      'Este valor está acotado al tenant: no incluye comerciales de otras empresas.',
     example: 3,
   })
   onlineCount: number;
 
   @ApiProperty({
-    description: 'Timestamp de cuando se generó la respuesta',
+    description: 'Timestamp ISO 8601 de cuando se generó la respuesta',
     example: '2025-01-15T10:30:00.000Z',
   })
   timestamp: string;
 
   @ApiProperty({
-    description: 'ID del sitio consultado',
-    example: 'site_1234567890',
+    description:
+      'UUID del sitio consultado, resuelto a partir del dominio proporcionado',
+    example: '550e8400-e29b-41d4-a716-446655440002',
   })
   siteId: string;
 }

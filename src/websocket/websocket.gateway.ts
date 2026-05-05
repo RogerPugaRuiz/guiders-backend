@@ -626,6 +626,26 @@ export class WebSocketGatewayBasic
         return { success: false, message: 'tenantId es requerido' };
       }
 
+      // Validar que el comercial autenticado solo pueda unirse a su propio tenant
+      const authenticatedUser = this.clientUsers.get(client.id);
+      if (authenticatedUser?.roles?.includes('commercial')) {
+        const userTenant =
+          authenticatedUser.tenantId ?? authenticatedUser.companyId;
+        if (userTenant && userTenant !== tenantId) {
+          this.logger.warn(
+            `Intento de tenant-hopping bloqueado: comercial ${authenticatedUser.userId} intentó unirse a tenant ${tenantId} (propio: ${userTenant})`,
+          );
+          client.emit('error', {
+            message: 'No autorizado para unirse a este tenant',
+            timestamp: Date.now(),
+          });
+          return {
+            success: false,
+            message: 'No autorizado para unirse a este tenant',
+          };
+        }
+      }
+
       // Construir nombre de la sala del tenant
       const roomName = `tenant:${tenantId}`;
 
@@ -1227,10 +1247,11 @@ export class WebSocketGatewayBasic
       // Si no existe, asumimos offline
     }
 
-    // Establecer estado ONLINE
+    // Establecer estado ONLINE propagando companyId para sets por tenant en Redis
     await this.commercialConnectionService.setConnectionStatus(
       commercialId,
       CommercialConnectionStatus.online(),
+      tenantId,
     );
 
     // Actualizar última actividad
@@ -1280,10 +1301,11 @@ export class WebSocketGatewayBasic
       // Si no existe, asumimos online
     }
 
-    // Establecer estado OFFLINE
+    // Establecer estado OFFLINE propagando companyId para limpiar sets por tenant en Redis
     await this.commercialConnectionService.setConnectionStatus(
       commercialId,
       CommercialConnectionStatus.offline(),
+      tenantId,
     );
 
     // Publicar evento de cambio de presencia
