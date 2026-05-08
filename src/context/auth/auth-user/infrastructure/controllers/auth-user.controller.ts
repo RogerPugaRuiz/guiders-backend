@@ -46,10 +46,14 @@ import {
   ApiHeader,
   ApiConsumes,
   ApiParam,
-  ApiInternalServerErrorResponse,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+  PublicEndpoint,
+} from 'src/context/shared/infrastructure/swagger';
 import {
   LoginRequestDto,
   TokenResponseDto,
@@ -73,6 +77,8 @@ import {
 import { FindUserByKeycloakIdQuery } from '../../application/queries/find-user-by-keycloak-id.query';
 
 @ApiTags('Autenticación de Usuarios')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('user/auth')
 export class AuthUserController {
   private readonly logger = new Logger(AuthUserController.name);
@@ -96,18 +102,7 @@ export class AuthUserController {
     description: 'Usuario autenticado correctamente',
     type: TokenResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Error de validación (formato de email incorrecto)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Credenciales inválidas',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Error de validación (formato de email incorrecto)')
   async login(
     @Body('email') email: string,
     @Body('password') password: string,
@@ -147,18 +142,12 @@ export class AuthUserController {
     status: 200,
     description: 'Usuario registrado correctamente',
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Error de validación (formato de email incorrecto, contraseña no cumple requisitos)',
-  })
+  @ApiValidationError(
+    'Error de validación (formato de email incorrecto, contraseña no cumple requisitos)',
+  )
   @ApiResponse({
     status: 409,
     description: 'El usuario ya existe',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   @ApiBearerAuth()
   @Roles(['admin'])
@@ -205,18 +194,7 @@ export class AuthUserController {
     description: 'Token renovado correctamente',
     type: RefreshTokenResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Error de validación (token mal formado)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Token de actualización inválido o expirado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Error de validación (token mal formado)')
   async refresh(@Body('refreshToken') refreshToken: string) {
     try {
       const tokens = await this.authUserService.refresh(refreshToken);
@@ -248,14 +226,6 @@ export class AuthUserController {
   @ApiResponse({
     status: 200,
     description: 'Sesión cerrada correctamente',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   async logout() {
     try {
@@ -292,18 +262,7 @@ export class AuthUserController {
     status: 204,
     description: 'Token válido',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Error de validación (token mal formado)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Token inválido o expirado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Error de validación (token mal formado)')
   @HttpCode(HttpStatus.NO_CONTENT)
   async validate(@Headers('Authorization') bearerToken: string) {
     const [prefix, accessToken] = bearerToken.split(' ');
@@ -354,26 +313,9 @@ export class AuthUserController {
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Error de validación (token inválido o contraseña no cumple requisitos)',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string' },
-        error: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Token de invitación inválido o expirado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError(
+    'Error de validación (token inválido o contraseña no cumple requisitos)',
+  )
   async acceptInvite(
     @Body() acceptInviteDto: AcceptInviteRequestDto,
   ): Promise<{ message: string }> {
@@ -412,8 +354,6 @@ export class AuthUserController {
     description: 'Listado de usuarios',
     type: UserListResponseDto,
   })
-  @ApiUnauthorizedResponse({ description: 'No autorizado' })
-  @ApiInternalServerErrorResponse({ description: 'Error interno del servidor' })
   @Roles(['admin'])
   @UseGuards(AuthGuard, RolesGuard)
   async listCompanyUsers(@Req() req: any): Promise<UserListResponseDto> {
@@ -454,9 +394,7 @@ export class AuthUserController {
     description: 'Usuario encontrado',
     type: CurrentUserResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @ApiNotFoundError('Usuario', 'Usuario no encontrado')
   @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
   async me(@Req() req: AuthenticatedRequest): Promise<CurrentUserResponseDto> {
@@ -543,12 +481,7 @@ export class AuthUserController {
     description: 'Usuario encontrado',
     type: CurrentUserResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({
-    status: 404,
-    description: 'Usuario no encontrado con ese Keycloak ID',
-  })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @ApiNotFoundError('Usuario', 'Usuario no encontrado con ese Keycloak ID')
   @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
   async getUserById(
@@ -615,7 +548,7 @@ export class AuthUserController {
   @Post('sync-with-keycloak')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(['superadmin'])
-  @PublicEndpoint()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Sincronizar usuario con Keycloak',
     description:
@@ -627,12 +560,11 @@ export class AuthUserController {
     description: 'Usuario sincronizado exitosamente',
     type: SyncUserResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiValidationError()
   @ApiResponse({
     status: 409,
     description: 'Usuario ya existe o Keycloak ID ya está vinculado',
   })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async syncWithKeycloak(
     @Body() dto: SyncUserWithKeycloakDto,
   ): Promise<SyncUserResponseDto> {
@@ -674,7 +606,7 @@ export class AuthUserController {
   @Post('verify-role-mapping')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(['superadmin'])
-  @PublicEndpoint()
+  @ApiBearerAuth()
   @ApiOperation({
     summary: 'Verificar mapeo de roles de Keycloak',
     description:
@@ -686,8 +618,7 @@ export class AuthUserController {
     description: 'Resultado de la verificación del mapeo de roles',
     type: VerifyRoleMappingResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @ApiValidationError()
   async verifyRoleMapping(
     @Body() dto: VerifyRoleMappingDto,
   ): Promise<VerifyRoleMappingResponseDto> {
@@ -746,17 +677,8 @@ export class AuthUserController {
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Archivo inválido o no proporcionado',
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para actualizar este avatar',
-  })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @ApiValidationError('Archivo inválido o no proporcionado')
+  @ApiNotFoundError('Usuario', 'Usuario no encontrado')
   @ApiBearerAuth()
   @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)
@@ -877,13 +799,7 @@ export class AuthUserController {
       },
     },
   })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para eliminar este avatar',
-  })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @ApiNotFoundError('Usuario', 'Usuario no encontrado')
   @ApiBearerAuth()
   @Roles(['admin', 'commercial'])
   @UseGuards(DualAuthGuard, RolesGuard)

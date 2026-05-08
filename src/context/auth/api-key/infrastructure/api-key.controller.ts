@@ -24,6 +24,8 @@ import {
 } from 'src/context/shared/infrastructure/guards/role.guard';
 import {
   ApiAuthErrors,
+  ApiInternalServerError,
+  ApiValidationError,
   PublicEndpoint,
 } from 'src/context/shared/infrastructure/swagger';
 import { ApiKeyService } from './api-key.service';
@@ -33,6 +35,8 @@ import {
 } from './dtos/create-api-key.dto';
 
 @ApiTags('API Keys')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('api-keys')
 export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
@@ -50,8 +54,7 @@ export class ApiKeyController {
     description: 'API Key creada o reutilizada',
     type: CreateApiKeyResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
+  @ApiValidationError()
   async createApiKey(
     @Body() body: CreateApiKeyRequestDto,
   ): Promise<CreateApiKeyResponseDto> {
@@ -72,7 +75,6 @@ export class ApiKeyController {
       'Devuelve las API Keys asociadas a la compañía incluida en el token JWT (requiere rol admin).',
   })
   @ApiResponse({ status: 200, description: 'Listado obtenido correctamente' })
-  @ApiResponse({ status: 500, description: 'Error interno del servidor' })
   async listCompanyApiKeys(@Req() req: AuthenticatedRequest) {
     const companyId = req.user?.companyId;
     if (!companyId) {

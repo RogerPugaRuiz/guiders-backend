@@ -23,14 +23,11 @@ export const RequiredRoles = (...roles: string[]) =>
 @Injectable()
 export class RolesGuard implements CanActivate {
   private readonly logger = new Logger(RolesGuard.name);
-  // Cacheado en construcción pero re-leído en cada invocación para ser determinista en tests.
-  // Ver canActivate para la lectura real.
-  private readonly strictRolesAtBoot: boolean;
 
   constructor(private readonly reflector: Reflector) {
-    this.strictRolesAtBoot = process.env.STRICT_ROLES === 'true';
+    const strictRoles = process.env.STRICT_ROLES === 'true';
     this.logger.log(
-      `STRICT_ROLES=${this.strictRolesAtBoot} — ${this.strictRolesAtBoot ? 'fail-closed activado' : 'fail-open (legacy)'}`,
+      `[RolesGuard] STRICT_ROLES=${strictRoles} — ${strictRoles ? 'fail-closed activado' : 'fail-open (legacy)'}`,
     );
   }
 
@@ -103,7 +100,7 @@ export class RolesGuard implements CanActivate {
         `[${endpoint}] ❌ ACCESO DENEGADO - Usuario autenticado pero sin roles`,
       );
       this.logger.error(
-        `[${endpoint}] Usuario: ${JSON.stringify({ id: user.id, email: user.email, roles: user.roles })}`,
+        `[${endpoint}] Usuario: ${JSON.stringify({ userId: user.id, roles: user.roles })}`,
       );
       throw new ForbiddenException('El usuario no tiene roles asignados');
     }
@@ -126,7 +123,7 @@ export class RolesGuard implements CanActivate {
         `[${endpoint}] Requerido: [${requiredRoles.join(', ')}] | Usuario tiene: [${user.roles.join(', ')}]`,
       );
       this.logger.error(
-        `[${endpoint}] Usuario completo: ${JSON.stringify(user)}`,
+        `[${endpoint}] Usuario: ${JSON.stringify({ userId: user.id, roles: user.roles })}`,
       );
       throw new ForbiddenException('Acceso denegado. Permisos insuficientes.');
     }

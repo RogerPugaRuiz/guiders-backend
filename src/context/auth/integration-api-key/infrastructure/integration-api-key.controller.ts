@@ -25,7 +25,11 @@ import {
   RolesGuard,
   RequiredRoles,
 } from 'src/context/shared/infrastructure/guards/role.guard';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+} from 'src/context/shared/infrastructure/swagger';
 import { CreateIntegrationApiKeyCommandHandler } from '../application/commands/create-integration-api-key.command-handler';
 import { RevokeIntegrationApiKeyCommandHandler } from '../application/commands/revoke-integration-api-key.command-handler';
 import { ListIntegrationApiKeysQueryHandler } from '../application/queries/list-integration-api-keys.query-handler';
@@ -44,6 +48,8 @@ import {
 import { NotFoundException, ConflictException } from '@nestjs/common';
 
 @ApiTags('integration-api-keys')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('integration-api-keys')
 @UseGuards(AuthGuard, RolesGuard)
 @RequiredRoles('admin')
@@ -120,7 +126,7 @@ export class IntegrationApiKeyController {
     description: 'Revoca una API Key de integración. No se puede deshacer.',
   })
   @ApiResponse({ status: 204, description: 'API Key revocada' })
-  @ApiResponse({ status: 404, description: 'API Key no encontrada' })
+  @ApiNotFoundError('ApiKey', 'API Key no encontrada')
   @ApiResponse({ status: 409, description: 'La API Key ya está revocada' })
   async revoke(
     @Param('id') id: string,

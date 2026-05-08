@@ -27,9 +27,17 @@ import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.g
 import { AuthenticatedRequest } from '../../../shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
-import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+  PublicEndpoint,
+} from '../../../shared/infrastructure/swagger';
 
 @ApiTags('companies')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller()
 export class CompanyController {
   constructor(
@@ -48,10 +56,7 @@ export class CompanyController {
     status: 201,
     description: 'Empresa creada exitosamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos proporcionados',
-  })
+  @ApiValidationError('Datos inválidos proporcionados')
   async createCompanyWithAdmin(
     @Body() createCompanyDto: CreateCompanyDto,
   ): Promise<void> {
@@ -88,10 +93,7 @@ export class CompanyController {
     description: 'Empresa encontrada',
     type: FindCompanyByDomainResponseDto,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Empresa no encontrada',
-  })
+  @ApiNotFoundError('Empresa')
   async findByDomain(
     @Param('domain') domain: string,
   ): Promise<FindCompanyByDomainResponseDto> {
@@ -121,8 +123,7 @@ export class CompanyController {
     description: 'Lista de sites',
     type: GetCompanySitesResponseDto,
   })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
+  @ApiNotFoundError('Empresa')
   async getCompanySites(
     @Param('companyId') companyId: string,
   ): Promise<GetCompanySitesResponseDto> {
@@ -149,20 +150,11 @@ export class CompanyController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Información de la empresa obtenida exitosamente',
-    type: FindCompanyByDomainResponseDto, // Reutilizamos el DTO existente
-  })
-  @ApiResponse({ status: 401, description: 'No autorizado' })
-  @ApiResponse({ status: 404, description: 'Empresa no encontrada' })
-  @ApiResponse({
-    status: 400,
-    description: 'Usuario sin companyId asignado',
-  })
-  @ApiResponse({
-    status: 200,
     description: 'Información de la empresa del usuario con siteId resuelto',
     type: MyCompanyResponseDto,
   })
+  @ApiValidationError('Usuario sin companyId asignado')
+  @ApiNotFoundError('Empresa')
   async getMyCompany(
     @Req() req: AuthenticatedRequest,
   ): Promise<MyCompanyResponseDto> {

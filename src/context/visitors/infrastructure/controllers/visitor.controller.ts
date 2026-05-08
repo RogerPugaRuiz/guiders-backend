@@ -37,12 +37,20 @@ import { UpdateVisitorTelCommand } from '../../application/commands/update-visit
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
 import { VisitorPrimitives } from '../../domain/visitor.aggregate';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiDeprecated,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 
 @ApiTags('Visitantes')
-@Controller('visitor')
+@ApiDeprecated('Usa /v2/visitors en su lugar')
 @ApiBearerAuth()
 @ApiAuthErrors()
+@ApiInternalServerError()
+@Controller('visitor')
 export class VisitorController {
   private readonly logger = new Logger(VisitorController.name);
 
@@ -68,22 +76,7 @@ export class VisitorController {
     description: 'Información del visitante obtenida exitosamente',
     type: VisitorProfileDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Usuario sin permisos suficientes - Requiere rol visitor',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   async getMyProfile(
     @Req() req: AuthenticatedRequest,
   ): Promise<VisitorProfileDto> {
@@ -133,18 +126,7 @@ export class VisitorController {
     description: 'Datos del visitante obtenidos correctamente',
     type: VisitorResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol commercial',
-  })
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   async getVisitor(
     @Param('visitorId') visitorId: string,
   ): Promise<VisitorResponseDto> {
@@ -187,22 +169,8 @@ export class VisitorController {
     status: 200,
     description: 'Email actualizado correctamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol commercial',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
+  @ApiValidationError()
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   async updateEmail(
     @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorEmailDto,
@@ -241,22 +209,8 @@ export class VisitorController {
     status: 200,
     description: 'Nombre actualizado correctamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol commercial',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
+  @ApiValidationError()
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   async updateName(
     @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorNameDto,
@@ -295,22 +249,8 @@ export class VisitorController {
     status: 200,
     description: 'Teléfono actualizado correctamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado: token JWT inválido o ausente',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Acceso denegado: Se requiere rol commercial',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
+  @ApiValidationError()
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   async updateTel(
     @Param('visitorId') visitorId: string,
     @Body() dto: UpdateVisitorTelDto,

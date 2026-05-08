@@ -27,7 +27,12 @@ import {
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 import {
   CreateCrmConfigDto,
   UpdateCrmConfigDto,
@@ -75,6 +80,7 @@ interface AuthenticatedRequest extends Request {
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
 @ApiExtraModels(LeadcarsStateItemDto, LeadcarsStateFieldDto)
+@ApiInternalServerError()
 @Controller('v1/leads/admin')
 @UseGuards(DualAuthGuard, RolesGuard)
 export class LeadsAdminController {
@@ -100,10 +106,7 @@ export class LeadsAdminController {
     description: 'Configuración creada',
     type: CrmConfigResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos o CRM ya configurado',
-  })
+  @ApiValidationError('Datos inválidos o CRM ya configurado')
   async createConfig(
     @Body() dto: CreateCrmConfigDto,
     @Req() request: AuthenticatedRequest,
@@ -175,7 +178,7 @@ export class LeadsAdminController {
     description: 'Configuración encontrada',
     type: CrmConfigResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'No hay configuración CRM creada' })
+  @ApiNotFoundError('Configuración', 'No hay configuración CRM creada')
   async getConfig(
     @Req() request: AuthenticatedRequest,
   ): Promise<CrmConfigResponseDto> {
@@ -206,7 +209,7 @@ export class LeadsAdminController {
     description: 'Configuración encontrada',
     type: CrmConfigResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async getConfigById(
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
@@ -240,7 +243,7 @@ export class LeadsAdminController {
     description: 'Configuración actualizada',
     type: CrmConfigResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async updateConfig(
     @Param('id') id: string,
     @Body() dto: UpdateCrmConfigDto,
@@ -304,7 +307,7 @@ export class LeadsAdminController {
   @ApiOperation({ summary: 'Eliminar configuración CRM' })
   @ApiParam({ name: 'id', description: 'ID de la configuración' })
   @ApiResponse({ status: 200, description: 'Configuración eliminada' })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async deleteConfig(
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
@@ -347,7 +350,7 @@ export class LeadsAdminController {
     description: 'Resultado del test de conexión',
     type: TestConnectionByIdResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async testConnectionById(
     @Param('configId') configId: string,
     @Req() request: AuthenticatedRequest,
@@ -626,20 +629,13 @@ export class LeadsAdminController {
     description: 'Lista de concesionarios',
     type: [LeadcarsConcesionarioDto],
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'La configuración de LeadCars está deshabilitada para esta empresa',
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error al comunicarse con la API de LeadCars',
-  })
+  @ApiValidationError(
+    'La configuración de LeadCars está deshabilitada para esta empresa',
+  )
+  @ApiNotFoundError(
+    'Lead',
+    'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  )
   async getLeadcarsConcesionarios(
     @Req() request: AuthenticatedRequest,
     @Query('clienteToken') clienteToken?: string,
@@ -712,20 +708,13 @@ export class LeadsAdminController {
     description: 'Lista de sedes del concesionario',
     type: [LeadcarsSedeDto],
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada',
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error al comunicarse con la API de LeadCars',
-  })
+  @ApiValidationError(
+    'concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada',
+  )
+  @ApiNotFoundError(
+    'Lead',
+    'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  )
   async getLeadcarsSedes(
     @Param('concesionarioId') concesionarioId: string,
     @Req() request: AuthenticatedRequest,
@@ -816,20 +805,13 @@ export class LeadsAdminController {
     description: 'Lista de campañas del concesionario',
     type: [LeadcarsCampanaDto],
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada',
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error al comunicarse con la API de LeadCars',
-  })
+  @ApiValidationError(
+    'concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada',
+  )
+  @ApiNotFoundError(
+    'Lead',
+    'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  )
   async getLeadcarsCampanas(
     @Param('concesionarioId') concesionarioId: string,
     @Req() request: AuthenticatedRequest,
@@ -921,20 +903,13 @@ export class LeadsAdminController {
       'Lista de tipos de lead. Nota: la API de LeadCars puede devolver solo el campo id sin nombre.',
     type: [LeadcarsTipoLeadDto],
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'La configuración de LeadCars está deshabilitada para esta empresa',
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error al comunicarse con la API de LeadCars',
-  })
+  @ApiValidationError(
+    'La configuración de LeadCars está deshabilitada para esta empresa',
+  )
+  @ApiNotFoundError(
+    'Lead',
+    'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  )
   async getLeadcarsTipos(
     @Req() request: AuthenticatedRequest,
     @Query('clienteToken') clienteToken?: string,
@@ -1031,20 +1006,13 @@ export class LeadsAdminController {
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'La configuración de LeadCars está deshabilitada para esta empresa',
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error al comunicarse con la API de LeadCars',
-  })
+  @ApiValidationError(
+    'La configuración de LeadCars está deshabilitada para esta empresa',
+  )
+  @ApiNotFoundError(
+    'Lead',
+    'Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta empresa',
+  )
   async getLeadcarsStates(
     @Req() request: AuthenticatedRequest,
     @Query('clienteToken') clienteToken?: string,

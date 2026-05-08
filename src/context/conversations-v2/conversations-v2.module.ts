@@ -2,6 +2,8 @@ import { Module, forwardRef } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
+import { SEARCH_PROVIDER } from 'src/context/shared/domain/search';
+import { ChatSearchProvider } from './infrastructure/search/chat-search.provider';
 
 // Import dependencies from other modules
 import { VisitorsV2Module } from '../visitors-v2/visitors-v2.module';
@@ -206,9 +208,18 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     // Services
     // ChatV2Service,
     // MetricsService,
+
+    // Search Provider — registrado como multi-provider para GlobalSearchQueryHandler
+    ChatSearchProvider,
+    {
+      provide: SEARCH_PROVIDER,
+      useExisting: ChatSearchProvider,
+    },
   ],
   exports: [
     CHAT_V2_REPOSITORY,
+    ChatSearchProvider,
+    SEARCH_PROVIDER,
     MESSAGE_V2_REPOSITORY,
     // TODO: Exportar cuando se implementen
     // ChatV2Service,

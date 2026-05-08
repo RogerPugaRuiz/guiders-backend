@@ -21,7 +21,11 @@ import { AuthenticatedRequest } from '../../../shared/infrastructure/guards/auth
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+} from '../../../shared/infrastructure/swagger';
 import { StartTypingCommand } from '../../application/commands/start-typing.command';
 import { StopTypingCommand } from '../../application/commands/stop-typing.command';
 import { GetChatPresenceQuery } from '../../application/queries/get-chat-presence.query';
@@ -32,6 +36,8 @@ import { ChatPresenceDto } from '../../application/dtos/chat-presence.dto';
  * Soporta autenticación dual: JWT Bearer token o cookies de sesión (BFF/Visitor)
  */
 @ApiTags('Presence & Typing')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('presence')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -63,7 +69,7 @@ export class PresenceController {
     description: 'Presencia obtenida exitosamente',
     type: ChatPresenceDto,
   })
-  @ApiResponse({ status: 404, description: 'Chat no encontrado' })
+  @ApiNotFoundError('Chat')
   async getChatPresence(
     @Param('chatId') chatId: string,
   ): Promise<ChatPresenceDto> {

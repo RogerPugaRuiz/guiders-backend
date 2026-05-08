@@ -31,7 +31,12 @@ import {
   AuthGuard,
   AuthenticatedRequest,
 } from 'src/context/shared/infrastructure/guards/auth.guard';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 
 // Commands y Queries
 import { CreateAssignmentRulesCommand } from '../../application/commands/create-assignment-rules.command';
@@ -53,6 +58,7 @@ import { AssignmentRules } from '../../domain/value-objects/assignment-rules';
 @ApiTags('Reglas de Auto-asignamiento')
 @ApiBearerAuth()
 @ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/assignment-rules')
 @UseGuards(AuthGuard, RolesGuard)
 export class AssignmentRulesController {
@@ -84,8 +90,7 @@ export class AssignmentRulesController {
       },
     },
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
-  @ApiResponse({ status: 403, description: 'Sin permisos suficientes' })
+  @ApiValidationError()
   async createRules(
     @Body() createDto: CreateAssignmentRulesDto,
     @Req() req: AuthenticatedRequest,
@@ -140,7 +145,7 @@ export class AssignmentRulesController {
     description: 'Reglas obtenidas exitosamente',
     type: AssignmentRulesResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'No se encontraron reglas' })
+  @ApiNotFoundError('Regla', 'No se encontraron reglas')
   async getApplicableRules(
     @Param('companyId') companyId: string,
     @Query('siteId') siteId?: string,

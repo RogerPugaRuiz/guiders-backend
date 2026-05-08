@@ -24,7 +24,12 @@ import { CommandBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 import {
   SaveLeadContactDataDto,
   LeadContactDataResponseDto,
@@ -47,6 +52,7 @@ interface AuthenticatedRequest {
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('leads')
 @UseGuards(DualAuthGuard, RolesGuard)
 export class LeadsContactController {
@@ -78,18 +84,7 @@ export class LeadsContactController {
     description: 'Datos de contacto guardados correctamente',
     type: LeadContactDataResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Error de validacion o al guardar',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos suficientes',
-  })
+  @ApiValidationError('Error de validacion o al guardar')
   async saveContactData(
     @Param('visitorId') visitorId: string,
     @Body() dto: SaveLeadContactDataDto,
@@ -144,10 +139,7 @@ export class LeadsContactController {
     description: 'Datos de contacto encontrados',
     type: LeadContactDataResponseDto,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'No se encontraron datos de contacto',
-  })
+  @ApiNotFoundError('Recurso', 'No se encontraron datos de contacto')
   async getContactData(
     @Param('visitorId') visitorId: string,
     @Req() req: AuthenticatedRequest,

@@ -34,7 +34,12 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 import {
   IWhiteLabelConfigRepository,
   WHITE_LABEL_CONFIG_REPOSITORY,
@@ -54,6 +59,8 @@ import { WhiteLabelFileUploadService } from '../services/white-label-file-upload
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 @ApiTags('White Label Configuration')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/companies/:companyId/white-label')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -116,11 +123,10 @@ export class WhiteLabelConfigController {
     description: 'Configuración encontrada',
     type: WhiteLabelConfigResponseDto,
   })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Configuración no encontrada - se devuelven valores por defecto',
-  })
+  @ApiNotFoundError(
+    'Configuración',
+    'Configuración no encontrada - se devuelven valores por defecto',
+  )
   async getConfig(
     @Param('companyId') companyId: string,
   ): Promise<WhiteLabelConfigResponseDto> {
@@ -156,7 +162,7 @@ export class WhiteLabelConfigController {
     description: 'Configuración actualizada',
     type: WhiteLabelConfigResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiValidationError()
   async updateConfig(
     @Param('companyId') companyId: string,
     @Body() dto: UpdateWhiteLabelConfigDto,
@@ -274,7 +280,7 @@ export class WhiteLabelConfigController {
     description: 'Logo subido correctamente',
     type: UploadResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Archivo inválido' })
+  @ApiValidationError('Archivo inválido')
   async uploadLogo(
     @Param('companyId') companyId: string,
     @UploadedFile() file: Express.Multer.File,
@@ -304,7 +310,7 @@ export class WhiteLabelConfigController {
   })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Logo eliminado' })
-  @ApiResponse({ status: 404, description: 'No hay logo configurado' })
+  @ApiNotFoundError('Configuración', 'No hay logo configurado')
   async deleteLogo(@Param('companyId') companyId: string): Promise<void> {
     this.logger.debug(`Eliminando logo para empresa ${companyId}`);
 
@@ -364,7 +370,7 @@ export class WhiteLabelConfigController {
     description: 'Favicon subido correctamente',
     type: UploadResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Archivo inválido' })
+  @ApiValidationError('Archivo inválido')
   async uploadFavicon(
     @Param('companyId') companyId: string,
     @UploadedFile() file: Express.Multer.File,
@@ -394,7 +400,7 @@ export class WhiteLabelConfigController {
   })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Favicon eliminado' })
-  @ApiResponse({ status: 404, description: 'No hay favicon configurado' })
+  @ApiNotFoundError('Configuración', 'No hay favicon configurado')
   async deleteFavicon(@Param('companyId') companyId: string): Promise<void> {
     this.logger.debug(`Eliminando favicon para empresa ${companyId}`);
 
@@ -454,7 +460,7 @@ export class WhiteLabelConfigController {
     description: 'Fuente subida correctamente',
     type: FontFileDto,
   })
-  @ApiResponse({ status: 400, description: 'Archivo inválido' })
+  @ApiValidationError('Archivo inválido')
   async uploadFont(
     @Param('companyId') companyId: string,
     @UploadedFile() file: Express.Multer.File,
@@ -485,7 +491,7 @@ export class WhiteLabelConfigController {
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiParam({ name: 'fileName', description: 'Nombre del archivo de fuente' })
   @ApiResponse({ status: 204, description: 'Fuente eliminada' })
-  @ApiResponse({ status: 404, description: 'Fuente no encontrada' })
+  @ApiNotFoundError('Recurso')
   async deleteFont(
     @Param('companyId') companyId: string,
     @Param('fileName') fileName: string,

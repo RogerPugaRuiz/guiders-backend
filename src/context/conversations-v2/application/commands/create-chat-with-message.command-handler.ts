@@ -17,6 +17,7 @@ import {
   ChatQueueConfigService,
   CHAT_QUEUE_CONFIG_SERVICE,
 } from '../../domain/services/chat-queue-config.service';
+import { ChatMissingRequiredFieldError } from '../../domain/errors/chat.error';
 
 @CommandHandler(CreateChatWithMessageCommand)
 export class CreateChatWithMessageCommandHandler
@@ -48,7 +49,7 @@ export class CreateChatWithMessageCommandHandler
 
     // Crear el chat con configuración apropiada
     if (!command.companyId) {
-      throw new Error('companyId es requerido para crear un chat');
+      throw new ChatMissingRequiredFieldError('companyId');
     }
     let chat = Chat.createPendingChat({
       visitorId: command.visitorId,

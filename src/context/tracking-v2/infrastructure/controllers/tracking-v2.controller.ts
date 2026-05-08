@@ -13,7 +13,6 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiOkResponse,
   ApiBody,
   ApiQuery,
@@ -25,13 +24,18 @@ import {
 } from '../../application/dtos';
 import { IngestTrackingEventsCommand } from '../../application/commands';
 import { GetEventStatsByTenantQuery } from '../../application/queries';
-import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
+import {
+  ApiInternalServerError,
+  ApiValidationError,
+  PublicEndpoint,
+} from '../../../shared/infrastructure/swagger';
 
 /**
  * Controller REST para tracking de eventos V2
  * Endpoints para ingesta de eventos y consultas de estadísticas
  */
 @ApiTags('tracking-v2')
+@ApiInternalServerError()
 @Controller('tracking-v2')
 export class TrackingV2Controller {
   private readonly logger = new Logger(TrackingV2Controller.name);
@@ -117,15 +121,9 @@ export class TrackingV2Controller {
     description: 'Eventos procesados exitosamente',
     type: IngestEventsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Datos inválidos (campos faltantes, formato incorrecto, más de 500 eventos)',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno al procesar eventos',
-  })
+  @ApiValidationError(
+    'Datos inválidos (campos faltantes, formato incorrecto, más de 500 eventos)',
+  )
   async ingestEvents(
     @Body() dto: IngestTrackingEventsBatchDto,
   ): Promise<IngestEventsResponseDto> {
@@ -189,14 +187,7 @@ export class TrackingV2Controller {
     description: 'Estadísticas obtenidas exitosamente',
     type: EventStatsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'TenantId inválido o fechas mal formateadas',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno al obtener estadísticas',
-  })
+  @ApiValidationError('TenantId inválido o fechas mal formateadas')
   async getStatsByTenant(
     @Param('tenantId') tenantId: string,
     @Query('dateFrom') dateFrom?: string,
@@ -252,14 +243,7 @@ export class TrackingV2Controller {
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Petición inválida',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Petición inválida')
   healthCheck(): { status: string; timestamp: string } {
     return {
       status: 'ok',

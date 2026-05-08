@@ -4,6 +4,8 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
+import { SEARCH_PROVIDER } from 'src/context/shared/domain/search';
+import { VisitorSearchProvider } from './infrastructure/search/visitor-search.provider';
 import {
   VisitorV2MongoEntity,
   VisitorV2MongoEntitySchema,
@@ -148,7 +150,19 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
       provide: 'WEBSOCKET_GATEWAY',
       useExisting: WebSocketGatewayBasic,
     },
+
+    // Search Provider — registrado como multi-provider para GlobalSearchQueryHandler
+    VisitorSearchProvider,
+    {
+      provide: SEARCH_PROVIDER,
+      useExisting: VisitorSearchProvider,
+    },
   ],
-  exports: [VISITOR_V2_REPOSITORY, VISITOR_CONNECTION_DOMAIN_SERVICE],
+  exports: [
+    VISITOR_V2_REPOSITORY,
+    VISITOR_CONNECTION_DOMAIN_SERVICE,
+    VisitorSearchProvider,
+    SEARCH_PROVIDER,
+  ],
 })
 export class VisitorsV2Module {}

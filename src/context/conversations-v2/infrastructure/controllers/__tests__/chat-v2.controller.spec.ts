@@ -123,6 +123,7 @@ describe('ChatV2Controller', () => {
           'visitor-123',
           createChatDto.visitorInfo,
           createChatDto.metadata,
+          'company-456',
         ),
       );
       expect(result).toEqual(expectedResult);
@@ -154,7 +155,7 @@ describe('ChatV2Controller', () => {
 
       // Assert
       expect(commandBus.execute).toHaveBeenCalledWith(
-        new JoinWaitingRoomCommand('visitor-123', {}, {}),
+        new JoinWaitingRoomCommand('visitor-123', {}, {}, 'company-456'),
       );
       expect(result).toEqual(expectedResult);
     });
@@ -190,6 +191,7 @@ describe('ChatV2Controller', () => {
           'visitor-123',
           createChatDto.visitorInfo,
           {},
+          'company-456',
         ),
       );
     });

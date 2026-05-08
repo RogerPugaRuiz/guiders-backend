@@ -1,5 +1,10 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiUnauthorizedResponse, ApiForbiddenResponse } from '@nestjs/swagger';
+import {
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
+  ApiExtraModels,
+} from '@nestjs/swagger';
+import { ErrorResponseDto } from './error-response.dto';
 
 /**
  * Decorador compuesto que documenta las respuestas de error de autenticación
@@ -21,12 +26,15 @@ import { ApiUnauthorizedResponse, ApiForbiddenResponse } from '@nestjs/swagger';
  */
 export const ApiAuthErrors = (): MethodDecorator & ClassDecorator =>
   applyDecorators(
+    ApiExtraModels(ErrorResponseDto),
     ApiUnauthorizedResponse({
       description:
         'No autenticado: faltan credenciales, token ausente, inválido o expirado.',
+      type: ErrorResponseDto,
     }),
     ApiForbiddenResponse({
       description:
         'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.',
+      type: ErrorResponseDto,
     }),
   );

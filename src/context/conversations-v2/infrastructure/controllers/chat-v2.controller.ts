@@ -53,6 +53,12 @@ import {
 } from '../../application/dtos/chat-query.dto';
 import { CreateChatRequestDto } from '../../application/dtos/create-chat-request.dto';
 import { CreateChatWithMessageRequestDto } from '../../application/dtos/create-chat-with-message-request.dto';
+import {
+  CreateChatResponseDto,
+  CreateChatWithMessageResponseDto,
+} from '../../application/dtos/create-chat-response.dto';
+import { CommercialVisitorChatsResponseDto } from '../../application/dtos/commercial-visitor-chats-response.dto';
+import { DeleteVisitorChatsResponseDto } from '../../application/dtos/delete-visitor-chats-response.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
 import { JoinWaitingRoomCommand } from '../../application/commands/join-waiting-room.command';
 import { CreateChatWithMessageCommand } from '../../application/commands/create-chat-with-message.command';
@@ -66,7 +72,12 @@ import {
   ChatViewResponseDto,
 } from '../../application/dtos/chat-view.dto';
 import { FindUserByIdQuery } from 'src/context/auth/auth-user/application/queries/find-user-by-id.query';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 
 // Interfaces para respuestas de comandos
 interface CreateChatWithMessageResult {
@@ -84,6 +95,7 @@ interface CreateChatWithMessageResult {
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/chats')
 export class ChatV2Controller {
   private readonly logger = new Logger(ChatV2Controller.name);
@@ -147,34 +159,9 @@ export class ChatV2Controller {
   @ApiResponse({
     status: 201,
     description: 'Chat creado exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        chatId: {
-          type: 'string',
-          example: '550e8400-e29b-41d4-a716-446655440000',
-          description: 'ID único del chat creado',
-        },
-        position: {
-          type: 'number',
-          example: 3,
-          description: 'Posición en la cola de espera',
-        },
-      },
-    },
+    type: CreateChatResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Usuario sin permisos suficientes',
-  })
+  @ApiValidationError()
   async createChat(
     @Body() createChatDto: CreateChatRequestDto = {},
     @Req() req: AuthenticatedRequest,
@@ -193,6 +180,7 @@ export class ChatV2Controller {
         visitorId,
         visitorInfo,
         metadata,
+        req.user.companyId,
       );
 
       const result = await this.commandBus.execute<
@@ -210,6 +198,10 @@ export class ChatV2Controller {
 
       if (error instanceof HttpException) {
         throw error;
+      }
+
+      if (error instanceof DomainError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
 
       throw new HttpException(
@@ -325,107 +317,9 @@ export class ChatV2Controller {
   @ApiResponse({
     status: 201,
     description: 'Chat y mensaje creados exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        chatId: {
-          type: 'string',
-          description: 'ID único del chat creado',
-          example: '550e8400-e29b-41d4-a716-446655440000',
-        },
-        messageId: {
-          type: 'string',
-          description: 'ID único del primer mensaje creado',
-          example: '550e8400-e29b-41d4-a716-446655440001',
-        },
-        position: {
-          type: 'number',
-          description: 'Posición del chat en la cola de espera',
-          example: 3,
-          minimum: 1,
-        },
-      },
-      required: ['chatId', 'messageId', 'position'],
-    },
-    examples: {
-      exitoso: {
-        summary: 'Respuesta exitosa',
-        value: {
-          chatId: 'chat-456',
-          messageId: 'msg-789',
-          position: 3,
-        },
-      },
-    },
+    type: CreateChatWithMessageResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 400 },
-        message: {
-          oneOf: [
-            {
-              type: 'array',
-              items: { type: 'string' },
-              example: [
-                'firstMessage.content should not be empty',
-                'firstMessage.type must be one of the following values: text, image, file',
-              ],
-            },
-            {
-              type: 'string',
-              example:
-                'Los comerciales y administradores deben especificar visitorInfo.visitorId',
-            },
-          ],
-        },
-        error: { type: 'string', example: 'Bad Request' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o sesión BFF (Keycloak)',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 401 },
-        message: {
-          type: 'string',
-          example: 'Token de autenticación requerido',
-        },
-        error: { type: 'string', example: 'Unauthorized' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Usuario sin permisos suficientes',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 403 },
-        message: { type: 'string', example: 'Acceso denegado' },
-        error: { type: 'string', example: 'Forbidden' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 500 },
-        message: { type: 'string', example: 'Error interno del servidor' },
-        error: { type: 'string', example: 'Internal Server Error' },
-      },
-    },
-  })
+  @ApiValidationError()
   async createChatWithMessage(
     @Body() createChatWithMessageDto: CreateChatWithMessageRequestDto,
     @Req() req: AuthenticatedRequest,
@@ -525,6 +419,7 @@ export class ChatV2Controller {
         visitorInfo,
         metadata,
         commercialId, // ID del comercial para asignación directa (solo si es comercial/admin)
+        req.user.companyId, // companyId del tenant, obtenido del token autenticado
       );
 
       this.logger.debug(
@@ -551,6 +446,10 @@ export class ChatV2Controller {
 
       if (error instanceof HttpException) {
         throw error;
+      }
+
+      if (error instanceof DomainError) {
+        throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
       }
 
       throw new HttpException(
@@ -690,61 +589,7 @@ export class ChatV2Controller {
       'Lista de chats obtenida exitosamente con paginación basada en cursor',
     type: ChatListResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Parámetros de consulta inválidos',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Parámetros de filtro inválidos' },
-        error: { type: 'string', example: 'Bad Request' },
-        statusCode: { type: 'number', example: 400 },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Token de autenticación requerido',
-        },
-        error: { type: 'string', example: 'Unauthorized' },
-        statusCode: { type: 'number', example: 401 },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Acceso denegado. Permisos insuficientes.',
-        },
-        error: { type: 'string', example: 'Forbidden' },
-        statusCode: { type: 'number', example: 403 },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-    schema: {
-      type: 'object',
-      properties: {
-        message: { type: 'string', example: 'Error interno del servidor' },
-        error: { type: 'string', example: 'Internal Server Error' },
-        statusCode: { type: 'number', example: 500 },
-      },
-    },
-  })
+  @ApiValidationError()
   getChats(
     @Query() queryParams: GetChatsQueryDto,
     @Req() req: AuthenticatedRequest,
@@ -811,19 +656,6 @@ export class ChatV2Controller {
     status: 200,
     description: 'Estadísticas de tiempo de respuesta obtenidas exitosamente',
     type: [ResponseTimeStatsDto],
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial o administrador',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   getResponseTimeStats(
     @Query('dateFrom') dateFrom?: string,
@@ -892,22 +724,7 @@ export class ChatV2Controller {
     description: 'Chat encontrado exitosamente',
     type: ChatResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Usuario sin permisos suficientes',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Chat')
   async getChatById(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
@@ -966,99 +783,12 @@ export class ChatV2Controller {
   @ApiResponse({
     status: 200,
     description: 'Chat encontrado exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        chats: {
-          type: 'array',
-          description:
-            'Lista de chats del visitante asignados al comercial autenticado',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: 'chat-123' },
-              visitorId: { type: 'string', example: 'visitor-456' },
-              assignedCommercialId: {
-                type: 'string',
-                example: 'commercial-789',
-              },
-              status: { type: 'string', example: 'ACTIVE' },
-              priority: { type: 'string', example: 'HIGH' },
-              createdAt: {
-                type: 'string',
-                format: 'date-time',
-                example: '2025-07-28T10:30:00.000Z',
-              },
-              lastMessageDate: {
-                type: 'string',
-                format: 'date-time',
-                example: '2025-07-28T11:15:00.000Z',
-                nullable: true,
-              },
-            },
-          },
-        },
-        total: {
-          type: 'number',
-          description:
-            'Número total de chats asignados al comercial para este visitante',
-          example: 1,
-        },
-        totalVisitorChats: {
-          type: 'number',
-          description:
-            'Número total de chats del visitante sin filtrar por comercial asignado',
-          example: 3,
-        },
-        hasMore: {
-          type: 'boolean',
-          description: 'Indica si hay más chats disponibles',
-          example: false,
-        },
-      },
-    },
+    type: CommercialVisitorChatsResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o sesión BFF (Keycloak)',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 401 },
-        message: {
-          type: 'string',
-          example: 'Token de autenticación requerido',
-        },
-        error: { type: 'string', example: 'Unauthorized' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, admin o supervisor',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 403 },
-        message: {
-          type: 'string',
-          example: 'Acceso denegado. Permisos insuficientes.',
-        },
-        error: { type: 'string', example: 'Forbidden' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'No se encontró ningún chat asignado a este comercial para el visitante',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError(
+    'Chat',
+    'No se encontró ningún chat asignado a este comercial para el visitante',
+  )
   async getMyVisitorChat(
     @Param('visitorId') visitorId: string,
     @Req() req: AuthenticatedRequest,
@@ -1175,19 +905,6 @@ export class ChatV2Controller {
     description: 'Cola de chats pendientes obtenida exitosamente',
     type: [ChatResponseDto],
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
   async getPendingQueue(
     @Query('department') department?: string,
     @Query('limit') limit?: number,
@@ -1287,23 +1004,7 @@ export class ChatV2Controller {
     description: 'Métricas del comercial obtenidas exitosamente',
     type: CommercialMetricsResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Comercial', 'Comercial no encontrado')
   getCommercialMetrics(
     @Param('commercialId') commercialId: string,
     @Query('dateFrom') dateFrom?: string,
@@ -1371,23 +1072,7 @@ export class ChatV2Controller {
     description: 'Chat asignado exitosamente',
     type: ChatResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat o comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Chat', 'Chat o comercial no encontrado')
   async assignChat(
     @Param('chatId') chatId: string,
     @Param('commercialId') commercialId: string,
@@ -1471,18 +1156,8 @@ export class ChatV2Controller {
     status: 200,
     description: 'Solicitud procesada exitosamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos o el visitante no tiene permisos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Datos inválidos o el visitante no tiene permisos')
+  @ApiNotFoundError('Chat')
   async requestAgent(
     @Param('chatId') chatId: string,
     @Body() requestAgentDto: RequestAgentDto,
@@ -1560,23 +1235,7 @@ export class ChatV2Controller {
     description: 'Vista del chat abierta exitosamente',
     type: ChatViewResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o sesión de cookie',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Usuario sin permisos para acceder a este chat',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Chat')
   async openChatView(
     @Param('chatId') chatId: string,
     @Body() chatViewDto: ChatViewRequestDto = {},
@@ -1680,23 +1339,7 @@ export class ChatV2Controller {
     description: 'Vista del chat cerrada exitosamente',
     type: ChatViewResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o sesión de cookie',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Usuario sin permisos para acceder a este chat',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Chat')
   async closeChatView(
     @Param('chatId') chatId: string,
     @Body() chatViewDto: ChatViewRequestDto = {},
@@ -1790,23 +1433,7 @@ export class ChatV2Controller {
     description: 'Chat cerrado exitosamente',
     type: ChatResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Chat')
   closeChat(@Param('chatId') chatId: string): ChatResponseDto {
     try {
       this.logger.log(`Cerrando chat ${chatId}`);
@@ -1854,42 +1481,9 @@ export class ChatV2Controller {
   @ApiResponse({
     status: 200,
     description: 'Chats eliminados exitosamente',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Todos los chats del visitante han sido eliminados',
-        },
-        deletedCount: {
-          type: 'number',
-          example: 5,
-          description: 'Número de chats eliminados',
-        },
-        visitorId: {
-          type: 'string',
-          example: '550e8400-e29b-41d4-a716-446655440000',
-        },
-      },
-    },
+    type: DeleteVisitorChatsResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'Usuario no autenticado - Token de autenticación requerido',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de administrador',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   clearVisitorChats(
     @Param('visitorId') visitorId: string,
     @Req() req: AuthenticatedRequest,
@@ -1967,18 +1561,6 @@ export class ChatV2Controller {
     status: 200,
     description: 'Chats pendientes obtenidos exitosamente',
     type: PendingChatsResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos suficientes',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   async getVisitorPendingChats(
     @Param('visitorId') visitorId: string,

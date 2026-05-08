@@ -26,7 +26,12 @@ import {
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from '../../../shared/infrastructure/swagger';
 import { GetVisitorsByTenantQuery } from '../../application/queries/get-visitors-by-tenant.query';
 import { GetVisitorsWithUnassignedChatsByTenantQuery } from '../../application/queries/get-visitors-with-unassigned-chats-by-tenant.query';
 import { GetVisitorsWithQueuedChatsByTenantQuery } from '../../application/queries/get-visitors-with-queued-chats-by-tenant.query';
@@ -61,6 +66,8 @@ import {
 } from '../../application/dtos/saved-filter.dto';
 
 @ApiTags('Tenant Visitors Management')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('tenant-visitors')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -98,14 +105,10 @@ export class TenantVisitorsController {
     description: 'Lista de visitantes obtenida exitosamente',
     type: TenantVisitorsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de tenant inválido o parámetros de consulta inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Tenant no encontrado',
-  })
+  @ApiValidationError(
+    'ID de tenant inválido o parámetros de consulta inválidos',
+  )
+  @ApiNotFoundError('Recurso')
   async getVisitorsByTenant(
     @Param('tenantId', ParseUUIDPipe) tenantId: string,
     @Query() queryParams: TenantVisitorsQueryDto,
@@ -144,14 +147,10 @@ export class TenantVisitorsController {
       'Lista de visitantes con chats sin asignar obtenida exitosamente',
     type: TenantVisitorsUnassignedChatsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de tenant inválido o parámetros de consulta inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Tenant no encontrado',
-  })
+  @ApiValidationError(
+    'ID de tenant inválido o parámetros de consulta inválidos',
+  )
+  @ApiNotFoundError('Recurso')
   async getVisitorsWithUnassignedChats(
     @Param('tenantId', ParseUUIDPipe) tenantId: string,
     @Query() queryParams: TenantVisitorsUnassignedChatsQueryDto,
@@ -186,14 +185,10 @@ export class TenantVisitorsController {
     description: 'Lista de visitantes con chats en cola obtenida exitosamente',
     type: TenantVisitorsQueuedChatsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de tenant inválido o parámetros de consulta inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Tenant no encontrado',
-  })
+  @ApiValidationError(
+    'ID de tenant inválido o parámetros de consulta inválidos',
+  )
+  @ApiNotFoundError('Recurso')
   async getVisitorsWithQueuedChats(
     @Param('tenantId', ParseUUIDPipe) tenantId: string,
     @Query() queryParams: TenantVisitorsQueuedChatsQueryDto,
@@ -418,10 +413,7 @@ export class TenantVisitorsController {
     status: 204,
     description: 'Filtro eliminado exitosamente',
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Filtro no encontrado',
-  })
+  @ApiNotFoundError('Recurso')
   async deleteSavedFilter(
     @Param('tenantId', ParseUUIDPipe) tenantId: string,
     @Param('filterId', ParseUUIDPipe) filterId: string,

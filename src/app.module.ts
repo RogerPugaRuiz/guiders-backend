@@ -29,6 +29,7 @@ import { ConsentModule } from './context/consent/consent.module';
 import { LlmModule } from './context/llm/llm.module';
 import { WhiteLabelModule } from './context/white-label/white-label.module';
 import { LeadsModule } from './context/leads/leads.module';
+import { SearchModule } from './context/search/search.module';
 import { PresenceInactivityScheduler } from './context/shared/infrastructure/schedulers/presence-inactivity.scheduler';
 import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/shared/infrastructure/events/notify-presence-changed-on-presence-changed.event-handler';
 
@@ -52,6 +53,7 @@ import { NotifyPresenceChangedOnPresenceChangedEventHandler } from './context/sh
     WhiteLabelModule,
     LeadsModule,
     WebSocketModule,
+    SearchModule,
     ScheduleModule.forRoot(),
     // OpenSearchModule,
     CqrsModule.forRoot(),

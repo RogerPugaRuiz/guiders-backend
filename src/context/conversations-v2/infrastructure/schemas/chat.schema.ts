@@ -292,12 +292,24 @@ ChatSchemaDefinition.index({
 });
 ChatSchemaDefinition.index({ 'metadata.department': 1, createdAt: 1 });
 
-// Índice de texto para búsqueda
-ChatSchemaDefinition.index({
-  'visitorInfo.name': 'text',
-  'visitorInfo.email': 'text',
-  'metadata.tags': 'text',
-});
+// Índice de texto para búsqueda global (pesos por relevancia)
+ChatSchemaDefinition.index(
+  {
+    'visitorInfo.name': 'text',
+    'visitorInfo.email': 'text',
+    lastMessageContent: 'text',
+    'metadata.tags': 'text',
+  },
+  {
+    weights: {
+      'visitorInfo.name': 10,
+      'visitorInfo.email': 8,
+      lastMessageContent: 5,
+      'metadata.tags': 2,
+    },
+    name: 'chat_search_text_idx',
+  },
+);
 
 // Pre-hooks para mantener campos derivados
 ChatSchemaDefinition.pre('save', function (next) {

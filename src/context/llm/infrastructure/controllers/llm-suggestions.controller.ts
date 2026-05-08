@@ -24,7 +24,11 @@ import { CommandBus } from '@nestjs/cqrs';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 import { GenerateSuggestionCommand } from '../../application/commands/generate-suggestion.command';
 import { ImproveTextCommand } from '../../application/commands/improve-text.command';
 import {
@@ -45,6 +49,8 @@ interface AuthenticatedRequest extends Request {
 }
 
 @ApiTags('LLM Suggestions')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/llm')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -68,19 +74,7 @@ export class LlmSuggestionsController {
     description: 'Sugerencias generadas correctamente',
     type: SuggestionResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos (falta chatId o companyId)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'No tiene permisos (requiere rol commercial, admin o supervisor)',
-  })
+  @ApiValidationError('Datos de entrada inválidos (falta chatId o companyId)')
   async generateSuggestions(
     @Body() dto: RequestSuggestionsDto,
     @Req() req: AuthenticatedRequest,
@@ -121,19 +115,7 @@ export class LlmSuggestionsController {
     description: 'Texto mejorado correctamente',
     type: ImproveTextResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos (falta text o companyId)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'No tiene permisos (requiere rol commercial, admin o supervisor)',
-  })
+  @ApiValidationError('Datos de entrada inválidos (falta text o companyId)')
   async improveText(
     @Body() dto: ImproveTextDto,
     @Req() req: AuthenticatedRequest,

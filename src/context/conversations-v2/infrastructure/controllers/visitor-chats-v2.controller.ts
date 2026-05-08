@@ -27,7 +27,10 @@ import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/opti
 import { ChatListResponseDto } from '../../application/dtos/chat-response.dto';
 import { PaginationDto } from '../../application/dtos/chat-query.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+} from 'src/context/shared/infrastructure/swagger';
 
 /**
  * Controller que expone los chats indexados por visitante.
@@ -40,6 +43,7 @@ import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/visitors')
 export class VisitorChatsV2Controller {
   private readonly logger = new Logger(VisitorChatsV2Controller.name);
@@ -97,20 +101,6 @@ export class VisitorChatsV2Controller {
     status: 200,
     description: 'Lista de chats del visitante obtenida exitosamente',
     type: ChatListResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Los comerciales/administradores pueden ver cualquier visitante, los visitantes solo sus propios chats',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   async getVisitorChats(
     @Param('visitorId') visitorId: string,

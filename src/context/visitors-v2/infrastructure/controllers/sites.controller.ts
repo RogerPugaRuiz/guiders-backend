@@ -15,18 +15,24 @@ import {
   ApiOperation,
   ApiQuery,
   ApiOkResponse,
-  ApiResponse,
   ApiBearerAuth,
   ApiCookieAuth,
 } from '@nestjs/swagger';
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from '../../../shared/infrastructure/swagger';
 import { ResolveSiteCommand } from '../../application/commands/resolve-site.command';
 import { ResolveSiteResponseDto } from '../../application/dtos/resolve-site-response.dto';
 
 @ApiTags('sites')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('sites')
 @UseGuards(DualAuthGuard, RolesGuard)
 @Roles(['admin', 'commercial', 'supervisor'])
@@ -55,18 +61,11 @@ export class SitesController {
     description: 'Sitio resuelto exitosamente',
     type: ResolveSiteResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Host no proporcionado o inválido',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'No se encontró un sitio para el host proporcionado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Host no proporcionado o inválido')
+  @ApiNotFoundError(
+    'Sitio',
+    'No se encontró un sitio para el host proporcionado',
+  )
   async resolveSite(
     @Query('host') host: string,
   ): Promise<ResolveSiteResponseDto> {

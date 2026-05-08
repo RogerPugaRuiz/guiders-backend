@@ -31,7 +31,12 @@ import {
 import { OptionalAuthGuard } from 'src/context/shared/infrastructure/guards/optional-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 
 // DTOs
 import {
@@ -60,6 +65,7 @@ import { MarkMessagesAsReadCommand } from '../../application/commands/mark-messa
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/messages')
 export class MessageV2Controller {
   private readonly logger = new Logger(MessageV2Controller.name);
@@ -106,23 +112,8 @@ export class MessageV2Controller {
     description: 'Mensaje enviado exitosamente',
     type: MessageResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para enviar mensajes a este chat',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
+  @ApiValidationError()
+  @ApiNotFoundError('Chat')
   sendMessage(
     @Body() sendMessageDto: SendMessageDto,
     @Req() req: AuthenticatedRequest,
@@ -238,19 +229,7 @@ export class MessageV2Controller {
     description: 'Mensajes obtenidos exitosamente',
     type: MessageListResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder a este chat',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
+  @ApiNotFoundError('Chat')
   getChatMessages(
     @Param('chatId') chatId: string,
     @Query() queryParams: GetMessagesDto,
@@ -340,19 +319,7 @@ export class MessageV2Controller {
     description: 'Mensaje encontrado exitosamente',
     type: MessageResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder a este mensaje',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Mensaje no encontrado',
-  })
+  @ApiNotFoundError('Mensaje', 'Mensaje no encontrado')
   getMessageById(
     @Param('messageId') messageId: string,
     @Req() req: AuthenticatedRequest,
@@ -412,15 +379,7 @@ export class MessageV2Controller {
     status: 200,
     description: 'Mensajes marcados como leídos exitosamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Lista de mensajes inválida',
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
+  @ApiValidationError('Lista de mensajes inválida')
   async markAsRead(
     @Body() markAsReadDto: MarkAsReadDto,
     @Req() req: AuthenticatedRequest,
@@ -487,19 +446,7 @@ export class MessageV2Controller {
     description: 'Mensajes no leídos obtenidos exitosamente',
     type: [MessageResponseDto],
   })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder a este chat',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
+  @ApiNotFoundError('Chat')
   async getUnreadMessages(
     @Param('chatId') chatId: string,
     @Req() req: AuthenticatedRequest,
@@ -577,10 +524,7 @@ export class MessageV2Controller {
     description: 'Búsqueda completada exitosamente',
     type: MessageListResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Parámetros de búsqueda inválidos',
-  })
+  @ApiValidationError('Parámetros de búsqueda inválidos')
   searchMessages(
     @Query('keyword') keyword: string,
     @Query('chatId') chatId?: string,
@@ -654,14 +598,7 @@ export class MessageV2Controller {
     description: 'Estadísticas obtenidas exitosamente',
     type: ConversationStatsResponseDto,
   })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos para acceder a las estadísticas',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Chat no encontrado',
-  })
+  @ApiNotFoundError('Chat')
   getConversationStats(
     @Param('chatId') chatId: string,
     @Query('dateFrom') dateFrom?: string,
@@ -740,10 +677,7 @@ export class MessageV2Controller {
     description: 'Métricas obtenidas exitosamente',
     type: [MessageMetricsResponseDto],
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Parámetros de consulta inválidos',
-  })
+  @ApiValidationError()
   getMessageMetrics(
     @Query('dateFrom') dateFrom: string,
     @Query('dateTo') dateTo: string,

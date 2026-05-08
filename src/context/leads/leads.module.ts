@@ -4,6 +4,8 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { HttpModule } from '@nestjs/axios';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
+import { SEARCH_PROVIDER } from 'src/context/shared/domain/search';
+import { LeadSearchProvider } from './infrastructure/search/lead-search.provider';
 
 // Schemas
 import {
@@ -49,6 +51,7 @@ import {
   LeadcarsCrmSyncAdapter,
 } from './infrastructure/adapters/leadcars';
 import { CrmSyncServiceFactory } from './infrastructure/services/crm-sync-service.factory';
+import { CrmEncryptionService } from './infrastructure/services/crm-encryption.service';
 
 // Shared Services
 import { TokenVerifyService } from '../shared/infrastructure/token-verify.service';
@@ -113,6 +116,8 @@ const EventHandlers = [
       provide: CRM_SYNC_SERVICE_FACTORY,
       useClass: CrmSyncServiceFactory,
     },
+    // Encryption
+    CrmEncryptionService,
     // Command Handlers
     ...CommandHandlers,
     // Event Handlers
@@ -121,12 +126,21 @@ const EventHandlers = [
     TokenVerifyService,
     BffSessionAuthService,
     VisitorSessionAuthService,
+
+    // Search Provider — registrado como multi-provider para GlobalSearchQueryHandler
+    LeadSearchProvider,
+    {
+      provide: SEARCH_PROVIDER,
+      useExisting: LeadSearchProvider,
+    },
   ],
   exports: [
     LEAD_CONTACT_DATA_REPOSITORY,
     CRM_COMPANY_CONFIG_REPOSITORY,
     CRM_SYNC_RECORD_REPOSITORY,
     CRM_SYNC_SERVICE_FACTORY,
+    LeadSearchProvider,
+    SEARCH_PROVIDER,
   ],
 })
 export class LeadsModule {}

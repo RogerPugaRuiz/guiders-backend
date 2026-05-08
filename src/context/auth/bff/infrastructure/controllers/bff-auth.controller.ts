@@ -7,7 +7,11 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiInternalServerError,
+  ApiValidationError,
+  PublicEndpoint,
+} from 'src/context/shared/infrastructure/swagger';
 import type { Request, Response } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
@@ -118,6 +122,7 @@ function sanitizeReturnTo(input?: string) {
 }
 
 @ApiTags('BFF Auth')
+@ApiInternalServerError()
 @Controller('bff/auth')
 export class BffController {
   private jwks?: ReturnType<typeof createRemoteJWKSet>;
@@ -159,7 +164,7 @@ export class BffController {
       'URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO.',
   })
   @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
-  @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
+  @ApiValidationError()
   @Get('login')
   @PublicEndpoint()
   async login(
@@ -203,7 +208,7 @@ export class BffController {
       'URL a la que volver tras autenticación. Validada contra ALLOW_RETURN_TO.',
   })
   @ApiResponse({ status: 302, description: 'Redirección a proveedor OIDC' })
-  @ApiResponse({ status: 400, description: 'Parámetros inválidos' })
+  @ApiValidationError()
   @Get('login/:app')
   @PublicEndpoint()
   async loginForApp(
@@ -248,7 +253,7 @@ export class BffController {
     status: 302,
     description: 'Redirección a login en caso de error',
   })
-  @ApiResponse({ status: 400, description: 'Callback inválido' })
+  @ApiValidationError('Callback inválido')
   @Get('callback/:app')
   @PublicEndpoint()
   async callback(
@@ -380,11 +385,7 @@ export class BffController {
     description: 'Información del usuario',
     type: BFFMeResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado, JWT inválido o usuario no encontrado',
-  })
-  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiValidationError('Solicitud inválida')
   @Get('me')
   @PublicEndpoint()
   async me(
@@ -405,11 +406,7 @@ export class BffController {
     description: 'Información del usuario',
     type: BFFMeResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado, JWT inválido o usuario no encontrado',
-  })
-  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiValidationError('Solicitud inválida')
   @Get('me/:app')
   @PublicEndpoint()
   async meForApp(
@@ -529,8 +526,7 @@ export class BffController {
       'Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.',
   })
   @ApiResponse({ status: 204, description: 'Sesión renovada' })
-  @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
-  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiValidationError('Solicitud inválida')
   @Post('refresh')
   @PublicEndpoint()
   async refresh(
@@ -547,8 +543,7 @@ export class BffController {
   })
   @ApiParam({ name: 'app', enum: ['console', 'admin'] })
   @ApiResponse({ status: 204, description: 'Sesión renovada' })
-  @ApiResponse({ status: 401, description: 'Refresh token ausente o inválido' })
-  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiValidationError('Solicitud inválida')
   @Post('refresh/:app')
   @PublicEndpoint()
   async refreshForApp(
@@ -651,7 +646,7 @@ export class BffController {
       'Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.',
   })
   @ApiResponse({ status: 302, description: 'Redirige a /login/console' })
-  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiValidationError('Solicitud inválida')
   @Get('logout')
   @PublicEndpoint()
   async logout(
@@ -668,7 +663,7 @@ export class BffController {
   })
   @ApiParam({ name: 'app', enum: ['console', 'admin'] })
   @ApiResponse({ status: 302, description: 'Redirige a /login/:app' })
-  @ApiResponse({ status: 400, description: 'Solicitud inválida' })
+  @ApiValidationError('Solicitud inválida')
   @Get('logout/:app')
   @PublicEndpoint()
   async logoutForApp(

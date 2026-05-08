@@ -13,6 +13,7 @@ import {
   CrmCompanyConfigDocument,
 } from '../schemas/crm-company-config.schema';
 import { LeadsPersistenceError } from '../../../domain/errors/leads.error';
+import { CrmEncryptionService } from '../../services/crm-encryption.service';
 
 @Injectable()
 export class MongoCrmCompanyConfigRepositoryImpl
@@ -25,6 +26,7 @@ export class MongoCrmCompanyConfigRepositoryImpl
   constructor(
     @InjectModel(CrmCompanyConfigSchema.name)
     private readonly model: Model<CrmCompanyConfigDocument>,
+    private readonly encryptionService: CrmEncryptionService,
   ) {}
 
   async save(
@@ -208,6 +210,7 @@ export class MongoCrmCompanyConfigRepositoryImpl
   private toSchema(
     config: CrmCompanyConfigPrimitives,
   ): Partial<CrmCompanyConfigSchema> {
+    const encryptedConfig = this.encryptConfig(config.config);
     return {
       id: config.id,
       companyId: config.companyId,
@@ -215,7 +218,7 @@ export class MongoCrmCompanyConfigRepositoryImpl
       enabled: config.enabled,
       syncChatConversations: config.syncChatConversations,
       triggerEvents: config.triggerEvents,
-      config: config.config,
+      config: encryptedConfig,
       updatedAt: config.updatedAt,
     };
   }
@@ -223,6 +226,7 @@ export class MongoCrmCompanyConfigRepositoryImpl
   private toPrimitives(
     doc: CrmCompanyConfigSchema,
   ): CrmCompanyConfigPrimitives {
+    const decryptedConfig = this.decryptConfig(doc.config);
     return {
       id: doc.id,
       companyId: doc.companyId,
@@ -230,9 +234,39 @@ export class MongoCrmCompanyConfigRepositoryImpl
       enabled: doc.enabled,
       syncChatConversations: doc.syncChatConversations,
       triggerEvents: doc.triggerEvents,
-      config: doc.config,
+      config: decryptedConfig,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     };
+  }
+
+  /**
+   * Cifra los campos sensibles de la configuración CRM (clienteToken, etc.)
+   */
+  private encryptConfig(
+    config: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const encrypted = { ...config };
+    if (typeof encrypted['clienteToken'] === 'string') {
+      encrypted['clienteToken'] = this.encryptionService.encrypt(
+        encrypted['clienteToken'],
+      );
+    }
+    return encrypted;
+  }
+
+  /**
+   * Descifra los campos sensibles de la configuración CRM con fallback a texto plano (legacy)
+   */
+  private decryptConfig(
+    config: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const decrypted = { ...config };
+    if (typeof decrypted['clienteToken'] === 'string') {
+      decrypted['clienteToken'] = this.encryptionService.tryDecrypt(
+        decrypted['clienteToken'],
+      );
+    }
+    return decrypted;
   }
 }

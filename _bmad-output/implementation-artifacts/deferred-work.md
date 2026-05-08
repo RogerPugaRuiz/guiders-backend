@@ -13,7 +13,10 @@
 
 - `POST /api/consents/grant` — El `RecordConsentCommand` ya existe en aplicación pero no se expone como endpoint HTTP. Diferido porque el flujo `identify → renew` cubre todos los casos actuales. Implementar solo si el producto necesita granularidad post-identificación (ej. banner de cookies por categoría con consentimiento explícito por tipo). El SDK puede reactivar el método `grantConsents()` que fue eliminado en v1.6.0 cuando este endpoint esté disponible.
 
-## Deferred from: code review of sec-3-2 (2026-04-22)
+## Deferred from: code review of sec-3-2 (2026-05-07)
 
-- `STRICT_ROLES` leído en cada request en `RolesGuard.canActivate` (`src/context/shared/infrastructure/guards/role.guard.ts`): Acceso a `process.env` por invocación. Impacto mínimo pero podría cachearse en constructor. Se eligió este diseño para compatibilidad con tests que modifican la env var en tiempo de ejecución.
-- `@PublicEndpoint()` coexistiendo con `@UseGuards(AuthGuard, RolesGuard)` en `sync-with-keycloak` y `verify-role-mapping` (`src/context/auth/auth-user/infrastructure/controllers/auth-user.controller.ts`): Puede confundir a futuros devs que asuman que el endpoint es público. El decorador está documentado como Swagger-only pero el riesgo de confusión persiste.
+- `OptionalAuthGuard` + `RolesGuard` con `@Roles(['visitor'])` rompe visitantes anónimos en message-v2: diseño pendiente de decisión — si el rol `visitor` requiere sesión activa o se debe permitir acceso anónimo real.
+- `OptionalAuthGuard` no respeta `@Public()`: procesa auth probes innecesariamente en endpoints públicos. Pre-existente, impacto menor de rendimiento.
+- Roles de visitante en `OptionalAuthGuard` sin binding criptográfico: a evaluar en sec-Epic 6 (Multi-Tenant Data Isolation).
+- `extractToken` descarta tokens con espacios: pre-existente, no aplica a JWT estándar.
+- `STRICT_ROLES` mutable en runtime: diseño deliberado para compatibilidad con tests; en producción no es un riesgo real.

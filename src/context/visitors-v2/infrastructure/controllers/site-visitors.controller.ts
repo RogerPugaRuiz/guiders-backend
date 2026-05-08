@@ -19,7 +19,12 @@ import {
 import { DualAuthGuard } from '../../../shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { Roles } from '../../../shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from '../../../shared/infrastructure/swagger';
 import { GetVisitorsBySiteQuery } from '../../application/queries/get-visitors-by-site.query';
 import { GetVisitorsWithUnassignedChatsBySiteQuery } from '../../application/queries/get-visitors-with-unassigned-chats-by-site.query';
 import { GetVisitorsWithQueuedChatsBySiteQuery } from '../../application/queries/get-visitors-with-queued-chats-by-site.query';
@@ -35,6 +40,8 @@ import {
 } from '../../application/dtos/site-visitors-query.dto';
 
 @ApiTags('Site Visitors Management')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('site-visitors')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -62,14 +69,8 @@ export class SiteVisitorsController {
     description: 'Lista de visitantes obtenida exitosamente',
     type: SiteVisitorsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de sitio inválido o parámetros de consulta inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Sitio no encontrado',
-  })
+  @ApiValidationError('ID de sitio inválido o parámetros de consulta inválidos')
+  @ApiNotFoundError('Sitio')
   async getVisitorsBySite(
     @Param('siteId', ParseUUIDPipe) siteId: string,
     @Query() queryParams: SiteVisitorsQueryDto,
@@ -106,14 +107,8 @@ export class SiteVisitorsController {
       'Lista de visitantes con chats sin asignar obtenida exitosamente',
     type: SiteVisitorsUnassignedChatsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de sitio inválido o parámetros de consulta inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Sitio no encontrado',
-  })
+  @ApiValidationError('ID de sitio inválido o parámetros de consulta inválidos')
+  @ApiNotFoundError('Sitio')
   async getVisitorsWithUnassignedChats(
     @Param('siteId', ParseUUIDPipe) siteId: string,
     @Query() queryParams: SiteVisitorsUnassignedChatsQueryDto,
@@ -147,14 +142,8 @@ export class SiteVisitorsController {
     description: 'Lista de visitantes con chats en cola obtenida exitosamente',
     type: SiteVisitorsQueuedChatsResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de sitio inválido o parámetros de consulta inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Sitio no encontrado',
-  })
+  @ApiValidationError('ID de sitio inválido o parámetros de consulta inválidos')
+  @ApiNotFoundError('Sitio')
   async getVisitorsWithQueuedChats(
     @Param('siteId', ParseUUIDPipe) siteId: string,
     @Query() queryParams: SiteVisitorsQueuedChatsQueryDto,

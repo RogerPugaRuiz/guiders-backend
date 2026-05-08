@@ -13,7 +13,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   BadRequestException,
-  UnauthorizedException,
+  ForbiddenException,
   Inject,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -68,6 +68,12 @@ import {
   COMPANY_REPOSITORY,
 } from '../../../company/domain/company.repository';
 import { VisitorAccountApiKey } from '../../../auth/auth-visitor/domain/models/visitor-account-api-key';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 
 /**
  * Controlador REST para el contexto Commercial
@@ -75,6 +81,8 @@ import { VisitorAccountApiKey } from '../../../auth/auth-visitor/domain/models/v
  */
 @ApiTags('Commercials')
 @ApiBearerAuth()
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/commercials')
 @UseGuards(AuthGuard, RolesGuard)
 export class CommercialController {
@@ -105,14 +113,7 @@ export class CommercialController {
     description: 'Comercial conectado exitosamente',
     type: CommercialOperationResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError()
   async connectCommercial(
     @Body() connectDto: ConnectCommercialDto,
   ): Promise<CommercialOperationResponseDto> {
@@ -160,14 +161,7 @@ export class CommercialController {
     description: 'Comercial desconectado exitosamente',
     type: CommercialOperationResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError()
   async disconnectCommercial(
     @Body() disconnectDto: DisconnectCommercialDto,
   ): Promise<CommercialOperationResponseDto> {
@@ -208,18 +202,8 @@ export class CommercialController {
     description: 'Estado cambiado exitosamente',
     type: CommercialOperationResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos de entrada inválidos',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError()
+  @ApiNotFoundError('Comercial', 'Comercial no encontrado')
   async changeCommercialStatus(
     @Body() changeStatusDto: ChangeCommercialStatusDto,
   ): Promise<CommercialOperationResponseDto> {
@@ -286,14 +270,7 @@ export class CommercialController {
     description: 'Estado del comercial obtenido exitosamente',
     type: CommercialConnectionStatusResponseDto,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Comercial', 'Comercial no encontrado')
   async getCommercialStatus(
     @Param('id') commercialId: string,
   ): Promise<CommercialConnectionStatusResponseDto> {
@@ -338,14 +315,6 @@ export class CommercialController {
     description: 'Lista de comerciales activos obtenida exitosamente',
     type: OnlineCommercialsResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
   async getActiveCommercials(): Promise<OnlineCommercialsResponseDto> {
     try {
       this.logger.log('Obteniendo comerciales activos');
@@ -379,14 +348,6 @@ export class CommercialController {
     status: 200,
     description: 'Lista de comerciales disponibles obtenida exitosamente',
     type: OnlineCommercialsResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'No autorizado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   async getAvailableCommercials(): Promise<OnlineCommercialsResponseDto> {
     try {
@@ -432,24 +393,9 @@ export class CommercialController {
       'El campo `onlineCount` y `available` están acotados al tenant del dominio consultado.',
     type: CommercialAvailabilityResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Datos inválidos (domain o apiKey faltantes o con formato incorrecto)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'API Key no válida para el dominio proporcionado',
-  })
-  @ApiResponse({
-    status: 404,
-    description:
-      'Dominio no encontrado en el sistema o no asociado a ningún sitio registrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError(
+    'Datos inválidos (domain o apiKey faltantes o con formato incorrecto)',
+  )
   async checkCommercialAvailability(
     @Body() dto: CheckCommercialAvailabilityDto,
   ): Promise<CommercialAvailabilityResponseDto> {
@@ -466,8 +412,9 @@ export class CommercialController {
       });
 
       if (!apiKeyValid) {
-        throw new UnauthorizedException(
-          'API Key inválida para el dominio proporcionado',
+        // Respuesta genérica para evitar enumeración de dominios/API keys
+        throw new ForbiddenException(
+          'Credenciales inválidas o dominio no autorizado',
         );
       }
 
@@ -476,8 +423,9 @@ export class CommercialController {
         await this.companyRepository.findByDomain(normalizedDomain);
 
       if (companyResult.isErr()) {
-        throw new NotFoundException(
-          `No se encontró una empresa para el dominio: ${normalizedDomain}`,
+        // Respuesta genérica: no revelar si el dominio existe o no
+        throw new ForbiddenException(
+          'Credenciales inválidas o dominio no autorizado',
         );
       }
 
@@ -492,8 +440,9 @@ export class CommercialController {
       );
 
       if (!targetSite) {
-        throw new NotFoundException(
-          `No se encontró un sitio específico para el dominio: ${normalizedDomain}`,
+        // Respuesta genérica: no revelar si el dominio existe o no
+        throw new ForbiddenException(
+          'Credenciales inválidas o dominio no autorizado',
         );
       }
 
@@ -518,11 +467,10 @@ export class CommercialController {
         error,
       );
 
-      // Re-lanzar errores específicos
+      // Re-lanzar errores específicos de negocio
       if (
         error instanceof BadRequestException ||
-        error instanceof UnauthorizedException ||
-        error instanceof NotFoundException
+        error instanceof ForbiddenException
       ) {
         throw error;
       }
@@ -554,14 +502,7 @@ export class CommercialController {
     description: 'Comercial eliminado exitosamente',
     type: CommercialOperationResponseDto,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Comercial', 'Comercial no encontrado')
   async removeCommercial(
     @Param('id') commercialId: string,
   ): Promise<CommercialOperationResponseDto> {
@@ -605,14 +546,7 @@ export class CommercialController {
     description: 'Fingerprint registrado exitosamente',
     type: CommercialOperationResponseDto,
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Comercial no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiNotFoundError('Comercial', 'Comercial no encontrado')
   async registerFingerprint(
     @Body() dto: RegisterFingerprintDto,
   ): Promise<CommercialOperationResponseDto> {

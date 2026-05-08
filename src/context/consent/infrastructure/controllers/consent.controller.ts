@@ -34,7 +34,12 @@ import { Result } from '../../../shared/domain/result';
 import { VisitorConsentPrimitives } from '../../domain/visitor-consent.aggregate';
 import { ConsentAuditLogPrimitives } from '../../domain/consent-audit-log.aggregate';
 import { ConsentError } from '../../domain/errors/consent.error';
-import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from '../../../shared/infrastructure/swagger';
 
 /**
  * Controller para gestión de consentimientos
@@ -43,6 +48,8 @@ import { ApiAuthErrors } from '../../../shared/infrastructure/swagger';
  * - Art. 15: Derecho de acceso del interesado
  */
 @ApiTags('Consent')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('consents')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -72,14 +79,8 @@ export class ConsentController {
     status: 200,
     description: 'Consentimiento revocado exitosamente',
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Consentimiento no encontrado',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos',
-  })
+  @ApiNotFoundError('Consentimiento', 'Consentimiento no encontrado')
+  @ApiValidationError()
   async revokeConsent(
     @Body() dto: RevokeConsentDto,
   ): Promise<{ message: string }> {
@@ -143,14 +144,8 @@ export class ConsentController {
     status: 200,
     description: 'Consentimiento renovado exitosamente',
   })
-  @ApiResponse({
-    status: 404,
-    description: 'Consentimiento no encontrado',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos o consentimiento no renovable',
-  })
+  @ApiNotFoundError('Consentimiento', 'Consentimiento no encontrado')
+  @ApiValidationError('Datos inválidos o consentimiento no renovable')
   async renewConsent(
     @Body() dto: RenewConsentDto,
   ): Promise<{ message: string }> {
@@ -219,10 +214,7 @@ export class ConsentController {
     description: 'Historial de consentimientos obtenido exitosamente',
     type: ConsentHistoryResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de visitante inválido',
-  })
+  @ApiValidationError('ID de visitante inválido')
   async getConsentHistory(
     @Param('visitorId') visitorId: string,
   ): Promise<ConsentHistoryResponseDto> {
@@ -282,10 +274,7 @@ export class ConsentController {
     description: 'Audit logs obtenidos exitosamente',
     type: AuditLogListResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'ID de visitante inválido',
-  })
+  @ApiValidationError('ID de visitante inválido')
   async getVisitorAuditLogs(
     @Param('visitorId') visitorId: string,
   ): Promise<AuditLogListResponseDto> {

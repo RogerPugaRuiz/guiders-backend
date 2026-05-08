@@ -11,15 +11,12 @@ import {
   Inject,
 } from '@nestjs/common';
 import {
-  ApiBadRequestResponse,
   ApiBody,
   ApiCreatedResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthVisitorService } from './services/auth-visitor.service';
 import { ApiKeyNotFoundError, InvalidTokenError } from './services/errors';
@@ -46,9 +43,17 @@ import {
   COMPANY_REPOSITORY,
   CompanyRepository,
 } from '../../../company/domain/company.repository';
-import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+  PublicEndpoint,
+} from 'src/context/shared/infrastructure/swagger';
 
 @ApiTags('Pixel Visitor Auth')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('pixel')
 export class AuthVisitorController {
   private readonly logger = new Logger(AuthVisitorController.name);
@@ -73,12 +78,11 @@ export class AuthVisitorController {
     description: 'Tokens emitidos correctamente',
     type: TokensResponseDto,
   })
-  @ApiBadRequestResponse({
-    description: 'Origin/Referer inválidos o no coinciden',
-  })
-  @ApiNotFoundResponse({
-    description: 'Visitor o client no encontrado / dominio inválido',
-  })
+  @ApiValidationError('Origin/Referer inválidos o no coinciden')
+  @ApiNotFoundError(
+    'Visitante',
+    'Visitor o client no encontrado / dominio inválido',
+  )
   async getToken(
     @Body() body: TokenRequestDto,
     @Headers('origin') origin: string | undefined,
@@ -132,10 +136,8 @@ export class AuthVisitorController {
     description: 'Visitante registrado o existente: tokens emitidos',
     type: TokensResponseDto,
   })
-  @ApiBadRequestResponse({
-    description: 'Dominio inválido / Origin-Referer no coinciden',
-  })
-  @ApiNotFoundResponse({ description: 'API Key o Visitor no encontrado' })
+  @ApiValidationError('Dominio inválido / Origin-Referer no coinciden')
+  @ApiNotFoundError('Visitante', 'API Key o Visitor no encontrado')
   async register(
     @Body() body: RegisterVisitorRequestDto,
     @Headers('origin') origin: string | undefined,
@@ -210,7 +212,6 @@ export class AuthVisitorController {
     description: 'Access token renovado',
     type: AccessTokenResponseDto,
   })
-  @ApiUnauthorizedResponse({ description: 'Refresh token inválido' })
   async refresh(
     @Body() body: VisitorRefreshTokenRequestDto,
   ): Promise<AccessTokenResponseDto> {
@@ -247,12 +248,8 @@ export class AuthVisitorController {
     description: 'Metadatos obtenidos exitosamente',
     type: PixelMetadataResponseDto,
   })
-  @ApiNotFoundResponse({
-    description: 'API Key no encontrada o inválida',
-  })
-  @ApiBadRequestResponse({
-    description: 'API Key no proporcionada o formato inválido',
-  })
+  @ApiNotFoundError('ApiKey', 'API Key no encontrada o inválida')
+  @ApiValidationError('API Key no proporcionada o formato inválido')
   async getMetadata(
     @Query('apiKey') apiKey: string,
   ): Promise<PixelMetadataResponseDto> {

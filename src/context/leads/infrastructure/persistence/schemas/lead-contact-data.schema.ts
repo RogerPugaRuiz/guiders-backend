@@ -67,3 +67,22 @@ LeadContactDataSchemaDefinition.index(
   { email: 1, companyId: 1 },
   { sparse: true },
 );
+
+// Índice de texto para búsqueda global (nombre, apellidos, email, teléfono)
+LeadContactDataSchemaDefinition.index(
+  {
+    nombre: 'text',
+    apellidos: 'text',
+    email: 'text',
+    telefono: 'text',
+  },
+  {
+    weights: {
+      nombre: 10,
+      apellidos: 8,
+      email: 6,
+      telefono: 3,
+    },
+    name: 'lead_search_text_idx',
+  },
+);

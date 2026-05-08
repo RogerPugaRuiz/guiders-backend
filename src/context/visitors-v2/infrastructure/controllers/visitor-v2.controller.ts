@@ -23,7 +23,6 @@ import { Roles } from '../../../shared/infrastructure/roles.decorator';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
   ApiOkResponse,
   ApiBody,
   ApiBearerAuth,
@@ -52,7 +51,13 @@ import { GetVisitorActivityQuery } from '../../application/queries/get-visitor-a
 import { GetVisitorActivityResponseDto } from '../../application/dtos/get-visitor-activity-response.dto';
 import { GetVisitorSiteQuery } from '../../application/queries/get-visitor-site.query';
 import { GetVisitorSiteResponseDto } from '../../application/dtos/get-visitor-site-response.dto';
-import { PublicEndpoint } from '../../../shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+  PublicEndpoint,
+} from '../../../shared/infrastructure/swagger';
 import {
   VISITOR_V2_REPOSITORY,
   VisitorV2Repository,
@@ -65,6 +70,8 @@ import { SessionId } from '../../domain/value-objects/session-id';
 import { VisitorLastActivity } from '../../domain/value-objects/visitor-last-activity';
 
 @ApiTags('visitors')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('visitors')
 export class VisitorV2Controller {
   private readonly logger = new Logger(VisitorV2Controller.name);
@@ -123,23 +130,10 @@ export class VisitorV2Controller {
     description: 'Visitante identificado exitosamente',
     type: IdentifyVisitorResponseDto,
   })
-  @ApiResponse({
-    status: 400,
-    description:
-      'Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'API Key no válida para el dominio proporcionado',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Dominio no encontrado en el sistema',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError(
+    'Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)',
+  )
+  @ApiNotFoundError('Recurso', 'Dominio no encontrado en el sistema')
   async identifyVisitor(
     @Body() identifyVisitorDto: IdentifyVisitorDto,
     @Req() request: ExpressRequest,
@@ -206,14 +200,8 @@ export class VisitorV2Controller {
   @ApiOkResponse({
     description: 'Sesión cerrada exitosamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos o sesión no encontrada',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Sesión no encontrada',
-  })
+  @ApiValidationError('Datos inválidos o sesión no encontrada')
+  @ApiNotFoundError('Recurso')
   async endSession(
     @Body() endSessionDto: EndSessionDto,
     @Req() request: ExpressRequest,
@@ -296,14 +284,7 @@ export class VisitorV2Controller {
       },
     },
   })
-  @ApiResponse({
-    status: 400,
-    description: 'SessionId no proporcionado',
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Sesión inválida o expirada',
-  })
+  @ApiValidationError('SessionId no proporcionado')
   async heartbeat(
     @Body() heartbeatDto: HeartbeatDto,
     @Req() request: ExpressRequest,
@@ -365,18 +346,8 @@ export class VisitorV2Controller {
   @ApiOkResponse({
     description: 'Estado cambiado exitosamente',
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Datos inválidos o estado no permitido',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado',
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
-  })
+  @ApiValidationError('Datos inválidos o estado no permitido')
+  @ApiNotFoundError('Visitante', 'Visitante no encontrado')
   async changeVisitorStatus(
     @Body() changeStatusDto: ChangeVisitorStatusDto,
   ): Promise<{ success: boolean; message: string; status: string }> {
@@ -453,18 +424,10 @@ export class VisitorV2Controller {
     description: 'Página actual del visitante obtenida exitosamente',
     type: GetVisitorCurrentPageResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado - Token JWT inválido o expirado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos - Se requiere rol de comercial',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado con el ID proporcionado',
-  })
+  @ApiNotFoundError(
+    'Visitante',
+    'Visitante no encontrado con el ID proporcionado',
+  )
   async getVisitorCurrentPage(
     @Param('visitorId') visitorId: string,
   ): Promise<GetVisitorCurrentPageResponseDto> {
@@ -505,18 +468,10 @@ export class VisitorV2Controller {
     description: 'Estadísticas de actividad obtenidas exitosamente',
     type: GetVisitorActivityResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado - Token JWT inválido o expirado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos - Se requiere rol de commercial o admin',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado con el ID proporcionado',
-  })
+  @ApiNotFoundError(
+    'Visitante',
+    'Visitante no encontrado con el ID proporcionado',
+  )
   async getVisitorActivity(
     @Param('visitorId') visitorId: string,
   ): Promise<GetVisitorActivityResponseDto> {
@@ -551,18 +506,10 @@ export class VisitorV2Controller {
     description: 'SiteId del visitante obtenido exitosamente',
     type: GetVisitorSiteResponseDto,
   })
-  @ApiResponse({
-    status: 401,
-    description: 'No autenticado - Token JWT inválido o expirado',
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Sin permisos - Se requiere rol de commercial o admin',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Visitante no encontrado con el ID proporcionado',
-  })
+  @ApiNotFoundError(
+    'Visitante',
+    'Visitante no encontrado con el ID proporcionado',
+  )
   async getVisitorSite(
     @Param('visitorId') visitorId: string,
   ): Promise<GetVisitorSiteResponseDto> {

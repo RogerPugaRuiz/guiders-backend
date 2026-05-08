@@ -1,16 +1,15 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
-  ApiBadRequestResponse,
-  ApiInternalServerErrorResponse,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger';
+  ApiInternalServerError,
+  ApiValidationError,
+  PublicEndpoint,
+} from 'src/context/shared/infrastructure/swagger';
 import { JwksResponse, JwksService } from './jwks.service';
 import { JwksResponseDto } from './dtos/jwks-response.dto';
 
 @ApiTags('JWKS')
+@ApiInternalServerError()
 @Controller('jwks')
 export class JwksController {
   constructor(private readonly jwksService: JwksService) {}
@@ -26,8 +25,7 @@ export class JwksController {
     description: 'JWKS actual con todas las claves públicas activas.',
     type: JwksResponseDto,
   })
-  @ApiBadRequestResponse({ description: 'Petición inválida.' })
-  @ApiInternalServerErrorResponse({ description: 'Error al recuperar JWKS' })
+  @ApiValidationError('Petición inválida.')
   @Get()
   async getJwks(): Promise<JwksResponse> {
     return await this.jwksService.getJwks();

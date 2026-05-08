@@ -27,7 +27,12 @@ import { Inject } from '@nestjs/common';
 import { DualAuthGuard } from 'src/context/shared/infrastructure/guards/dual-auth.guard';
 import { RolesGuard } from 'src/context/shared/infrastructure/guards/role.guard';
 import { Roles } from 'src/context/shared/infrastructure/roles.decorator';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+  ApiNotFoundError,
+  ApiValidationError,
+} from 'src/context/shared/infrastructure/swagger';
 import {
   ILlmConfigRepository,
   LLM_CONFIG_REPOSITORY,
@@ -42,6 +47,8 @@ import {
 } from '../../application/dtos/llm-config.dto';
 
 @ApiTags('LLM Configuration')
+@ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/llm/config')
 @UseGuards(DualAuthGuard, RolesGuard)
 @ApiBearerAuth()
@@ -154,7 +161,7 @@ export class LlmConfigController {
     description: 'Configuración encontrada',
     type: LlmConfigResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async getConfig(
     @Param('companyId') companyId: string,
   ): Promise<LlmConfigResponseDto> {
@@ -179,7 +186,7 @@ export class LlmConfigController {
     description: 'Configuración creada',
     type: LlmConfigResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  @ApiValidationError()
   async createConfig(
     @Body() dto: CreateLlmConfigDto,
   ): Promise<LlmConfigResponseDto> {
@@ -227,7 +234,7 @@ export class LlmConfigController {
     description: 'Configuración actualizada',
     type: LlmConfigResponseDto,
   })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async updateConfig(
     @Param('companyId') companyId: string,
     @Body() dto: UpdateLlmConfigDto,
@@ -283,7 +290,7 @@ export class LlmConfigController {
   @ApiOperation({ summary: 'Eliminar configuración LLM de una empresa' })
   @ApiParam({ name: 'companyId', description: 'ID de la empresa' })
   @ApiResponse({ status: 204, description: 'Configuración eliminada' })
-  @ApiResponse({ status: 404, description: 'Configuración no encontrada' })
+  @ApiNotFoundError('Configuración', 'Configuración no encontrada')
   async deleteConfig(@Param('companyId') companyId: string): Promise<void> {
     this.logger.debug(`Eliminando configuración para empresa ${companyId}`);
 

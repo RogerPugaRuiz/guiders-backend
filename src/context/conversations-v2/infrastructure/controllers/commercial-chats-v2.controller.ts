@@ -31,7 +31,10 @@ import {
   ChatSortDto,
 } from '../../application/dtos/chat-query.dto';
 import { GetChatsWithFiltersQuery } from '../../application/queries/get-chats-with-filters.query';
-import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
+import {
+  ApiAuthErrors,
+  ApiInternalServerError,
+} from 'src/context/shared/infrastructure/swagger';
 
 /**
  * Controller que expone los chats indexados por comercial.
@@ -42,6 +45,7 @@ import { ApiAuthErrors } from 'src/context/shared/infrastructure/swagger';
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 @ApiAuthErrors()
+@ApiInternalServerError()
 @Controller('v2/commercials')
 export class CommercialChatsV2Controller {
   private readonly logger = new Logger(CommercialChatsV2Controller.name);
@@ -116,43 +120,6 @@ export class CommercialChatsV2Controller {
     status: 200,
     description: 'Lista de chats del comercial obtenida exitosamente',
     type: ChatListResponseDto,
-  })
-  @ApiResponse({
-    status: 401,
-    description:
-      'Usuario no autenticado - Se requiere Bearer token o sesión BFF',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 401 },
-        message: {
-          type: 'string',
-          example:
-            'Se requiere autenticación - Bearer token o sesión de cookie',
-        },
-        error: { type: 'string', example: 'Unauthorized' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 403,
-    description:
-      'Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor',
-    schema: {
-      type: 'object',
-      properties: {
-        statusCode: { type: 'number', example: 403 },
-        message: {
-          type: 'string',
-          example: 'Acceso denegado. Permisos insuficientes.',
-        },
-        error: { type: 'string', example: 'Forbidden' },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Error interno del servidor',
   })
   async getCommercialChats(
     @Param('commercialId') commercialId: string,
