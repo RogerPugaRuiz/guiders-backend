@@ -14,6 +14,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
   ForbiddenException,
+  UnauthorizedException,
   Inject,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
@@ -412,9 +413,8 @@ export class CommercialController {
       });
 
       if (!apiKeyValid) {
-        // Respuesta genérica para evitar enumeración de dominios/API keys
-        throw new ForbiddenException(
-          'Credenciales inválidas o dominio no autorizado',
+        throw new UnauthorizedException(
+          'API Key inválida para el dominio proporcionado',
         );
       }
 
@@ -423,9 +423,8 @@ export class CommercialController {
         await this.companyRepository.findByDomain(normalizedDomain);
 
       if (companyResult.isErr()) {
-        // Respuesta genérica: no revelar si el dominio existe o no
-        throw new ForbiddenException(
-          'Credenciales inválidas o dominio no autorizado',
+        throw new NotFoundException(
+          `No se encontró una empresa para el dominio: ${normalizedDomain}`,
         );
       }
 
@@ -440,9 +439,8 @@ export class CommercialController {
       );
 
       if (!targetSite) {
-        // Respuesta genérica: no revelar si el dominio existe o no
-        throw new ForbiddenException(
-          'Credenciales inválidas o dominio no autorizado',
+        throw new NotFoundException(
+          `No se encontró un sitio específico para el dominio: ${normalizedDomain}`,
         );
       }
 
@@ -470,6 +468,8 @@ export class CommercialController {
       // Re-lanzar errores específicos de negocio
       if (
         error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException ||
         error instanceof ForbiddenException
       ) {
         throw error;

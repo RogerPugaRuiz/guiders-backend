@@ -203,6 +203,7 @@ export function buildSwaggerConfig(): Omit<OpenAPIObject, 'paths'> {
       'internal-opensearch',
       'Endpoints internos de diagnóstico OpenSearch',
     )
+    .addTag('search', 'Búsqueda global centralizada con filtrado por rol')
     .build();
 }
 
