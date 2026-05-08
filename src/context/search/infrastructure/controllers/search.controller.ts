@@ -13,6 +13,7 @@ import {
   ApiOperation,
   ApiOkResponse,
   ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { GlobalSearchQuery } from '../../application/queries/global-search/global-search.query';
 import { SearchResultPrimitives } from 'src/context/shared/domain/search';
@@ -30,6 +31,7 @@ const MIN_QUERY_LENGTH = 2;
 const MAX_QUERY_LENGTH = 100;
 
 @ApiTags('search')
+@ApiBearerAuth()
 @ApiInternalServerError()
 @ApiAuthErrors()
 @UseGuards(DualAuthGuard)

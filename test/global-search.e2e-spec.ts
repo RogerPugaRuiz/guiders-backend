@@ -104,6 +104,7 @@ describe('SearchController (e2e)', () => {
         {
           provide: SearchCacheService,
           useValue: {
+            buildKey: jest.fn().mockReturnValue('mock-cache-key'),
             get: jest.fn().mockResolvedValue(null),
             set: jest.fn().mockResolvedValue(undefined),
           },
