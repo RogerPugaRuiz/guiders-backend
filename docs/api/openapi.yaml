@@ -22,12 +22,38 @@ paths:
                 $ref: '#/components/schemas/TokensResponseDto'
         '400':
           description: Origin/Referer inválidos o no coinciden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_0
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_1
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Visitor o client no encontrado / dominio inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_2
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Obtener par de tokens para visitante existente
-      tags: &ref_0
+      tags: &ref_3
         - Pixel Visitor Auth
   /api/pixel/register:
     post:
@@ -51,12 +77,23 @@ paths:
                 $ref: '#/components/schemas/TokensResponseDto'
         '400':
           description: Dominio inválido / Origin-Referer no coinciden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_0
+        '403': *ref_1
         '404':
           description: API Key o Visitor no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_2
       security:
         - {}
       summary: Registrar visitante + emitir tokens
-      tags: *ref_0
+      tags: *ref_3
   /api/pixel/token/refresh:
     post:
       description: Devuelve un nuevo access_token válido a partir de refresh_token.
@@ -75,12 +112,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessTokenResponseDto'
-        '401':
-          description: Refresh token inválido
+        '401': *ref_0
+        '403': *ref_1
+        '500': *ref_2
       security:
         - {}
       summary: Refrescar access token
-      tags: *ref_0
+      tags: *ref_3
   /api/pixel/metadata:
     get:
       description: >-
@@ -105,12 +143,23 @@ paths:
                 $ref: '#/components/schemas/PixelMetadataResponseDto'
         '400':
           description: API Key no proporcionada o formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_0
+        '403': *ref_1
         '404':
           description: API Key no encontrada o inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_2
       security:
         - {}
       summary: Obtener metadatos del sitio por API Key
-      tags: *ref_0
+      tags: *ref_3
   /api/user/auth/login:
     post:
       description: Verifica las credenciales y devuelve tokens de acceso y actualización
@@ -131,14 +180,32 @@ paths:
                 $ref: '#/components/schemas/TokenResponseDto'
         '400':
           description: Error de validación (formato de email incorrecto)
-        '401':
-          description: Credenciales inválidas
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_4
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_5
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_6
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Iniciar sesión de usuario
-      tags: &ref_1
+      tags: &ref_7
         - Autenticación de Usuarios
   /api/user/auth/register:
     post:
@@ -156,14 +223,19 @@ paths:
           description: Usuario registrado correctamente
         '400':
           description: Error de validación (formato de email incorrecto, contraseña no cumple requisitos)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
         '409':
           description: El usuario ya existe
-        '500':
-          description: Error interno del servidor
+        '500': *ref_6
       security:
         - bearer: []
       summary: Registrar un nuevo usuario
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/refresh:
     post:
       description: Utiliza un token de actualización para obtener un nuevo token de acceso
@@ -184,14 +256,17 @@ paths:
                 $ref: '#/components/schemas/RefreshTokenResponseDto'
         '400':
           description: Error de validación (token mal formado)
-        '401':
-          description: Token de actualización inválido o expirado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
+        '500': *ref_6
       security:
         - {}
       summary: Renovar token de acceso
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/logout:
     post:
       description: Cierra la sesión del usuario y revoca sus tokens
@@ -200,14 +275,13 @@ paths:
       responses:
         '200':
           description: Sesión cerrada correctamente
-        '401':
-          description: No autorizado
-        '500':
-          description: Error interno del servidor
+        '401': *ref_4
+        '403': *ref_5
+        '500': *ref_6
       security:
         - {}
       summary: Cerrar sesión
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/validate:
     get:
       description: Verifica que el token de acceso sea válido
@@ -225,14 +299,17 @@ paths:
           description: Token válido
         '400':
           description: Error de validación (token mal formado)
-        '401':
-          description: Token inválido o expirado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
+        '500': *ref_6
       security:
         - bearer: []
       summary: Validar token de acceso
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/accept-invite:
     post:
       description: Acepta una invitación para unirse a una compañía y establece la contraseña
@@ -261,20 +338,14 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  error:
-                    type: string
-        '401':
-          description: Token de invitación inválido o expirado
-        '500':
-          description: Error interno del servidor
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
+        '500': *ref_6
       security:
         - {}
       summary: Aceptar invitación
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/company-users:
     get:
       description: Devuelve los usuarios asociados a la compañía del token JWT
@@ -287,14 +358,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserListResponseDto'
-        '401':
-          description: No autorizado
-        '500':
-          description: Error interno del servidor
+        '401': *ref_4
+        '403': *ref_5
+        '500': *ref_6
       security:
         - bearer: []
       summary: Listar usuarios de la compañía
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/me:
     get:
       description: >-
@@ -309,16 +379,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CurrentUserResponseDto'
-        '401':
-          description: No autorizado
+        '401': *ref_4
+        '403': *ref_5
         '404':
           description: Usuario no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_6
       security:
         - bearer: []
       summary: Obtener usuario autenticado
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/{keycloakId}:
     get:
       description: >-
@@ -340,16 +413,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CurrentUserResponseDto'
-        '401':
-          description: No autorizado
+        '401': *ref_4
+        '403': *ref_5
         '404':
           description: Usuario no encontrado con ese Keycloak ID
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_6
       security:
         - bearer: []
       summary: Obtener usuario por Keycloak ID
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/sync-with-keycloak:
     post:
       description: Crea un nuevo usuario en el backend y lo vincula con un usuario existente de Keycloak
@@ -369,15 +445,20 @@ paths:
               schema:
                 $ref: '#/components/schemas/SyncUserResponseDto'
         '400':
-          description: Datos inválidos
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
         '409':
           description: Usuario ya existe o Keycloak ID ya está vinculado
-        '500':
-          description: Error interno del servidor
+        '500': *ref_6
       security:
-        - {}
+        - bearer: []
       summary: Sincronizar usuario con Keycloak
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/verify-role-mapping:
     post:
       description: Verifica cómo se mapearían los roles de Keycloak a roles del backend sin crear usuario
@@ -397,13 +478,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/VerifyRoleMappingResponseDto'
         '400':
-          description: Datos inválidos
-        '500':
-          description: Error interno del servidor
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
+        '500': *ref_6
       security:
-        - {}
+        - bearer: []
       summary: Verificar mapeo de roles de Keycloak
-      tags: *ref_1
+      tags: *ref_7
   /api/user/auth/{keycloakId}/avatar:
     post:
       description: >-
@@ -447,18 +533,23 @@ paths:
                     example: Avatar actualizado exitosamente
         '400':
           description: Archivo inválido o no proporcionado
-        '401':
-          description: No autorizado
-        '403':
-          description: Sin permisos para actualizar este avatar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_4
+        '403': *ref_5
         '404':
           description: Usuario no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_6
       security:
         - bearer: []
       summary: Subir o actualizar avatar del usuario
-      tags: *ref_1
+      tags: *ref_7
     delete:
       description: >-
         Permite a un usuario eliminar su avatar o a un admin eliminar el avatar de cualquier usuario. Requiere Keycloak
@@ -483,18 +574,19 @@ paths:
                   message:
                     type: string
                     example: Avatar eliminado exitosamente
-        '401':
-          description: No autorizado
-        '403':
-          description: Sin permisos para eliminar este avatar
+        '401': *ref_4
+        '403': *ref_5
         '404':
           description: Usuario no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_6
       security:
         - bearer: []
       summary: Eliminar avatar del usuario
-      tags: *ref_1
+      tags: *ref_7
   /api/bff/auth/login:
     get:
       description: >-
@@ -511,11 +603,21 @@ paths:
         '302':
           description: Redirección a proveedor OIDC
         '400':
-          description: Parámetros inválidos
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_8
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Iniciar login OIDC (console)
-      tags: &ref_2
+      tags: &ref_9
         - BFF Auth
   /api/bff/auth/login/{app}:
     get:
@@ -539,11 +641,16 @@ paths:
         '302':
           description: Redirección a proveedor OIDC
         '400':
-          description: Parámetros inválidos
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Iniciar login OIDC para app
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/callback/{app}:
     get:
       description: >-
@@ -567,10 +674,15 @@ paths:
             Redirección a returnTo tras login
         '400':
           description: Callback inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Callback OIDC
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/me:
     get:
       description: >-
@@ -587,12 +699,15 @@ paths:
                 $ref: '#/components/schemas/BFFMeResponseDto'
         '400':
           description: Solicitud inválida
-        '401':
-          description: No autenticado, JWT inválido o usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Obtener información del usuario autenticado (console)
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/me/{app}:
     get:
       description: >-
@@ -617,12 +732,15 @@ paths:
                 $ref: '#/components/schemas/BFFMeResponseDto'
         '400':
           description: Solicitud inválida
-        '401':
-          description: No autenticado, JWT inválido o usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Obtener información del usuario autenticado (app)
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/refresh:
     post:
       description: Renueva la cookie de sesión usando el refresh token HttpOnly. Responde 204 sin contenido si OK.
@@ -633,12 +751,15 @@ paths:
           description: Sesión renovada
         '400':
           description: Solicitud inválida
-        '401':
-          description: Refresh token ausente o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Refrescar sesión (console)
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/refresh/{app}:
     post:
       description: >-
@@ -659,12 +780,15 @@ paths:
           description: Sesión renovada
         '400':
           description: Solicitud inválida
-        '401':
-          description: Refresh token ausente o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Refrescar sesión (app)
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/logout:
     get:
       description: Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/console.
@@ -675,10 +799,15 @@ paths:
           description: Redirige a /login/console
         '400':
           description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Cerrar sesión (console)
-      tags: *ref_2
+      tags: *ref_9
   /api/bff/auth/logout/{app}:
     get:
       description: Revoca refresh token si existe, limpia cookies y redirige a /api/bff/auth/login/:app.
@@ -697,10 +826,15 @@ paths:
           description: Redirige a /login/:app
         '400':
           description: Solicitud inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_8
       security:
         - {}
       summary: Cerrar sesión (app)
-      tags: *ref_2
+      tags: *ref_9
   /api/api-keys/create:
     post:
       description: >-
@@ -722,13 +856,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/CreateApiKeyResponseDto'
         '400':
-          description: Datos inválidos
-        '500':
-          description: Error interno del servidor
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401':
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403':
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_10
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Crear (o reutilizar) API Key para un dominio
-      tags: &ref_3
+      tags: &ref_11
         - API Keys
   /api/api-keys/company:
     get:
@@ -740,14 +894,21 @@ paths:
           description: Listado obtenido correctamente
         '401':
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '403':
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_10
       security:
         - bearer: []
       summary: Listar API Keys de la compañía
-      tags: *ref_3
+      tags: *ref_11
   /jwks:
     get:
       description: >-
@@ -764,8 +925,16 @@ paths:
                 $ref: '#/components/schemas/JwksResponseDto'
         '400':
           description: Petición inválida.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '500':
-          description: Error al recuperar JWKS
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Obtener JWKS público
@@ -791,14 +960,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationApiKeyCreatedResponseDto'
-        '401': &ref_4
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_5
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_6
+        '401': &ref_12
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_13
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_14
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_15
         - bearer: []
       summary: Crear API Key de integración
-      tags: &ref_7
+      tags: &ref_16
         - integration-api-keys
     get:
       description: Devuelve todas las API Keys de integración de la compañía. No incluye los tokens completos.
@@ -813,11 +1002,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/IntegrationApiKeyListItemDto'
-        '401': *ref_4
-        '403': *ref_5
-      security: *ref_6
+        '401': *ref_12
+        '403': *ref_13
+        '500': *ref_14
+      security: *ref_15
       summary: Listar API Keys de integración
-      tags: *ref_7
+      tags: *ref_16
   /api/integration-api-keys/{id}:
     delete:
       description: Revoca una API Key de integración. No se puede deshacer.
@@ -831,20 +1021,25 @@ paths:
       responses:
         '204':
           description: API Key revocada
-        '401': *ref_4
-        '403': *ref_5
+        '401': *ref_12
+        '403': *ref_13
         '404':
           description: API Key no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '409':
           description: La API Key ya está revocada
-      security: *ref_6
+        '500': *ref_14
+      security: *ref_15
       summary: Revocar API Key de integración
-      tags: *ref_7
+      tags: *ref_16
   /api/integration/conversations:
     post:
       operationId: integration_createConversation
       parameters:
-        - &ref_8
+        - &ref_17
           name: x-api-key
           in: header
           description: Integration API Key (gdr_live_xxx o gdr_test_xxx)
@@ -860,20 +1055,36 @@ paths:
       responses:
         '201':
           description: Conversación creada exitosamente
-        '401':
-          description: API Key inválida o ausente
+        '401': &ref_18
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_19
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '409':
           description: Ya existe una conversación activa para este visitante
-      security: &ref_9
+        '500': &ref_20
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_21
         - api-key: []
       summary: Crear conversación via Integration API
-      tags: &ref_10
+      tags: &ref_22
         - integration
   /api/integration/conversations/{id}/messages:
     post:
       operationId: integration_sendMessage
       parameters:
-        - *ref_8
+        - *ref_17
         - name: id
           required: true
           in: path
@@ -888,22 +1099,25 @@ paths:
       responses:
         '201':
           description: Mensaje enviado exitosamente
-        '401':
-          description: API Key inválida o ausente
-        '403':
-          description: La conversación no pertenece a esta empresa
+        '401': *ref_18
+        '403': *ref_19
         '404':
-          description: Conversación no encontrada
+          description: Conversación no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '422':
           description: La conversación está cerrada
-      security: *ref_9
+        '500': *ref_20
+      security: *ref_21
       summary: Enviar mensaje via Integration API
-      tags: *ref_10
+      tags: *ref_22
   /api/integration/conversations/{id}:
     get:
       operationId: integration_getConversation
       parameters:
-        - *ref_8
+        - *ref_17
         - name: id
           required: true
           in: path
@@ -924,22 +1138,36 @@ paths:
           description: Conversación obtenida exitosamente
         '400':
           description: Parámetros de consulta inválidos
-        '401':
-          description: API Key inválida o ausente
-        '403':
-          description: La conversación no pertenece a esta empresa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_18
+        '403': *ref_19
         '404':
-          description: Conversación no encontrada
-      security: *ref_9
+          description: Conversación no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_20
+      security: *ref_21
       summary: Obtener conversación via Integration API
-      tags: *ref_10
+      tags: *ref_22
   /api/visitor/me:
     get:
       description: >-
         Retorna la información del visitante basada en el token JWT autenticado. Permite al visitante obtener su propio
         perfil sin necesidad de conocer su ID.
       operationId: visitor_getMyProfile
-      parameters: []
+      parameters:
+        - &ref_23
+          name: Deprecation
+          in: header
+          description: '⚠️ DEPRECADO: Usa /v2/visitors en su lugar'
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: Información del visitante obtenida exitosamente
@@ -947,26 +1175,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VisitorProfileDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol visitor
+        '401': &ref_24
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_25
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Visitante no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_26
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
-        - &ref_11
+        - &ref_27
           bearer: []
         - bearer: []
       summary: Obtener información del visitante autenticado
-      tags: &ref_12
+      tags: &ref_28
         - Visitantes
   /api/visitor/{visitorId}:
     get:
       description: Obtiene los datos del visitante a partir del ID en la URL
       operationId: visitor_getVisitor
       parameters:
+        - *ref_23
         - name: visitorId
           required: true
           in: path
@@ -979,22 +1224,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/VisitorResponseDto'
-        '401':
-          description: 'No autorizado: token JWT inválido o ausente'
-        '403':
-          description: 'Acceso denegado: Se requiere rol commercial'
+        '401': *ref_24
+        '403': *ref_25
         '404':
           description: Visitante no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_26
       security:
-        - *ref_11
+        - *ref_27
         - bearer: []
       summary: Obtener datos del visitante por ID
-      tags: *ref_12
+      tags: *ref_28
   /api/visitor/{visitorId}/email:
     put:
       description: Actualiza el correo electrónico del visitante
       operationId: visitor_updateEmail
       parameters:
+        - *ref_23
         - name: visitorId
           required: true
           in: path
@@ -1011,22 +1260,30 @@ paths:
           description: Email actualizado correctamente
         '400':
           description: Datos de entrada inválidos
-        '401':
-          description: 'No autorizado: token JWT inválido o ausente'
-        '403':
-          description: 'Acceso denegado: Se requiere rol commercial'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_24
+        '403': *ref_25
         '404':
           description: Visitante no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_26
       security:
-        - *ref_11
+        - *ref_27
         - bearer: []
       summary: Actualizar email del visitante
-      tags: *ref_12
+      tags: *ref_28
   /api/visitor/{visitorId}/name:
     put:
       description: Actualiza el nombre del visitante
       operationId: visitor_updateName
       parameters:
+        - *ref_23
         - name: visitorId
           required: true
           in: path
@@ -1043,22 +1300,30 @@ paths:
           description: Nombre actualizado correctamente
         '400':
           description: Datos de entrada inválidos
-        '401':
-          description: 'No autorizado: token JWT inválido o ausente'
-        '403':
-          description: 'Acceso denegado: Se requiere rol commercial'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_24
+        '403': *ref_25
         '404':
           description: Visitante no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_26
       security:
-        - *ref_11
+        - *ref_27
         - bearer: []
       summary: Actualizar nombre del visitante
-      tags: *ref_12
+      tags: *ref_28
   /api/visitor/{visitorId}/tel:
     put:
       description: Actualiza el número de teléfono del visitante
       operationId: visitor_updateTel
       parameters:
+        - *ref_23
         - name: visitorId
           required: true
           in: path
@@ -1075,17 +1340,24 @@ paths:
           description: Teléfono actualizado correctamente
         '400':
           description: Datos de entrada inválidos
-        '401':
-          description: 'No autorizado: token JWT inválido o ausente'
-        '403':
-          description: 'Acceso denegado: Se requiere rol commercial'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_24
+        '403': *ref_25
         '404':
           description: Visitante no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_26
       security:
-        - *ref_11
+        - *ref_27
         - bearer: []
       summary: Actualizar teléfono del visitante
-      tags: *ref_12
+      tags: *ref_28
   /api/visitors/identify:
     post:
       description: >-
@@ -1130,31 +1402,82 @@ paths:
                 $ref: '#/components/schemas/IdentifyVisitorResponseDto'
         '400':
           description: Datos inválidos proporcionados (campos faltantes, formato incorrecto, API Key inválida)
-        '401':
-          description: API Key no válida para el dominio proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_29
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_30
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Dominio no encontrado en el sistema
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_31
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Identificar visitante
-      tags: &ref_13
+      tags: &ref_32
         - visitors
+  /api/visitors/session/end:
+    post:
+      description: >-
+        Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa).
+        Dispara eventos de negocio para sacar al visitante de la lista de "online", cerrar chats pendientes, etc.
+      operationId: visitor-v2_endSession
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndSessionDto'
+      responses:
+        '200':
+          description: Sesión cerrada exitosamente
+        '400':
+          description: Datos inválidos o sesión no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_29
+        '403': *ref_30
+        '404':
+          description: Recurso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_31
+      security:
+        - {}
+      summary: Cerrar sesión de visitante
+      tags: *ref_32
   /api/visitors/session/heartbeat:
     post:
       description: >-
-        Renueva el TTL de la sesión de un visitante en Redis. Llamado periódicamente por el SDK
-        (cada 30 segundos) mientras el visitante está activo en la página.
-        No modifica el aggregate ni emite eventos de dominio — solo actualiza la actividad en Redis.
+        Renueva el TTL de la sesión de un visitante en Redis. Llamado periódicamente por el SDK (cada 30 segundos)
+        mientras el visitante está activo en la página. No modifica el aggregate ni emite eventos de dominio — solo
+        actualiza la actividad en Redis.
       operationId: visitor-v2_heartbeat
-      parameters:
-        - name: x-guiders-sid
-          in: header
-          required: false
-          schema:
-            type: string
-          description: Session ID del visitante (alternativa al body.sessionId y a la cookie)
+      parameters: []
       requestBody:
         required: true
         content:
@@ -1177,36 +1500,17 @@ paths:
                     example: Sesión renovada
         '400':
           description: SessionId no proporcionado
-        '401':
-          description: Sesión inválida o expirada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_29
+        '403': *ref_30
+        '500': *ref_31
       security:
         - {}
       summary: Mantener sesión de visitante activa
-      tags: *ref_13
-  /api/visitors/session/end:
-    post:
-      description: >-
-        Cierra explícitamente una sesión de visitante. Marca la sesión como terminada (ya no se cuenta como activa).
-        Dispara eventos de negocio para sacar al visitante de la lista de "online", cerrar chats pendientes, etc.
-      operationId: visitor-v2_endSession
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EndSessionDto'
-      responses:
-        '200':
-          description: Sesión cerrada exitosamente
-        '400':
-          description: Datos inválidos o sesión no encontrada
-        '404':
-          description: Sesión no encontrada
-      security:
-        - {}
-      summary: Cerrar sesión de visitante
-      tags: *ref_13
+      tags: *ref_32
   /api/visitors/status:
     put:
       description: >-
@@ -1225,14 +1529,23 @@ paths:
           description: Estado cambiado exitosamente
         '400':
           description: Datos inválidos o estado no permitido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_29
+        '403': *ref_30
         '404':
           description: Visitante no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_31
       security:
         - {}
       summary: Cambiar estado de conexión del visitante
-      tags: *ref_13
+      tags: *ref_32
   /api/visitors/{visitorId}/current-page:
     get:
       description: >-
@@ -1268,16 +1581,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetVisitorCurrentPageResponseDto'
-        '401':
-          description: No autenticado - Token JWT inválido o expirado
-        '403':
-          description: Sin permisos - Se requiere rol de comercial
+        '401': *ref_29
+        '403': *ref_30
         '404':
           description: Visitante no encontrado con el ID proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_31
       security:
         - bearer: []
       summary: Obtener la página actual del visitante
-      tags: *ref_13
+      tags: *ref_32
   /api/visitors/{visitorId}/activity:
     get:
       description: |-
@@ -1308,16 +1624,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetVisitorActivityResponseDto'
-        '401':
-          description: No autenticado - Token JWT inválido o expirado
-        '403':
-          description: Sin permisos - Se requiere rol de commercial o admin
+        '401': *ref_29
+        '403': *ref_30
         '404':
           description: Visitante no encontrado con el ID proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_31
       security:
         - bearer: []
       summary: Obtener estadísticas de actividad del visitante
-      tags: *ref_13
+      tags: *ref_32
   /api/visitors/{visitorId}/site:
     get:
       description: |-
@@ -1342,16 +1661,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetVisitorSiteResponseDto'
-        '401':
-          description: No autenticado - Token JWT inválido o expirado
-        '403':
-          description: Sin permisos - Se requiere rol de commercial o admin
+        '401': *ref_29
+        '403': *ref_30
         '404':
           description: Visitante no encontrado con el ID proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_31
       security:
         - bearer: []
       summary: Obtener el siteId de un visitante
-      tags: *ref_13
+      tags: *ref_32
   /api/sites/resolve:
     post:
       description: >-
@@ -1376,14 +1698,40 @@ paths:
                 $ref: '#/components/schemas/ResolveSiteResponseDto'
         '400':
           description: Host no proporcionado o inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '401':
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '403':
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: No se encontró un sitio para el host proporcionado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '500':
-          description: Error interno del servidor
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - access_token: []
         - bearer: []
@@ -1438,17 +1786,45 @@ paths:
                 $ref: '#/components/schemas/SiteVisitorsResponseDto'
         '400':
           description: ID de sitio inválido o parámetros de consulta inválidos
-        '401': &ref_14
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_15
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_33
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_34
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Sitio no encontrado
-      security: &ref_16
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_35
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_36
         - access_token: []
         - bearer: []
       summary: Obtener visitantes del sitio
-      tags: &ref_17
+      tags: &ref_37
         - Site Visitors Management
   /api/site-visitors/{siteId}/visitors/unassigned-chats:
     get:
@@ -1490,13 +1866,22 @@ paths:
                 $ref: '#/components/schemas/SiteVisitorsUnassignedChatsResponseDto'
         '400':
           description: ID de sitio inválido o parámetros de consulta inválidos
-        '401': *ref_14
-        '403': *ref_15
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_33
+        '403': *ref_34
         '404':
           description: Sitio no encontrado
-      security: *ref_16
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_35
+      security: *ref_36
       summary: Obtener visitantes con chats sin asignar
-      tags: *ref_17
+      tags: *ref_37
   /api/site-visitors/{siteId}/visitors/queued-chats:
     get:
       description: Retorna visitantes que están en cola esperando ser atendidos
@@ -1537,13 +1922,22 @@ paths:
                 $ref: '#/components/schemas/SiteVisitorsQueuedChatsResponseDto'
         '400':
           description: ID de sitio inválido o parámetros de consulta inválidos
-        '401': *ref_14
-        '403': *ref_15
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_33
+        '403': *ref_34
         '404':
           description: Sitio no encontrado
-      security: *ref_16
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_35
+      security: *ref_36
       summary: Obtener visitantes con chats en cola
-      tags: *ref_17
+      tags: *ref_37
   /api/tenant-visitors/{tenantId}/visitors:
     get:
       deprecated: true
@@ -1619,17 +2013,45 @@ paths:
                 $ref: '#/components/schemas/TenantVisitorsResponseDto'
         '400':
           description: ID de tenant inválido o parámetros de consulta inválidos
-        '401': &ref_18
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_19
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_38
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_39
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
-          description: Tenant no encontrado
-      security: &ref_20
+          description: Recurso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_40
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_41
         - access_token: []
         - bearer: []
       summary: '[DEPRECADO] Obtener visitantes del tenant (empresa)'
-      tags: &ref_21
+      tags: &ref_42
         - Tenant Visitors Management
   /api/tenant-visitors/{tenantId}/visitors/unassigned-chats:
     get:
@@ -1673,13 +2095,22 @@ paths:
                 $ref: '#/components/schemas/TenantVisitorsUnassignedChatsResponseDto'
         '400':
           description: ID de tenant inválido o parámetros de consulta inválidos
-        '401': *ref_18
-        '403': *ref_19
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_38
+        '403': *ref_39
         '404':
-          description: Tenant no encontrado
-      security: *ref_20
+          description: Recurso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_40
+      security: *ref_41
       summary: Obtener visitantes con chats sin asignar
-      tags: *ref_21
+      tags: *ref_42
   /api/tenant-visitors/{tenantId}/visitors/queued-chats:
     get:
       description: Retorna visitantes de todos los sitios del tenant que están en cola esperando ser atendidos
@@ -1720,13 +2151,22 @@ paths:
                 $ref: '#/components/schemas/TenantVisitorsQueuedChatsResponseDto'
         '400':
           description: ID de tenant inválido o parámetros de consulta inválidos
-        '401': *ref_18
-        '403': *ref_19
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_38
+        '403': *ref_39
         '404':
-          description: Tenant no encontrado
-      security: *ref_20
+          description: Recurso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_40
+      security: *ref_41
       summary: Obtener visitantes con chats en cola
-      tags: *ref_21
+      tags: *ref_42
   /api/tenant-visitors/{tenantId}/visitors/search:
     post:
       description: >-
@@ -1755,11 +2195,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchVisitorsResponseDto'
-        '401': *ref_18
-        '403': *ref_19
-      security: *ref_20
+        '401': *ref_38
+        '403': *ref_39
+        '500': *ref_40
+      security: *ref_41
       summary: Buscar visitantes con filtros complejos
-      tags: *ref_21
+      tags: *ref_42
   /api/tenant-visitors/{tenantId}/visitors/filters/quick:
     get:
       description: >-
@@ -1781,11 +2222,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/QuickFiltersConfigResponseDto'
-        '401': *ref_18
-        '403': *ref_19
-      security: *ref_20
+        '401': *ref_38
+        '403': *ref_39
+        '500': *ref_40
+      security: *ref_41
       summary: Obtener configuración de filtros rápidos
-      tags: *ref_21
+      tags: *ref_42
   /api/tenant-visitors/{tenantId}/visitors/filters/saved:
     get:
       description: >-
@@ -1807,11 +2249,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SavedFiltersListResponseDto'
-        '401': *ref_18
-        '403': *ref_19
-      security: *ref_20
+        '401': *ref_38
+        '403': *ref_39
+        '500': *ref_40
+      security: *ref_41
       summary: Obtener filtros guardados del usuario
-      tags: *ref_21
+      tags: *ref_42
     post:
       description: >-
         Persiste una configuración nombrada de filtros, ordenamiento y descripción para uso posterior por el usuario
@@ -1841,11 +2284,12 @@ paths:
                   id:
                     type: string
                     description: ID del filtro guardado
-        '401': *ref_18
-        '403': *ref_19
-      security: *ref_20
+        '401': *ref_38
+        '403': *ref_39
+        '500': *ref_40
+      security: *ref_41
       summary: Guardar un filtro personalizado
-      tags: *ref_21
+      tags: *ref_42
   /api/tenant-visitors/{tenantId}/visitors/filters/saved/{filterId}:
     delete:
       description: >-
@@ -1868,13 +2312,18 @@ paths:
       responses:
         '204':
           description: Filtro eliminado exitosamente
-        '401': *ref_18
-        '403': *ref_19
+        '401': *ref_38
+        '403': *ref_39
         '404':
-          description: Filtro no encontrado
-      security: *ref_20
+          description: Recurso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_40
+      security: *ref_41
       summary: Eliminar un filtro guardado
-      tags: *ref_21
+      tags: *ref_42
   /api/company:
     post:
       description: Crea una nueva empresa junto con su usuario administrador inicial
@@ -1891,10 +2340,32 @@ paths:
           description: Empresa creada exitosamente
         '400':
           description: Datos inválidos proporcionados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_43
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_44
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_45
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Crear nueva empresa con administrador
-      tags: &ref_22
+      tags: &ref_46
         - companies
   /api/company/by-domain/{domain}:
     get:
@@ -1915,12 +2386,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FindCompanyByDomainResponseDto'
+        '401': *ref_43
+        '403': *ref_44
         '404':
-          description: Empresa no encontrada
+          description: Empresa no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_45
       security:
         - {}
       summary: Buscar empresa por dominio
-      tags: *ref_22
+      tags: *ref_46
   /api/companies/{companyId}/sites:
     get:
       description: Devuelve la lista de sites asociados a la empresa indicada por su companyId (UUID).
@@ -1940,14 +2418,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCompanySitesResponseDto'
-        '401':
-          description: No autorizado
+        '401': *ref_43
+        '403': *ref_44
         '404':
-          description: Empresa no encontrada
+          description: Empresa no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_45
       security:
         - bearer: []
       summary: Listar sitios de una empresa
-      tags: *ref_22
+      tags: *ref_46
   /api/me/company:
     get:
       description: >-
@@ -1957,24 +2440,30 @@ paths:
       parameters: []
       responses:
         '200':
-          description: |-
-            Información de la empresa del usuario con siteId resuelto
-
-            Información de la empresa obtenida exitosamente
+          description: Información de la empresa del usuario con siteId resuelto
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FindCompanyByDomainResponseDto'
+                $ref: '#/components/schemas/MyCompanyResponseDto'
         '400':
           description: Usuario sin companyId asignado
-        '401':
-          description: No autorizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_43
+        '403': *ref_44
         '404':
-          description: Empresa no encontrada
+          description: Empresa no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_45
       security:
         - bearer: []
       summary: Obtener empresa del usuario autenticado
-      tags: *ref_22
+      tags: *ref_46
   /api/v2/chats:
     post:
       description: Crea un nuevo chat para el visitante autenticado y lo coloca en la cola de espera
@@ -1993,29 +2482,38 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  chatId:
-                    type: string
-                    example: 550e8400-e29b-41d4-a716-446655440000
-                    description: ID único del chat creado
-                  position:
-                    type: number
-                    example: 3
-                    description: Posición en la cola de espera
+                $ref: '#/components/schemas/CreateChatResponseDto'
         '400':
           description: Datos de entrada inválidos
-        '401':
-          description: Usuario no autenticado
-        '403':
-          description: Usuario sin permisos suficientes
-      security: &ref_23
-        - &ref_25
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_47
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_48
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_49
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_50
+        - &ref_52
           access_token: []
-        - &ref_26
+        - &ref_53
           bearer: []
       summary: Crear nuevo chat
-      tags: &ref_24
+      tags: &ref_51
         - Chats V2
     get:
       description: >-
@@ -2121,72 +2619,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChatListResponseDto'
         '400':
-          description: Parámetros de consulta inválidos
+          description: Datos de entrada inválidos
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Parámetros de filtro inválidos
-                  error:
-                    type: string
-                    example: Bad Request
-                  statusCode:
-                    type: number
-                    example: 400
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Token de autenticación requerido
-                  error:
-                    type: string
-                    example: Unauthorized
-                  statusCode:
-                    type: number
-                    example: 401
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Acceso denegado. Permisos insuficientes.
-                  error:
-                    type: string
-                    example: Forbidden
-                  statusCode:
-                    type: number
-                    example: 403
-        '500':
-          description: Error interno del servidor
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Error interno del servidor
-                  error:
-                    type: string
-                    example: Internal Server Error
-                  statusCode:
-                    type: number
-                    example: 500
-      security: *ref_23
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_47
+        '403': *ref_48
+        '500': *ref_49
+      security: *ref_50
       summary: Obtener lista de chats con filtros y paginación con cursor
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/with-message:
     post:
       description: |-
@@ -2251,106 +2694,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  chatId:
-                    type: string
-                    description: ID único del chat creado
-                    example: 550e8400-e29b-41d4-a716-446655440000
-                  messageId:
-                    type: string
-                    description: ID único del primer mensaje creado
-                    example: 550e8400-e29b-41d4-a716-446655440001
-                  position:
-                    type: number
-                    description: Posición del chat en la cola de espera
-                    example: 3
-                    minimum: 1
-                required:
-                  - chatId
-                  - messageId
-                  - position
-              examples:
-                exitoso:
-                  summary: Respuesta exitosa
-                  value:
-                    chatId: chat-456
-                    messageId: msg-789
-                    position: 3
+                $ref: '#/components/schemas/CreateChatWithMessageResponseDto'
         '400':
           description: Datos de entrada inválidos
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 400
-                  message:
-                    oneOf:
-                      - type: array
-                        items:
-                          type: string
-                        example:
-                          - firstMessage.content should not be empty
-                          - 'firstMessage.type must be one of the following values: text, image, file'
-                      - type: string
-                        example: Los comerciales y administradores deben especificar visitorInfo.visitorId
-                  error:
-                    type: string
-                    example: Bad Request
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o sesión BFF (Keycloak)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 401
-                  message:
-                    type: string
-                    example: Token de autenticación requerido
-                  error:
-                    type: string
-                    example: Unauthorized
-        '403':
-          description: Usuario sin permisos suficientes
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 403
-                  message:
-                    type: string
-                    example: Acceso denegado
-                  error:
-                    type: string
-                    example: Forbidden
-        '500':
-          description: Error interno del servidor
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 500
-                  message:
-                    type: string
-                    example: Error interno del servidor
-                  error:
-                    type: string
-                    example: Internal Server Error
-      security: *ref_23
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_47
+        '403': *ref_48
+        '500': *ref_49
+      security: *ref_50
       summary: Crear nuevo chat con primer mensaje
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/response-time-stats:
     get:
       description: Retorna estadísticas agregadas de tiempo de respuesta para comerciales y administradores autenticados
@@ -2389,15 +2745,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ResponseTimeStatsDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial o administrador
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+        '401': *ref_47
+        '403': *ref_48
+        '500': *ref_49
+      security: *ref_50
       summary: Obtener estadísticas de tiempo de respuesta
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/{chatId}:
     get:
       description: Retorna los detalles completos de un chat específico para usuarios autenticados
@@ -2417,17 +2770,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatResponseDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Chat no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
+      security: *ref_50
       summary: Obtener chat por ID
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/visitor/{visitorId}/my-chat:
     get:
       description: >-
@@ -2449,93 +2803,23 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  chats:
-                    type: array
-                    description: Lista de chats del visitante asignados al comercial autenticado
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                          example: chat-123
-                        visitorId:
-                          type: string
-                          example: visitor-456
-                        assignedCommercialId:
-                          type: string
-                          example: commercial-789
-                        status:
-                          type: string
-                          example: ACTIVE
-                        priority:
-                          type: string
-                          example: HIGH
-                        createdAt:
-                          type: string
-                          format: date-time
-                          example: '2025-07-28T10:30:00.000Z'
-                        lastMessageDate:
-                          type: string
-                          format: date-time
-                          example: '2025-07-28T11:15:00.000Z'
-                          nullable: true
-                  total:
-                    type: number
-                    description: Número total de chats asignados al comercial para este visitante
-                    example: 1
-                  totalVisitorChats:
-                    type: number
-                    description: Número total de chats del visitante sin filtrar por comercial asignado
-                    example: 3
-                  hasMore:
-                    type: boolean
-                    description: Indica si hay más chats disponibles
-                    example: false
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o sesión BFF (Keycloak)
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 401
-                  message:
-                    type: string
-                    example: Token de autenticación requerido
-                  error:
-                    type: string
-                    example: Unauthorized
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, admin o supervisor
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 403
-                  message:
-                    type: string
-                    example: Acceso denegado. Permisos insuficientes.
-                  error:
-                    type: string
-                    example: Forbidden
+                $ref: '#/components/schemas/CommercialVisitorChatsResponseDto'
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: No se encontró ningún chat asignado a este comercial para el visitante
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
       security:
-        - *ref_25
-        - *ref_26
+        - *ref_52
+        - *ref_53
         - cookie: []
         - bearer: []
       summary: Obtener chat asignado a comercial para un visitante específico
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/queue/pending:
     get:
       description: Retorna los chats pendientes ordenados por prioridad y tiempo. Requiere autenticación.
@@ -2564,15 +2848,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ChatResponseDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+        '401': *ref_47
+        '403': *ref_48
+        '500': *ref_49
+      security: *ref_50
       summary: Obtener cola de chats pendientes
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/metrics/commercial/{commercialId}:
     get:
       description: Retorna métricas agregadas de rendimiento de un comercial. Requiere autenticación.
@@ -2606,17 +2887,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommercialMetricsResponseDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Comercial no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
+      security: *ref_50
       summary: Obtener métricas de comercial
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/{chatId}/assign/{commercialId}:
     put:
       description: Asigna un chat específico a un comercial. Requiere autenticación y permisos apropiados.
@@ -2643,21 +2925,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatResponseDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Chat o comercial no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
       security:
-        - *ref_25
-        - *ref_26
+        - *ref_52
+        - *ref_53
         - cookie: []
         - bearer: []
       summary: Asignar chat a comercial
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/{chatId}/request-agent:
     post:
       description: >-
@@ -2690,17 +2973,22 @@ paths:
           description: Solicitud procesada exitosamente
         '400':
           description: Datos inválidos o el visitante no tiene permisos
-        '401':
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403':
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Chat no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
+      security: *ref_50
       summary: Solicitar atención de un agente
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/{chatId}/view-open:
     put:
       description: >-
@@ -2730,21 +3018,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatViewResponseDto'
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o sesión de cookie
-        '403':
-          description: Usuario sin permisos para acceder a este chat
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Chat no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
       security:
-        - *ref_25
-        - *ref_26
+        - *ref_52
+        - *ref_53
         - cookie: []
         - bearer: []
       summary: Notificar apertura de vista del chat
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/{chatId}/view-close:
     put:
       description: >-
@@ -2775,21 +3064,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatViewResponseDto'
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o sesión de cookie
-        '403':
-          description: Usuario sin permisos para acceder a este chat
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Chat no encontrado
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
       security:
-        - *ref_25
-        - *ref_26
+        - *ref_52
+        - *ref_53
         - cookie: []
         - bearer: []
       summary: Notificar cierre de vista del chat
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/{chatId}/close:
     put:
       description: Marca un chat como cerrado. Requiere autenticación y permisos apropiados.
@@ -2809,17 +3099,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatResponseDto'
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Chat no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
+      security: *ref_50
       summary: Cerrar chat
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/visitor/{visitorId}/clear:
     delete:
       description: >-
@@ -2840,29 +3131,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: Todos los chats del visitante han sido eliminados
-                  deletedCount:
-                    type: number
-                    example: 5
-                    description: Número de chats eliminados
-                  visitorId:
-                    type: string
-                    example: 550e8400-e29b-41d4-a716-446655440000
-        '401':
-          description: Usuario no autenticado - Token de autenticación requerido
-        '403':
-          description: Usuario sin permisos suficientes - Requiere rol de administrador
+                $ref: '#/components/schemas/DeleteVisitorChatsResponseDto'
+        '401': *ref_47
+        '403': *ref_48
         '404':
           description: Visitante no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_49
+      security: *ref_50
       summary: Eliminar todos los chats de un visitante
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/chats/visitor/{visitorId}/pending:
     get:
       description: >-
@@ -2891,15 +3172,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PendingChatsResponseDto'
-        '401':
-          description: No autenticado
-        '403':
-          description: Sin permisos suficientes
-        '500':
-          description: Error interno del servidor
-      security: *ref_23
+        '401': *ref_47
+        '403': *ref_48
+        '500': *ref_49
+      security: *ref_50
       summary: Obtener chats pendientes de un visitante
-      tags: *ref_24
+      tags: *ref_51
   /api/v2/commercials/{commercialId}/chats:
     get:
       description: >-
@@ -2970,39 +3248,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChatListResponseDto'
         '401':
-          description: Usuario no autenticado - Se requiere Bearer token o sesión BFF
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 401
-                  message:
-                    type: string
-                    example: Se requiere autenticación - Bearer token o sesión de cookie
-                  error:
-                    type: string
-                    example: Unauthorized
+                $ref: '#/components/schemas/ErrorResponseDto'
         '403':
-          description: Usuario sin permisos suficientes - Requiere rol de comercial, administrador o supervisor
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  statusCode:
-                    type: number
-                    example: 403
-                  message:
-                    type: string
-                    example: Acceso denegado. Permisos insuficientes.
-                  error:
-                    type: string
-                    example: Forbidden
+                $ref: '#/components/schemas/ErrorResponseDto'
         '500':
-          description: Error interno del servidor
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - access_token: []
         - bearer: []
@@ -3069,13 +3331,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/ChatListResponseDto'
         '401':
-          description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '403':
-          description: >-
-            Usuario sin permisos suficientes - Los comerciales/administradores pueden ver cualquier visitante, los
-            visitantes solo sus propios chats
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '500':
-          description: Error interno del servidor
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - access_token: []
         - bearer: []
@@ -3117,20 +3389,42 @@ paths:
                 $ref: '#/components/schemas/MessageResponseDto'
         '400':
           description: Datos de entrada inválidos
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
-        '403':
-          description: Sin permisos para enviar mensajes a este chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_54
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_55
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Chat no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_56
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
-        - &ref_27
+        - &ref_57
           access_token: []
-        - &ref_28
+        - &ref_58
           bearer: []
         - sid: []
       summary: Enviar un nuevo mensaje
-      tags: &ref_29
+      tags: &ref_59
         - Messages V2
   /api/v2/messages/chat/{chatId}:
     get:
@@ -3201,18 +3495,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageListResponseDto'
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
-        '403':
-          description: Sin permisos para acceder a este chat
+        '401': *ref_54
+        '403': *ref_55
         '404':
           description: Chat no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_56
       security:
-        - *ref_27
-        - *ref_28
+        - *ref_57
+        - *ref_58
         - sid: []
       summary: Obtener mensajes de un chat
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/{messageId}:
     get:
       description: Retorna los detalles de un mensaje específico. Soporta autenticación JWT y sesiones de visitante.
@@ -3239,18 +3536,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MessageResponseDto'
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
-        '403':
-          description: Sin permisos para acceder a este mensaje
+        '401': *ref_54
+        '403': *ref_55
         '404':
           description: Mensaje no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_56
       security:
-        - *ref_27
-        - *ref_28
+        - *ref_57
+        - *ref_58
         - sid: []
       summary: Obtener mensaje por ID
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/mark-as-read:
     put:
       description: >-
@@ -3276,16 +3576,19 @@ paths:
           description: Mensajes marcados como leídos exitosamente
         '400':
           description: Lista de mensajes inválida
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
-        '403': &ref_30
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_54
+        '403': *ref_55
+        '500': *ref_56
       security:
-        - *ref_27
-        - *ref_28
+        - *ref_57
+        - *ref_58
         - sid: []
       summary: Marcar mensajes como leídos
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/chat/{chatId}/unread:
     get:
       description: Retorna los mensajes no leídos de un chat específico. Soporta autenticación JWT y sesiones de visitante.
@@ -3314,18 +3617,21 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MessageResponseDto'
-        '401':
-          description: Usuario no autenticado - Se requiere Bearer token o cookie de sesión de visitante
-        '403':
-          description: Sin permisos para acceder a este chat
+        '401': *ref_54
+        '403': *ref_55
         '404':
           description: Chat no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_56
       security:
-        - *ref_27
-        - *ref_28
+        - *ref_57
+        - *ref_58
         - sid: []
       summary: Obtener mensajes no leídos de un chat
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/search:
     get:
       description: Busca mensajes que contengan palabras clave específicas
@@ -3369,14 +3675,18 @@ paths:
                 $ref: '#/components/schemas/MessageListResponseDto'
         '400':
           description: Parámetros de búsqueda inválidos
-        '401': &ref_31
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': *ref_30
-      security: &ref_32
-        - *ref_27
-        - *ref_28
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_54
+        '403': *ref_55
+        '500': *ref_56
+      security: &ref_60
+        - *ref_57
+        - *ref_58
       summary: Buscar mensajes por contenido
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/chat/{chatId}/stats:
     get:
       description: Retorna estadísticas detalladas de un chat específico
@@ -3410,14 +3720,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConversationStatsResponseDto'
-        '401': *ref_31
-        '403':
-          description: Sin permisos para acceder a las estadísticas
+        '401': *ref_54
+        '403': *ref_55
         '404':
           description: Chat no encontrado
-      security: *ref_32
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_56
+      security: *ref_60
       summary: Obtener estadísticas de conversación
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/metrics:
     get:
       description: Retorna métricas agregadas de mensajería por período de tiempo
@@ -3464,12 +3778,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/MessageMetricsResponseDto'
         '400':
-          description: Parámetros de consulta inválidos
-        '401': *ref_31
-        '403': *ref_30
-      security: *ref_32
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_54
+        '403': *ref_55
+        '500': *ref_56
+      security: *ref_60
       summary: Obtener métricas de mensajería
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/messages/attachments:
     get:
       description: Retorna mensajes que contienen archivos adjuntos. Soporta autenticación JWT y sesiones de visitante.
@@ -3513,14 +3832,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MessageResponseDto'
-        '401': *ref_31
-        '403': *ref_30
+        '401': *ref_54
+        '403': *ref_55
+        '500': *ref_56
       security:
-        - *ref_27
-        - *ref_28
+        - *ref_57
+        - *ref_58
         - sid: []
       summary: Obtener mensajes con archivos adjuntos
-      tags: *ref_29
+      tags: *ref_59
   /api/v2/assignment-rules:
     post:
       description: >-
@@ -3551,15 +3871,33 @@ paths:
                     type: string
                     example: Reglas creadas exitosamente
         '400':
-          description: Datos inválidos
-        '401': &ref_33
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_61
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403':
-          description: Sin permisos suficientes
-      security: &ref_34
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_62
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_63
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_64
         - bearer: []
       summary: Crear reglas de auto-asignamiento
-      tags: &ref_35
+      tags: &ref_65
         - Reglas de Auto-asignamiento
   /api/v2/assignment-rules/companies/{companyId}/applicable:
     get:
@@ -3590,14 +3928,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AssignmentRulesResponseDto'
-        '401': *ref_33
-        '403':
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+        '401': *ref_61
+        '403': *ref_62
         '404':
           description: No se encontraron reglas
-      security: *ref_34
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_63
+      security: *ref_64
       summary: Obtener reglas aplicables
-      tags: *ref_35
+      tags: *ref_65
   /api/presence/chat/{chatId}:
     get:
       description: >-
@@ -3619,17 +3961,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatPresenceDto'
-        '401': &ref_36
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_37
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+        '401': &ref_66
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_67
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Chat no encontrado
-      security: &ref_38
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_68
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_69
         - access_token: []
         - bearer: []
       summary: Obtener estado de presencia de participantes de un chat
-      tags: &ref_39
+      tags: &ref_70
         - Presence & Typing
   /api/presence/chat/{chatId}/typing/start:
     post:
@@ -3649,11 +4015,12 @@ paths:
       responses:
         '204':
           description: Typing indicator iniciado
-        '401': *ref_36
-        '403': *ref_37
-      security: *ref_38
+        '401': *ref_66
+        '403': *ref_67
+        '500': *ref_68
+      security: *ref_69
       summary: Indicar que el usuario está escribiendo
-      tags: *ref_39
+      tags: *ref_70
   /api/presence/chat/{chatId}/typing/stop:
     post:
       description: >-
@@ -3672,11 +4039,12 @@ paths:
       responses:
         '204':
           description: Typing indicator detenido
-        '401': *ref_36
-        '403': *ref_37
-      security: *ref_38
+        '401': *ref_66
+        '403': *ref_67
+        '500': *ref_68
+      security: *ref_69
       summary: Indicar que el usuario dejó de escribir
-      tags: *ref_39
+      tags: *ref_70
   /api/v2/commercials/connect:
     post:
       description: Registra un comercial como conectado en el sistema
@@ -3697,12 +4065,32 @@ paths:
                 $ref: '#/components/schemas/CommercialOperationResponseDto'
         '400':
           description: Datos de entrada inválidos
-        '500':
-          description: Error interno del servidor
-      security: &ref_40
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_71
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_72
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_73
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_74
         - bearer: []
       summary: Conectar comercial
-      tags: &ref_41
+      tags: &ref_75
         - Commercials
   /api/v2/commercials/disconnect:
     post:
@@ -3724,11 +4112,16 @@ paths:
                 $ref: '#/components/schemas/CommercialOperationResponseDto'
         '400':
           description: Datos de entrada inválidos
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_71
+        '403': *ref_72
+        '500': *ref_73
+      security: *ref_74
       summary: Desconectar comercial
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/status:
     put:
       description: Permite a un comercial cambiar manualmente su estado de conexión (online, busy, away, offline)
@@ -3749,13 +4142,22 @@ paths:
                 $ref: '#/components/schemas/CommercialOperationResponseDto'
         '400':
           description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_71
+        '403': *ref_72
         '404':
           description: Comercial no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_73
+      security: *ref_74
       summary: Cambiar estado de conexión del comercial
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/{id}/status:
     get:
       description: Obtiene el estado de conexión actual de un comercial específico
@@ -3775,13 +4177,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommercialConnectionStatusResponseDto'
+        '401': *ref_71
+        '403': *ref_72
         '404':
           description: Comercial no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_73
+      security: *ref_74
       summary: Obtener estado de comercial
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/active:
     get:
       description: Obtiene la lista de todos los comerciales que están actualmente online
@@ -3794,13 +4201,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OnlineCommercialsResponseDto'
-        '401':
-          description: No autorizado
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+        '401': *ref_71
+        '403': *ref_72
+        '500': *ref_73
+      security: *ref_74
       summary: Obtener comerciales activos
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/available:
     get:
       description: Obtiene la lista de comerciales que están online y disponibles para atender chats
@@ -3813,18 +4219,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OnlineCommercialsResponseDto'
-        '401':
-          description: No autorizado
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+        '401': *ref_71
+        '403': *ref_72
+        '500': *ref_73
+      security: *ref_74
       summary: Obtener comerciales disponibles
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/availability:
     post:
       description: >-
         Endpoint público que permite a visitantes consultar si hay comerciales disponibles para atender antes de iniciar
         sesión. Valida el dominio y API Key del sitio.
+
+
+        **Aislamiento por tenant**: el resultado (`available` y `onlineCount`) refleja únicamente los comerciales online
+        pertenecientes a la empresa propietaria del dominio proporcionado. Los comerciales de otras empresas no se
+        incluyen en el conteo.
       operationId: commercial_checkCommercialAvailability
       parameters: []
       requestBody:
@@ -3835,22 +4245,25 @@ paths:
               $ref: '#/components/schemas/CheckCommercialAvailabilityDto'
       responses:
         '200':
-          description: Disponibilidad consultada exitosamente (retorna disponibilidad incluso si no hay comerciales)
+          description: >-
+            Disponibilidad consultada exitosamente. La respuesta siempre se retorna (incluso si no hay comerciales
+            disponibles). El campo `onlineCount` y `available` están acotados al tenant del dominio consultado.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommercialAvailabilityResponseDto'
         '400':
-          description: Datos inválidos (domain o apiKey faltantes)
-        '401':
-          description: API Key no válida para el dominio proporcionado
-        '404':
-          description: Dominio no encontrado en el sistema
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+          description: Datos inválidos (domain o apiKey faltantes o con formato incorrecto)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_71
+        '403': *ref_72
+        '500': *ref_73
+      security: *ref_74
       summary: Consultar disponibilidad de comerciales
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/{id}:
     delete:
       description: Elimina un comercial del sistema completamente (solo administradores)
@@ -3870,13 +4283,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommercialOperationResponseDto'
+        '401': *ref_71
+        '403': *ref_72
         '404':
           description: Comercial no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_73
+      security: *ref_74
       summary: Eliminar comercial
-      tags: *ref_41
+      tags: *ref_75
   /api/v2/commercials/register-fingerprint:
     post:
       description: >-
@@ -3897,13 +4315,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CommercialOperationResponseDto'
+        '401': *ref_71
+        '403': *ref_72
         '404':
           description: Comercial no encontrado
-        '500':
-          description: Error interno del servidor
-      security: *ref_40
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_73
+      security: *ref_74
       summary: Registrar fingerprint de comercial
-      tags: *ref_41
+      tags: *ref_75
   /api/consents/revoke:
     post:
       description: Permite a un visitante revocar un consentimiento previamente otorgado (RGPD Art. 7.3)
@@ -3919,18 +4342,46 @@ paths:
         '200':
           description: Consentimiento revocado exitosamente
         '400':
-          description: Datos inválidos
-        '401': &ref_42
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_43
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_76
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_77
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '404':
           description: Consentimiento no encontrado
-      security: &ref_44
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_78
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_79
         - access_token: []
         - bearer: []
       summary: Revocar un consentimiento
-      tags: &ref_45
+      tags: &ref_80
         - Consent
   /api/consents/renew:
     post:
@@ -3948,13 +4399,22 @@ paths:
           description: Consentimiento renovado exitosamente
         '400':
           description: Datos inválidos o consentimiento no renovable
-        '401': *ref_42
-        '403': *ref_43
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_76
+        '403': *ref_77
         '404':
           description: Consentimiento no encontrado
-      security: *ref_44
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_78
+      security: *ref_79
       summary: Renovar un consentimiento
-      tags: *ref_45
+      tags: *ref_80
   /api/consents/visitors/{visitorId}:
     get:
       description: 'Obtiene todos los consentimientos de un visitante (RGPD Art. 15: Derecho de acceso)'
@@ -3976,11 +4436,16 @@ paths:
                 $ref: '#/components/schemas/ConsentHistoryResponseDto'
         '400':
           description: ID de visitante inválido
-        '401': *ref_42
-        '403': *ref_43
-      security: *ref_44
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_76
+        '403': *ref_77
+        '500': *ref_78
+      security: *ref_79
       summary: Obtener historial de consentimientos
-      tags: *ref_45
+      tags: *ref_80
   /api/consents/visitors/{visitorId}/audit-logs:
     get:
       description: Obtiene todos los registros de auditoría de consentimientos de un visitante (RGPD Art. 5.2 y Art. 30)
@@ -4002,11 +4467,16 @@ paths:
                 $ref: '#/components/schemas/AuditLogListResponseDto'
         '400':
           description: ID de visitante inválido
-        '401': *ref_42
-        '403': *ref_43
-      security: *ref_44
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_76
+        '403': *ref_77
+        '500': *ref_78
+      security: *ref_79
       summary: Obtener audit logs de consentimientos
-      tags: *ref_45
+      tags: *ref_80
   /api/tracking-v2/events:
     post:
       description: >-
@@ -4069,12 +4539,20 @@ paths:
                 $ref: '#/components/schemas/IngestEventsResponseDto'
         '400':
           description: Datos inválidos (campos faltantes, formato incorrecto, más de 500 eventos)
-        '500':
-          description: Error interno al procesar eventos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_81
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - {}
       summary: Ingerir eventos de tracking en batch
-      tags: &ref_46
+      tags: &ref_82
         - tracking-v2
   /api/tracking-v2/stats/tenant/{tenantId}:
     get:
@@ -4111,12 +4589,15 @@ paths:
                 $ref: '#/components/schemas/EventStatsResponseDto'
         '400':
           description: TenantId inválido o fechas mal formateadas
-        '500':
-          description: Error interno al obtener estadísticas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_81
       security:
         - {}
       summary: Obtener estadísticas de eventos por tenant
-      tags: *ref_46
+      tags: *ref_82
   /api/tracking-v2/health:
     get:
       description: Verifica que el sistema de tracking esté funcionando correctamente
@@ -4138,12 +4619,15 @@ paths:
                     example: '2024-01-15T10:30:00.000Z'
         '400':
           description: Petición inválida
-        '500':
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_81
       security:
         - {}
       summary: Health check del sistema de tracking
-      tags: *ref_46
+      tags: *ref_82
   /api/v2/llm/config/providers:
     get:
       operationId: llm-config_getAvailableProviders
@@ -4155,15 +4639,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LlmModelsListResponseDto'
-        '401': &ref_47
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_48
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_49
+        '401': &ref_83
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_84
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_85
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_86
         - access_token: []
         - bearer: []
       summary: Obtener lista de proveedores LLM disponibles con sus modelos
-      tags: &ref_50
+      tags: &ref_87
         - LLM Configuration
   /api/v2/llm/config/{companyId}:
     get:
@@ -4182,13 +4686,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LlmConfigResponseDto'
-        '401': *ref_47
-        '403': *ref_48
+        '401': *ref_83
+        '403': *ref_84
         '404':
           description: Configuración no encontrada
-      security: *ref_49
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_85
+      security: *ref_86
       summary: Obtener configuración LLM de una empresa
-      tags: *ref_50
+      tags: *ref_87
     patch:
       operationId: llm-config_updateConfig
       parameters:
@@ -4211,13 +4720,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LlmConfigResponseDto'
-        '401': *ref_47
-        '403': *ref_48
+        '401': *ref_83
+        '403': *ref_84
         '404':
           description: Configuración no encontrada
-      security: *ref_49
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_85
+      security: *ref_86
       summary: Actualizar configuración LLM de una empresa
-      tags: *ref_50
+      tags: *ref_87
     delete:
       operationId: llm-config_deleteConfig
       parameters:
@@ -4230,13 +4744,18 @@ paths:
       responses:
         '204':
           description: Configuración eliminada
-        '401': *ref_47
-        '403': *ref_48
+        '401': *ref_83
+        '403': *ref_84
         '404':
           description: Configuración no encontrada
-      security: *ref_49
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_85
+      security: *ref_86
       summary: Eliminar configuración LLM de una empresa
-      tags: *ref_50
+      tags: *ref_87
   /api/v2/llm/config:
     post:
       operationId: llm-config_createConfig
@@ -4255,12 +4774,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/LlmConfigResponseDto'
         '400':
-          description: Datos inválidos
-        '401': *ref_47
-        '403': *ref_48
-      security: *ref_49
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_83
+        '403': *ref_84
+        '500': *ref_85
+      security: *ref_86
       summary: Crear configuración LLM para una empresa
-      tags: *ref_50
+      tags: *ref_87
   /api/v2/llm/suggestions:
     post:
       description: >-
@@ -4283,15 +4807,39 @@ paths:
                 $ref: '#/components/schemas/SuggestionResponseDto'
         '400':
           description: Datos de entrada inválidos (falta chatId o companyId)
-        '401':
-          description: No autenticado
-        '403':
-          description: No tiene permisos (requiere rol commercial, admin o supervisor)
-      security: &ref_51
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_88
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_89
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_90
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_91
         - access_token: []
         - bearer: []
       summary: Generar sugerencias de respuesta para comercial
-      tags: &ref_52
+      tags: &ref_92
         - LLM Suggestions
   /api/v2/llm/improve:
     post:
@@ -4315,13 +4863,16 @@ paths:
                 $ref: '#/components/schemas/ImproveTextResponseDto'
         '400':
           description: Datos de entrada inválidos (falta text o companyId)
-        '401':
-          description: No autenticado
-        '403':
-          description: No tiene permisos (requiere rol commercial, admin o supervisor)
-      security: *ref_51
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_88
+        '403': *ref_89
+        '500': *ref_90
+      security: *ref_91
       summary: Mejorar texto para hacerlo más profesional
-      tags: *ref_52
+      tags: *ref_92
   /api/v2/companies/{companyId}/white-label/defaults:
     get:
       description: >-
@@ -4341,15 +4892,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WhiteLabelDefaultsDto'
-        '401': &ref_53
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_54
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_55
+        '401': &ref_93
+          description: |-
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+
+            No autenticado: faltan credenciales, token ausente, inválido o expirado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_94
+          description: |-
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+
+            Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_95
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_96
         - access_token: []
         - bearer: []
       summary: Obtener valores por defecto de White Label
-      tags: &ref_56
+      tags: &ref_97
         - White Label Configuration
   /api/v2/companies/{companyId}/white-label:
     get:
@@ -4372,13 +4943,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WhiteLabelConfigResponseDto'
-        '401': *ref_53
-        '403': *ref_54
+        '401': *ref_93
+        '403': *ref_94
         '404':
           description: Configuración no encontrada - se devuelven valores por defecto
-      security: *ref_55
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_95
+      security: *ref_96
       summary: Obtener configuración White Label de una empresa
-      tags: *ref_56
+      tags: *ref_97
     patch:
       description: >-
         Actualiza parcialmente la configuración White Label de la empresa (colores, branding, tipografía, tema). Si no
@@ -4406,12 +4982,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/WhiteLabelConfigResponseDto'
         '400':
-          description: Datos inválidos
-        '401': *ref_53
-        '403': *ref_54
-      security: *ref_55
+          description: Datos de entrada inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_93
+        '403': *ref_94
+        '500': *ref_95
+      security: *ref_96
       summary: Actualizar configuración White Label (upsert)
-      tags: *ref_56
+      tags: *ref_97
     delete:
       description: >-
         Elimina por completo la configuración White Label de la empresa, incluyendo logo, favicon y todas las fuentes
@@ -4428,11 +5009,12 @@ paths:
       responses:
         '204':
           description: Configuración eliminada
-        '401': *ref_53
-        '403': *ref_54
-      security: *ref_55
+        '401': *ref_93
+        '403': *ref_94
+        '500': *ref_95
+      security: *ref_96
       summary: Eliminar/resetear configuración White Label
-      tags: *ref_56
+      tags: *ref_97
   /api/v2/companies/{companyId}/white-label/logo:
     post:
       description: >-
@@ -4469,11 +5051,16 @@ paths:
                 $ref: '#/components/schemas/UploadResponseDto'
         '400':
           description: Archivo inválido
-        '401': *ref_53
-        '403': *ref_54
-      security: *ref_55
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_93
+        '403': *ref_94
+        '500': *ref_95
+      security: *ref_96
       summary: Subir logo de la empresa
-      tags: *ref_56
+      tags: *ref_97
     delete:
       description: >-
         Elimina el archivo de logo del storage y borra la referencia en la configuración. Requiere que exista
@@ -4489,13 +5076,18 @@ paths:
       responses:
         '204':
           description: Logo eliminado
-        '401': *ref_53
-        '403': *ref_54
+        '401': *ref_93
+        '403': *ref_94
         '404':
           description: No hay logo configurado
-      security: *ref_55
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_95
+      security: *ref_96
       summary: Eliminar logo de la empresa
-      tags: *ref_56
+      tags: *ref_97
   /api/v2/companies/{companyId}/white-label/favicon:
     post:
       description: >-
@@ -4532,11 +5124,16 @@ paths:
                 $ref: '#/components/schemas/UploadResponseDto'
         '400':
           description: Archivo inválido
-        '401': *ref_53
-        '403': *ref_54
-      security: *ref_55
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_93
+        '403': *ref_94
+        '500': *ref_95
+      security: *ref_96
       summary: Subir favicon de la empresa
-      tags: *ref_56
+      tags: *ref_97
     delete:
       description: >-
         Elimina el archivo de favicon del storage y borra la referencia en la configuración. Requiere que exista
@@ -4552,13 +5149,18 @@ paths:
       responses:
         '204':
           description: Favicon eliminado
-        '401': *ref_53
-        '403': *ref_54
+        '401': *ref_93
+        '403': *ref_94
         '404':
           description: No hay favicon configurado
-      security: *ref_55
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_95
+      security: *ref_96
       summary: Eliminar favicon de la empresa
-      tags: *ref_56
+      tags: *ref_97
   /api/v2/companies/{companyId}/white-label/font:
     post:
       description: >-
@@ -4595,11 +5197,16 @@ paths:
                 $ref: '#/components/schemas/FontFileDto'
         '400':
           description: Archivo inválido
-        '401': *ref_53
-        '403': *ref_54
-      security: *ref_55
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_93
+        '403': *ref_94
+        '500': *ref_95
+      security: *ref_96
       summary: Subir archivo de fuente personalizada
-      tags: *ref_56
+      tags: *ref_97
   /api/v2/companies/{companyId}/white-label/font/{fileName}:
     delete:
       description: >-
@@ -4622,13 +5229,18 @@ paths:
       responses:
         '204':
           description: Fuente eliminada
-        '401': *ref_53
-        '403': *ref_54
+        '401': *ref_93
+        '403': *ref_94
         '404':
-          description: Fuente no encontrada
-      security: *ref_55
+          description: Recurso no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_95
+      security: *ref_96
       summary: Eliminar archivo de fuente específico
-      tags: *ref_56
+      tags: *ref_97
   /api/v2/companies/{companyId}/white-label/fonts:
     delete:
       description: >-
@@ -4646,11 +5258,12 @@ paths:
       responses:
         '204':
           description: Todas las fuentes eliminadas
-        '401': *ref_53
-        '403': *ref_54
-      security: *ref_55
+        '401': *ref_93
+        '403': *ref_94
+        '500': *ref_95
+      security: *ref_96
       summary: Eliminar todas las fuentes personalizadas
-      tags: *ref_56
+      tags: *ref_97
   /api/leads/contact-data/{visitorId}:
     post:
       description: Crea o actualiza los datos de contacto de un visitor. Si ya existen datos, se hace merge parcial.
@@ -4677,15 +5290,33 @@ paths:
                 $ref: '#/components/schemas/LeadContactDataResponseDto'
         '400':
           description: Error de validacion o al guardar
-        '401':
-          description: No autorizado
-        '403':
-          description: Sin permisos suficientes
-      security: &ref_57
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_98
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_99
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_100
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_101
         - access_token: []
         - bearer: []
       summary: Guardar datos de contacto del lead
-      tags: &ref_58
+      tags: &ref_102
         - Leads - Contact Data
     get:
       description: Retorna los datos de contacto asociados a un visitor
@@ -4704,15 +5335,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeadContactDataResponseDto'
-        '401': &ref_59
-          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_60
-          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+        '401': *ref_98
+        '403': *ref_99
         '404':
           description: No se encontraron datos de contacto
-      security: *ref_57
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_100
+      security: *ref_101
       summary: Obtener datos de contacto de un visitor
-      tags: *ref_58
+      tags: *ref_102
   /api/leads/contact-data:
     get:
       description: Retorna todos los datos de contacto de la empresa
@@ -4727,11 +5361,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/LeadContactDataResponseDto'
-        '401': *ref_59
-        '403': *ref_60
-      security: *ref_57
+        '401': *ref_98
+        '403': *ref_99
+        '500': *ref_100
+      security: *ref_101
       summary: Listar todos los datos de contacto
-      tags: *ref_58
+      tags: *ref_102
   /api/v1/leads/admin/config:
     post:
       operationId: leads-admin_createConfig
@@ -4751,15 +5386,33 @@ paths:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
         '400':
           description: Datos inválidos o CRM ya configurado
-        '401': &ref_61
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': &ref_103
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
-        '403': &ref_62
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403': &ref_104
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
-      security: &ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': &ref_105
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security: &ref_106
         - access_token: []
         - bearer: []
       summary: Crear configuración de CRM para la empresa
-      tags: &ref_64
+      tags: &ref_107
         - Leads - Administración CRM
     get:
       operationId: leads-admin_getConfig
@@ -4771,13 +5424,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
-        '401': *ref_61
-        '403': *ref_62
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: No hay configuración CRM creada
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Obtener la configuración CRM de la empresa (primera activa) o 404 si no existe
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/config/{id}:
     get:
       operationId: leads-admin_getConfigById
@@ -4795,13 +5453,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
-        '401': *ref_61
-        '403': *ref_62
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: Configuración no encontrada
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Obtener configuración CRM por ID
-      tags: *ref_64
+      tags: *ref_107
     put:
       operationId: leads-admin_updateConfig
       parameters:
@@ -4824,13 +5487,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CrmConfigResponseDto'
-        '401': *ref_61
-        '403': *ref_62
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: Configuración no encontrada
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Actualizar configuración CRM
-      tags: *ref_64
+      tags: *ref_107
     delete:
       operationId: leads-admin_deleteConfig
       parameters:
@@ -4843,13 +5511,18 @@ paths:
       responses:
         '200':
           description: Configuración eliminada
-        '401': *ref_61
-        '403': *ref_62
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: Configuración no encontrada
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Eliminar configuración CRM
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/config/{configId}/test:
     post:
       operationId: leads-admin_testConnectionById
@@ -4867,13 +5540,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestConnectionByIdResponseDto'
-        '401': *ref_61
-        '403': *ref_62
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: Configuración no encontrada
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Probar conexión con LeadCars usando la configuración guardada por ID
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/test-connection:
     post:
       operationId: leads-admin_testConnection
@@ -4891,11 +5569,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestConnectionResponseDto'
-        '401': *ref_61
-        '403': *ref_62
-      security: *ref_63
+        '401': *ref_103
+        '403': *ref_104
+        '500': *ref_105
+      security: *ref_106
       summary: Probar conexión con CRM con credenciales manuales
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/sync-records/failed:
     get:
       operationId: leads-admin_getFailedSyncRecords
@@ -4909,11 +5588,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CrmSyncRecordResponseDto'
-        '401': *ref_61
-        '403': *ref_62
-      security: *ref_63
+        '401': *ref_103
+        '403': *ref_104
+        '500': *ref_105
+      security: *ref_106
       summary: Obtener sincronizaciones fallidas
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/sync-records/visitor/{visitorId}:
     get:
       operationId: leads-admin_getSyncRecordsByVisitor
@@ -4933,11 +5613,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CrmSyncRecordResponseDto'
-        '401': *ref_61
-        '403': *ref_62
-      security: *ref_63
+        '401': *ref_103
+        '403': *ref_104
+        '500': *ref_105
+      security: *ref_106
       summary: Obtener registros de sincronización por visitor
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/sync-records:
     get:
       operationId: leads-admin_getSyncRecords
@@ -4951,11 +5632,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CrmSyncRecordResponseDto'
-        '401': *ref_61
-        '403': *ref_62
-      security: *ref_63
+        '401': *ref_103
+        '403': *ref_104
+        '500': *ref_105
+      security: *ref_106
       summary: Obtener registros de sincronización de la empresa
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/leadcars/concesionarios:
     get:
       description: >-
@@ -4989,17 +5671,24 @@ paths:
                   $ref: '#/components/schemas/LeadcarsConcesionarioDto'
         '400':
           description: La configuración de LeadCars está deshabilitada para esta empresa
-        '401': *ref_61
-        '403': *ref_62
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: >-
             Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
             empresa
-        '500':
-          description: Error al comunicarse con la API de LeadCars
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Listar concesionarios disponibles en LeadCars
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/leadcars/sedes/{concesionarioId}:
     get:
       description: >-
@@ -5040,17 +5729,24 @@ paths:
                   $ref: '#/components/schemas/LeadcarsSedeDto'
         '400':
           description: concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada
-        '401': *ref_61
-        '403': *ref_62
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: >-
             Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
             empresa
-        '500':
-          description: Error al comunicarse con la API de LeadCars
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Listar sedes de un concesionario en LeadCars
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/leadcars/campanas/{concesionarioId}:
     get:
       description: >-
@@ -5092,17 +5788,24 @@ paths:
                   $ref: '#/components/schemas/LeadcarsCampanaDto'
         '400':
           description: concesionarioId no es un número entero positivo válido, o la configuración de LeadCars está deshabilitada
-        '401': *ref_61
-        '403': *ref_62
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: >-
             Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
             empresa
-        '500':
-          description: Error al comunicarse con la API de LeadCars
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Listar campañas de un concesionario en LeadCars
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/leadcars/tipos:
     get:
       description: >-
@@ -5136,17 +5839,24 @@ paths:
                   $ref: '#/components/schemas/LeadcarsTipoLeadDto'
         '400':
           description: La configuración de LeadCars está deshabilitada para esta empresa
-        '401': *ref_61
-        '403': *ref_62
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: >-
             Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
             empresa
-        '500':
-          description: Error al comunicarse con la API de LeadCars
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Listar tipos de lead disponibles en LeadCars
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/leadcars/states:
     get:
       description: >-
@@ -5199,17 +5909,24 @@ paths:
                         required: true
         '400':
           description: La configuración de LeadCars está deshabilitada para esta empresa
-        '401': *ref_61
-        '403': *ref_62
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '401': *ref_103
+        '403': *ref_104
         '404':
           description: >-
             Solo aplica cuando no se proporciona clienteToken: no existe configuración de LeadCars guardada para esta
             empresa
-        '500':
-          description: Error al comunicarse con la API de LeadCars
-      security: *ref_63
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500': *ref_105
+      security: *ref_106
       summary: Listar estados disponibles en LeadCars
-      tags: *ref_64
+      tags: *ref_107
   /api/v1/leads/admin/supported-crms:
     get:
       operationId: leads-admin_getSupportedCrms
@@ -5223,11 +5940,82 @@ paths:
                 type: array
                 items:
                   type: string
-        '401': *ref_61
-        '403': *ref_62
-      security: *ref_63
+        '401': *ref_103
+        '403': *ref_104
+        '500': *ref_105
+      security: *ref_106
       summary: Obtener lista de CRMs soportados
-      tags: *ref_64
+      tags: *ref_107
+  /api/search:
+    get:
+      description: >-
+        Busca en todos los contextos accesibles según el rol del usuario autenticado. admin → chats, visitantes, leads,
+        empresas, usuarios. supervisor/commercial → chats, visitantes, leads. visitor → sin resultados.
+      operationId: search_search
+      parameters:
+        - name: q
+          required: true
+          in: query
+          description: Término de búsqueda (mínimo 2 caracteres, máximo 100)
+          schema:
+            example: García
+            type: string
+        - name: limit
+          required: false
+          in: query
+          description: 'Número máximo de resultados por provider (default: 5, máx: 10)'
+          schema:
+            example: 5
+      responses:
+        '200':
+          description: Lista de resultados de búsqueda
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      example: a1b2c3d4-...
+                    scope:
+                      type: string
+                      example: chats
+                    title:
+                      type: string
+                      example: Chat con García
+                    subtitle:
+                      type: string
+                      example: Abierto · hace 2 horas
+                    url:
+                      type: string
+                      example: /chats/a1b2c3d4
+                    metadata:
+                      type: object
+        '401':
+          description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '403':
+          description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+        '500':
+          description: Error interno del servidor. Indica una condición inesperada que impidió completar la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
+      security:
+        - bearer: []
+      summary: Búsqueda global
+      tags:
+        - search
   /:
     get:
       description: >-
@@ -5250,7 +6038,7 @@ paths:
       security:
         - {}
       summary: Mensaje de bienvenida
-      tags: &ref_65
+      tags: &ref_108
         - health
   /health:
     head:
@@ -5269,7 +6057,7 @@ paths:
       security:
         - {}
       summary: Health check (HEAD)
-      tags: *ref_65
+      tags: *ref_108
   /api/websocket-test:
     get:
       description: >-
@@ -5287,7 +6075,7 @@ paths:
       security:
         - {}
       summary: Página HTML de prueba para WebSocket
-      tags: *ref_65
+      tags: *ref_108
   /api/protected:
     get:
       description: >-
@@ -5305,12 +6093,20 @@ paths:
                 example: This is a protected route
         '401':
           description: 'No autenticado: faltan credenciales, token ausente, inválido o expirado.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
         '403':
           description: 'Acceso denegado: el usuario autenticado no tiene permisos suficientes para esta operación.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDto'
       security:
         - bearer: []
       summary: Endpoint de prueba protegido por JWT
-      tags: *ref_65
+      tags: *ref_108
 info:
   title: API Guiders Backend
   description: |-
@@ -5356,6 +6152,8 @@ tags:
     description: Gestión de API Keys de tenants
   - name: integration-api-keys
     description: API Keys de integración REST para developers externos
+  - name: integration
+    description: API de integración REST para developers externos
   - name: Chats V2
     description: Conversaciones (V2 - MongoDB)
   - name: Messages V2
@@ -5400,6 +6198,8 @@ tags:
     description: Endpoints de salud y diagnóstico
   - name: internal-opensearch
     description: Endpoints internos de diagnóstico OpenSearch
+  - name: search
+    description: Búsqueda global centralizada con filtrado por rol
 servers:
   - url: https://api.guiders.ai
     description: Producción
@@ -5436,6 +6236,31 @@ components:
       name: x-api-key
       description: API Key del tenant para ingesta de eventos del SDK
   schemas:
+    ErrorResponseDto:
+      type: object
+      properties:
+        statusCode:
+          type: number
+          description: Código de estado HTTP
+          example: 400
+        message:
+          description: Mensaje de error. Puede ser un string o un array de strings (validación)
+          oneOf:
+            - type: string
+              example: Datos de entrada inválidos
+            - type: array
+              items:
+                type: string
+              example:
+                - field should not be empty
+        error:
+          type: string
+          description: Nombre del error HTTP
+          example: Bad Request
+      required:
+        - statusCode
+        - message
+        - error
     TokenRequestDto:
       type: object
       properties:
@@ -6265,22 +7090,6 @@ components:
         - sessionId
         - lifecycle
         - isNewVisitor
-    HeartbeatDto:
-      type: object
-      properties:
-        sessionId:
-          type: string
-          description: >-
-            ID de la sesión del visitante (puede venir de cookie x-guiders-sid,
-            header x-guiders-sid o este campo body). Prioridad: body > header > cookie.
-          example: sess_1758226307441_visitor
-        activityType:
-          type: string
-          enum:
-            - heartbeat
-            - user-interaction
-          description: Tipo de actividad que origina el heartbeat
-          example: heartbeat
     EndSessionDto:
       type: object
       properties:
@@ -6296,6 +7105,21 @@ components:
           type: string
           description: Razón del cierre de sesión (opcional)
           example: Usuario cerró la ventana
+    HeartbeatDto:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          description: ID de la sesión del visitante (puede venir de cookie o header x-guiders-sid)
+          example: sess_1758226307441_visitor
+        activityType:
+          type: string
+          description: Tipo de actividad que origina el heartbeat
+          enum:
+            - heartbeat
+            - user-interaction
+          default: heartbeat
+          example: heartbeat
     ChangeVisitorStatusDto:
       type: object
       properties:
@@ -6476,7 +7300,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: &ref_66
+          enum: &ref_109
             - ONLINE
             - AWAY
             - OFFLINE
@@ -6561,7 +7385,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: *ref_66
+          enum: *ref_109
           example: ONLINE
         currentUrl:
           type: string
@@ -6769,7 +7593,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: &ref_67
+          enum: &ref_110
             - ONLINE
             - AWAY
             - OFFLINE
@@ -6806,7 +7630,7 @@ components:
           nullable: true
         pendingChatIds:
           description: IDs de chats pendientes asociados al visitante
-          example: &ref_68
+          example: &ref_111
             - db9f4882-a0d4-41f4-9915-4cffb88874dd
           nullable: true
           type: array
@@ -6889,7 +7713,7 @@ components:
             - AWAY: Visitante inactivo (sin interacciones durante el periodo de inactividad)
             - OFFLINE: Visitante desconectado
             - CHATTING: Visitante en conversación activa con un comercial
-          enum: *ref_67
+          enum: *ref_110
           example: ONLINE
         siteId:
           type: string
@@ -6922,7 +7746,7 @@ components:
           nullable: true
         pendingChatIds:
           description: IDs de chats pendientes asociados al visitante
-          example: *ref_68
+          example: *ref_111
           nullable: true
           type: array
           items:
@@ -7664,6 +8488,37 @@ components:
         - companyId
         - companyName
         - sites
+    MyCompanyResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID único de la empresa
+          example: 83504359-b783-41dd-bee1-5237c009179d
+        companyName:
+          type: string
+          description: Nombre de la empresa
+          example: Empresa Local
+        domains:
+          description: Lista de todos los dominios de la empresa
+          example:
+            - 127.0.0.1
+            - www.ejemplo.com
+          type: array
+          items:
+            type: string
+        siteId:
+          type: string
+          description: ID del sitio específico resuelto por el host actual
+          example: 550e8400-e29b-41d4-a716-446655440001
+        siteName:
+          type: string
+          description: Nombre del sitio específico resuelto por el host actual
+          example: Landing Site
+      required:
+        - id
+        - companyName
+        - domains
     CreateChatVisitorInfoDto:
       type: object
       properties:
@@ -7735,6 +8590,20 @@ components:
           description: Metadatos del chat (opcional)
           allOf:
             - $ref: '#/components/schemas/CreateChatMetadataDto'
+    CreateChatResponseDto:
+      type: object
+      properties:
+        chatId:
+          type: string
+          description: ID único del chat creado
+          example: 550e8400-e29b-41d4-a716-446655440000
+        position:
+          type: number
+          description: Posición en la cola de espera
+          example: 3
+      required:
+        - chatId
+        - position
     FirstMessageDto:
       type: object
       properties:
@@ -7840,6 +8709,26 @@ components:
             - $ref: '#/components/schemas/CreateChatWithMessageMetadataDto'
       required:
         - firstMessage
+    CreateChatWithMessageResponseDto:
+      type: object
+      properties:
+        chatId:
+          type: string
+          description: ID único del chat creado
+          example: 550e8400-e29b-41d4-a716-446655440000
+        messageId:
+          type: string
+          description: ID único del primer mensaje creado
+          example: 550e8400-e29b-41d4-a716-446655440001
+        position:
+          type: number
+          description: Posición del chat en la cola de espera
+          example: 3
+          minimum: 1
+      required:
+        - chatId
+        - messageId
+        - position
     VisitorInfoResponseDto:
       type: object
       properties:
@@ -8119,6 +9008,65 @@ components:
         - period
         - avgResponseTime
         - count
+    CommercialVisitorChatSummaryDto:
+      type: object
+      properties:
+        id:
+          type: string
+          example: chat-123
+        visitorId:
+          type: string
+          example: visitor-456
+        assignedCommercialId:
+          type: object
+          example: commercial-789
+          nullable: true
+        status:
+          type: string
+          example: ACTIVE
+        priority:
+          type: string
+          example: HIGH
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-07-28T10:30:00.000Z'
+        lastMessageDate:
+          type: object
+          format: date-time
+          example: '2025-07-28T11:15:00.000Z'
+          nullable: true
+      required:
+        - id
+        - visitorId
+        - status
+        - priority
+        - createdAt
+    CommercialVisitorChatsResponseDto:
+      type: object
+      properties:
+        chats:
+          description: Lista de chats del visitante asignados al comercial autenticado
+          type: array
+          items:
+            $ref: '#/components/schemas/CommercialVisitorChatSummaryDto'
+        total:
+          type: number
+          description: Número total de chats asignados al comercial para este visitante
+          example: 1
+        totalVisitorChats:
+          type: number
+          description: Número total de chats del visitante sin filtrar por comercial asignado
+          example: 3
+        hasMore:
+          type: boolean
+          description: Indica si hay más chats disponibles
+          example: false
+      required:
+        - chats
+        - total
+        - totalVisitorChats
+        - hasMore
     CommercialMetricsResponseDto:
       type: object
       properties:
@@ -8236,6 +9184,23 @@ components:
         - totalMessages
         - createdAt
         - updatedAt
+    DeleteVisitorChatsResponseDto:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Todos los chats del visitante han sido eliminados
+        deletedCount:
+          type: number
+          description: Número de chats eliminados
+          example: 5
+        visitorId:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      required:
+        - message
+        - deletedCount
+        - visitorId
     PendingChatsVisitorInfoDto:
       type: object
       properties:
@@ -9197,11 +10162,13 @@ components:
       properties:
         domain:
           type: string
-          description: Dominio del sitio web desde donde se consulta
+          description: >-
+            Dominio del sitio web desde donde se consulta. Determina el tenant cuya disponibilidad se consulta. El
+            prefijo www. se normaliza automáticamente.
           example: landing.mytech.com
         apiKey:
           type: string
-          description: API Key del sitio para validación
+          description: API Key del sitio para validación. Debe corresponder al dominio proporcionado.
           example: ak_live_1234567890abcdef
       required:
         - domain
@@ -9211,20 +10178,24 @@ components:
       properties:
         available:
           type: boolean
-          description: Indica si hay comerciales disponibles para atender
+          description: >-
+            Indica si hay al menos un comercial online y disponible para atender en el tenant propietario del dominio
+            consultado
           example: true
         onlineCount:
           type: number
-          description: Número de comerciales online y disponibles
+          description: >-
+            Número de comerciales online en el tenant propietario del dominio consultado. Este valor está acotado al
+            tenant: no incluye comerciales de otras empresas.
           example: 3
         timestamp:
           type: string
-          description: Timestamp de cuando se generó la respuesta
+          description: Timestamp ISO 8601 de cuando se generó la respuesta
           example: '2025-01-15T10:30:00.000Z'
         siteId:
           type: string
-          description: ID del sitio consultado
-          example: site_1234567890
+          description: UUID del sitio consultado, resuelto a partir del dominio proporcionado
+          example: 550e8400-e29b-41d4-a716-446655440002
       required:
         - available
         - onlineCount
