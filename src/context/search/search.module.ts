@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
+import { JwtModule } from '@nestjs/jwt';
+import { HttpModule } from '@nestjs/axios';
+import { ConfigModule } from '@nestjs/config';
 
 // Controllers
 import { SearchController } from './infrastructure/controllers/search.controller';
@@ -9,6 +12,10 @@ import { GlobalSearchQueryHandler } from './application/queries/global-search/gl
 
 // Cache
 import { SearchCacheService } from './infrastructure/cache/search-cache.service';
+
+// Guard dependencies
+import { TokenVerifyService } from 'src/context/shared/infrastructure/token-verify.service';
+import { BffSessionAuthService } from 'src/context/shared/infrastructure/services/bff-session-auth.service';
 
 // Token de inyección multi-provider
 import { SEARCH_PROVIDER } from 'src/context/shared/domain/search';
@@ -33,6 +40,9 @@ import { CompanySearchProvider } from '../company/infrastructure/search/company-
 @Module({
   imports: [
     CqrsModule,
+    HttpModule,
+    JwtModule.register({}),
+    ConfigModule,
     ConversationsV2Module,
     VisitorsV2Module,
     LeadsModule,
@@ -42,6 +52,9 @@ import { CompanySearchProvider } from '../company/infrastructure/search/company-
   providers: [
     SearchCacheService,
     GlobalSearchQueryHandler,
+    // Servicios necesarios para DualAuthGuard
+    TokenVerifyService,
+    BffSessionAuthService,
     // Registrar todos los providers bajo el mismo token para inyección múltiple
     {
       provide: SEARCH_PROVIDER,

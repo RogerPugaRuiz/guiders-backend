@@ -5,6 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import { SearchController } from '../src/context/search/infrastructure/controllers/search.controller';
 import { GlobalSearchQueryHandler } from '../src/context/search/application/queries/global-search/global-search.query-handler';
+import { SearchCacheService } from '../src/context/search/infrastructure/cache/search-cache.service';
 import {
   SEARCH_PROVIDER,
   SearchProvider,
@@ -100,6 +101,13 @@ describe('SearchController (e2e)', () => {
       controllers: [SearchController],
       providers: [
         GlobalSearchQueryHandler,
+        {
+          provide: SearchCacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn().mockResolvedValue(undefined),
+          },
+        },
         {
           provide: SEARCH_PROVIDER,
           useValue: allMockProviders,
