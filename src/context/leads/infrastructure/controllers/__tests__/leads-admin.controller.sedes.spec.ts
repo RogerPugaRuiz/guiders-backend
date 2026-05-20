@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
-  InternalServerErrorException,
+  HttpException,
   CanActivate,
   ExecutionContext,
 } from '@nestjs/common';
@@ -234,7 +234,7 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
   });
 
   describe('cuando la API de LeadCars devuelve error', () => {
-    it('debe lanzar InternalServerErrorException', async () => {
+    it('debe lanzar HttpException con status BAD_GATEWAY', async () => {
       leadcarsApiService.listSedes.mockResolvedValue(
         err(new CrmApiError('leadcars', 'Error de conexión con LeadCars')),
       );
@@ -245,7 +245,7 @@ describe('LeadsAdminController - getLeadcarsSedes', () => {
           makeRequest(),
           'token-de-prueba-12345678',
         ),
-      ).rejects.toThrow(InternalServerErrorException);
+      ).rejects.toThrow(HttpException);
     });
   });
 });

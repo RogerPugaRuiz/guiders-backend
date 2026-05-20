@@ -11,7 +11,8 @@ import {
   Req,
   BadRequestException,
   NotFoundException,
-  InternalServerErrorException,
+  HttpException,
+  HttpStatus,
   Inject,
 } from '@nestjs/common';
 import {
@@ -65,6 +66,8 @@ import {
   CRM_SYNC_SERVICE_FACTORY,
 } from '../../domain/services/crm-sync.service';
 import { LeadcarsApiService } from '../adapters/leadcars/leadcars-api.service';
+import { CrmApiError } from '../../domain/errors/leads.error';
+import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 interface AuthenticatedRequest extends Request {
@@ -571,6 +574,30 @@ export class LeadsAdminController {
 
   // ==================== Proxy LeadCars ====================
 
+  // ==================== Helpers privados LeadCars ====================
+
+  /**
+   * Convierte un DomainError de LeadCars en HttpException con el código HTTP correcto.
+   * Si LeadCars respondió con un 4xx, se propaga ese código para que el frontend
+   * pueda distinguir token inválido (401/403) de recurso no encontrado (404).
+   * Si no hay código (error de red/desconocido) se devuelve 502 Bad Gateway.
+   */
+  private throwLeadcarsError(error: DomainError, context: string): never {
+    if (error instanceof CrmApiError && error.statusCode) {
+      const status = error.statusCode;
+      if (status >= 400 && status < 600) {
+        throw new HttpException(
+          `LeadCars error [${context}]: ${error.message}`,
+          status,
+        );
+      }
+    }
+    throw new HttpException(
+      `LeadCars no disponible [${context}]: ${error.message}`,
+      HttpStatus.BAD_GATEWAY,
+    );
+  }
+
   private async getLeadcarsConfigForCompany(companyId: string) {
     const result = await this.configRepository.findByCompanyAndType(
       companyId,
@@ -666,9 +693,7 @@ export class LeadsAdminController {
     const result =
       await this.leadcarsApiService.listConcesionarios(leadcarsConfig);
     if (result.isErr()) {
-      throw new InternalServerErrorException(
-        `Error al obtener concesionarios de LeadCars: ${result.error.message}`,
-      );
+      this.throwLeadcarsError(result.error, 'concesionarios');
     }
 
     return result.unwrap().map((c) => ({ id: c.id, nombre: c.nombre }));
@@ -759,9 +784,7 @@ export class LeadsAdminController {
       leadcarsConfig,
     );
     if (result.isErr()) {
-      throw new InternalServerErrorException(
-        `Error al obtener sedes de LeadCars: ${result.error.message}`,
-      );
+      this.throwLeadcarsError(result.error, 'sedes');
     }
 
     return result.unwrap().map((s) => ({
@@ -862,9 +885,7 @@ export class LeadsAdminController {
       configForRequest,
     );
     if (result.isErr()) {
-      throw new InternalServerErrorException(
-        `Error al obtener campañas de LeadCars: ${result.error.message}`,
-      );
+      this.throwLeadcarsError(result.error, 'campanas');
     }
 
     return result.unwrap().map((c) => ({
@@ -939,9 +960,7 @@ export class LeadsAdminController {
 
     const result = await this.leadcarsApiService.listTipos(leadcarsConfig);
     if (result.isErr()) {
-      throw new InternalServerErrorException(
-        `Error al obtener tipos de lead de LeadCars: ${result.error.message}`,
-      );
+      this.throwLeadcarsError(result.error, 'tipos');
     }
 
     return result.unwrap().map((t) => ({ id: t.id, nombre: t.NOMBRE }));
@@ -1042,9 +1061,7 @@ export class LeadsAdminController {
 
     const result = await this.leadcarsApiService.listStates(leadcarsConfig);
     if (result.isErr()) {
-      throw new InternalServerErrorException(
-        `Error al obtener estados de LeadCars: ${result.error.message}`,
-      );
+      this.throwLeadcarsError(result.error, 'states');
     }
 
     return result.unwrap() as Record<string, LeadcarsStateItemDto>;
