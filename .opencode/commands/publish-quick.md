@@ -1,7 +1,9 @@
 ---
 description: Publicación rápida (solo lint + unit tests)
 agent: general
+model: github-copilot/gpt-5-mini
 ---
+
 
 # Publicar a GitHub - Modo Rápido
 

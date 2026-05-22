@@ -1,6 +1,7 @@
 ---
 description: Publicación completa incluyendo tests E2E
 agent: general
+model: github-copilot/gpt-5-mini
 ---
 
 # Publicar a GitHub - Modo Completo (con E2E)

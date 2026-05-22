@@ -1,6 +1,7 @@
 ---
 description: Publica cambios a GitHub con validaciones completas (lint + tests + build)
 agent: general
+model: github-copilot/gpt-5-mini
 ---
 
 # Publicar a GitHub - Validaciones Completas
