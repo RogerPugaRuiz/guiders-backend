@@ -598,6 +598,19 @@ export class LeadsAdminController {
     );
   }
 
+  /**
+   * Sentinel que el backend devuelve en lugar del token real para no exponer
+   * credenciales sensibles en las respuestas GET/POST/PUT de config CRM
+   * (ver CrmConfigResponseDto.fromPrimitives). Si el frontend reenvía este
+   * valor en las llamadas de validación, debemos ignorarlo y usar el token
+   * desencriptado de la configuración guardada en BD.
+   */
+  private static readonly MASKED_TOKEN_SENTINEL = '***OCULTO***';
+
+  private isValidClienteTokenInput(token?: string): token is string {
+    return !!token && token !== LeadsAdminController.MASKED_TOKEN_SENTINEL;
+  }
+
   private async getLeadcarsConfigForCompany(companyId: string) {
     const result = await this.configRepository.findByCompanyAndType(
       companyId,
@@ -679,7 +692,7 @@ export class LeadsAdminController {
       tipoLeadDefault: number;
     };
 
-    if (clienteToken) {
+    if (this.isValidClienteTokenInput(clienteToken)) {
       leadcarsConfig = {
         clienteToken,
         useSandbox: useSandbox === 'true',
@@ -768,7 +781,7 @@ export class LeadsAdminController {
       tipoLeadDefault: number;
     };
 
-    if (clienteToken) {
+    if (this.isValidClienteTokenInput(clienteToken)) {
       leadcarsConfig = {
         clienteToken,
         useSandbox: useSandbox === 'true',
@@ -863,7 +876,7 @@ export class LeadsAdminController {
       tipoLeadDefault: number;
     };
 
-    if (clienteToken) {
+    if (this.isValidClienteTokenInput(clienteToken)) {
       baseConfig = {
         clienteToken,
         useSandbox: useSandbox === 'true',
@@ -947,7 +960,7 @@ export class LeadsAdminController {
       tipoLeadDefault: number;
     };
 
-    if (clienteToken) {
+    if (this.isValidClienteTokenInput(clienteToken)) {
       leadcarsConfig = {
         clienteToken,
         useSandbox: useSandbox === 'true',
@@ -1048,7 +1061,7 @@ export class LeadsAdminController {
       tipoLeadDefault: number;
     };
 
-    if (clienteToken) {
+    if (this.isValidClienteTokenInput(clienteToken)) {
       leadcarsConfig = {
         clienteToken,
         useSandbox: useSandbox === 'true',
