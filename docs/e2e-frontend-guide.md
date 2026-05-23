@@ -148,8 +148,12 @@ jobs:
 
       - name: Teardown backend E2E stack
         if: always()
-        working-directory: _backend
-        run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans
+        run: |
+          if [ -f "_backend/docker-compose.e2e.yml" ]; then
+            docker compose -f _backend/docker-compose.e2e.yml down -v --remove-orphans
+          else
+            echo "⚠️  _backend/docker-compose.e2e.yml no encontrado — nada que destruir"
+          fi
 ```
 
 ---
