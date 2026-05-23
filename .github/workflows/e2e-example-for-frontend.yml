@@ -26,7 +26,7 @@ env:
   # Credenciales E2E — mismas que en .env.e2e del backend.
   # No son secretos reales: son credenciales de un entorno efímero y desechable.
   E2E_ADMIN_EMAIL: admin@e2e.guiders.local
-  E2E_ADMIN_PASSWORD: E2ePassword123!
+  E2E_ADMIN_PASSWORD: E2eAdmin123!
   E2E_BASE_URL: http://localhost:4200     # URL donde corre el frontend en el runner
   E2E_API_URL: http://localhost:3099      # URL donde corre el backend E2E
 

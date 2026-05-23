@@ -51,7 +51,7 @@ They are **not secrets** — they only exist inside the ephemeral container.
 | Field          | Value                        |
 | -------------- | ---------------------------- |
 | Admin email    | `admin@e2e.guiders.local`    |
-| Admin password | `E2ePassword123!`            |
+| Admin password | `E2eAdmin123!`            |
 | Backend URL    | `http://localhost:3099`      |
 | Company domain | `e2e.guiders.local`          |
 
@@ -81,7 +81,7 @@ concurrency:
 env:
   # These are not real secrets — they only exist inside the ephemeral Docker container.
   E2E_ADMIN_EMAIL: admin@e2e.guiders.local
-  E2E_ADMIN_PASSWORD: E2ePassword123!
+  E2E_ADMIN_PASSWORD: E2eAdmin123!
   E2E_BASE_URL: http://localhost:4200   # Adjust to your frontend dev server port
   E2E_API_URL: http://localhost:3099
 
@@ -202,7 +202,7 @@ export default defineConfig({
 
 ```ts
 const adminEmail    = process.env.E2E_ADMIN_EMAIL    ?? 'admin@e2e.guiders.local';
-const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'E2ePassword123!';
+const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'E2eAdmin123!';
 const apiUrl        = process.env.E2E_API_URL         ?? 'http://localhost:3099';
 ```
 

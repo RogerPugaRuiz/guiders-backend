@@ -2,7 +2,7 @@ import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-
 
 export class UserAccountEmail extends PrimitiveValueObject<string> {
   private static readonly EMAIL_REGEX =
-    /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
+    /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
   constructor(value: string) {
     super(

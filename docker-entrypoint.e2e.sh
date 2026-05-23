@@ -47,20 +47,27 @@ done
 echo "✅ MongoDB listo"
 
 # -------------------------------------------------------
-# 3. Ejecutar migraciones TypeORM
+# 3. Sincronizar schema TypeORM (TYPEORM_SYNC=true en .env.e2e)
+# Se usa synchronize en lugar de migraciones porque el entorno E2E
+# arranca con una base de datos vacía y algunas migraciones históricas
+# asumen tablas que ya no existen (contextos V1 deprecados).
 # -------------------------------------------------------
-echo "🗄️  Ejecutando migraciones TypeORM..."
-node dist/node_modules/typeorm/cli.js migration:run \
-  -d dist/src/context/shared/infrastructure/persistence/postgres/typeorm-data-source.js \
-  || node -e "require('./dist/src/context/shared/infrastructure/persistence/postgres/typeorm-data-source').AppDataSource.initialize().then(ds => ds.runMigrations()).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })"
-
-echo "✅ Migraciones aplicadas"
+echo "🗄️  Sincronizando schema TypeORM..."
+node -e "
+const { AppDataSource } = require('./dist/src/data-source');
+AppDataSource.initialize()
+  .then(() => { console.log('✅ Schema sincronizado'); process.exit(0); })
+  .catch(e => { console.error('❌ Error sincronizando schema:', e.message); process.exit(1); });
+"
+echo "✅ Schema listo"
 
 # -------------------------------------------------------
 # 4. Ejecutar seed E2E
+# Se llama al CLI compilado directamente (dist/tools/cli.js)
+# porque la imagen de producción no tiene ts-node.
 # -------------------------------------------------------
 echo "🌱 Ejecutando seed E2E..."
-node bin/guiders-cli.js seed-e2e-company \
+node /app/dist/tools/cli.js seed-e2e-company \
   --name "${E2E_COMPANY_NAME:-Guiders E2E Test Company}" \
   --domain "${E2E_DOMAIN:-e2e.guiders.local}" \
   --admin-email "${E2E_ADMIN_EMAIL:-admin@e2e.guiders.local}" \
