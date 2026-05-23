@@ -1,0 +1,119 @@
+# .github/workflows/e2e.yml
+# Tests E2E con backend efímero en Docker.
+# El backend corre en el propio runner de GitHub Actions — sin staging, sin riesgo.
+#
+# Requisitos en el repo del FRONTEND:
+#   - Secret: BACKEND_REPO_TOKEN  → PAT con permiso contents:read al repo del backend
+#   - Secret: BACKEND_REPO        → Ej: tu-org/guiders-backend
+#
+# Las credenciales E2E (email, password, API key) están hardcodeadas en .env.e2e
+# del backend y son PÚBLICAS a propósito — solo viven en el contenedor efímero.
+
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Credenciales E2E — mismas que en .env.e2e del backend.
+  # No son secretos reales: son credenciales de un entorno efímero y desechable.
+  E2E_ADMIN_EMAIL: admin@e2e.guiders.local
+  E2E_ADMIN_PASSWORD: E2ePassword123!
+  E2E_BASE_URL: http://localhost:4200     # URL donde corre el frontend en el runner
+  E2E_API_URL: http://localhost:3099      # URL donde corre el backend E2E
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # -------------------------------------------------------
+      # 1. Checkout del frontend
+      # -------------------------------------------------------
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      # -------------------------------------------------------
+      # 2. Checkout del backend (repo separado)
+      # -------------------------------------------------------
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.BACKEND_REPO }}   # Ej: tu-org/guiders-backend
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}  # PAT con contents:read
+          path: _backend                             # Carpeta temporal, ignorada por git
+
+      # -------------------------------------------------------
+      # 3. Levantar el backend E2E en Docker (postgres + mongo + redis + nestjs + seed)
+      # -------------------------------------------------------
+      - name: Start backend E2E stack
+        working-directory: _backend
+        run: |
+          docker compose -f docker-compose.e2e.yml build --no-cache backend-e2e
+          docker compose -f docker-compose.e2e.yml up -d
+
+      - name: Wait for backend to be healthy
+        run: |
+          echo "⏳ Esperando a que el backend E2E esté listo..."
+          timeout 120 bash -c '
+            until curl -sf http://localhost:3099/health > /dev/null; do
+              echo "  Aún no disponible..."; sleep 3
+            done
+          '
+          echo "✅ Backend E2E listo en http://localhost:3099"
+
+      # -------------------------------------------------------
+      # 4. Instalar dependencias del frontend y levantar para tests
+      # -------------------------------------------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      # -------------------------------------------------------
+      # 5. Ejecutar tests E2E
+      # -------------------------------------------------------
+      - name: Run Playwright E2E tests
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ env.E2E_BASE_URL }}
+          E2E_ADMIN_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
+          E2E_API_URL: ${{ env.E2E_API_URL }}
+        run: npx playwright test
+
+      # -------------------------------------------------------
+      # 6. Publicar reporte (siempre, aunque fallen los tests)
+      # -------------------------------------------------------
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      # -------------------------------------------------------
+      # 7. Destruir el stack Docker (siempre)
+      # El volumen es tmpfs — muere con el contenedor, sin datos persistentes
+      # -------------------------------------------------------
+      - name: Teardown backend E2E stack
+        if: always()
+        working-directory: _backend
+        run: docker compose -f docker-compose.e2e.yml down -v --remove-orphans

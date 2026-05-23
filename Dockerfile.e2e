@@ -1,0 +1,56 @@
+# Dockerfile.e2e
+# Imagen del backend configurada para tests E2E en CI.
+# Diferencias respecto al Dockerfile de producción:
+#   1. Copia también bin/ y tools/ (necesarios para el CLI de seed)
+#   2. El entrypoint ejecuta migraciones + seed antes de arrancar NestJS
+#   3. Credenciales E2E hardcodeadas via .env.e2e (nunca tocan staging/prod)
+#
+# Build: docker build -f Dockerfile.e2e -t guiders-backend-e2e .
+# Run:   docker compose -f docker-compose.e2e.yml up --wait
+
+# --------------------------
+# Stage 1: Build
+# --------------------------
+FROM node:20-slim AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+COPY tsconfig.json tsconfig.build.json ./
+COPY . .
+
+RUN npm run build
+
+# --------------------------
+# Stage 2: E2E Runtime
+# --------------------------
+FROM node:20-slim AS e2e
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Dependencias de producción
+COPY --from=builder /app/package*.json ./
+RUN npm install --legacy-peer-deps --omit=dev
+
+# Artefactos compilados
+COPY --from=builder /app/dist ./dist
+
+# CLI de seed (bin/ + tools/ compilados en dist/tools/)
+COPY --from=builder /app/bin ./bin
+
+# Entrypoint que orquesta: migraciones → seed → servidor
+COPY docker-entrypoint.e2e.sh /usr/local/bin/docker-entrypoint.e2e.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.e2e.sh
+
+EXPOSE 3099
+
+HEALTHCHECK --interval=10s --timeout=5s --retries=15 --start-period=30s \
+  CMD curl -f http://localhost:3099/health || exit 1
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.e2e.sh"]

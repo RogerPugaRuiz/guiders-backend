@@ -1,0 +1,104 @@
+# docker-compose.e2e.yml
+# Entorno efímero para tests E2E en CI (GitHub Actions).
+# NO usar en producción ni staging. Todas las credenciales son públicas a propósito.
+#
+# Uso:
+#   docker compose -f docker-compose.e2e.yml up -d --wait
+#   docker compose -f docker-compose.e2e.yml down -v
+
+version: '3.8'
+
+services:
+  postgres-e2e:
+    image: postgres:15-alpine
+    container_name: guiders-e2e-postgres
+    environment:
+      POSTGRES_USER: e2e
+      POSTGRES_PASSWORD: e2e
+      POSTGRES_DB: guiders_e2e
+    tmpfs:
+      - /var/lib/postgresql/data:rw,noexec,nosuid,size=512m
+    command:
+      [
+        'postgres',
+        '-c', 'fsync=off',
+        '-c', 'synchronous_commit=off',
+        '-c', 'full_page_writes=off',
+      ]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U e2e -d guiders_e2e']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - e2e-net
+
+  mongodb-e2e:
+    image: mongo:7.0
+    container_name: guiders-e2e-mongodb
+    tmpfs:
+      - /data/db:rw,noexec,nosuid,size=1024m
+    command:
+      [
+        'mongod',
+        '--storageEngine', 'wiredTiger',
+        '--wiredTigerCacheSizeGB', '0.25',
+        '--noauth',
+      ]
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.runCommand('ping').ok", '--quiet']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - e2e-net
+
+  redis-e2e:
+    image: redis:7-alpine
+    container_name: guiders-e2e-redis
+    tmpfs:
+      - /data:rw,noexec,nosuid,size=128m
+    command:
+      [
+        'redis-server',
+        '--save', '',
+        '--appendonly', 'no',
+        '--maxmemory', '64mb',
+        '--maxmemory-policy', 'allkeys-lru',
+      ]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - e2e-net
+
+  backend-e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    container_name: guiders-e2e-backend
+    env_file:
+      - .env.e2e
+    ports:
+      - '3099:3099'
+    depends_on:
+      postgres-e2e:
+        condition: service_healthy
+      mongodb-e2e:
+        condition: service_healthy
+      redis-e2e:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:3099/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+    networks:
+      - e2e-net
+
+networks:
+  e2e-net:
+    driver: bridge

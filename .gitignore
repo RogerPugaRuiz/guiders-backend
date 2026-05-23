@@ -61,3 +61,6 @@ data
 
 #coverage test
 coverage
+
+# .env.e2e se commitea intencionalmente — credenciales públicas para entorno efímero de CI
+# NO añadir .env.e2e a este archivo
