@@ -113,7 +113,7 @@ jobs:
       - name: Wait for backend to be healthy
         run: |
           timeout 120 bash -c '
-            until curl -sf http://localhost:3099/health > /dev/null; do
+            until curl -sf http://localhost:3099/api/tracking-v2/health > /dev/null; do
               sleep 3
             done
           '
@@ -208,6 +208,49 @@ const apiUrl        = process.env.E2E_API_URL         ?? 'http://localhost:3099'
 
 You can hardcode the defaults directly — they are not sensitive.
 
+### Option C — Log in via the API in a Playwright fixture
+
+The backend exposes a direct login endpoint (no OIDC, no BFF flow needed for E2E):
+
+```
+POST http://localhost:3099/api/user/auth/login
+Content-Type: application/json
+
+{ "email": "admin@e2e.guiders.local", "password": "E2eAdmin123!" }
+```
+
+Response:
+```json
+{
+  "access_token": "<jwt>",
+  "refresh_token": "<jwt>"
+}
+```
+
+Example Playwright fixture:
+
+```ts
+import { test as base, request } from '@playwright/test';
+
+export const test = base.extend({
+  accessToken: async ({}, use) => {
+    const ctx = await request.newContext();
+    const res = await ctx.post('http://localhost:3099/api/user/auth/login', {
+      data: {
+        email: process.env.E2E_ADMIN_EMAIL ?? 'admin@e2e.guiders.local',
+        password: process.env.E2E_ADMIN_PASSWORD ?? 'E2eAdmin123!',
+      },
+    });
+    const { access_token } = await res.json();
+    await use(access_token);
+    await ctx.dispose();
+  },
+});
+```
+
+> **Do not use the BFF/OIDC flow** (`/api/bff/auth/...`) in E2E tests.
+> That flow requires a real Keycloak server, which is not part of the E2E Docker stack.
+
 ---
 
 ## Step 4 — (Optional) Add `_backend` to `.gitignore`
@@ -234,7 +277,7 @@ not enough, increase it in the workflow:
 - name: Wait for backend to be healthy
   run: |
     timeout 180 bash -c '   # ← increase from 120 to 180
-      until curl -sf http://localhost:3099/health > /dev/null; do
+        until curl -sf http://localhost:3099/api/tracking-v2/health > /dev/null; do
         sleep 3
       done
     '
