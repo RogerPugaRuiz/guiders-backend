@@ -580,26 +580,34 @@ jobs:
           sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
+            # Devuelve 0 si container tiene healthcheck y está healthy
             is_healthy() {
               local status
               status=$(docker inspect --format="{{.State.Health.Status}}" "$1" 2>/dev/null || echo "missing")
               [ "$status" = "healthy" ]
             }
 
-            echo "Esperando servicios..."
-            i=0; max=12
+            # Devuelve 0 si container está running (para los que no tienen healthcheck)
+            is_running() {
+              local status
+              status=$(docker inspect --format="{{.State.Status}}" "$1" 2>/dev/null || echo "missing")
+              [ "$status" = "running" ]
+            }
+
+            echo "Esperando servicios... (max 5 min)"
+            i=0; max=30
             while [ $i -lt $max ]; do
               i=$((i + 1))
               echo "  Intento $i/$max..."
 
               pg_ok=0; mg_ok=0; rd_ok=0
-              is_healthy postgres && pg_ok=1
+              is_running postgres && pg_ok=1
               is_healthy mongodb  && mg_ok=1
-              is_healthy redis    && rd_ok=1
+              is_running redis    && rd_ok=1
 
-              [ $pg_ok -eq 1 ] && echo "    PostgreSQL: healthy" || echo "    PostgreSQL: not ready"
+              [ $pg_ok -eq 1 ] && echo "    PostgreSQL: running" || echo "    PostgreSQL: not ready"
               [ $mg_ok -eq 1 ] && echo "    MongoDB:    healthy" || echo "    MongoDB:    not ready"
-              [ $rd_ok -eq 1 ] && echo "    Redis:      healthy" || echo "    Redis:      not ready"
+              [ $rd_ok -eq 1 ] && echo "    Redis:      running" || echo "    Redis:      not ready"
 
               if [ $pg_ok -eq 1 ] && [ $mg_ok -eq 1 ] && [ $rd_ok -eq 1 ]; then
                 echo "  Todas las bases de datos listas!"
@@ -612,7 +620,7 @@ jobs:
                 exit 1
               fi
 
-              sleep 5
+              sleep 10
             done
           '
 
