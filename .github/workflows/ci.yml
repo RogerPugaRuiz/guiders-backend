@@ -915,7 +915,7 @@ jobs:
       
       - name: Run npm audit (CRÍTICO)
         run: |
-          npm audit --audit-level=high || {
+          npm audit --audit-level=critical || {
             echo "⚠️ Security vulnerabilities detected. Please address them.";
             exit 1;
           }

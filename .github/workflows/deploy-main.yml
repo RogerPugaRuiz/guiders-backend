@@ -266,7 +266,7 @@ jobs:
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     needs: [test-and-build]
     if: needs.test-and-build.result == 'success'
 
@@ -500,7 +500,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Creando directorio de producción..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/"
           echo "Directorio creado exitosamente"
 
       - name: 3. Upload main files
@@ -516,7 +516,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Subiendo scripts y utilidades..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/scripts/"
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} "mkdir -p /var/www/guiders-backend/scripts/"
           sshpass -p "$SSH_PASSWORD" scp -o StrictHostKeyChecking=no scripts/mongo-init.js bin/test-mongodb-connection.js bin/verify-mongo-express.js ecosystem.config.js ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }}:/var/www/guiders-backend/
           echo "Scripts subidos exitosamente"
 
@@ -525,7 +525,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Descomprimiendo aplicación..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             echo "Descomprimiendo aplicación..."
@@ -545,7 +545,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Preparando dependencias (sin npm ci en servidor)..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             # Usar node_modules empaquetado desde CI para evitar bloqueos del servidor
@@ -563,7 +563,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Iniciando servicios de base de datos..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             echo "Iniciando servicios de base de datos..."
@@ -577,29 +577,38 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Esperando que los servicios estén listos..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} bash << 'ENDSSH'
             cd /var/www/guiders-backend/
 
-            # Esperar a que estén listos
+            is_healthy() {
+              local name=$1
+              local status
+              status=$(docker inspect --format='{{.State.Health.Status}}' "$name" 2>/dev/null || echo "missing")
+              [ "$status" = "healthy" ]
+            }
+
             echo "Esperando servicios..."
-            for i in {1..12}; do
-              echo "  Intento $i/12..."
+            i=0
+            max=12
+            while [ $i -lt $max ]; do
+              i=$((i + 1))
+              echo "  Intento $i/$max..."
 
-              # Buscar contenedores de producción
-              postgres_ok=$(docker inspect --format="{{.State.Health.Status}}" postgres 2>/dev/null | grep -c "healthy" || echo "0")
-              mongodb_ok=$(docker inspect --format="{{.State.Health.Status}}" mongodb 2>/dev/null | grep -c "healthy" || echo "0")
-              redis_ok=$(docker inspect --format="{{.State.Health.Status}}" redis 2>/dev/null | grep -c "healthy" || echo "0")
+              pg_ok=0; mg_ok=0; rd_ok=0
+              is_healthy postgres  && pg_ok=1
+              is_healthy mongodb   && mg_ok=1
+              is_healthy redis     && rd_ok=1
 
-              echo "    PostgreSQL: $([[ $postgres_ok -eq 1 ]] && echo "healthy" || echo "not ready")"
-              echo "    MongoDB: $([[ $mongodb_ok -eq 1 ]] && echo "healthy" || echo "not ready")"
-              echo "    Redis: $([[ $redis_ok -eq 1 ]] && echo "healthy" || echo "not ready")"
+              echo "    PostgreSQL: $([ $pg_ok -eq 1 ] && echo healthy || echo 'not ready')"
+              echo "    MongoDB:    $([ $mg_ok -eq 1 ] && echo healthy || echo 'not ready')"
+              echo "    Redis:      $([ $rd_ok -eq 1 ] && echo healthy || echo 'not ready')"
 
-              if [[ $postgres_ok -eq 1 && $mongodb_ok -eq 1 && $redis_ok -eq 1 ]]; then
+              if [ $pg_ok -eq 1 ] && [ $mg_ok -eq 1 ] && [ $rd_ok -eq 1 ]; then
                 echo "  Todas las bases de datos listas!"
-                break
+                exit 0
               fi
 
-              if [[ $i -eq 12 ]]; then
+              if [ $i -eq $max ]; then
                 echo "  Timeout esperando servicios"
                 echo "Estado actual de los contenedores:"
                 docker ps
@@ -608,14 +617,14 @@ jobs:
 
               sleep 5
             done
-          '
+ENDSSH
 
       - name: 9. Run database migrations
         env:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Ejecutando migraciones..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             set -e
             cd /var/www/guiders-backend
             export $(grep -v "^#" .env.production | xargs)
@@ -627,7 +636,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Iniciando aplicación de producción..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             # Crear directorio de logs de PM2 si no existe
@@ -652,7 +661,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Verificando estado del deployment..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             echo "Deployment completado!"
@@ -669,7 +678,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Probando conexión a MongoDB..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             echo "Probando conexión a MongoDB de producción..."
@@ -685,7 +694,7 @@ jobs:
           SSH_PASSWORD: ${{ secrets.PROD_SSH_PASSWORD }}
         run: |
           echo "Verificación final del deployment..."
-          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
+          sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} '
             cd /var/www/guiders-backend/
 
             echo "Estado final de producción:"
