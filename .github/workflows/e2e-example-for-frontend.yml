@@ -12,10 +12,9 @@
 name: E2E Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # Este workflow es una PLANTILLA para el repo frontend.
+  # En este repo (backend) solo se puede disparar manualmente.
+  # Los triggers push/pull_request están en el repo frontend.
   workflow_dispatch:
 
 concurrency:
