@@ -15,6 +15,7 @@ concurrency:
 env:
   NODE_VERSION: '20'
   CACHE_VERSION: v1
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # Job para verificar lint y formato - CRÍTICO

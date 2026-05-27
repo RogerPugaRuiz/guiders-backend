@@ -17,6 +17,9 @@ import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import { QueryBus } from '@nestjs/cqrs';
 import { FindUserByKeycloakIdQuery } from '../../../auth-user/application/queries/find-user-by-keycloak-id.query';
+import { UserResponseDto } from '../../../auth-user/application/dtos/user-list-response.dto';
+import { DomainError } from 'src/context/shared/domain/domain.error';
+import { Result } from 'src/context/shared/domain/result';
 import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 
 // Helpers de configuración en runtime para evitar valores congelados al cargar el módulo
@@ -226,7 +229,7 @@ export class BffController {
       `[BFF /login/${app}] redirectParam=${redirectParam ?? 'none'} => returnTo=${resolvedReturnTo}`,
     );
     req.session.returnTo = resolvedReturnTo;
-    const loginSessionId = (req.session as any)?.id || (req as any).sessionID || 'unknown';
+    const loginSessionId = (req.session as Record<string, unknown>)?.id as string || (req as Request & { sessionID?: string }).sessionID || 'unknown';
     this.logger.debug(`[BFF /login/${app}] sessionID=${loginSessionId}`);
 
     const authUrl = await this.oidc.buildAuthUrl(req.session, { app });
@@ -279,7 +282,7 @@ export class BffController {
       const queryKeys = Object.keys(
         (req.query || {}) as Record<string, unknown>,
       );
-      const sessionId = (req.session as any)?.id || (req as any).sessionID || 'unknown';
+      const sessionId = (req.session as Record<string, unknown>)?.id as string || (req as Request & { sessionID?: string }).sessionID || 'unknown';
       this.logger.debug(
         `[BFF /callback/${app}] sessionID=${sessionId} sessionKeys=[${sessKeys.join(', ')}] queryKeys=[${queryKeys.join(', ')}] hasPkce=${!!req.session?.pkce_verifier} hasState=${!!req.session?.oidc_state}`,
       );
@@ -489,9 +492,10 @@ export class BffController {
         .send({ error: 'unauthenticated', reason: 'invalid_jwt_sub' });
     }
 
-    const userResult = await this.queryBus.execute(
-      new FindUserByKeycloakIdQuery(payload.sub),
-    );
+    const userResult = await this.queryBus.execute<
+      FindUserByKeycloakIdQuery,
+      Result<UserResponseDto, DomainError>
+    >(new FindUserByKeycloakIdQuery(payload.sub));
 
     if (userResult.isErr()) {
       this.logger.warn(
