@@ -226,6 +226,8 @@ export class BffController {
       `[BFF /login/${app}] redirectParam=${redirectParam ?? 'none'} => returnTo=${resolvedReturnTo}`,
     );
     req.session.returnTo = resolvedReturnTo;
+    const loginSessionId = (req.session as any)?.id || (req as any).sessionID || 'unknown';
+    this.logger.debug(`[BFF /login/${app}] sessionID=${loginSessionId}`);
 
     const authUrl = await this.oidc.buildAuthUrl(req.session, { app });
     try {
@@ -277,8 +279,9 @@ export class BffController {
       const queryKeys = Object.keys(
         (req.query || {}) as Record<string, unknown>,
       );
+      const sessionId = (req.session as any)?.id || (req as any).sessionID || 'unknown';
       this.logger.debug(
-        `[BFF /callback/${app}] sessionKeys=[${sessKeys.join(', ')}] queryKeys=[${queryKeys.join(', ')}]`,
+        `[BFF /callback/${app}] sessionID=${sessionId} sessionKeys=[${sessKeys.join(', ')}] queryKeys=[${queryKeys.join(', ')}] hasPkce=${!!req.session?.pkce_verifier} hasState=${!!req.session?.oidc_state}`,
       );
       tokens = await this.oidc.handleCallback(req.query, req.session, {
         app,
