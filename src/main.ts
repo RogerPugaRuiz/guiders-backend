@@ -1,3 +1,18 @@
+// Cargar .env antes de cualquier inicialización para garantizar que process.env esté poblado
+// (necesario para SESSION_STORE, REDIS_URL, etc. que se leen en bootstrap antes de NestJS)
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFile =
+  nodeEnv === 'production'
+    ? '.env.production'
+    : nodeEnv === 'staging'
+      ? '.env.staging'
+      : nodeEnv === 'test'
+        ? '.env.test'
+        : '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { Logger, ValidationPipe } from '@nestjs/common';
