@@ -4,13 +4,17 @@ import { MessageSentEvent } from '../../domain/events/message-sent.event';
 import { WebSocketGatewayBasic } from 'src/websocket/websocket.gateway';
 
 /**
- * Event handler que notifica vía WebSocket cuando se envía un mensaje
+ * Event handler que notifica vía WebSocket cuando se envía un mensaje.
  *
  * Flujo:
  * 1. Escucha el evento MessageSentEvent
- * 2. Obtiene los datos del mensaje
- * 3. Emite notificación a la sala del chat correspondiente
- * 4. Todos los participantes del chat (visitante y comercial) reciben la notificación
+ * 2. Emite notificación a la sala del chat correspondiente
+ * 3. Todos los participantes del chat (visitante y comercial) reciben la notificación
+ *
+ * Nota: el campo unreadMessagesCount ya NO se incluye aquí. El valor confirmado
+ * se propaga por separado mediante UnreadCountUpdatedEvent →
+ * NotifyUnreadCountUpdatedOnUnreadCountUpdatedEventHandler, eliminando
+ * la race condition que existía al consultar el repositorio desde este handler.
  *
  * Patrón: NotifyMessageSentOnMessageSentEventHandler
  */
@@ -27,7 +31,7 @@ export class NotifyMessageSentOnMessageSentEventHandler
     private readonly websocketGateway: WebSocketGatewayBasic,
   ) {}
 
-  handle(event: MessageSentEvent): void {
+  async handle(event: MessageSentEvent): Promise<void> {
     this.logger.log(
       `Procesando notificación de mensaje enviado: ${event.getMessageId()}`,
     );
@@ -43,7 +47,6 @@ export class NotifyMessageSentOnMessageSentEventHandler
           `Mensaje interno detectado, notificando solo a comerciales en chat: ${chatId}`,
         );
 
-        // Emitir a sala de comerciales del chat
         this.websocketGateway.emitToRoom(
           `chat:${chatId}:commercial`,
           'message:new',
@@ -73,7 +76,6 @@ export class NotifyMessageSentOnMessageSentEventHandler
         `Notificando mensaje a todos los participantes del chat: ${chatId}`,
       );
 
-      // Emitir a la sala general del chat (visitantes y comerciales)
       this.websocketGateway.emitToRoom(`chat:${chatId}`, 'message:new', {
         messageId: messageData.messageId,
         chatId: messageData.chatId,
@@ -111,7 +113,6 @@ export class NotifyMessageSentOnMessageSentEventHandler
         errorObj.stack,
       );
       // No lanzamos el error para no afectar el flujo principal
-      // La notificación es un side-effect, no debe fallar la operación principal
     }
   }
 }

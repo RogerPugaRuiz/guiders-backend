@@ -1,6 +1,7 @@
-import { EventsHandler, IEventHandler } from '@nestjs/cqrs';
+import { EventBus, EventsHandler, IEventHandler } from '@nestjs/cqrs';
 import { Inject, Logger } from '@nestjs/common';
 import { MessageSentEvent } from '../../domain/events/message-sent.event';
+import { UnreadCountUpdatedEvent } from '../../domain/events/unread-count-updated.event';
 import {
   CHAT_V2_REPOSITORY,
   IChatRepository,
@@ -18,7 +19,8 @@ import { ChatId } from '../../domain/value-objects/chat-id';
  * 1. Escucha el evento MessageSentEvent
  * 2. Obtiene el chat desde el repositorio
  * 3. Actualiza el lastMessageContent, lastMessageDate y totalMessages
- * 4. Guarda el chat actualizado
+ * 4. Incrementa el contador de mensajes no leídos (unreadMessagesCount) de forma atómica
+ * 5. Guarda el chat actualizado
  *
  * Patrón: UpdateChatOnMessageSentEventHandler
  */
@@ -35,6 +37,7 @@ export class UpdateChatOnMessageSentEventHandler
     private readonly chatRepository: IChatRepository,
     @Inject(MESSAGE_V2_REPOSITORY)
     private readonly messageRepository: IMessageRepository,
+    private readonly eventBus: EventBus,
   ) {}
 
   async handle(event: MessageSentEvent): Promise<void> {
@@ -96,6 +99,31 @@ export class UpdateChatOnMessageSentEventHandler
           `Error al actualizar chat ${chatId}: ${saveResult.error.message}`,
         );
         return;
+      }
+
+      // Incrementar el contador de mensajes no leídos de forma atómica.
+      // Los mensajes internos entre comerciales no cuentan como no leídos para el visitante,
+      // pero sí para el flujo de notificaciones del comercial receptor.
+      const unreadResult = await this.chatRepository.incrementUnreadCount(
+        ChatId.create(chatId),
+      );
+
+      if (unreadResult.isErr()) {
+        // No es crítico — solo logamos el error
+        this.logger.warn(
+          `No se pudo incrementar unreadMessagesCount para chat ${chatId}: ${unreadResult.error.message}`,
+        );
+      } else {
+        const newCount = unreadResult.value;
+        this.logger.log(
+          `Chat ${chatId} unreadMessagesCount incrementado a ${newCount}`,
+        );
+        // Publicar evento de dominio con el nuevo valor confirmado.
+        // Esto permite que el handler de notificaciones WS use el valor real
+        // sin necesidad de hacer una query adicional (elimina la race condition).
+        this.eventBus.publish(
+          new UnreadCountUpdatedEvent({ chatId, newCount }),
+        );
       }
 
       this.logger.log(

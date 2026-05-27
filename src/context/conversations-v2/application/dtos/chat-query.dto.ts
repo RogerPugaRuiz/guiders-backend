@@ -10,6 +10,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * DTO para filtros de búsqueda de chats
@@ -162,6 +163,7 @@ export class PaginationDto {
     example: 20,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   @Max(100)

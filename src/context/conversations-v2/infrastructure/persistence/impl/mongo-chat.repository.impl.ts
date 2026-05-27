@@ -908,4 +908,85 @@ export class MongoChatRepositoryImpl implements IChatRepository {
       );
     }
   }
+
+  async incrementUnreadCount(
+    chatId: ChatId,
+  ): Promise<Result<number, DomainError>> {
+    try {
+      const result = await this.chatModel.findOneAndUpdate(
+        { id: chatId.getValue() },
+        { $inc: { unreadMessagesCount: 1 } },
+        { new: true, projection: { unreadMessagesCount: 1 } },
+      );
+
+      if (!result) {
+        return err(
+          new ChatPersistenceError(
+            `Chat ${chatId.getValue()} no encontrado al incrementar unreadMessagesCount`,
+          ),
+        );
+      }
+
+      // Si el campo no existía antes del $inc, MongoDB lo crea con valor 1.
+      // Usamos 1 como fallback en lugar de 0 para no emitir un evento falso de "sin no leídos".
+      return ok((result as any).unreadMessagesCount ?? 1);
+    } catch (error) {
+      return err(
+        new ChatPersistenceError(
+          `Error al incrementar unreadMessagesCount del chat ${chatId.getValue()}: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
+
+  async resetUnreadCount(chatId: ChatId): Promise<Result<void, DomainError>> {
+    try {
+      const result = await this.chatModel.findOneAndUpdate(
+        { id: chatId.getValue() },
+        { $set: { unreadMessagesCount: 0 } },
+        { projection: { _id: 1 } },
+      );
+
+      if (!result) {
+        return err(
+          new ChatPersistenceError(
+            `Chat ${chatId.getValue()} no encontrado al resetear unreadMessagesCount`,
+          ),
+        );
+      }
+
+      return ok(undefined);
+    } catch (error) {
+      return err(
+        new ChatPersistenceError(
+          `Error al resetear unreadMessagesCount del chat ${chatId.getValue()}: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
+
+  async getUnreadCount(chatId: ChatId): Promise<Result<number, DomainError>> {
+    try {
+      const result = await this.chatModel
+        .findOne({ id: chatId.getValue() })
+        .select('unreadMessagesCount')
+        .lean();
+
+      if (!result) {
+        return err(
+          new ChatPersistenceError(
+            `Chat ${chatId.getValue()} no encontrado al leer unreadMessagesCount`,
+          ),
+        );
+      }
+
+      return ok((result as any).unreadMessagesCount ?? 0);
+    } catch (error) {
+      return err(
+        new ChatPersistenceError(
+          `Error al obtener unreadMessagesCount del chat ${chatId.getValue()}: ${error instanceof Error ? error.message : String(error)}`,
+        ),
+      );
+    }
+  }
 }

@@ -67,6 +67,12 @@ import { RequestAgentCommand } from '../../application/commands/request-agent.co
 import { RequestAgentDto } from '../../application/dtos/request-agent.dto';
 import { OpenChatViewCommand } from '../../application/commands/open-chat-view.command';
 import { CloseChatViewCommand } from '../../application/commands/close-chat-view.command';
+import { ResetChatUnreadCountCommand } from '../../application/commands/reset-chat-unread-count.command';
+import {
+  ChatInvalidIdError,
+  ChatNotFoundError,
+  ChatTenantMismatchError,
+} from '../../domain/errors/chat.error';
 import {
   ChatViewRequestDto,
   ChatViewResponseDto,
@@ -1587,6 +1593,100 @@ export class ChatV2Controller {
     } catch (error) {
       this.logger.error(
         `Error al obtener chats pendientes del visitante ${visitorId}:`,
+        error,
+      );
+      throw new HttpException(
+        'Error interno del servidor',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Resetea a 0 el contador de mensajes no leídos de un chat.
+   * Llamar cuando el comercial abre el chat o marca todos los mensajes como leídos,
+   * de modo que el badge del sidebar y el icono de la columna de actividad se actualicen
+   * inmediatamente sin esperar al próximo polling.
+   */
+  @Put(':chatId/unread/reset')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['commercial', 'admin', 'supervisor'])
+  @ApiOperation({
+    summary: 'Resetear contador de mensajes no leídos',
+    description:
+      'Resetea a 0 el contador `unreadMessagesCount` del chat indicado. ' +
+      'Debe llamarse cuando el comercial abre el chat (entra al inbox) para que el badge ' +
+      'del sidebar y el icono de la columna de actividad de visitantes desaparezcan de inmediato. ' +
+      'Solo accesible por comerciales, administradores y supervisores.',
+  })
+  @ApiParam({
+    name: 'chatId',
+    description: 'ID único del chat cuyo contador se va a resetear',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Contador reseteado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        success: {
+          type: 'boolean',
+          example: true,
+          description: 'Indica si el reset se completó sin errores',
+        },
+      },
+    },
+  })
+  @ApiNotFoundError('Chat')
+  async resetUnreadCount(
+    @Param('chatId') chatId: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<{ success: boolean }> {
+    try {
+      this.logger.log(
+        `Reseteando unreadMessagesCount del chat ${chatId} solicitado por ${req.user.id}`,
+      );
+
+      // Fail-fast: companyId es obligatorio para la verificación de tenant
+      if (!req.user.companyId) {
+        throw new HttpException(
+          'No tienes permisos para acceder a este recurso',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      const command = new ResetChatUnreadCountCommand(
+        chatId,
+        req.user.id,
+        req.user.companyId,
+      );
+      const result = await this.commandBus.execute<
+        ResetChatUnreadCountCommand,
+        Result<void, DomainError>
+      >(command);
+
+      if (result.isErr()) {
+        if (result.error instanceof ChatTenantMismatchError) {
+          throw new HttpException(
+            'No tienes permisos para acceder a este chat',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+        if (result.error instanceof ChatNotFoundError || result.error instanceof ChatInvalidIdError) {
+          throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
+        }
+        throw new HttpException(
+          'Error interno del servidor',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return { success: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error(
+        `Error al resetear unreadMessagesCount del chat ${chatId}:`,
         error,
       );
       throw new HttpException(

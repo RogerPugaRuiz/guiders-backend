@@ -224,6 +224,24 @@ export interface IChatRepository {
   countByVisitorIds(
     visitorIds: string[],
   ): Promise<Result<Map<string, number>, DomainError>>;
+
+  /**
+   * Incrementa el contador de mensajes no leídos de un chat en 1.
+   * Operación atómica — no requiere cargar el aggregate completo.
+   */
+  incrementUnreadCount(chatId: ChatId): Promise<Result<number, DomainError>>;
+
+  /**
+   * Resetea a 0 el contador de mensajes no leídos de un chat.
+   * Llamar cuando el comercial abre/lee el chat.
+   * Devuelve el valor anterior al reset.
+   */
+  resetUnreadCount(chatId: ChatId): Promise<Result<void, DomainError>>;
+
+  /**
+   * Obtiene el contador actual de mensajes no leídos de un chat.
+   */
+  getUnreadCount(chatId: ChatId): Promise<Result<number, DomainError>>;
 }
 
 /**

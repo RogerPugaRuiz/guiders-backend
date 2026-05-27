@@ -57,6 +57,7 @@ import { AutoAssignChatCommandHandler } from './application/commands/auto-assign
 import { CreateAssignmentRulesCommandHandler } from './application/commands/create-assignment-rules.command-handler';
 import { AssignChatToCommercialCommandHandler } from './application/commands/assign-chat-to-commercial.command-handler';
 import { MarkMessagesAsReadCommandHandler } from './application/commands/mark-messages-as-read.command-handler';
+import { ResetChatUnreadCountCommandHandler } from './application/commands/reset-chat-unread-count.command-handler';
 import { StartTypingCommandHandler } from './application/commands/start-typing.command-handler';
 import { StopTypingCommandHandler } from './application/commands/stop-typing.command-handler';
 import { RequestAgentCommandHandler } from './application/commands/request-agent.command-handler';
@@ -84,6 +85,7 @@ import { NotifyAgentRequestedOnAgentRequestedEventHandler } from './application/
 import { NotifyViewOpenedOnChatViewOpenedEventHandler } from './application/events/notify-view-opened-on-chat-view-opened.event-handler';
 import { NotifyViewClosedOnChatViewClosedEventHandler } from './application/events/notify-view-closed-on-chat-view-closed.event-handler';
 import { NotifyCommercialAssignedOnCommercialAssignedEventHandler } from './application/events/notify-commercial-assigned-on-commercial-assigned.event-handler';
+import { NotifyUnreadCountUpdatedOnUnreadCountUpdatedEventHandler } from './application/events/notify-unread-count-updated-on-unread-count-updated.event-handler';
 
 // Domain Services
 import { CHAT_AUTO_ASSIGNMENT_DOMAIN_SERVICE } from './domain/services/chat-auto-assignment.domain-service';
@@ -170,6 +172,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     CreateAssignmentRulesCommandHandler,
     AssignChatToCommercialCommandHandler,
     MarkMessagesAsReadCommandHandler,
+    ResetChatUnreadCountCommandHandler,
     StartTypingCommandHandler,
     StopTypingCommandHandler,
     RequestAgentCommandHandler,
@@ -199,6 +202,7 @@ import { ChatQueueConfigServiceImpl } from './infrastructure/services/chat-queue
     NotifyViewOpenedOnChatViewOpenedEventHandler,
     NotifyViewClosedOnChatViewClosedEventHandler,
     NotifyCommercialAssignedOnCommercialAssignedEventHandler,
+    NotifyUnreadCountUpdatedOnUnreadCountUpdatedEventHandler,
     // GetChatByIdQueryHandler,
     // GetCommercialChatsQueryHandler,
     // GetVisitorChatsQueryHandler,

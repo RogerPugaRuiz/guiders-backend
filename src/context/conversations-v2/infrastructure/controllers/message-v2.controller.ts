@@ -372,8 +372,10 @@ export class MessageV2Controller {
   @ApiOperation({
     summary: 'Marcar mensajes como leídos',
     description:
-      'Marca una lista de mensajes como leídos por el usuario actual. ' +
-      'Soporta autenticación JWT y sesiones de visitante.',
+      'Marca una lista de mensajes específicos como leídos por el usuario actual. ' +
+      'Soporta autenticación JWT y sesiones de visitante. ' +
+      'Para resetear también el badge del sidebar (contador `unreadMessagesCount`), ' +
+      'usa adicionalmente `PUT /v2/chats/:chatId/unread/reset`.',
   })
   @ApiResponse({
     status: 200,
@@ -433,8 +435,12 @@ export class MessageV2Controller {
   @ApiOperation({
     summary: 'Obtener mensajes no leídos de un chat',
     description:
-      'Retorna los mensajes no leídos de un chat específico. ' +
-      'Soporta autenticación JWT y sesiones de visitante.',
+      'Retorna los mensajes no leídos de un chat específico para el usuario actual. ' +
+      'Soporta autenticación JWT y sesiones de visitante. ' +
+      'El campo `unreadMessagesCount` también se incluye en tiempo real en el evento WebSocket ' +
+      '`message:new`, por lo que no es necesario hacer polling con este endpoint para actualizar badges. ' +
+      'Para resetear el contador a 0 una vez el usuario abre el chat, ' +
+      'llama a `PUT /v2/chats/:chatId/unread/reset`.',
   })
   @ApiParam({
     name: 'chatId',
