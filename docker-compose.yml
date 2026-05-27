@@ -115,10 +115,12 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
       
-      # Configuración de desarrollo
+      # Configuración de hostname (necesario para que Keycloak devuelva URLs HTTPS detrás de reverse proxy)
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-auth.guiders.es}
       KC_HOSTNAME_STRICT: false
       KC_HOSTNAME_STRICT_HTTPS: false
       KC_HTTP_ENABLED: true
+      KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: true
       KC_METRICS_ENABLED: true
       
