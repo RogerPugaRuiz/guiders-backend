@@ -659,28 +659,6 @@ jobs:
                 echo "Rol $role creado"
               done
 
-              # Crear usuario administrador inicial
-              ADMIN_USER_ID=$($KCADM create users -r guiders \
-                -s username=rogerpugaruiz@gmail.com \
-                -s email=rogerpugaruiz@gmail.com \
-                -s enabled=true \
-                -s emailVerified=true \
-                -i)
-              echo "Usuario admin creado: $ADMIN_USER_ID"
-
-              # Asignar contraseña al usuario
-              $KCADM set-password -r guiders \
-                --username rogerpugaruiz@gmail.com \
-                --new-password "${{ secrets.KEYCLOAK_ADMIN_USER_PASSWORD }}" \
-                --temporary false
-              echo "Contraseña asignada al usuario admin"
-
-              # Asignar rol admin al usuario
-              $KCADM add-roles -r guiders \
-                --uusername rogerpugaruiz@gmail.com \
-                --rolename admin
-              echo "Rol admin asignado a rogerpugaruiz@gmail.com"
-
               echo "Realm guiders inicializado correctamente"
             else
               echo "Realm guiders ya existe — sin cambios"
