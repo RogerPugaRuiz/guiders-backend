@@ -1673,7 +1673,10 @@ export class ChatV2Controller {
             HttpStatus.FORBIDDEN,
           );
         }
-        if (result.error instanceof ChatNotFoundError || result.error instanceof ChatInvalidIdError) {
+        if (
+          result.error instanceof ChatNotFoundError ||
+          result.error instanceof ChatInvalidIdError
+        ) {
           throw new HttpException('Chat no encontrado', HttpStatus.NOT_FOUND);
         }
         throw new HttpException(

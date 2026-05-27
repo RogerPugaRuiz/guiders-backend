@@ -614,18 +614,35 @@ export class AuthUserController {
     description:
       'Asocia un usuario existente del backend con un usuario de Keycloak mediante su keycloakId',
   })
-  @ApiParam({ name: 'userId', description: 'ID del usuario en el backend (UUID)' })
-  @ApiBody({ schema: { properties: { keycloakId: { type: 'string', format: 'uuid' } }, required: ['keycloakId'] } })
-  @ApiResponse({ status: 200, description: 'Usuario vinculado exitosamente con Keycloak' })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID del usuario en el backend (UUID)',
+  })
+  @ApiBody({
+    schema: {
+      properties: { keycloakId: { type: 'string', format: 'uuid' } },
+      required: ['keycloakId'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario vinculado exitosamente con Keycloak',
+  })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
-  @ApiResponse({ status: 409, description: 'Usuario ya vinculado o keycloakId en uso' })
+  @ApiResponse({
+    status: 409,
+    description: 'Usuario ya vinculado o keycloakId en uso',
+  })
   async linkWithKeycloak(
     @Param('userId') userId: string,
     @Body('keycloakId') keycloakId: string,
   ): Promise<{ message: string }> {
     const result = await this.commandBus.execute<
       LinkUserWithKeycloakCommand,
-      import('src/context/shared/domain/result').Result<void, import('src/context/shared/domain/domain.error').DomainError>
+      import('src/context/shared/domain/result').Result<
+        void,
+        import('src/context/shared/domain/domain.error').DomainError
+      >
     >(new LinkUserWithKeycloakCommand(userId, keycloakId));
 
     if (result.isErr()) {

@@ -229,7 +229,10 @@ export class BffController {
       `[BFF /login/${app}] redirectParam=${redirectParam ?? 'none'} => returnTo=${resolvedReturnTo}`,
     );
     req.session.returnTo = resolvedReturnTo;
-    const loginSessionId = (req.session as Record<string, unknown>)?.id as string || (req as Request & { sessionID?: string }).sessionID || 'unknown';
+    const loginSessionId =
+      ((req.session as Record<string, unknown>)?.id as string) ||
+      (req as Request & { sessionID?: string }).sessionID ||
+      'unknown';
     this.logger.debug(`[BFF /login/${app}] sessionID=${loginSessionId}`);
 
     const authUrl = await this.oidc.buildAuthUrl(req.session, { app });
@@ -282,7 +285,10 @@ export class BffController {
       const queryKeys = Object.keys(
         (req.query || {}) as Record<string, unknown>,
       );
-      const sessionId = (req.session as Record<string, unknown>)?.id as string || (req as Request & { sessionID?: string }).sessionID || 'unknown';
+      const sessionId =
+        ((req.session as Record<string, unknown>)?.id as string) ||
+        (req as Request & { sessionID?: string }).sessionID ||
+        'unknown';
       this.logger.debug(
         `[BFF /callback/${app}] sessionID=${sessionId} sessionKeys=[${sessKeys.join(', ')}] queryKeys=[${queryKeys.join(', ')}] hasPkce=${!!req.session?.pkce_verifier} hasState=${!!req.session?.oidc_state}`,
       );
@@ -501,9 +507,15 @@ export class BffController {
       this.logger.warn(
         `[BFF /me/${app}] Usuario con sub=${payload.sub} no encontrado en BD: ${userResult.error.message}`,
       );
+      // 403 (no 401): el JWT de Keycloak es válido pero el usuario no está
+      // provisionado en la BD del backend. Usar 401 provocaría que el frontend
+      // interprete la sesión como expirada, reintente login, y entre en un bucle
+      // infinito porque el login OAuth vuelve a completarse con el mismo JWT sin
+      // que el usuario exista en BD. 403 corta el loop y permite mostrar un
+      // mensaje específico ("cuenta no configurada") en lugar de redirigir a login.
       return res
-        .status(401)
-        .send({ error: 'unauthenticated', reason: 'user_not_found' });
+        .status(403)
+        .send({ error: 'forbidden', reason: 'user_not_provisioned' });
     }
 
     const user = userResult.unwrap();

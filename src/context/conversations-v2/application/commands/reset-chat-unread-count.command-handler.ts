@@ -33,9 +33,7 @@ import { UnreadCountUpdatedEvent } from '../../domain/events/unread-count-update
 export class ResetChatUnreadCountCommandHandler
   implements ICommandHandler<ResetChatUnreadCountCommand>
 {
-  private readonly logger = new Logger(
-    ResetChatUnreadCountCommandHandler.name,
-  );
+  private readonly logger = new Logger(ResetChatUnreadCountCommandHandler.name);
 
   constructor(
     @Inject(CHAT_V2_REPOSITORY)
@@ -73,7 +71,9 @@ export class ResetChatUnreadCountCommandHandler
         `Acceso denegado: chat ${command.chatId} pertenece a companyId ${chat.companyId}, ` +
           `pero fue solicitado por ${command.requestedBy} de companyId ${command.companyId}`,
       );
-      return err(new ChatTenantMismatchError(command.chatId, command.requestedBy));
+      return err(
+        new ChatTenantMismatchError(command.chatId, command.requestedBy),
+      );
     }
 
     const result = await this.chatRepository.resetUnreadCount(chatId);
