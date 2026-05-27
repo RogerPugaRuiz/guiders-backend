@@ -31,7 +31,7 @@ export class NotifyMessageSentOnMessageSentEventHandler
     private readonly websocketGateway: WebSocketGatewayBasic,
   ) {}
 
-  async handle(event: MessageSentEvent): Promise<void> {
+  handle(event: MessageSentEvent): void {
     this.logger.log(
       `Procesando notificación de mensaje enviado: ${event.getMessageId()}`,
     );
