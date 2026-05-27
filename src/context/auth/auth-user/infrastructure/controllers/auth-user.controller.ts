@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Logger,
   Post,
+  Patch,
   Headers,
   UnauthorizedException,
   HttpCode,
@@ -75,6 +76,7 @@ import {
   VerifyRoleMappingResponseDto,
 } from '../../application/dtos/verify-role-mapping.dto';
 import { FindUserByKeycloakIdQuery } from '../../application/queries/find-user-by-keycloak-id.query';
+import { LinkUserWithKeycloakCommand } from '../../application/commands/link-user-with-keycloak.command';
 
 @ApiTags('Autenticación de Usuarios')
 @ApiAuthErrors()
@@ -601,6 +603,40 @@ export class AuthUserController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Patch(':userId/link-keycloak')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(['superadmin'])
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Vincular usuario existente con Keycloak',
+    description:
+      'Asocia un usuario existente del backend con un usuario de Keycloak mediante su keycloakId',
+  })
+  @ApiParam({ name: 'userId', description: 'ID del usuario en el backend (UUID)' })
+  @ApiBody({ schema: { properties: { keycloakId: { type: 'string', format: 'uuid' } }, required: ['keycloakId'] } })
+  @ApiResponse({ status: 200, description: 'Usuario vinculado exitosamente con Keycloak' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse({ status: 409, description: 'Usuario ya vinculado o keycloakId en uso' })
+  async linkWithKeycloak(
+    @Param('userId') userId: string,
+    @Body('keycloakId') keycloakId: string,
+  ): Promise<{ message: string }> {
+    const result = await this.commandBus.execute<
+      LinkUserWithKeycloakCommand,
+      import('src/context/shared/domain/result').Result<void, import('src/context/shared/domain/domain.error').DomainError>
+    >(new LinkUserWithKeycloakCommand(userId, keycloakId));
+
+    if (result.isErr()) {
+      const msg = result.error.message;
+      const status = msg.includes('no encontrado')
+        ? HttpStatus.NOT_FOUND
+        : HttpStatus.CONFLICT;
+      throw new HttpException(msg, status);
+    }
+
+    return { message: `Usuario ${userId} vinculado exitosamente con Keycloak` };
   }
 
   @Post('verify-role-mapping')

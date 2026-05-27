@@ -6,6 +6,7 @@ export enum RoleEnum {
   ADMIN = 'admin',
   SUPERADMIN = 'superadmin',
   COMMERCIAL = 'commercial',
+  SUPERVISOR = 'supervisor',
 }
 
 // Value Object para un rol individual
@@ -26,6 +27,9 @@ export class Role extends PrimitiveValueObject<string> {
   }
   static commercial(): Role {
     return new Role(RoleEnum.COMMERCIAL);
+  }
+  static supervisor(): Role {
+    return new Role(RoleEnum.SUPERVISOR);
   }
 
   // Serializa el rol a primitivo

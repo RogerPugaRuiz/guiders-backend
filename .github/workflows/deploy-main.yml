@@ -655,7 +655,7 @@ jobs:
               echo "Cliente admin creado"
 
               # Crear roles del realm
-              for role in admin commercial supervisor; do
+              for role in admin commercial supervisor superadmin; do
                 $KCADM create roles -r guiders -s name=$role -s description="Rol $role de Guiders"
                 echo "Rol $role creado"
               done
