@@ -463,6 +463,8 @@ jobs:
           CONSENT_VERSION_CURRENT=${{ secrets.PROD_CONSENT_VERSION || 'v1.4.0' }}
           # Habilitar compatibilidad semántica
           ENABLE_SEMVER_COMPATIBILITY=${{ vars.ENABLE_SEMVER_COMPATIBILITY || 'true' }}
+          # Sesiones BFF — siempre Redis en producción (compartido entre instancias PM2)
+          SESSION_STORE=redis
           # Configuración de limpieza automática de sesiones
           SESSION_CLEANUP_ENABLED=${{ vars.SESSION_CLEANUP_ENABLED || 'true' }}
           SESSION_CLEANUP_BATCH_SIZE=${{ vars.SESSION_CLEANUP_BATCH_SIZE || '100' }}
@@ -589,11 +591,16 @@ jobs:
               sleep 5
             done
 
-            # Obtener credenciales admin desde variables de entorno de Keycloak
+            # Obtener credenciales admin desde secret (prioritario) o variables del contenedor
             KC_ADMIN=$(docker inspect keycloak --format "{{range .Config.Env}}{{.}}\n{{end}}" | grep "^KEYCLOAK_ADMIN=" | cut -d= -f2)
-            KC_PASS=$(docker inspect keycloak --format "{{range .Config.Env}}{{.}}\n{{end}}" | grep "^KEYCLOAK_ADMIN_PASSWORD=" | cut -d= -f2)
+            KC_PASS="${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}"
             KC_ADMIN=${KC_ADMIN:-admin}
-            KC_PASS=${KC_PASS:-admin123}
+            # Fallback a la variable del contenedor solo si el secret no está configurado
+            if [ -z "$KC_PASS" ]; then
+              KC_PASS=$(docker inspect keycloak --format "{{range .Config.Env}}{{.}}\n{{end}}" | grep "^KEYCLOAK_ADMIN_PASSWORD=" | cut -d= -f2)
+              KC_PASS=${KC_PASS:-admin123}
+              echo "AVISO: Usando contraseña del contenedor (secret KEYCLOAK_ADMIN_PASSWORD no configurado)"
+            fi
 
             # Leer variables BFF del .env.production
             CONSOLE_REDIRECT=$(grep "^OIDC_CONSOLE_REDIRECT_URI=" /var/www/guiders-backend/.env.production | cut -d= -f2)
