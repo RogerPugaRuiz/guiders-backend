@@ -94,8 +94,6 @@ Cada bounded context tiene su propio AGENTS.md con especificaciones detalladas d
 ### WebSocket / Tiempo Real
 
 - [WebSocket Real-Time Chat](./websocket-real-time-chat.md) - Sistema de chat en tiempo real
-- [WebSocket Implementation Summary](./websocket-implementation-summary.md) - Resumen de implementacion
-- [Sistema de Colas Chat](./SISTEMA-COLAS-CHAT.md) - Cola de asignacion
 - [Unread Messages System](./UNREAD_MESSAGES_SYSTEM.md) - Sistema de mensajes no leidos
 
 ### Infraestructura / DevOps
@@ -111,7 +109,6 @@ Cada bounded context tiene su propio AGENTS.md con especificaciones detalladas d
 
 - [Session Expiration](./session-expiration.md) - Expiracion de sesiones
 - [Session Cleanup System](./session-cleanup-system.md) - Limpieza automatica
-- [Sistema Limpieza Sesiones](./sistema-limpieza-automatica-sesiones.md) - Sistema automatico
 
 ### LLM / IA
 
@@ -128,7 +125,6 @@ Cada bounded context tiene su propio AGENTS.md con especificaciones detalladas d
 ### Debugging / Troubleshooting
 
 - [Fix Chat Created Event Loss](./FIX_CHAT_CREATED_EVENT_LOSS.md) - Correccion de perdida de eventos
-- [Chat Created Notification Fix](./CHAT_CREATED_NOTIFICATION_FIX_SUMMARY.md) - Fix de notificaciones
 - [HTTP 304 Debugging](./http-304-debugging.md) - Debugging de respuestas 304
 - [MongoDB CI/E2E Fix](./mongodb-ci-e2e-fix.md) - Fix de MongoDB en CI
 - [MongoDB E2E Troubleshooting](./mongodb-e2e-troubleshooting.md) - Troubleshooting de MongoDB
