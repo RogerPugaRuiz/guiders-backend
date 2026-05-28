@@ -454,7 +454,14 @@ describe('Flujo visitante → comercial (E2E)', () => {
         ok({ assignedCommercialId: COMMERCIAL_ID }),
       );
       mockQueryBus.execute
-        .mockResolvedValueOnce(ok(makeMockChatAggregate({ assignedCommercialId: COMMERCIAL_ID, status: 'ASSIGNED' })))
+        .mockResolvedValueOnce(
+          ok(
+            makeMockChatAggregate({
+              assignedCommercialId: COMMERCIAL_ID,
+              status: 'ASSIGNED',
+            }),
+          ),
+        )
         .mockResolvedValueOnce(MOCK_COMMERCIAL_USER);
 
       const response = await request(httpServer)
@@ -754,7 +761,9 @@ describe('Flujo visitante → comercial (E2E)', () => {
     it('debe devolver 404 si el chat no existe', async () => {
       // getChatById retorna err → controller lanza HttpException 404
       class ChatNotFoundError extends DomainError {
-        constructor() { super('Chat no encontrado'); }
+        constructor() {
+          super('Chat no encontrado');
+        }
       }
 
       mockQueryBus.execute.mockResolvedValueOnce(err(new ChatNotFoundError()));

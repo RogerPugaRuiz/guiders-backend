@@ -125,7 +125,6 @@ guiders-backend/
 │   ├── workflows/                    # CI/CD pipelines (3 workflows)
 │   └── instructions/                 # Copilot context instructions
 ├── .claude/rules/                    # 21 architecture pattern rules
-├── _bmad-output/                     # BMad planning artifacts
 ├── _bmad/                            # BMad configuration
 ├── .opencode/                        # OpenCode skills and config
 │   └── skills/                       # BMad skill definitions

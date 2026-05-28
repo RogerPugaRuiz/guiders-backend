@@ -202,7 +202,6 @@ El sistema ahora soporta **notificaciones proactivas** cuando un comercial crea 
 
 Para guías completas de implementación frontend:
 - `docs/websocket-real-time-chat.md` - Guía completa con ejemplos avanzados
-- `docs/websocket-implementation-summary.md` - Resumen ejecutivo y quick start
 
 ## Próximos Pasos
 
