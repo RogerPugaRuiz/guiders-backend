@@ -6,6 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SEARCH_PROVIDER } from 'src/context/shared/domain/search';
 import { CompanySearchProvider } from './infrastructure/search/company-search.provider';
 import { CompanyTypeOrmEntity } from './infrastructure/persistence/entity/company-typeorm.entity';
+import { CompanySiteTypeOrmEntity } from './infrastructure/persistence/typeorm/company-site.entity';
 import { companyRepositoryProvider } from './infrastructure/persistence/impl/company.repository.impl';
 import { CreateCompanyCommandHandler } from './application/commands/create-company-command.handler';
 import { CreateCompanyWithAdminCommandHandler } from './application/commands/create-company-with-admin-command.handler';
@@ -20,7 +21,7 @@ import { BffSessionAuthService } from '../shared/infrastructure/services/bff-ses
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CompanyTypeOrmEntity]),
+    TypeOrmModule.forFeature([CompanyTypeOrmEntity, CompanySiteTypeOrmEntity]),
     CqrsModule,
     HttpModule,
     JwtModule.register({}),

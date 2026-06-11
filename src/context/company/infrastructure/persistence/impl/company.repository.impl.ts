@@ -184,7 +184,6 @@ export class CompanyRepositoryTypeOrmImpl implements CompanyRepository {
   // Busca una empresa por dominio
   async findByDomain(domain: string): Promise<Result<Company, DomainError>> {
     try {
-      // Busca una empresa que tenga el dominio en sus sites
       const entity = await this.companyRepo
         .createQueryBuilder('companies')
         .leftJoinAndSelect('companies.sites', 'sites')

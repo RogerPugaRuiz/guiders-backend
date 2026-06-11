@@ -171,7 +171,16 @@ export class VisitorV2Controller {
 
       return result;
     } catch (error) {
-      this.logger.error('Error al identificar visitante:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error('Error al identificar visitante:', errorMessage);
+      this.logger.error('Stack trace:', errorStack);
+      this.logger.error(
+        'Error name:',
+        error instanceof Error ? error.name : 'Unknown',
+      );
 
       // Si es un error de validación o datos inválidos
       if (
@@ -182,9 +191,9 @@ export class VisitorV2Controller {
         throw new BadRequestException(error.message);
       }
 
-      // Error genérico del servidor
+      // Devolver el error real en desarrollo para debugging
       throw new InternalServerErrorException(
-        'Error interno al identificar visitante',
+        `Error interno al identificar visitante: ${errorMessage}`,
       );
     }
   }
