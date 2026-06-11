@@ -91,7 +91,12 @@ export class ResetChatUnreadCountCommandHandler
 
     // Notificar via WebSocket que el contador es 0
     this.eventBus.publish(
-      new UnreadCountUpdatedEvent({ chatId: command.chatId, newCount: 0 }),
+      new UnreadCountUpdatedEvent({
+        chatId: command.chatId,
+        visitorId: chat.visitorId.getValue(),
+        companyId: chat.companyId,
+        newCount: 0,
+      }),
     );
 
     return ok(undefined);

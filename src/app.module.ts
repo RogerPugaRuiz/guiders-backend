@@ -293,15 +293,16 @@ export class AppModule {
     // Configuración estándar de NestJS Mongoose según la documentación oficial
     const mongooseOptions = {
       uri,
-      // Configuraciones estándar recomendadas
+      // Configuraciones de producción
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 10000,
-      maxPoolSize: 10,
-      minPoolSize: 5,
+      maxPoolSize: 100,
+      minPoolSize: 10,
       maxIdleTimeMS: 30000,
       retryWrites: true,
       retryReads: true,
+      directConnection: false,
     };
 
     logger.log('MongoDB Options Object:');

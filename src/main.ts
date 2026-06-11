@@ -27,6 +27,7 @@ import RedisStore from 'connect-redis';
 import { createClient, type RedisClientType } from 'redis';
 import * as fs from 'fs';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
+import * as bodyParser from 'body-parser';
 
 // Tipo reducido para evitar callbacks (que introducen any en tipos externos) y pasar lint estricto.
 interface SafeCorsOptions {
@@ -130,6 +131,14 @@ async function bootstrap() {
         sameSite: sessionSameSite,
         maxAge: 15 * 60 * 1000,
       },
+    }),
+  );
+
+  // Aumentar límite del body parser para requests grandes (Tracking V2 events, etc.)
+  app.use(
+    bodyParser.json({
+      limit: '10mb',
+      strict: false,
     }),
   );
 
