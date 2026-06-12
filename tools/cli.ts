@@ -47,6 +47,7 @@ import {
   ApiKeyRepository,
 } from '../src/context/auth/api-key/domain/repository/api-key.repository';
 import { ApiKeyCompanyId } from '../src/context/auth/api-key/domain/model/api-key-company-id';
+import { CreateApiKeyForDomainUseCase } from '../src/context/auth/api-key/application/usecase/create-api-key-for-domain.usecase';
 import {
   USER_ACCOUNT_REPOSITORY,
   UserAccountRepository,
@@ -59,6 +60,7 @@ import { UserAccountPassword } from '../src/context/auth/auth-user/domain/user-a
 import { UserAccountRoles } from '../src/context/auth/auth-user/domain/value-objects/user-account-roles';
 import { Role } from '../src/context/auth/auth-user/domain/value-objects/role';
 import { UserAccountCompanyId } from '../src/context/auth/auth-user/domain/value-objects/user-account-company-id';
+import { UserAccountKeycloakId } from '../src/context/auth/auth-user/domain/value-objects/user-account-keycloak-id';
 import {
   USER_PASSWORD_HASHER,
   UserPasswordHasher,
@@ -833,6 +835,122 @@ program
       }
     },
   );
+
+program
+  .command('create-apikey')
+  .description('Crea una API key para un dominio específico')
+  .requiredOption('--domain <domain>', 'Dominio para la API key')
+  .requiredOption('--company-id <companyId>', 'ID de la compañía')
+  .action(async (options: Record<string, string>) => {
+    const logger = new Logger('CreateApiKey');
+    const app = await NestFactory.createApplicationContext(AppModule);
+    const createApiKeyUseCase = app.get(CreateApiKeyForDomainUseCase);
+    const { ApiKeyDomain } = await import('../src/context/auth/api-key/domain/model/api-key-domain');
+    const { ApiKeyCompanyId } = await import('../src/context/auth/api-key/domain/model/api-key-company-id');
+
+    const domain = options.domain;
+    const companyId = options.companyId;
+
+    try {
+      const result = await createApiKeyUseCase.execute(
+        ApiKeyDomain.create(domain),
+        ApiKeyCompanyId.create(companyId),
+      );
+      logger.log(`API Key creada exitosamente`);
+      logger.log(`  Dominio: ${domain}`);
+      logger.log(`  API Key: ${result.apiKey}`);
+    } catch (error) {
+      logger.error(`Error creando API Key: ${error}`);
+    }
+
+    await app.close();
+  });
+
+program
+  .command('get-apikeys')
+  .description('Obtiene las API keys de una company')
+  .requiredOption('--company-id <companyId>', 'ID de la compañía')
+  .action(async (options: Record<string, string>) => {
+    const logger = new Logger('GetApiKeys');
+    const app = await NestFactory.createApplicationContext(AppModule);
+    const apiKeyRepository = app.get<ApiKeyRepository>(API_KEY_REPOSITORY);
+
+    const companyId = options.companyId;
+    const apiKeys = await apiKeyRepository.getApiKeysByCompanyId(ApiKeyCompanyId.create(companyId));
+
+    if (apiKeys.length === 0) {
+      logger.warn('No se encontraron API keys para esta company');
+    } else {
+      logger.log(`API Keys encontradas: ${apiKeys.length}`);
+      apiKeys.forEach((k, i) => {
+        console.log(`\nAPI Key ${i + 1}:`);
+        console.log(`  Dominio: ${k.domain.getValue()}`);
+        console.log(`  API Key: ${k.apiKey.getValue()}`);
+      });
+      console.log('');
+    }
+
+    await app.close();
+  });
+
+program
+  .command('create-user-from-keycloak')
+  .description('Crea o actualiza un usuario en BD vinculado a Keycloak')
+  .requiredOption('--keycloak-id <keycloakId>', 'ID del usuario en Keycloak')
+  .requiredOption('--email <email>', 'Email del usuario')
+  .requiredOption('--name <name>', 'Nombre del usuario')
+  .requiredOption('--company-id <companyId>', 'ID de la compañía')
+  .option('--role <role>', 'Rol del usuario', 'admin')
+  .action(async (options: Record<string, string>) => {
+    const logger = new Logger('CreateUserFromKeycloak');
+    const app = await NestFactory.createApplicationContext(AppModule);
+    const userRepository = app.get<UserAccountRepository>(USER_ACCOUNT_REPOSITORY);
+    const hasher = app.get<UserPasswordHasher>(USER_PASSWORD_HASHER);
+    const publisher = app.get(EventPublisher);
+
+    const keycloakId = options.keycloakId;
+    const email = options.email;
+    const name = options.name;
+    const companyId = options.companyId;
+    const roleValue = options.role?.toUpperCase() || 'ADMIN';
+    const role = roleValue === 'ADMIN' ? Role.admin() : roleValue === 'SUPERADMIN' ? Role.superadmin() : roleValue === 'COMMERCIAL' ? Role.commercial() : roleValue === 'SUPERVISOR' ? Role.supervisor() : Role.admin();
+
+    const existing = await userRepository.findByEmail(email);
+    if (existing) {
+      const existingPrimitives = existing.toPrimitives();
+      logger.log(`Usuario ya existe: ${existingPrimitives.id} — actualizando vínculo Keycloak`);
+      if (!existingPrimitives.keycloakId) {
+        const linked = existing.linkWithKeycloak(UserAccountKeycloakId.fromString(keycloakId));
+        const ctx = publisher.mergeObjectContext(linked);
+        await userRepository.save(ctx);
+        ctx.commit();
+        logger.log(`✅ Vinculado Keycloak ID: ${keycloakId}`);
+      } else {
+        logger.log(`Ya tiene Keycloak ID: ${existingPrimitives.keycloakId}`);
+      }
+    } else {
+      logger.log(`Creando usuario: ${email}`);
+      const hashedPassword = await hasher.hash('SSO_NO_REQUIRES_PASSWORD');
+      const user = UserAccount.create({
+        id: UserAccountId.create(Uuid.random().value),
+        email: UserAccountEmail.create(email),
+        name: new UserAccountName(name),
+        password: new UserAccountPassword(hashedPassword),
+        roles: UserAccountRoles.create([role]),
+        companyId: UserAccountCompanyId.create(companyId),
+      });
+      const linked = user.linkWithKeycloak(UserAccountKeycloakId.fromString(keycloakId));
+      const context = publisher.mergeObjectContext(linked);
+      await userRepository.save(context);
+      context.commit();
+      const createdPrimitives = linked.toPrimitives();
+      logger.log(`✅ Usuario creado: ${createdPrimitives.id}`);
+      logger.log(`   Keycloak ID: ${keycloakId}`);
+      logger.log(`   Company ID: ${companyId}`);
+    }
+
+    await app.close();
+  });
 
 program
   .parseAsync(process.argv)

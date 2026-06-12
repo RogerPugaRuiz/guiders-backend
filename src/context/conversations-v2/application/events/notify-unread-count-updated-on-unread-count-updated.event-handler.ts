@@ -36,13 +36,15 @@ export class NotifyUnreadCountUpdatedOnUnreadCountUpdatedEventHandler
   handle(event: UnreadCountUpdatedEvent): void {
     const chatId = event.getChatId();
     const newCount = event.getNewCount();
+    const visitorId = event.getVisitorId();
+    const companyId = event.getCompanyId();
 
     this.logger.log(
       `Notificando unreadMessagesCount actualizado para chat ${chatId}: ${newCount}`,
     );
 
     try {
-      // Notificar solo a la sala de comerciales — los visitantes no necesitan el badge
+      // Notificar a la sala de comerciales del chat (sidebar del inbox / vista de chat)
       this.websocketGateway.emitToRoom(
         `chat:${chatId}:commercial`,
         'chat:unread_count',
@@ -51,6 +53,20 @@ export class NotifyUnreadCountUpdatedOnUnreadCountUpdatedEventHandler
           unreadMessagesCount: newCount,
         },
       );
+
+      // Notificar también al room del tenant para que la lista de visitantes
+      // actualice el badge del visitante asociado al chat en tiempo real
+      if (companyId) {
+        this.websocketGateway.emitToRoom(
+          `tenant:${companyId}`,
+          'chat:unread_count',
+          {
+            chatId,
+            visitorId,
+            unreadMessagesCount: newCount,
+          },
+        );
+      }
     } catch (error) {
       const errorObj = error as Error;
       this.logger.error(

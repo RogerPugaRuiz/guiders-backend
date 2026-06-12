@@ -9,9 +9,16 @@ import { DomainEvent } from 'src/context/shared/domain/domain-event';
  */
 export class UnreadCountUpdatedEvent extends DomainEvent<{
   chatId: string;
+  visitorId: string;
+  companyId: string;
   newCount: number;
 }> {
-  constructor(data: { chatId: string; newCount: number }) {
+  constructor(data: {
+    chatId: string;
+    visitorId: string;
+    companyId: string;
+    newCount: number;
+  }) {
     super(data);
   }
 
@@ -19,6 +26,14 @@ export class UnreadCountUpdatedEvent extends DomainEvent<{
 
   getChatId(): string {
     return this.attributes.chatId;
+  }
+
+  getVisitorId(): string {
+    return this.attributes.visitorId;
+  }
+
+  getCompanyId(): string {
+    return this.attributes.companyId;
   }
 
   getNewCount(): number {

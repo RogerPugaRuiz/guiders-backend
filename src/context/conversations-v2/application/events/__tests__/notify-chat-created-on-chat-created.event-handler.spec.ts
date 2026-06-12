@@ -34,7 +34,7 @@ describe('NotifyChatCreatedOnChatCreatedEventHandler', () => {
   });
 
   describe('handle', () => {
-    it('debe emitir notificación de chat creado a la sala del visitante', () => {
+    it('debe emitir notificación de chat creado a la sala del visitante y del tenant', () => {
       // Arrange
       const event = new ChatCreatedEvent({
         chat: {
@@ -55,7 +55,8 @@ describe('NotifyChatCreatedOnChatCreatedEventHandler', () => {
       handler.handle(event);
 
       // Assert
-      expect(mockGateway.emitToRoom).toHaveBeenCalledTimes(1);
+      // Se emite a la sala del visitante y a la sala del tenant
+      expect(mockGateway.emitToRoom).toHaveBeenCalledTimes(2);
       expect(mockGateway.emitToRoom).toHaveBeenCalledWith(
         'visitor:visitor-456',
         'chat:created',
@@ -70,6 +71,16 @@ describe('NotifyChatCreatedOnChatCreatedEventHandler', () => {
           },
           createdAt: '2025-10-13T10:00:00.000Z',
           message: 'Un comercial ha iniciado una conversación contigo',
+        }),
+      );
+      expect(mockGateway.emitToRoom).toHaveBeenCalledWith(
+        'tenant:company-789',
+        'chat:created',
+        expect.objectContaining({
+          chatId: 'chat-123',
+          visitorId: 'visitor-456',
+          status: 'PENDING',
+          priority: 'NORMAL',
         }),
       );
     });

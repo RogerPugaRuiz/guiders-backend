@@ -42,6 +42,7 @@ export class NotifyChatCreatedOnChatCreatedEventHandler
     try {
       const chatData = event.getChatData();
       const visitorId = event.getVisitorId();
+      const companyId = event.getCompanyId();
 
       this.logger.log(
         `📍 Datos del evento: chatId=${chatData.chatId}, visitorId=${visitorId}, status=${chatData.status}`,
@@ -69,6 +70,19 @@ export class NotifyChatCreatedOnChatCreatedEventHandler
 
       // Emitir a la sala del visitante
       this.websocketGateway.emitToRoom(roomName, 'chat:created', payload);
+
+      // Emitir también al room del tenant para que la lista de visitantes
+      // se actualice en tiempo real cuando se crea un nuevo chat
+      if (companyId) {
+        this.websocketGateway.emitToRoom(
+          `tenant:${companyId}`,
+          'chat:created',
+          payload,
+        );
+        this.logger.log(
+          `📢 Notificado tenant ${companyId} de nuevo chat ${chatData.chatId} para visitante ${visitorId}`,
+        );
+      }
 
       this.logger.log(
         `✅ Notificación de chat creado enviada exitosamente al visitante ${visitorId}`,
