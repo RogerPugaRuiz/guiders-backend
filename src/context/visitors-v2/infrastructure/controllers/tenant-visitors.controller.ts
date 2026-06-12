@@ -60,6 +60,8 @@ import { Result } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { SearchVisitorsResponseDto } from '../../application/dtos/visitor-search-response.dto';
 import { QuickFiltersConfigResponseDto } from '../../application/dtos/quick-filters.dto';
+import { GetVisitorStatsQuery } from '../../application/queries/get-visitor-stats.query';
+import { VisitorStatsResponseDto } from '../../application/dtos/visitor-stats-response.dto';
 import {
   CreateSavedFilterDto,
   SavedFiltersListResponseDto,
@@ -203,6 +205,35 @@ export class TenantVisitorsController {
       offset: queryParams.offset,
     });
 
+    return await this.queryBus.execute(query);
+  }
+
+  @Get(':tenantId/visitors/stats')
+  @Roles(['commercial', 'admin'])
+  @ApiOperation({
+    summary: 'Obtener estadísticas de visitantes del tenant',
+    description:
+      'Retorna estadísticas aggregate de visitantes incluyendo total, online, nuevos, returning, chats pendientes, duración promedio de sesión, tasas de rebote y conversión, páginas más visitadas y fuentes de tráfico.',
+  })
+  @ApiParam({
+    name: 'tenantId',
+    description: 'ID único del tenant (empresa)',
+    example: 'tenant-uuid-123',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Estadísticas de visitantes obtenidas exitosamente',
+    type: VisitorStatsResponseDto,
+  })
+  @ApiValidationError('ID de tenant inválido')
+  async getVisitorStats(
+    @Param('tenantId', ParseUUIDPipe) tenantId: string,
+  ): Promise<VisitorStatsResponseDto> {
+    this.logger.log(
+      `Obteniendo estadísticas de visitantes para tenant ${tenantId}`,
+    );
+
+    const query = GetVisitorStatsQuery.create({ tenantId });
     return await this.queryBus.execute(query);
   }
 

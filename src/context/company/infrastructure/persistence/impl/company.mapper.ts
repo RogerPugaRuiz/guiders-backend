@@ -18,19 +18,35 @@ export class CompanyMapper {
     if (entity.sites && entity.sites.length > 0) {
       // Agrupar sites por dominio canónico
       const canonicalSites = entity.sites.filter((site) => site.isCanonical);
+      const nonCanonicalSites = entity.sites.filter(
+        (site) => !site.isCanonical,
+      );
 
-      canonicalSites.forEach((canonicalSite, index) => {
-        const aliases = entity.sites
-          .filter((site) => !site.isCanonical)
-          .map((site) => site.domain);
+      if (canonicalSites.length > 0) {
+        // Hay sitios canónicos - agrupar aliases correctamente
+        canonicalSites.forEach((canonicalSite, index) => {
+          // Los aliases son todos los sitios no-canónicos de esta empresa
+          const aliases = nonCanonicalSites.map((site) => site.domain);
+
+          sites.push({
+            id: canonicalSite.id,
+            name: `Sitio ${index + 1}`,
+            canonicalDomain: canonicalSite.domain,
+            domainAliases: aliases,
+          });
+        });
+      } else if (nonCanonicalSites.length > 0) {
+        // No hay sitios canónicos - usar el primer no-canónico como canónico
+        const firstNonCanonical = nonCanonicalSites[0];
+        const aliases = nonCanonicalSites.slice(1).map((site) => site.domain);
 
         sites.push({
-          id: canonicalSite.id, // Usar el ID real del sitio desde la DB
-          name: `Sitio ${index + 1}`,
-          canonicalDomain: canonicalSite.domain,
+          id: firstNonCanonical.id,
+          name: 'Sitio 1',
+          canonicalDomain: firstNonCanonical.domain,
           domainAliases: aliases,
         });
-      });
+      }
     }
 
     return Company.fromPrimitives({

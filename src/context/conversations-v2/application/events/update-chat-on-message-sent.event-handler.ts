@@ -122,7 +122,12 @@ export class UpdateChatOnMessageSentEventHandler
         // Esto permite que el handler de notificaciones WS use el valor real
         // sin necesidad de hacer una query adicional (elimina la race condition).
         this.eventBus.publish(
-          new UnreadCountUpdatedEvent({ chatId, newCount }),
+          new UnreadCountUpdatedEvent({
+            chatId,
+            visitorId: chat.visitorId.getValue(),
+            companyId: chat.companyId,
+            newCount,
+          }),
         );
       }
 

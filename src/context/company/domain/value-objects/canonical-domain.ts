@@ -5,7 +5,9 @@ import { PrimitiveValueObject } from 'src/context/shared/domain/primitive-value-
 const validateCanonicalDomain = (value: string) =>
   typeof value === 'string' &&
   value.trim().length > 0 &&
-  (value === 'localhost' || value.includes('.')) &&
+  (value === 'localhost' ||
+    /^localhost:\d+$/.test(value) ||
+    value.includes('.')) &&
   value.length <= 255;
 
 export class CanonicalDomain extends PrimitiveValueObject<string> {

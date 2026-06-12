@@ -48,6 +48,7 @@ import { GetVisitorSiteQueryHandler } from './application/queries/get-visitor-si
 import { SearchVisitorsQueryHandler } from './application/queries/search-visitors.query-handler';
 import { GetQuickFiltersConfigQueryHandler } from './application/queries/get-quick-filters-config.query-handler';
 import { GetSavedFiltersQueryHandler } from './application/queries/get-saved-filters.query-handler';
+import { GetVisitorStatsQueryHandler } from './application/queries/get-visitor-stats.query-handler';
 import { SaveFilterCommandHandler } from './application/commands/save-filter.command-handler';
 import { DeleteSavedFilterCommandHandler } from './application/commands/delete-saved-filter.command-handler';
 import { SavedFilterMongoRepositoryImpl } from './infrastructure/persistence/impl/saved-filter-mongo.repository.impl';
@@ -132,6 +133,7 @@ import { LeadScoringModule } from '../lead-scoring/lead-scoring.module';
     SearchVisitorsQueryHandler,
     GetQuickFiltersConfigQueryHandler,
     GetSavedFiltersQueryHandler,
+    GetVisitorStatsQueryHandler,
     SaveFilterCommandHandler,
     DeleteSavedFilterCommandHandler,
     SyncConnectionOnVisitorConnectionChangedEventHandler,
