@@ -1,6 +1,6 @@
 # Story 1.1: Extend white_label_configs schema for embed
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -19,21 +19,21 @@ So that the embed feature can be enabled per tenant with a controlled origin all
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Update `WhiteLabelConfigSchema` (Mongoose) with new fields
-  - [ ] Subtask 1.1: Add `embedEnabled: { type: Boolean, default: false }`
-  - [ ] Subtask 1.2: Add `embedAllowedOrigins: { type: [String], default: [] }`
-- [ ] Task 2: Update `WhiteLabelConfig` value object (domain layer)
-  - [ ] Subtask 2.1: Add fields to constructor parameters and private readonly properties
-  - [ ] Subtask 2.2: Add to `WhiteLabelConfigPrimitives` interface
-  - [ ] Subtask 2.3: Add to `toPrimitives()` output
-  - [ ] Subtask 2.4: Add to `fromPrimitives()` and `create()` factory methods with defaults
-- [ ] Task 3: Update `MongoWhiteLabelConfigRepositoryImpl` mapper
-  - [ ] Subtask 3.1: Add field extraction in `findByCompanyId` with defaults
-- [ ] Task 4: Update `WhiteLabelConfigController` (PATCH /v2/companies/:id/white-label) to accept new fields
-  - [ ] Subtask 4.1: Add to `UpdateWhiteLabelConfigDto` if not present
-- [ ] Task 5: Write unit tests
-  - [ ] Subtask 5.1: `white-label-config.spec.ts` — verify toPrimitives/fromPrimitives roundtrip includes new fields
-  - [ ] Subtask 5.2: `mongo-white-label-config.repository.impl.spec.ts` (or int-spec) — verify mapper handles missing fields with defaults
+- [x] Task 1: Update `WhiteLabelConfigSchema` (Mongoose) with new fields
+  - [x] Subtask 1.1: Add `embedEnabled: { type: Boolean, default: false }`
+  - [x] Subtask 1.2: Add `embedAllowedOrigins: { type: [String], default: [] }`
+- [x] Task 2: Update `WhiteLabelConfig` value object (domain layer)
+  - [x] Subtask 2.1: Add fields to constructor parameters and private readonly properties
+  - [x] Subtask 2.2: Add to `WhiteLabelConfigPrimitives` interface
+  - [x] Subtask 2.3: Add to `toPrimitives()` output
+  - [x] Subtask 2.4: Add to `fromPrimitives()` and `create()` factory methods with defaults
+- [x] Task 3: Update `MongoWhiteLabelConfigRepositoryImpl` mapper
+  - [x] Subtask 3.1: Add field extraction in `findByCompanyId` with defaults
+- [x] Task 4: Update `WhiteLabelConfigController` (PATCH /v2/companies/:id/white-label) to accept new fields
+  - [x] Subtask 4.1: Add to `UpdateWhiteLabelConfigDto` if not present
+- [x] Task 5: Write unit tests
+  - [x] Subtask 5.1: `white-label-config.spec.ts` — verify toPrimitives/fromPrimitives roundtrip includes new fields
+  - [x] Subtask 5.2: `mongo-white-label-config.repository.impl.spec.ts` (or int-spec) — verify mapper handles missing fields with defaults
 
 ## Dev Notes
 
@@ -93,10 +93,36 @@ So that the embed feature can be enabled per tenant with a controlled origin all
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+MiniMax-M3 (MiniMax Coding Plan)
 
 ### Debug Log References
 
+- Ningún error de compilación tras aplicar los cambios
+- Test inicial: 5 tests fallaron en RED phase (faltan campos `embedEnabled`, `embedAllowedOrigins`, `embed` en `update()`)
+- Tras implementar campos: 7/7 tests PASS en white-label
+- Suite completa de unit tests: 192 suites passed, 1638 tests passed, 0 regressions
+
 ### Completion Notes List
 
+- **Schema:** añadidos `embedEnabled: boolean (default false)` y `embedAllowedOrigins: string[] (default [])` con defaults seguros para backward compat
+- **Value Object:** constructor, `WhiteLabelConfigPrimitives`, `toPrimitives()`, `fromPrimitives()`, `create()` y `createDefault()` actualizados con los nuevos campos
+- **Repository:** `findOneAndUpdate` y `findByCompanyId` mapper actualizados para escribir/leer los nuevos campos con defaults (`?? false` y `?? []`)
+- **DTO:** `UpdateWhiteLabelConfigDto` y `WhiteLabelConfigResponseDto` actualizados con `@IsBoolean()` y `@IsArray() @IsString({each:true})` validators
+- **Controller:** PATCH `/v2/companies/:companyId/white-label` ahora acepta `embedEnabled` y `embedAllowedOrigins`
+- **Tests:** 5 nuevos tests del value object + 2 nuevos tests del mapper = 7 tests, todos passing
+- **Backward compat:** documentos legacy sin los nuevos campos se mapean con defaults (false / []) sin error
+- **Regresión:** 0 regresiones en suite completa de unit tests (1638/1638 passing)
+
 ### File List
+
+- `src/context/white-label/domain/entities/white-label-config.ts` (modified)
+- `src/context/white-label/domain/entities/__tests__/white-label-config.spec.ts` (new)
+- `src/context/white-label/infrastructure/schemas/white-label-config.schema.ts` (modified)
+- `src/context/white-label/infrastructure/persistence/mongo-white-label-config.repository.impl.ts` (modified)
+- `src/context/white-label/infrastructure/persistence/__tests__/mongo-white-label-config.repository.mapper.spec.ts` (new)
+- `src/context/white-label/application/dtos/white-label-config.dto.ts` (modified)
+- `src/context/white-label/infrastructure/controllers/white-label-config.controller.ts` (modified)
+
+### Change Log
+
+- 2026-06-12 14:35 — Story implementada con TDD. Story 1.1 completada, status: review.

@@ -47,6 +47,8 @@ export class MongoWhiteLabelConfigRepositoryImpl
             branding: primitives.branding,
             typography: primitives.typography,
             theme: primitives.theme,
+            embedEnabled: primitives.embedEnabled ?? false,
+            embedAllowedOrigins: primitives.embedAllowedOrigins ?? [],
             updatedAt: new Date(),
           },
           $setOnInsert: {
@@ -105,6 +107,8 @@ export class MongoWhiteLabelConfigRepositoryImpl
           customFontFiles: doc.typography?.customFontFiles || [],
         },
         theme: (doc.theme as 'light' | 'dark' | 'system') || 'light',
+        embedEnabled: doc.embedEnabled ?? false,
+        embedAllowedOrigins: doc.embedAllowedOrigins ?? [],
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
       });

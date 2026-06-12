@@ -193,6 +193,13 @@ export class WhiteLabelConfigController {
       branding: dto.branding,
       typography: dto.typography,
       theme: dto.theme,
+      embed:
+        dto.embedEnabled !== undefined || dto.embedAllowedOrigins !== undefined
+          ? {
+              embedEnabled: dto.embedEnabled,
+              embedAllowedOrigins: dto.embedAllowedOrigins,
+            }
+          : undefined,
     });
 
     const saveResult = await this.configRepository.save(updatedConfig);
@@ -584,6 +591,8 @@ export class WhiteLabelConfigController {
         customFontFiles: primitives.typography.customFontFiles,
       },
       theme: primitives.theme,
+      embedEnabled: primitives.embedEnabled ?? false,
+      embedAllowedOrigins: primitives.embedAllowedOrigins ?? [],
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
     };

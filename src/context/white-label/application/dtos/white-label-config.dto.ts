@@ -7,6 +7,7 @@ import {
   IsString,
   IsOptional,
   IsArray,
+  IsBoolean,
   ValidateNested,
   Matches,
   IsIn,
@@ -258,6 +259,22 @@ export class WhiteLabelConfigResponseDto {
   })
   theme: string;
 
+  @ApiProperty({
+    description:
+      'Habilita el embed de la consola Guiders como iframe para integradores B2B',
+    example: false,
+    default: false,
+  })
+  embedEnabled: boolean;
+
+  @ApiProperty({
+    description:
+      'Lista de orígenes (scheme://host[:port]) permitidos para embeber la consola. Validación estricta por `event.origin` en postMessage.',
+    example: ['https://app.leadcars.com', 'https://staging.leadcars.com'],
+    type: [String],
+  })
+  embedAllowedOrigins: string[];
+
   @ApiPropertyOptional({
     description: 'Fecha de creación',
   })
@@ -317,6 +334,27 @@ export class UpdateWhiteLabelConfigDto {
     message: `theme debe ser uno de: ${ALLOWED_THEMES.join(', ')}`,
   })
   theme?: AllowedTheme;
+
+  @ApiPropertyOptional({
+    description:
+      'Habilita el embed de la consola Guiders como iframe para integradores B2B',
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  embedEnabled?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Lista de orígenes (scheme://host[:port]) permitidos para embeber la consola. Validación estricta por `event.origin` en postMessage.',
+    example: ['https://app.leadcars.com', 'https://staging.leadcars.com'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  embedAllowedOrigins?: string[];
 }
 
 /**
