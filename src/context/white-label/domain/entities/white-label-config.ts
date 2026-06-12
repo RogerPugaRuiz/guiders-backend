@@ -49,6 +49,11 @@ export type AllowedTheme = (typeof ALLOWED_THEMES)[number];
 
 /**
  * Primitivos de la configuración White Label
+ *
+ * Los campos embed son opcionales en la firma pública (para tolerar
+ * documentos legacy en `fromPrimitives`), pero la VO los normaliza a
+ * `boolean` y `string[]` con defaults en el constructor. `toPrimitives()`
+ * siempre los emite poblados.
  */
 export interface WhiteLabelConfigPrimitives {
   id: string;
@@ -61,6 +66,22 @@ export interface WhiteLabelConfigPrimitives {
   embedAllowedOrigins?: string[];
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+/**
+ * Primitivos de salida (post-normalización por la VO)
+ */
+export interface WhiteLabelConfigPrimitivesOutput {
+  id: string;
+  companyId: string;
+  colors: WhiteLabelColorsPrimitives;
+  branding: WhiteLabelBrandingPrimitives;
+  typography: WhiteLabelTypographyPrimitives;
+  theme: AllowedTheme;
+  embedEnabled: boolean;
+  embedAllowedOrigins: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -160,7 +181,7 @@ export class WhiteLabelConfig {
       props.typography,
       props.theme || DEFAULT_THEME,
       props.embedEnabled ?? false,
-      props.embedAllowedOrigins ?? [],
+      props.embedAllowedOrigins ? [...props.embedAllowedOrigins] : [],
       props.createdAt || new Date(),
       props.updatedAt || new Date(),
     );
@@ -176,7 +197,7 @@ export class WhiteLabelConfig {
   /**
    * Serializa a primitivos
    */
-  toPrimitives(): WhiteLabelConfigPrimitives {
+  toPrimitives(): WhiteLabelConfigPrimitivesOutput {
     return {
       id: this._id,
       companyId: this._companyId,
@@ -266,7 +287,9 @@ export class WhiteLabelConfig {
         : this._typography,
       updates.theme ?? this._theme,
       updates.embed?.embedEnabled ?? this._embedEnabled,
-      updates.embed?.embedAllowedOrigins ?? this._embedAllowedOrigins,
+      updates.embed?.embedAllowedOrigins
+        ? [...updates.embed.embedAllowedOrigins]
+        : this._embedAllowedOrigins,
       this._createdAt,
       new Date(),
     );

@@ -151,8 +151,8 @@ describe('WhiteLabelConfig - campos embed', () => {
         embed: {
           embedEnabled: true,
           embedAllowedOrigins: [
-            'https://app.leadcars.com',
-            'https://staging.leadcars.com',
+            'https://app.integrator.com',
+            'https://staging.integrator.com',
           ],
         },
       });
@@ -167,6 +167,145 @@ describe('WhiteLabelConfig - campos embed', () => {
       expect(roundtrip.embedAllowedOrigins).toEqual(
         original.embedAllowedOrigins,
       );
+    });
+  });
+
+  describe('update() - preserve semantics (PATCH partial)', () => {
+    it('debería preservar embedAllowedOrigins al omitir embed en update()', () => {
+      // Arrange
+      const companyId = Uuid.random().value;
+      const withOrigins = WhiteLabelConfig.createDefault(
+        companyId,
+        companyId,
+        'Test',
+      ).update({
+        embed: {
+          embedEnabled: true,
+          embedAllowedOrigins: ['https://app.integrator.com'],
+        },
+      });
+
+      // Act — update sin tocar embed
+      const updated = withOrigins.update({ theme: 'dark' });
+
+      // Assert
+      expect(updated.embedEnabled).toBe(true);
+      expect(updated.embedAllowedOrigins).toEqual([
+        'https://app.integrator.com',
+      ]);
+      expect(updated.theme).toBe('dark');
+    });
+
+    it('debería preservar embedEnabled al pasar solo embedAllowedOrigins en update()', () => {
+      // Arrange
+      const companyId = Uuid.random().value;
+      const enabled = WhiteLabelConfig.createDefault(
+        companyId,
+        companyId,
+        'Test',
+      ).update({ embed: { embedEnabled: true, embedAllowedOrigins: [] } });
+
+      // Act
+      const updated = enabled.update({
+        embed: { embedAllowedOrigins: ['https://app.integrator.com'] },
+      });
+
+      // Assert
+      expect(updated.embedEnabled).toBe(true);
+      expect(updated.embedAllowedOrigins).toEqual([
+        'https://app.integrator.com',
+      ]);
+    });
+
+    it('debería limpiar embedAllowedOrigins al pasar array vacío explícito en update()', () => {
+      // Arrange
+      const companyId = Uuid.random().value;
+      const populated = WhiteLabelConfig.createDefault(
+        companyId,
+        companyId,
+        'Test',
+      ).update({
+        embed: {
+          embedEnabled: true,
+          embedAllowedOrigins: ['https://app.integrator.com'],
+        },
+      });
+
+      // Act
+      const cleared = populated.update({
+        embed: { embedAllowedOrigins: [] },
+      });
+
+      // Assert
+      expect(cleared.embedAllowedOrigins).toEqual([]);
+    });
+  });
+
+  describe('defensive immutability (F9)', () => {
+    it('getter embedAllowedOrigins debe retornar copia defensiva (no referencia interna)', () => {
+      // Arrange
+      const companyId = Uuid.random().value;
+      const config = WhiteLabelConfig.createDefault(
+        companyId,
+        companyId,
+        'Test',
+      ).update({
+        embed: {
+          embedEnabled: true,
+          embedAllowedOrigins: ['https://app.integrator.com'],
+        },
+      });
+
+      // Act
+      const firstCall = config.embedAllowedOrigins;
+      firstCall.push('https://evil.com');
+
+      // Assert
+      expect(config.embedAllowedOrigins).toEqual([
+        'https://app.integrator.com',
+      ]);
+    });
+
+    it('constructor no debe compartir referencia de array externo (F9)', () => {
+      // Arrange
+      const externalArray = ['https://app.integrator.com'];
+      const primitives: WhiteLabelConfigPrimitives = {
+        id: Uuid.random().value,
+        companyId: Uuid.random().value,
+        colors: {
+          primary: '#007bff',
+          secondary: '#6c757d',
+          tertiary: '#17a2b8',
+          background: '#ffffff',
+          surface: '#f8f9fa',
+          text: '#212529',
+          textMuted: '#6c757d',
+        },
+        branding: {
+          logoUrl: null,
+          faviconUrl: null,
+          brandName: 'Test',
+        },
+        typography: {
+          fontFamily: 'Inter',
+          customFontName: null,
+          customFontFiles: [],
+        },
+        theme: 'light',
+        embedEnabled: true,
+        embedAllowedOrigins: externalArray,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Act
+      const config = WhiteLabelConfig.fromPrimitives(primitives);
+      externalArray.push('https://evil.com');
+
+      // Assert
+      expect(config.embedAllowedOrigins).toEqual([
+        'https://app.integrator.com',
+      ]);
     });
   });
 });

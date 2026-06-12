@@ -591,8 +591,8 @@ export class WhiteLabelConfigController {
         customFontFiles: primitives.typography.customFontFiles,
       },
       theme: primitives.theme,
-      embedEnabled: primitives.embedEnabled ?? false,
-      embedAllowedOrigins: primitives.embedAllowedOrigins ?? [],
+      embedEnabled: primitives.embedEnabled,
+      embedAllowedOrigins: primitives.embedAllowedOrigins,
       createdAt: primitives.createdAt,
       updatedAt: primitives.updatedAt,
     };

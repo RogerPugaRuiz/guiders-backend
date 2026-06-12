@@ -105,7 +105,7 @@ export class WhiteLabelConfigSchema {
   @Prop({ type: Boolean, default: false })
   embedEnabled: boolean;
 
-  @Prop({ type: [String], default: [] })
+  @Prop({ type: [String], default: () => [] })
   embedAllowedOrigins: string[];
 
   @Prop({ type: Date })
