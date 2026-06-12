@@ -19,7 +19,6 @@ import {
   VisitorConnectionDomainService,
   VISITOR_CONNECTION_DOMAIN_SERVICE,
 } from '../../domain/visitor-connection.domain-service';
-import { ConnectionStatus } from '../../domain/value-objects/visitor-connection';
 import { VisitorLifecycle } from '../../domain/value-objects/visitor-lifecycle';
 
 @QueryHandler(GetVisitorStatsQuery)
