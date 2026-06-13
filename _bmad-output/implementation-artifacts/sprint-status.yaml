@@ -44,7 +44,7 @@ story_location: "/Users/rogerpugaruiz/Proyectos/guiders-backend/_bmad-output/imp
 development_status:
   # Epic 1: Embed Token Issuance & Multi-Tenant Gating (4 stories, 9 FRs)
   epic-1: in-progress
-  1-1-extend-white-label-configs-schema-for-embed: review
+  1-1-extend-white-label-configs-schema-for-embed: done
   1-2-implement-opaque-token-generation-in-embedtokenservice: backlog
   1-3-create-createembedtokencommand-post-v2-integration-embed-start-endpoint: backlog
   1-4-create-refreshembedtokencommand-post-v2-integration-embed-refresh-endpoint: backlog

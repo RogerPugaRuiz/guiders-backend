@@ -389,13 +389,32 @@ export class UpdateWhiteLabelConfigDto {
   @ApiPropertyOptional({
     description:
       'Lista de orígenes (scheme://host[:port]) permitidos para embeber la consola. Validación estricta por `event.origin` en postMessage.',
-    example: ['https://app.leadcars.com', 'https://staging.leadcars.com'],
+    example: ['https://app.integrator.com', 'https://staging.integrator.com'],
     type: [String],
   })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(50, {
+    message: 'embedAllowedOrigins no puede tener más de 50 elementos',
+  })
   @IsString({ each: true })
+  @IsNotEmpty({ each: true, message: 'cada origen debe ser un string no vacío' })
+  @MaxLength(2048, {
+    each: true,
+    message: 'cada origen no puede exceder 2048 caracteres',
+  })
+  @Matches(ORIGIN_REGEX, {
+    each: true,
+    message:
+      'cada origen debe tener formato https://host[:puerto] sin path, query, fragment ni espacios',
+  })
   embedAllowedOrigins?: string[];
+
+  /**
+   * Cross-field: si embedEnabled=true, embedAllowedOrigins no puede estar vacío
+   */
+  @Validate(EmbedOriginsRequiredWhenEnabledConstraint)
+  _embedCrossFieldValidation?: never;
 }
 
 /**
