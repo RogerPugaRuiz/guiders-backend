@@ -154,11 +154,60 @@ Never expose ORM entities outside infrastructure. Use mappers:
 
 ## Testing Guidelines
 
+### TDD Strategy (MANDATORY DEFAULT)
+
+**Por defecto, todo desarrollo sigue la estrategia TDD (Test-Driven Development)**. Cuando el usuario pida "desarrollar", "implementar", "crear" o similar:
+
+1. **RED phase** (delegada al subagente `tdd-generator`):
+   - Invocar `@tdd-generator` con la story/spec a implementar
+   - El subagente genera los tests PRIMERO y los ejecuta
+   - Confirma que los tests fallan (RED) — son la especificación ejecutable
+
+2. **GREEN phase** (implementación por el agente principal):
+   - Implementar el código MÍNIMO para que los tests pasen
+   - No añadir features que no estén cubiertas por tests
+
+3. **REFACTOR phase**:
+   - Mejorar estructura manteniendo tests verdes
+   - Aplicar patrones del proyecto (Result, Symbol DI, DDD)
+
+**Excepciones a TDD** (consultar con el usuario antes de proceder):
+- Refactors sin cambio de comportamiento
+- Cambios puramente de configuración (Docker, CI, etc.)
+- Documentación / AGENTS.md updates
+- Cambios cosméticos (lint, prettier)
+
+### Delegating Tests to Subagent
+
+El proyecto tiene un subagente especializado `@tdd-generator` definido en `.opencode/agents/tdd-generator.md`. Su responsabilidad:
+
+- Lee la story + PRD + Architecture + AGENTS.md del contexto
+- Genera archivos `*.spec.ts` / `*.int-spec.ts` / `*.e2e-spec.ts`
+- Sigue los patterns del proyecto (Spanish describe, `Uuid.random().value`, etc.)
+- Confirma la fase RED (tests fallan)
+- Reporta archivos creados + coverage de ACs
+
+**Cuándo invocarlo**:
+- El usuario dice "desarrolla Story X" o "implementa feature Y"
+- Una nueva command/query necesita tests
+- Se añade un nuevo endpoint HTTP
+
+**Cuándo NO invocarlo**:
+- El usuario explícitamente dice "no uses TDD" o "skip tests"
+- Es un fix de typo / format / lint
+- Es actualización de docs
+
+### Test Patterns
+
 - Use `@nestjs/testing` for module creation
 - Tests in `__tests__/` folder alongside source
 - **Always use real UUIDs**: `Uuid.random().value` (never fake IDs)
 - Mock dependencies with `jest.Mocked<T>`
 - Describe blocks in Spanish, test logic validates behavior
+- **Test naming**:
+  - Unit: `<file>.spec.ts` in `__tests__/` next to source
+  - Integration: `<file>.int-spec.ts` in `__tests__/` next to source
+  - E2E: `<file>.e2e-spec.ts` in `test/` directory
 
 ```typescript
 describe('CreateChatCommandHandler', () => {
@@ -170,6 +219,33 @@ describe('CreateChatCommandHandler', () => {
   });
 });
 ```
+
+## Subagents Disponibles
+
+| Agent | Mode | Purpose | Cuándo invocar |
+|-------|------|---------|----------------|
+| `build` | primary | Default agent con acceso completo | Default (Tab) |
+| `plan` | primary | Análisis sin cambios | Análisis de código |
+| `general` | subagent | Multi-step research + ejecución | Tareas complejas en paralelo |
+| `explore` | subagent | Read-only codebase exploration | Búsquedas rápidas |
+| `scout` | subagent | Read-only external docs | Investigación de dependencias |
+| `tdd-generator` | subagent | **Genera tests failing (RED phase)** | **Inicio de cualquier desarrollo nuevo** |
+
+**Invocar el subagente `tdd-generator`**:
+
+```
+@tdd-generator genera los tests para Story 1.4 — RefreshEmbedTokenCommand
+```
+
+El subagente:
+1. Lee `_bmad-output/implementation-artifacts/<story-key>.md`
+2. Lee AGENTS.md del contexto afectado
+3. Lee source files existentes (repos, services, etc.)
+4. Genera los archivos de test
+5. Confirma que los tests fallan (RED)
+6. Reporta archivos creados + AC coverage
+
+Una vez completado el RED phase, el agente principal (build) implementa el código para hacer pasar los tests (GREEN).
 
 ## Anti-Patterns (BLOCK)
 
