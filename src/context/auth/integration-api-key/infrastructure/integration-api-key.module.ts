@@ -17,6 +17,8 @@ import { ListIntegrationApiKeysQueryHandler } from '../application/queries/list-
 import { TokenVerifyService } from '../../../shared/infrastructure/token-verify.service';
 import { AuthGuard } from '../../../shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
+import { EMBED_TOKEN_SERVICE } from '../domain/services/embed-token.service';
+import { RedisEmbedTokenService } from './services/redis-embed-token.service';
 
 @Module({
   imports: [
@@ -34,6 +36,10 @@ import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
       provide: INTEGRATION_API_KEY_GENERATOR,
       useClass: IntegrationApiKeyGeneratorService,
     },
+    {
+      provide: EMBED_TOKEN_SERVICE,
+      useClass: RedisEmbedTokenService,
+    },
     IntegrationApiKeyMapper,
     CreateIntegrationApiKeyCommandHandler,
     RevokeIntegrationApiKeyCommandHandler,
@@ -44,6 +50,10 @@ import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
     RolesGuard,
   ],
   controllers: [IntegrationApiKeyController],
-  exports: [IntegrationApiKeyGuard, INTEGRATION_API_KEY_REPOSITORY],
+  exports: [
+    IntegrationApiKeyGuard,
+    INTEGRATION_API_KEY_REPOSITORY,
+    EMBED_TOKEN_SERVICE,
+  ],
 })
 export class IntegrationApiKeyModule {}
