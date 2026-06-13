@@ -1,6 +1,6 @@
 # Story 1.2: Implement opaque token generation in EmbedTokenService
 
-Status: review
+Status: done
 
 ## Story
 

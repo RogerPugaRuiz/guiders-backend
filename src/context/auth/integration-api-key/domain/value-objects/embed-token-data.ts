@@ -9,7 +9,8 @@ export interface EmbedTokenData {
   userId: string;
   companyId: string;
   roles: string[];
-  createdAt: string; // ISO 8601
+  createdAt: string; // ISO 8601 — preserved across refreshes
+  refreshedAt?: string; // ISO 8601 — only present after first refresh
 }
 
 /**

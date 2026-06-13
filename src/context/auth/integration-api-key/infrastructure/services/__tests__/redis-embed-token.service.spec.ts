@@ -8,7 +8,12 @@
  */
 
 import { RedisEmbedTokenService } from '../redis-embed-token.service';
-import { EmbedTokenNotFoundError } from '../../../domain/errors/embed-token.errors';
+import {
+  EmbedTokenNotFoundError,
+  EmbedTokenError,
+  EmbedTokenCorruptedError,
+  EmbedTokenInvalidFormatError,
+} from '../../../domain/errors/embed-token.errors';
 import { EMBED_TOKEN_SERVICE } from '../../../domain/services/embed-token.service';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
@@ -91,6 +96,36 @@ class InMemoryRedisClient {
 
   async connect(): Promise<void> {
     // no-op
+  }
+
+  /**
+   * Simula `EVAL` con el REFRESH_LUA script. En el mock ejecutamos
+   * manualmente la lógica del Lua: GET old → si null, return -1;
+   * EXISTS new → si 1, return -2; si no, DEL old + SET new EX TTL.
+   */
+  async eval(
+    _script: string,
+    options: {
+      keys: string[];
+      arguments: string[];
+    },
+  ): Promise<number> {
+    const oldKey = options.keys[0];
+    const newKey = options.keys[1];
+    const newValue = options.arguments[0];
+    const ttl = Number(options.arguments[1]);
+
+    if (!this.store.has(oldKey)) {
+      return -1;
+    }
+    if (this.store.has(newKey)) {
+      return -2;
+    }
+    this.store.delete(oldKey);
+    this.store.set(newKey, newValue);
+    this.store.set(`${newKey}:__ttl`, String(ttl));
+    this.execLog.push(`EVAL refresh ${oldKey} → ${newKey} EX ${ttl}`);
+    return 1;
   }
 }
 
@@ -219,13 +254,58 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       }
     });
 
-    it('debería retornar err si el JSON almacenado está malformado', async () => {
+    it('debería retornar err(EmbedTokenCorruptedError) si el JSON está malformado', async () => {
       const fakeToken = 'b'.repeat(43);
       client.store.set(`embed:token:${fakeToken}`, 'not-valid-json{');
 
       const result = await service.validateToken(fakeToken);
 
       expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenError);
+      }
+    });
+
+    it('debería retornar err(EmbedTokenCorruptedError) si el JSON no tiene los campos requeridos', async () => {
+      const fakeToken = 'c'.repeat(43);
+      client.store.set(
+        `embed:token:${fakeToken}`,
+        JSON.stringify({ userId: 'x' /* faltan campos */ }),
+      );
+
+      const result = await service.validateToken(fakeToken);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenCorruptedError);
+      }
+    });
+
+    it('debería retornar err(EmbedTokenInvalidFormatError) si el token no es base64url válido', async () => {
+      const result = await service.validateToken('!'.repeat(43));
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenInvalidFormatError);
+      }
+    });
+
+    it('debería retornar err(EmbedTokenInvalidFormatError) si el token tiene longitud != 43', async () => {
+      const result = await service.validateToken('short');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenInvalidFormatError);
+      }
+    });
+
+    it('debería retornar err(EmbedTokenInvalidFormatError) si el token no es string', async () => {
+      const result = await service.validateToken(null as unknown as string);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenInvalidFormatError);
+      }
     });
 
     it('debería retornar err si el token tiene formato inválido (longitud incorrecta)', async () => {
@@ -287,6 +367,32 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
         expect(result.error).toBeInstanceOf(EmbedTokenNotFoundError);
       }
     });
+
+    it('debería preservar createdAt original y añadir refreshedAt en el nuevo token', async () => {
+      // Arrange: crear token con timestamp T0
+      const companyId = Uuid.random().value;
+      const userId = Uuid.random().value;
+      const original = await service.createToken(companyId, userId, ['admin']);
+      const originalData = await service.validateToken(
+        original.unwrap().token,
+      );
+      const originalCreatedAt = originalData.unwrap().createdAt;
+
+      // Esperar > 1ms para garantizar diferencia de timestamp
+      await new Promise((r) => setTimeout(r, 5));
+
+      // Act
+      const refreshed = await service.refreshToken(original.unwrap().token);
+
+      // Assert
+      const refreshedData = await service.validateToken(refreshed.unwrap().token);
+      const data = refreshedData.unwrap();
+      expect(data.createdAt).toBe(originalCreatedAt);
+      expect(data.refreshedAt).toBeDefined();
+      expect(new Date(data.refreshedAt!).getTime()).toBeGreaterThanOrEqual(
+        new Date(originalCreatedAt).getTime(),
+      );
+    });
   });
 
   describe('revokeToken', () => {
@@ -322,6 +428,103 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
     it('debería retornar ok incluso si el token no existe (idempotente)', async () => {
       const result = await service.revokeToken('nonexistent'.padEnd(43, 'x'));
       expect(result.isOk()).toBe(true);
+    });
+
+    it('debería retornar ok idempotente para tokens con formato inválido (no llama a Redis)', async () => {
+      const before = client.execLog.length;
+      const result = await service.revokeToken('not-base64url!@#');
+      const after = client.execLog.length;
+
+      expect(result.isOk()).toBe(true);
+      expect(after).toBe(before); // No Redis call
+    });
+  });
+
+  describe('input validation', () => {
+    it('debería rechazar companyId vacío', async () => {
+      const result = await service.createToken('', Uuid.random().value, ['admin']);
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('debería rechazar userId vacío', async () => {
+      const result = await service.createToken(Uuid.random().value, '', ['admin']);
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('debería rechazar roles array vacío', async () => {
+      const result = await service.createToken(
+        Uuid.random().value,
+        Uuid.random().value,
+        [],
+      );
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('debería rechazar roles con más de MAX_ROLES (64) elementos', async () => {
+      const roles = Array(65).fill('admin') as string[];
+      const result = await service.createToken(
+        Uuid.random().value,
+        Uuid.random().value,
+        roles,
+      );
+      expect(result.isErr()).toBe(true);
+    });
+
+    it('debería rechazar roles con elementos no-string', async () => {
+      const result = await service.createToken(
+        Uuid.random().value,
+        Uuid.random().value,
+        ['admin', 42 as unknown as string],
+      );
+      expect(result.isErr()).toBe(true);
+    });
+  });
+
+  describe('Redis-down (F8)', () => {
+    it('createToken debería retornar err(EmbedTokenError) si Redis lanza', async () => {
+      const brokenClient = new InMemoryRedisClient();
+      const originalSet = brokenClient.set.bind(brokenClient);
+      brokenClient.set = (async () => {
+        throw new Error('Redis ECONNREFUSED');
+      }) as typeof originalSet;
+      const brokenService = new RedisEmbedTokenService(
+        brokenClient as unknown as ConstructorParameters<typeof RedisEmbedTokenService>[0],
+      );
+      await brokenService.onModuleInit();
+
+      const result = await brokenService.createToken(
+        Uuid.random().value,
+        Uuid.random().value,
+        ['admin'],
+      );
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenError);
+      }
+      await brokenService.onModuleDestroy();
+      originalSet; // silence unused
+    });
+
+    it('validateToken debería retornar err(EmbedTokenError) si Redis lanza', async () => {
+      const brokenClient = new InMemoryRedisClient();
+      const originalGet = brokenClient.get.bind(brokenClient);
+      brokenClient.get = (async () => {
+        throw new Error('Redis timeout');
+      }) as typeof originalGet;
+      const brokenService = new RedisEmbedTokenService(
+        brokenClient as unknown as ConstructorParameters<typeof RedisEmbedTokenService>[0],
+      );
+      await brokenService.onModuleInit();
+
+      const result = await brokenService.validateToken('a'.repeat(43));
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(EmbedTokenError);
+      }
+      await brokenService.onModuleDestroy();
+      originalGet;
     });
   });
 

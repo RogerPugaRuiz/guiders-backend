@@ -11,6 +11,28 @@ export class EmbedTokenNotFoundError extends DomainError {
 }
 
 /**
+ * Error devuelto cuando el input del token no es un base64url válido
+ * (longitud != 43 o charset incorrecto). NO es un "no encontrado"
+ * legítimo: el caller envió basura.
+ */
+export class EmbedTokenInvalidFormatError extends DomainError {
+  constructor() {
+    super('Embed token con formato inválido (debe ser base64url de 43 chars)');
+  }
+}
+
+/**
+ * Error devuelto cuando el VALUE en Redis existe pero no es un
+ * EmbedTokenData válido (JSON corrupto, campos faltantes, tipos
+ * incorrectos). Indice de corrupción o bug de serialización.
+ */
+export class EmbedTokenCorruptedError extends DomainError {
+  constructor() {
+    super('Embed token corrupto (JSON no conforme al esquema esperado)');
+  }
+}
+
+/**
  * Error genérico del EmbedTokenService (problemas de Redis,
  * JSON malformado, etc.).
  */
