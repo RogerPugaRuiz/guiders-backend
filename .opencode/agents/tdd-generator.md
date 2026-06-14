@@ -40,6 +40,77 @@ Given a story file, implementation plan, or a specific function/class/module to 
   - Use `DomainError` from `src/context/shared/domain/domain.error`
   - For e2e: override guards with `Test.createTestingModule({...}).overrideGuard(GUARD).useClass(MOCK_GUARD)`
 
+## Pre-workflow Validation (MANDATORY)
+
+**BEFORE writing any test**, validate these critical APIs and patterns by reading the source. These are the 3 areas where generation went wrong in Story 1.3:
+
+### 1. Result Pattern API (NOT `unwrapErr`)
+
+The Result type in this project does **NOT** have `unwrapErr()`. The error is accessed via the public `error` field:
+
+```typescript
+// ❌ WRONG — does not exist in this project
+const err = result.unwrapErr();
+
+// ✅ CORRECT — use the public field
+if (result.isErr()) {
+  expect(result.error).toBeInstanceOf(SomeError);
+  expect((result.error as SomeError).code).toBe('SOME_CODE');
+}
+```
+
+**Action**: Read `src/context/shared/domain/result.ts` and existing tests using `result.error` BEFORE writing any assertions on errors. Search for the pattern with:
+
+```bash
+grep -rn "result\.error" src/context/<context>/__tests__/ 2>/dev/null
+```
+
+### 2. Value Object Paths (don't invent paths)
+
+When you see `import { Foo } from '<context>/domain/<bar>'`, the `<bar>` part might be wrong. Value objects often live in `value-objects/` subfolders.
+
+**Action**: For EACH value object import, verify the exact file path BEFORE writing the import:
+
+```bash
+# Find the real path
+find src/context/<context>/domain -name "<vofile>.ts" 2>/dev/null
+
+# Or grep for the class declaration
+grep -rln "export class FooBar" src/context/<context>/domain/ 2>/dev/null
+```
+
+**NEVER guess paths** — if you can't find the file, use `glob` to search for `**/foo-bar.ts` patterns.
+
+### 3. Domain Error Constructor Arity
+
+Don't assume the constructor of an existing `DomainError` subclass has a fixed arity. The class may have been refactored since you last saw it.
+
+**Action**: For each `DomainError` subclass you instantiate, read the actual class definition first:
+
+```bash
+grep -A5 "class SomeError" src/context/<context>/domain/errors/some.errors.ts
+```
+
+If you need a different arity for the test, **either** use the existing constructor with valid args, **or** note in your report that the class needs to be extended to support your test case (the primary agent will decide).
+
+### 4. Existing Test Patterns (always grep first)
+
+Before writing tests for a new feature, find similar existing tests in the same context:
+
+```bash
+# Find similar command-handler tests
+find src/context/<context>/application/commands/__tests__ -name "*.spec.ts" 2>/dev/null
+
+# Find similar e2e tests
+find test/ -name "*.e2e-spec.ts" 2>/dev/null
+```
+
+Read at least 1-2 existing tests in the same context to match:
+- File header comments style
+- Mock setup pattern (`jest.Mocked<T>`)
+- beforeEach/beforeAll structure
+- AAA comment style
+
 ## Your Workflow
 
 When the primary agent (build) calls you with a task like:
@@ -50,6 +121,22 @@ You will:
 
 1. **Read the story file** at `_bmad-output/implementation-artifacts/<story-key>.md`
 2. **Read the spec/PRD/Architecture** if needed for context
+3. **Pre-workflow validation** (see section above) — validate Result API, VO paths, error arity, existing patterns BEFORE writing code
+4. **Read the relevant source files** to understand:
+   - Domain entities and value objects
+   - Repository interfaces
+   - Existing command/query handlers (to follow the same pattern)
+   - Existing tests (to match style)
+5. **Generate the test files** following TDD principles:
+   - Tests FAIL on first run (because implementation doesn't exist yet)
+   - Tests describe the expected behavior from the ACs
+   - Each AC → at least one test
+   - Cover happy paths AND error paths AND edge cases
+6. **Report back** with:
+   - Files created (paths)
+   - Number of tests generated per file
+   - The RED phase confirmation (test command output showing failures)
+   - Any ambiguities or questions for the primary agent
 3. **Read the AGENTS.md** of the affected context (e.g., `src/context/auth/integration-api-key/AGENTS.md`)
 4. **Read the relevant source files** to understand:
    - Domain entities and value objects
@@ -213,6 +300,60 @@ If tests PASS on first run, that's a problem — either:
 - **ALWAYS follow the existing test patterns** in the project (search for similar `*.spec.ts` files in the same context)
 - **ALWAYS use `Uuid.random().value`** for any ID generation
 - **ALWAYS describe tests in Spanish**
+
+## Anti-Patterns Found in Real Generations (LESSONS LEARNED)
+
+These issues were identified during Story 1.3 evaluation. **DO NOT repeat them**:
+
+### 🚫 Anti-Pattern #1: `result.unwrapErr()`
+
+```typescript
+// ❌ WRONG — this method does NOT exist in this project
+const err = result.unwrapErr();
+
+// ✅ CORRECT — access the public field
+if (result.isErr()) {
+  expect(result.error).toBeInstanceOf(SomeError);
+}
+```
+
+**Why this happens**: Subagents familiar with other projects' Result types (e.g., `neverthrow`, `oxide.ts`) assume a standard `unwrapErr()` method. The Guiders project uses a simpler `error` public field.
+
+### 🚫 Anti-Pattern #2: Invented Import Paths
+
+```typescript
+// ❌ WRONG — `user-account-name` doesn't exist as a top-level file
+import { UserAccountName } from 'src/context/auth/auth-user/domain/user-account-name';
+
+// ✅ CORRECT — actually located in value-objects/
+import { UserAccountName } from 'src/context/auth/auth-user/domain/value-objects/user-account-name';
+```
+
+**Why this happens**: Subagents guess paths based on the class name. Value objects are often in `value-objects/` subdirectories and the subagent doesn't verify.
+
+### 🚫 Anti-Pattern #3: Wrong Constructor Arity
+
+```typescript
+// ❌ WRONG — assumed 2-arg constructor
+const error = new EmbedTokenForbiddenError(code, customMessage);
+
+// ✅ CORRECT — read the class first, or use the existing arity
+const error = new EmbedTokenForbiddenError(code); // 1 arg, as defined
+```
+
+**Why this happens**: Subagents imagine a feature that the spec didn't ask for, then test it. The actual class may have a different arity.
+
+### Self-Check Before Reporting Back
+
+Before responding to the primary agent, run through this checklist:
+
+- [ ] All `result.unwrapErr()` replaced with `result.error` (inside `if (result.isErr())`)
+- [ ] All value object imports verified with `find` or `grep` to confirm real paths
+- [ ] All `DomainError` subclass constructor arities match the actual class definition
+- [ ] All test descriptions in Spanish (`debería...`)
+- [ ] All UUIDs use `Uuid.random().value` (no hardcoded strings)
+- [ ] No implementation code written
+- [ ] RED phase confirmed (tests fail as expected)
 
 ## Reporting Back
 
