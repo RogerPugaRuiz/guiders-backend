@@ -36,14 +36,29 @@ import {
   IntegrationApiKeyGuard,
   IntegrationApiKeyRequest,
 } from '../integration-api-key.guard';
+import {
+  EmbedTokenGuard,
+  EmbedTokenRequest,
+} from '../guards/embed-token.guard';
 import { CreateEmbedTokenCommandHandler } from '../../application/commands/create-embed-token.command-handler';
 import { CreateEmbedTokenCommand } from '../../application/commands/create-embed-token.command';
+import { RefreshEmbedTokenCommandHandler } from '../../application/commands/refresh-embed-token.command-handler';
+import { RefreshEmbedTokenCommand } from '../../application/commands/refresh-embed-token.command';
 import {
   CreateEmbedTokenDto,
   CreateEmbedTokenResponseDto,
   EmbedTokenForbiddenResponseDto,
 } from '../../application/dtos/create-embed-token.dto';
-import { EmbedTokenForbiddenError } from '../../domain/errors/embed-token.errors';
+import {
+  RefreshEmbedTokenDto,
+  RefreshEmbedTokenResponseDto,
+} from '../../application/dtos/refresh-embed-token.dto';
+import {
+  EmbedTokenForbiddenError,
+  EmbedTokenExpiredError,
+  EmbedTokenInvalidError,
+  EmbedTokenUserMismatchError,
+} from '../../domain/errors/embed-token.errors';
 
 @ApiTags('Integration Embed')
 @Controller('v2/integration/embed')
@@ -53,6 +68,7 @@ import { EmbedTokenForbiddenError } from '../../domain/errors/embed-token.errors
 export class EmbedController {
   constructor(
     private readonly createEmbedTokenHandler: CreateEmbedTokenCommandHandler,
+    private readonly refreshEmbedTokenHandler: RefreshEmbedTokenCommandHandler,
   ) {}
 
   @Post('start')
@@ -109,6 +125,76 @@ export class EmbedController {
         });
       }
       // Unknown error (Redis down, etc.) — preserve as 500 by rethrowing
+      throw errValue;
+    }
+
+    const issued = result.unwrap();
+    return {
+      token: issued.token,
+      expiresAt: issued.expiresAt,
+    };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(EmbedTokenGuard)
+  @ApiOperation({
+    summary: 'Refrescar embed token antes de expirar',
+    description:
+      'El iframe llama este endpoint con `Authorization: Bearer <token>` antes de que el token expire (8h) para extender la sesión. ' +
+      'El token viejo se elimina atómicamente (Lua script) y se emite uno nuevo. ' +
+      'Si el body incluye `userId` y difiere del token → 403.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Embed token refrescado',
+    type: RefreshEmbedTokenResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'DTO inválido (userId no es UUID si se proporciona)',
+  })
+  @ApiResponse({
+    status: 401,
+    description:
+      'Token expirado, revocado, o con formato/contenido inválido. Códigos: EMBED_TOKEN_MISSING, EMBED_TOKEN_INVALID, EMBED_TOKEN_EXPIRED',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'UserId del body no coincide con el del token (código EMBED_TOKEN_USER_MISMATCH)',
+  })
+  async refresh(
+    @Body() dto: RefreshEmbedTokenDto,
+    @Req() req: EmbedTokenRequest,
+  ): Promise<RefreshEmbedTokenResponseDto> {
+    const result = await this.refreshEmbedTokenHandler.execute(
+      new RefreshEmbedTokenCommand(req.embedToken, dto.userId),
+    );
+
+    if (result.isErr()) {
+      const errValue = result.error;
+      if (errValue instanceof EmbedTokenExpiredError) {
+        throw new UnauthorizedException({
+          code: errValue.code,
+          message: errValue.message,
+          statusCode: 401,
+        });
+      }
+      if (errValue instanceof EmbedTokenInvalidError) {
+        throw new UnauthorizedException({
+          code: errValue.code,
+          message: errValue.message,
+          statusCode: 401,
+        });
+      }
+      if (errValue instanceof EmbedTokenUserMismatchError) {
+        throw new ForbiddenException({
+          code: errValue.code,
+          message: errValue.message,
+          statusCode: 403,
+        });
+      }
+      // Unknown error (Redis down, etc.) — preserve as 500
       throw errValue;
     }
 

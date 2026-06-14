@@ -63,3 +63,45 @@ export class EmbedTokenForbiddenError extends DomainError {
     super(customMessage ?? `Embed token forbidden: ${code}`);
   }
 }
+
+/**
+ * Códigos de error del endpoint `/v2/integration/embed/refresh`.
+ * Se traducen a HTTP 401/403 con `code` en el body.
+ */
+export type EmbedTokenErrorCode =
+  | 'EMBED_TOKEN_EXPIRED'
+  | 'EMBED_TOKEN_INVALID'
+  | 'EMBED_TOKEN_USER_MISMATCH';
+
+/**
+ * Token expirado o revocado. El controller traduce a HTTP 401.
+ * Cubre tanto el caso "no existe en Redis" (TTL expirado) como
+ * "existe pero el tenant desactivó embed" (revocación por configuración).
+ */
+export class EmbedTokenExpiredError extends DomainError {
+  constructor(public readonly code: 'EMBED_TOKEN_EXPIRED' = 'EMBED_TOKEN_EXPIRED') {
+    super('Embed token expirado o revocado');
+  }
+}
+
+/**
+ * Token con formato inválido o JSON corrupto. El controller traduce a HTTP 401.
+ * Cubre: formato no-base64url, JSON malformado, JSON con shape incorrecto.
+ */
+export class EmbedTokenInvalidError extends DomainError {
+  constructor(public readonly code: 'EMBED_TOKEN_INVALID' = 'EMBED_TOKEN_INVALID') {
+    super('Embed token inválido (formato o contenido)');
+  }
+}
+
+/**
+ * El `userId` del body no coincide con el del token. HTTP 403.
+ * Es defensivo: el body userId es opcional y solo se chequea si está presente.
+ */
+export class EmbedTokenUserMismatchError extends DomainError {
+  constructor(
+    public readonly code: 'EMBED_TOKEN_USER_MISMATCH' = 'EMBED_TOKEN_USER_MISMATCH',
+  ) {
+    super('El userId del body no coincide con el del token');
+  }
+}

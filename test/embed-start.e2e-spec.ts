@@ -160,6 +160,14 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
       controllers: [EmbedController],
       providers: [
         CreateEmbedTokenCommandHandler,
+        // Story 1.4: refresh handler is required because EmbedController has both
+        // start and refresh endpoints. We only test /start here, but Nest needs
+        // the dep wired to instantiate the controller. We never call /refresh in
+        // these tests so this provider is never invoked.
+        {
+          provide: require('../src/context/auth/integration-api-key/application/commands/refresh-embed-token.command-handler').RefreshEmbedTokenCommandHandler,
+          useValue: { execute: jest.fn() },
+        },
         {
           provide: WHITE_LABEL_CONFIG_REPOSITORY,
           useValue: mockWhiteLabelRepo,
