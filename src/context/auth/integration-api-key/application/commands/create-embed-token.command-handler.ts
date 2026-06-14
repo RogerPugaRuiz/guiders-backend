@@ -76,7 +76,8 @@ export class CreateEmbedTokenCommandHandler {
       // Propagate as-is; if it's an EmbedTokenError we keep it; otherwise
       // wrap so the caller can still treat it as a domain error.
       return err(
-        errValue instanceof EmbedTokenError || errValue instanceof EmbedTokenForbiddenError
+        errValue instanceof EmbedTokenError ||
+          errValue instanceof EmbedTokenForbiddenError
           ? errValue
           : new EmbedTokenError(errValue.message),
       );

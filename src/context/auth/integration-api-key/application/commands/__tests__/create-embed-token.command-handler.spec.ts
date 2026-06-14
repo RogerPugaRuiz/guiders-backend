@@ -119,9 +119,7 @@ describe('CreateEmbedTokenCommandHandler', () => {
       mockWhiteLabelRepo.findByCompanyId.mockResolvedValue(
         ok(buildWhiteLabelConfig(true)),
       );
-      mockUserRepo.findById.mockResolvedValue(
-        buildUserAccount(['admin']),
-      );
+      mockUserRepo.findById.mockResolvedValue(buildUserAccount(['admin']));
       mockEmbedTokens.createToken.mockResolvedValue(
         ok({ token: FAKE_TOKEN, expiresAt: EXPIRES_AT }),
       );
@@ -274,13 +272,13 @@ describe('CreateEmbedTokenCommandHandler', () => {
   describe('propagación de errores del EmbedTokenService', () => {
     it('debería retornar err cuando EmbedTokenService.createToken falla (e.g. Redis caído)', async () => {
       // Arrange
-      const redisError = new EmbedTokenError('Error al crear embed token: ECONNREFUSED');
+      const redisError = new EmbedTokenError(
+        'Error al crear embed token: ECONNREFUSED',
+      );
       mockWhiteLabelRepo.findByCompanyId.mockResolvedValue(
         ok(buildWhiteLabelConfig(true)),
       );
-      mockUserRepo.findById.mockResolvedValue(
-        buildUserAccount(['admin']),
-      );
+      mockUserRepo.findById.mockResolvedValue(buildUserAccount(['admin']));
       mockEmbedTokens.createToken.mockResolvedValue(err(redisError));
 
       const command = new CreateEmbedTokenCommand(userId, companyId);

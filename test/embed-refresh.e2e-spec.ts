@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, UnauthorizedException, ValidationPipe } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import * as request from 'supertest';
 import { EmbedController } from '../src/context/auth/integration-api-key/infrastructure/controllers/embed.controller';
@@ -30,9 +30,6 @@ import {
   EmbedTokenInvalidFormatError,
   EmbedTokenCorruptedError,
   EmbedTokenError,
-  EmbedTokenExpiredError,
-  EmbedTokenInvalidError,
-  EmbedTokenUserMismatchError,
 } from '../src/context/auth/integration-api-key/domain/errors/embed-token.errors';
 import { WhiteLabelConfig } from '../src/context/white-label/domain/entities/white-label-config';
 import { ok, err } from '../src/context/shared/domain/result';
@@ -57,9 +54,7 @@ import { Uuid } from '../src/context/shared/domain/value-objects/uuid';
  */
 class MockIntegrationApiKeyGuard {
   canActivate(context: import('@nestjs/common').ExecutionContext): boolean {
-    const req = context
-      .switchToHttp()
-      .getRequest<IntegrationApiKeyRequest>();
+    const req = context.switchToHttp().getRequest<IntegrationApiKeyRequest>();
     req.integrationApiKey = {
       id: Uuid.random().value,
       companyId: Uuid.random().value,
@@ -85,7 +80,6 @@ class MockEmbedTokenGuard {
 
   canActivate(context: import('@nestjs/common').ExecutionContext): boolean {
     if (!this.withHeader) {
-      const { UnauthorizedException } = require('@nestjs/common');
       throw new UnauthorizedException({
         code: 'EMBED_TOKEN_MISSING',
         message: 'Authorization Bearer <token> requerido',
@@ -104,7 +98,6 @@ class MockEmbedTokenGuard {
  */
 class RejectingEmbedTokenGuard {
   canActivate(): boolean {
-    const { UnauthorizedException } = require('@nestjs/common');
     throw new UnauthorizedException({
       code: 'EMBED_TOKEN_INVALID',
       message: 'Formato de token inválido',
@@ -157,9 +150,7 @@ describe('POST /v2/integration/embed/refresh - Story 1.4 (e2e)', () => {
   }
 
   async function buildApp(
-    embedGuard:
-      | typeof MockEmbedTokenGuard
-      | typeof RejectingEmbedTokenGuard,
+    embedGuard: typeof MockEmbedTokenGuard | typeof RejectingEmbedTokenGuard,
     guardFactoryArgs: (string | null | boolean)[] = [OLD_TOKEN, true],
   ): Promise<INestApplication> {
     mockWhiteLabelRepo = {

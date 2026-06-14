@@ -7,7 +7,8 @@ import { IsUUID } from 'class-validator';
 
 export class CreateEmbedTokenDto {
   @ApiProperty({
-    description: 'ID del usuario (de Guiders) que será autenticado en el iframe',
+    description:
+      'ID del usuario (de Guiders) que será autenticado en el iframe',
     format: 'uuid',
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
@@ -26,7 +27,8 @@ export class CreateEmbedTokenDto {
 
 export class CreateEmbedTokenResponseDto {
   @ApiProperty({
-    description: 'Token opaco (256-bit base64url, 43 chars). Se envía al iframe.',
+    description:
+      'Token opaco (256-bit base64url, 43 chars). Se envía al iframe.',
     example: 'dQw4w9WgXcQ',
   })
   token: string;

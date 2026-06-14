@@ -373,9 +373,7 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       const companyId = Uuid.random().value;
       const userId = Uuid.random().value;
       const original = await service.createToken(companyId, userId, ['admin']);
-      const originalData = await service.validateToken(
-        original.unwrap().token,
-      );
+      const originalData = await service.validateToken(original.unwrap().token);
       const originalCreatedAt = originalData.unwrap().createdAt;
 
       // Esperar > 1ms para garantizar diferencia de timestamp
@@ -385,7 +383,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       const refreshed = await service.refreshToken(original.unwrap().token);
 
       // Assert
-      const refreshedData = await service.validateToken(refreshed.unwrap().token);
+      const refreshedData = await service.validateToken(
+        refreshed.unwrap().token,
+      );
       const data = refreshedData.unwrap();
       expect(data.createdAt).toBe(originalCreatedAt);
       expect(data.refreshedAt).toBeDefined();
@@ -442,12 +442,16 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
 
   describe('input validation', () => {
     it('debería rechazar companyId vacío', async () => {
-      const result = await service.createToken('', Uuid.random().value, ['admin']);
+      const result = await service.createToken('', Uuid.random().value, [
+        'admin',
+      ]);
       expect(result.isErr()).toBe(true);
     });
 
     it('debería rechazar userId vacío', async () => {
-      const result = await service.createToken(Uuid.random().value, '', ['admin']);
+      const result = await service.createToken(Uuid.random().value, '', [
+        'admin',
+      ]);
       expect(result.isErr()).toBe(true);
     });
 
@@ -488,7 +492,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
         throw new Error('Redis ECONNREFUSED');
       }) as typeof originalSet;
       const brokenService = new RedisEmbedTokenService(
-        brokenClient as unknown as ConstructorParameters<typeof RedisEmbedTokenService>[0],
+        brokenClient as unknown as ConstructorParameters<
+          typeof RedisEmbedTokenService
+        >[0],
       );
       await brokenService.onModuleInit();
 
@@ -513,7 +519,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
         throw new Error('Redis timeout');
       }) as typeof originalGet;
       const brokenService = new RedisEmbedTokenService(
-        brokenClient as unknown as ConstructorParameters<typeof RedisEmbedTokenService>[0],
+        brokenClient as unknown as ConstructorParameters<
+          typeof RedisEmbedTokenService
+        >[0],
       );
       await brokenService.onModuleInit();
 

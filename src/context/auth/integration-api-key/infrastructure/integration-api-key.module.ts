@@ -20,7 +20,9 @@ import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { EMBED_TOKEN_SERVICE } from '../domain/services/embed-token.service';
 import { RedisEmbedTokenService } from './services/redis-embed-token.service';
 import { CreateEmbedTokenCommandHandler } from '../application/commands/create-embed-token.command-handler';
+import { RefreshEmbedTokenCommandHandler } from '../application/commands/refresh-embed-token.command-handler';
 import { EmbedController } from './controllers/embed.controller';
+import { EmbedTokenGuard } from './guards/embed-token.guard';
 import { WHITE_LABEL_CONFIG_REPOSITORY } from '../../../white-label/domain/white-label-config.repository';
 import { MongoWhiteLabelConfigRepositoryImpl } from '../../../white-label/infrastructure/persistence/mongo-white-label-config.repository.impl';
 import { USER_ACCOUNT_REPOSITORY } from '../../../auth/auth-user/domain/user-account.repository';
@@ -59,6 +61,8 @@ import { UserAccountService } from '../../../auth/auth-user/infrastructure/servi
     RevokeIntegrationApiKeyCommandHandler,
     ListIntegrationApiKeysQueryHandler,
     CreateEmbedTokenCommandHandler,
+    RefreshEmbedTokenCommandHandler,
+    EmbedTokenGuard,
     IntegrationApiKeyGuard,
     TokenVerifyService,
     AuthGuard,
@@ -69,6 +73,7 @@ import { UserAccountService } from '../../../auth/auth-user/infrastructure/servi
     IntegrationApiKeyGuard,
     INTEGRATION_API_KEY_REPOSITORY,
     EMBED_TOKEN_SERVICE,
+    EmbedTokenGuard,
   ],
 })
 export class IntegrationApiKeyModule {}

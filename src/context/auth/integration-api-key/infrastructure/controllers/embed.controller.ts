@@ -1,27 +1,13 @@
-/**
- * Controller HTTP para el flujo de embed B2B.
- *
- * Endpoints:
- *  - POST /v2/integration/embed/start
- *      Header: `x-api-key: gdr_live_xxx` (o `gdr_test_xxx`)
- *      Body:   `{ userId, companyId }`
- *
- * Flujo:
- *  1. `IntegrationApiKeyGuard` valida la API key e inyecta
- *     `req.integrationApiKey = { id, companyId, environment }`
- *  2. Controller verifica que `companyId` de la API key coincide con
- *     el `companyId` del body (tenant mismatch → 403).
- *  3. CommandHandler hace las validaciones restantes y emite el token.
- */
-
 import {
   Body,
   Controller,
   ForbiddenException,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
+  ServiceUnavailableException,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
@@ -58,14 +44,16 @@ import {
   EmbedTokenExpiredError,
   EmbedTokenInvalidError,
   EmbedTokenUserMismatchError,
+  EmbedTokenError,
 } from '../../domain/errors/embed-token.errors';
 
 @ApiTags('Integration Embed')
 @Controller('v2/integration/embed')
-@UseGuards(IntegrationApiKeyGuard)
 @ApiBearerAuth()
 @ApiCookieAuth('access_token')
 export class EmbedController {
+  private readonly logger = new Logger(EmbedController.name);
+
   constructor(
     private readonly createEmbedTokenHandler: CreateEmbedTokenCommandHandler,
     private readonly refreshEmbedTokenHandler: RefreshEmbedTokenCommandHandler,
@@ -73,6 +61,7 @@ export class EmbedController {
 
   @Post('start')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(IntegrationApiKeyGuard)
   @ApiOperation({
     summary: 'Solicitar embed token para un usuario',
     description:
@@ -96,6 +85,10 @@ export class EmbedController {
     status: 403,
     description: 'Embed deshabilitado para la empresa, usuario no pertenece, o tenant mismatch',
     type: EmbedTokenForbiddenResponseDto,
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Servicio de tokens o white-label config no disponible (Mongo/Redis caído)',
   })
   async start(
     @Body() dto: CreateEmbedTokenDto,
@@ -124,8 +117,12 @@ export class EmbedController {
           statusCode: 403,
         });
       }
-      // Unknown error (Redis down, etc.) — preserve as 500 by rethrowing
-      throw errValue;
+      // Unknown error (Redis down, etc.) — 503
+      throw new ServiceUnavailableException({
+        code: 'EMBED_SERVICE_UNAVAILABLE',
+        message: 'Servicio de tokens temporalmente no disponible, reintentar',
+        statusCode: 503,
+      });
     }
 
     const issued = result.unwrap();
@@ -157,18 +154,28 @@ export class EmbedController {
   @ApiResponse({
     status: 401,
     description:
-      'Token expirado, revocado, o con formato/contenido inválido. Códigos: EMBED_TOKEN_MISSING, EMBED_TOKEN_INVALID, EMBED_TOKEN_EXPIRED',
+      'Token expirado, revocado, o con formato/contenido inválido. Códigos: EMBED_TOKEN_MISSING (header ausente), EMBED_TOKEN_INVALID (formato o contenido), EMBED_TOKEN_EXPIRED (no existe en Redis o tenant desactivó embed)',
   })
   @ApiResponse({
     status: 403,
     description: 'UserId del body no coincide con el del token (código EMBED_TOKEN_USER_MISMATCH)',
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Servicio de tokens o white-label config no disponible (Mongo/Redis caído)',
   })
   async refresh(
     @Body() dto: RefreshEmbedTokenDto,
     @Req() req: EmbedTokenRequest,
   ): Promise<RefreshEmbedTokenResponseDto> {
     const result = await this.refreshEmbedTokenHandler.execute(
-      new RefreshEmbedTokenCommand(req.embedToken, dto.userId),
+      new RefreshEmbedTokenCommand(
+        req.embedToken as string,
+        dto.userId,
+        // apiKeyCompanyId solo presente si el IntegrationApiKeyGuard corrió antes
+        (req as unknown as { integrationApiKey?: { companyId: string } })
+          .integrationApiKey?.companyId,
+      ),
     );
 
     if (result.isErr()) {
@@ -194,8 +201,12 @@ export class EmbedController {
           statusCode: 403,
         });
       }
-      // Unknown error (Redis down, etc.) — preserve as 500
-      throw errValue;
+      // Mongo/Redis down (EmbedTokenError genérico) → 503
+      throw new ServiceUnavailableException({
+        code: 'EMBED_SERVICE_UNAVAILABLE',
+        message: 'Servicio de tokens temporalmente no disponible, reintentar',
+        statusCode: 503,
+      });
     }
 
     const issued = result.unwrap();

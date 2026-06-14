@@ -30,7 +30,8 @@ export class RefreshEmbedTokenResponseDto {
   token: string;
 
   @ApiProperty({
-    description: 'Fecha ISO 8601 en que expira el nuevo token (8h desde refresh)',
+    description:
+      'Fecha ISO 8601 en que expira el nuevo token (8h desde refresh)',
     example: '2026-06-12T22:32:00.000Z',
   })
   expiresAt: string;

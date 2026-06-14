@@ -5,14 +5,16 @@
  *  1. `validateToken(oldToken)` — si falla, distinguir:
  *     - NotFound (token expirado o revocado) → EmbedTokenExpiredError → 401
  *     - InvalidFormat / Corrupted / generic Error → EmbedTokenInvalidError → 401
- *  2. Verifica `embedEnabled=true` para el `companyId` del token
+ *  2. Cross-check de tenant: si la API key está presente (defense in depth),
+ *     el `companyId` de la API key debe coincidir con el del token.
+ *  3. Verifica `embedEnabled=true` para el `companyId` del token
  *     (defense in depth: si el tenant desactivó embed post-emisión, el
- *     token existente también es revocado)
- *     Si no → EmbedTokenExpiredError → 401
- *  3. Si el comando incluye un `expectedUserId` (opcional), valida que
+ *     token existente también es revocado) → EmbedTokenExpiredError → 401
+ *     o si Mongo down → EmbedTokenError (genérico) → 503
+ *  4. Si el comando incluye un `expectedUserId` (opcional), valida que
  *     coincida con el del token. Si no → EmbedTokenUserMismatchError → 403
- *  4. Llama `embedTokens.refreshToken(oldToken)` (atomic Lua script)
- *  5. Retorna `ok({ token, expiresAt })`
+ *  5. Llama `embedTokens.refreshToken(oldToken)` (atomic Lua script)
+ *  6. Retorna `ok({ token, expiresAt })`
  *
  * El `userId` del token se preserva implícitamente porque `refreshToken`
  * lee los datos del token viejo y los usa para el nuevo.
@@ -33,8 +35,13 @@ import {
   EmbedTokenExpiredError,
   EmbedTokenInvalidError,
   EmbedTokenUserMismatchError,
+  EmbedTokenError,
+  EmbedTokenNotFoundError,
+  EmbedTokenInvalidFormatError,
+  EmbedTokenCorruptedError,
 } from '../../domain/errors/embed-token.errors';
 import { RefreshEmbedTokenCommand } from './refresh-embed-token.command';
+import { Logger } from '@nestjs/common';
 
 export interface RefreshEmbedTokenResult {
   token: string;
@@ -43,6 +50,8 @@ export interface RefreshEmbedTokenResult {
 
 @Injectable()
 export class RefreshEmbedTokenCommandHandler {
+  private readonly logger = new Logger(RefreshEmbedTokenCommandHandler.name);
+
   constructor(
     @Inject(EMBED_TOKEN_SERVICE)
     private readonly embedTokens: IEmbedTokenService,
@@ -57,30 +66,65 @@ export class RefreshEmbedTokenCommandHandler {
     const tokenData = await this.embedTokens.validateToken(command.token);
     if (tokenData.isErr()) {
       const errValue = tokenData.error;
-      // Distinguish expired (NotFound) vs invalid (everything else)
-      if (errValue.name === 'EmbedTokenNotFoundError') {
+      if (errValue instanceof EmbedTokenNotFoundError) {
         return err(new EmbedTokenExpiredError());
       }
-      // InvalidFormat, Corrupted, or generic EmbedTokenError
+      // InvalidFormat, Corrupted, or generic Error
       return err(new EmbedTokenInvalidError());
     }
 
     const tokenInfo = tokenData.unwrap();
 
-    // 2. Defense in depth: verify embed still enabled for the token's tenant
+    // 2. Cross-check tenant (defense in depth)
+    if (
+      command.apiKeyCompanyId &&
+      command.apiKeyCompanyId !== tokenInfo.companyId
+    ) {
+      this.logger.warn(
+        `Tenant mismatch en refresh: API key companyId=${command.apiKeyCompanyId} vs token companyId=${tokenInfo.companyId}`,
+      );
+      return err(new EmbedTokenUserMismatchError());
+    }
+
+    // 3. Defense in depth: verify embed still enabled for the token's tenant
     const configResult = await this.whiteLabelRepository.findByCompanyId(
       tokenInfo.companyId,
     );
-    if (configResult.isErr() || !configResult.unwrap().embedEnabled) {
+    if (configResult.isErr()) {
+      // Distinguish "tenant doesn't have config" (revocación) from
+      // "Mongo down" (incidente operacional). WhiteLabelConfigNotFoundError
+      // means tenant disabled embed or never enabled it. Anything else is
+      // infrastructure (Mongo down, timeout, etc.) → 503.
+      const errValue = configResult.error;
+      const isConfigNotFound = errValue.name === 'WhiteLabelConfigNotFoundError';
+      if (isConfigNotFound) {
+        this.logger.warn(
+          `Refresh rechazado: white_label_config no encontrada para companyId=${tokenInfo.companyId}`,
+        );
+        return err(new EmbedTokenExpiredError());
+      }
+      this.logger.error(
+        `Error de infraestructura buscando white_label_config para companyId=${tokenInfo.companyId}: ${errValue.message}`,
+      );
+      return err(
+        new EmbedTokenError(
+          `White-label config no disponible: ${errValue.message}`,
+        ),
+      );
+    }
+    if (!configResult.unwrap().embedEnabled) {
+      this.logger.warn(
+        `Refresh rechazado: embed deshabilitado para companyId=${tokenInfo.companyId} (admin toggled embedEnabled=false)`,
+      );
       return err(new EmbedTokenExpiredError());
     }
 
-    // 3. Optional: validate userId match (AC#3 defensivo)
+    // 4. Optional: validate userId match (AC#3 defensivo)
     if (command.expectedUserId && command.expectedUserId !== tokenInfo.userId) {
       return err(new EmbedTokenUserMismatchError());
     }
 
-    // 4. Refresh the token (atomic Lua script: GETDEL + SET EX)
+    // 5. Refresh the token (atomic Lua script: GETDEL + SET EX)
     const refreshResult =
       await this.embedTokens.refreshToken(command.token);
     if (refreshResult.isErr()) {

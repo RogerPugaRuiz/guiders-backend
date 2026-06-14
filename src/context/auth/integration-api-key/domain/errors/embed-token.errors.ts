@@ -79,7 +79,9 @@ export type EmbedTokenErrorCode =
  * "existe pero el tenant desactivó embed" (revocación por configuración).
  */
 export class EmbedTokenExpiredError extends DomainError {
-  constructor(public readonly code: 'EMBED_TOKEN_EXPIRED' = 'EMBED_TOKEN_EXPIRED') {
+  constructor(
+    public readonly code: 'EMBED_TOKEN_EXPIRED' = 'EMBED_TOKEN_EXPIRED',
+  ) {
     super('Embed token expirado o revocado');
   }
 }
@@ -89,7 +91,9 @@ export class EmbedTokenExpiredError extends DomainError {
  * Cubre: formato no-base64url, JSON malformado, JSON con shape incorrecto.
  */
 export class EmbedTokenInvalidError extends DomainError {
-  constructor(public readonly code: 'EMBED_TOKEN_INVALID' = 'EMBED_TOKEN_INVALID') {
+  constructor(
+    public readonly code: 'EMBED_TOKEN_INVALID' = 'EMBED_TOKEN_INVALID',
+  ) {
     super('Embed token inválido (formato o contenido)');
   }
 }

@@ -141,7 +141,9 @@ export class RedisEmbedTokenService
       roles.length <= MAX_ROLES &&
       roles.every(
         (r) =>
-          typeof r === 'string' && r.length > 0 && r.length <= MAX_STRING_LENGTH,
+          typeof r === 'string' &&
+          r.length > 0 &&
+          r.length <= MAX_STRING_LENGTH,
       )
     );
   }
@@ -240,7 +242,9 @@ export class RedisEmbedTokenService
       const message =
         error instanceof Error ? error.message : 'Error desconocido';
       this.logger.error(`Error al validar embed token: ${message}`);
-      return err(new EmbedTokenError(`Error al validar embed token: ${message}`));
+      return err(
+        new EmbedTokenError(`Error al validar embed token: ${message}`),
+      );
     }
   }
 
@@ -321,9 +325,7 @@ export class RedisEmbedTokenService
     try {
       const deleted = await this.client.del(this.key(token));
       if (deleted > 0) {
-        this.logger.debug(
-          `Embed token revocado: ${token.substring(0, 8)}...`,
-        );
+        this.logger.debug(`Embed token revocado: ${token.substring(0, 8)}...`);
       } else {
         this.logger.debug(
           `Embed token revoke idempotente (no estaba en Redis): ${token.substring(0, 8)}...`,

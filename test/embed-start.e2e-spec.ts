@@ -5,7 +5,10 @@ import * as request from 'supertest';
 import { EmbedController } from '../src/context/auth/integration-api-key/infrastructure/controllers/embed.controller';
 import { CreateEmbedTokenCommandHandler } from '../src/context/auth/integration-api-key/application/commands/create-embed-token.command-handler';
 import { CreateEmbedTokenCommand } from '../src/context/auth/integration-api-key/application/commands/create-embed-token.command';
-import { IntegrationApiKeyGuard, IntegrationApiKeyRequest } from '../src/context/auth/integration-api-key/infrastructure/integration-api-key.guard';
+import {
+  IntegrationApiKeyGuard,
+  IntegrationApiKeyRequest,
+} from '../src/context/auth/integration-api-key/infrastructure/integration-api-key.guard';
 import {
   IWhiteLabelConfigRepository,
   WHITE_LABEL_CONFIG_REPOSITORY,
@@ -14,7 +17,10 @@ import {
   USER_ACCOUNT_REPOSITORY,
   UserAccountRepository,
 } from '../src/context/auth/auth-user/domain/user-account.repository';
-import { EMBED_TOKEN_SERVICE, IEmbedTokenService } from '../src/context/auth/integration-api-key/domain/services/embed-token.service';
+import {
+  EMBED_TOKEN_SERVICE,
+  IEmbedTokenService,
+} from '../src/context/auth/integration-api-key/domain/services/embed-token.service';
 import { WhiteLabelConfig } from '../src/context/white-label/domain/entities/white-label-config';
 import { UserAccount } from '../src/context/auth/auth-user/domain/user-account.aggregate';
 import { UserAccountId } from '../src/context/auth/auth-user/domain/user-account-id';
@@ -113,9 +119,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
       },
       theme: 'light',
       embedEnabled,
-      embedAllowedOrigins: embedEnabled
-        ? ['https://app.integrator.com']
-        : [],
+      embedAllowedOrigins: embedEnabled ? ['https://app.integrator.com'] : [],
     });
   }
 
@@ -132,7 +136,9 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
   }
 
   async function buildApp(
-    guard: typeof MockIntegrationApiKeyGuard | typeof RejectingIntegrationApiKeyGuard,
+    guard:
+      | typeof MockIntegrationApiKeyGuard
+      | typeof RejectingIntegrationApiKeyGuard,
     guardFactoryArgs: string[] = [],
   ): Promise<INestApplication> {
     mockWhiteLabelRepo = {
@@ -165,7 +171,9 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
         // the dep wired to instantiate the controller. We never call /refresh in
         // these tests so this provider is never invoked.
         {
-          provide: require('../src/context/auth/integration-api-key/application/commands/refresh-embed-token.command-handler').RefreshEmbedTokenCommandHandler,
+          provide:
+            require('../src/context/auth/integration-api-key/application/commands/refresh-embed-token.command-handler')
+              .RefreshEmbedTokenCommandHandler,
           useValue: { execute: jest.fn() },
         },
         {
@@ -211,9 +219,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
   describe('AC#1 — happy path', () => {
     it('debería devolver 200 con { token, expiresAt } cuando todo es válido', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
       mockWhiteLabelRepo.findByCompanyId.mockResolvedValue(
         ok(buildWhiteLabelConfig(API_KEY_COMPANY_ID, true)),
       );
@@ -241,9 +247,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
   describe('AC#2 — embed deshabilitado', () => {
     it('debería devolver 403 con code EMBED_DISABLED_FOR_TENANT cuando embedEnabled=false', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
       mockWhiteLabelRepo.findByCompanyId.mockResolvedValue(
         ok(buildWhiteLabelConfig(API_KEY_COMPANY_ID, false)),
       );
@@ -262,9 +266,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
   describe('AC#3 — usuario no pertenece a la empresa', () => {
     it('debería devolver 403 con code EMBED_USER_NOT_IN_TENANT cuando el usuario pertenece a otra empresa', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
       mockWhiteLabelRepo.findByCompanyId.mockResolvedValue(
         ok(buildWhiteLabelConfig(API_KEY_COMPANY_ID, true)),
       );
@@ -284,9 +286,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
 
     it('debería devolver 403 con code EMBED_USER_NOT_IN_TENANT cuando el usuario no existe', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
       mockWhiteLabelRepo.findByCompanyId.mockResolvedValue(
         ok(buildWhiteLabelConfig(API_KEY_COMPANY_ID, true)),
       );
@@ -319,9 +319,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
   describe('AC#5 — tenant mismatch (API key companyId !== body companyId)', () => {
     it('debería devolver 403 con code EMBED_TENANT_MISMATCH cuando el body companyId no coincide con el de la API key', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
 
       // Act: body usa BODY_COMPANY_ID (diferente del API_KEY_COMPANY_ID)
       const response = await request(app.getHttpServer())
@@ -337,9 +335,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
   describe('validación de DTO (400)', () => {
     it('debería devolver 400 cuando el body no contiene userId', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
 
       // Act
       await request(app.getHttpServer())
@@ -350,9 +346,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
 
     it('debería devolver 400 cuando el body no contiene companyId', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
 
       // Act
       await request(app.getHttpServer())
@@ -363,9 +357,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
 
     it('debería devolver 400 cuando userId no es un UUID válido', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
 
       // Act
       await request(app.getHttpServer())
@@ -376,9 +368,7 @@ describe('POST /v2/integration/embed/start - Story 1.3 (e2e)', () => {
 
     it('debería devolver 400 cuando companyId no es un UUID válido', async () => {
       // Arrange
-      app = await buildApp(MockIntegrationApiKeyGuard, [
-        API_KEY_COMPANY_ID,
-      ]);
+      app = await buildApp(MockIntegrationApiKeyGuard, [API_KEY_COMPANY_ID]);
 
       // Act
       await request(app.getHttpServer())
