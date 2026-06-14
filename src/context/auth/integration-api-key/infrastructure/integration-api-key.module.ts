@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Provider } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { HttpModule } from '@nestjs/axios';
@@ -19,6 +19,12 @@ import { AuthGuard } from '../../../shared/infrastructure/guards/auth.guard';
 import { RolesGuard } from '../../../shared/infrastructure/guards/role.guard';
 import { EMBED_TOKEN_SERVICE } from '../domain/services/embed-token.service';
 import { RedisEmbedTokenService } from './services/redis-embed-token.service';
+import { CreateEmbedTokenCommandHandler } from '../application/commands/create-embed-token.command-handler';
+import { EmbedController } from './controllers/embed.controller';
+import { WHITE_LABEL_CONFIG_REPOSITORY } from '../../../white-label/domain/white-label-config.repository';
+import { MongoWhiteLabelConfigRepositoryImpl } from '../../../white-label/infrastructure/persistence/mongo-white-label-config.repository.impl';
+import { USER_ACCOUNT_REPOSITORY } from '../../../auth/auth-user/domain/user-account.repository';
+import { UserAccountService } from '../../../auth/auth-user/infrastructure/services/user-account.service';
 
 @Module({
   imports: [
@@ -40,16 +46,25 @@ import { RedisEmbedTokenService } from './services/redis-embed-token.service';
       provide: EMBED_TOKEN_SERVICE,
       useClass: RedisEmbedTokenService,
     },
+    {
+      provide: WHITE_LABEL_CONFIG_REPOSITORY,
+      useClass: MongoWhiteLabelConfigRepositoryImpl,
+    },
+    {
+      provide: USER_ACCOUNT_REPOSITORY,
+      useClass: UserAccountService,
+    },
     IntegrationApiKeyMapper,
     CreateIntegrationApiKeyCommandHandler,
     RevokeIntegrationApiKeyCommandHandler,
     ListIntegrationApiKeysQueryHandler,
+    CreateEmbedTokenCommandHandler,
     IntegrationApiKeyGuard,
     TokenVerifyService,
     AuthGuard,
     RolesGuard,
   ],
-  controllers: [IntegrationApiKeyController],
+  controllers: [IntegrationApiKeyController, EmbedController],
   exports: [
     IntegrationApiKeyGuard,
     INTEGRATION_API_KEY_REPOSITORY,

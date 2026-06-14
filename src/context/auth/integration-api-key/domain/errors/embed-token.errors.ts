@@ -41,3 +41,25 @@ export class EmbedTokenError extends DomainError {
     super(message);
   }
 }
+
+/**
+ * Códigos de error del endpoint `/v2/integration/embed/start`.
+ * Se exponen al cliente para distinguir 403/401 sin leak de info.
+ */
+export type EmbedTokenForbiddenCode =
+  | 'EMBED_DISABLED_FOR_TENANT'
+  | 'EMBED_USER_NOT_IN_TENANT'
+  | 'EMBED_TENANT_MISMATCH';
+
+/**
+ * Error devuelto por el command handler de embed cuando una validación
+ * de seguridad falla. Se traduce a HTTP 403 con `code` en el body.
+ */
+export class EmbedTokenForbiddenError extends DomainError {
+  constructor(
+    public readonly code: EmbedTokenForbiddenCode,
+    customMessage?: string,
+  ) {
+    super(customMessage ?? `Embed token forbidden: ${code}`);
+  }
+}
