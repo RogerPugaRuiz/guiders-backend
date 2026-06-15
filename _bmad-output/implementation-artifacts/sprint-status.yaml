@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-12 14:25
-last_updated: 2026-06-14 22:35
+last_updated: 2026-06-14 23:00
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
@@ -48,7 +48,7 @@ development_status:
   1-2-implement-opaque-token-generation-in-embedtokenservice: done
   1-3-create-createembedtokencommand-post-v2-integration-embed-start-endpoint: done
   1-4-create-refreshembedtokencommand-post-v2-integration-embed-refresh-endpoint: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # Epic 2: Embed Session Lifecycle & Audit (5 stories, 11 FRs)
   epic-2: backlog
