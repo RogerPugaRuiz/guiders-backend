@@ -401,6 +401,49 @@ MiniMax-M3 (claude-sonnet-4-20250514 equivalent)
 - Story 2.6 required: `JwtCookieStrategy` cannot verify opaque session ID as JWT → iframe cookie unusable for Keycloak-protected endpoints until 2.6 ships. Documented in `bff/AGENTS.md#known-limitation`.
 - Each service (`RedisBffSessionService`, `RedisEmbedTokenService`) instantiates its own `ioredis` client (F10 from Story 1.2 retro — shared Redis client deferred to tech debt epic).
 
+### Code Review — Findings & Fixes (Post-Implementation)
+
+**Review method**: 3 parallel adversarial layers (Blind Hunter, Edge Case Hunter, Acceptance Auditor) on prod code + 1 layer (Test Reviewer) on test code. Cross-layer dedup applied.
+
+**Acceptance**: 11/11 ACs satisfied (Acceptance Auditor, 0 critical).
+
+**Findings summary (post-dedup)**:
+- 1 critical test smell (T1: validation tests didn't actually validate)
+- 5 real production bugs (E1, F3, E9, F5, T5) — **ALL PATCHED**
+- ~10 medium findings (test improvements) — partially addressed (T2, T3, T4, T9, T13 added)
+- ~10 low findings (deferred — not blockers)
+
+**Patches applied** (4 prod + 5 test additions = 9 changes):
+
+| ID | Sev | File | Fix |
+|----|-----|------|-----|
+| F3 | high | `redis-bff-session.service.ts:89-107` | Reset `this.client = undefined` en `onModuleDestroy` (HMR lockout) |
+| E9 | high | `redis-bff-session.service.ts:200-217` | `revokeSession` ahora es idempotente en error de Redis (log WARN + `okVoid()`) |
+| T5 | high | `embed-session.controller.spec.ts:148-167` | Nuevo test: `EmbedTokenCorruptedError` → 401 (cubre la rama del `||` con `InvalidFormat`) |
+| F5 | high | `embed-session.controller.ts:74-79` | Agregado `@PublicEndpoint()` (satisface Redocly `security-defined`) |
+| T1 | crit | `redis-bff-session.service.spec.ts:149-264` | Assertions específicas (`message.toContain('xxx')`) por cada branch de validación; 2 tests faltantes (companyId > 256, embedTokenRef vacío, createdAt faltante) |
+| T3 | high | `redis-bff-session.service.spec.ts:472-498` | Nuevo test: `getSession` con Redis down → `BffSessionServiceUnavailableError` |
+| T4 | high | `redis-bff-session.service.spec.ts:469-498` | Nuevo test: `revokeSession` con Redis down → okVoid (idempotencia) |
+| T13 | high | `authenticate-embed-session.command-handler.spec.ts:56-94` | `createdAt` fijo (`'2020-01-01T00:00:00.000Z'`) para verificar propagación desde token (no sobrescritura) |
+| T2/T9 + F3 | high | `redis-bff-session.service.spec.ts:529-571, 583-595` | Tests parametrizados: 6 branches de `validateStoredData` + branch `JSON.parse throws` + reset Redis en destroy |
+
+**Deferred** (documented in `bff/AGENTS.md`):
+- F1/E5: cookie name `access_token` collides with OIDC strategy (future). Story 2.6 lo resolverá.
+- F2: forward-dep hazard. Story 2.6 lo activará.
+- F4/F8/E14/E15/E16: tech debt (security, input validation, error mapping). No bloquea.
+- F11-F14, T7-T12, T14-T18: cosmetic / over-specification. No bloquea.
+
+**Final verification** (post-patch):
+- ✅ 72/72 unit tests passing (up from 58 — 14 new tests)
+- ✅ 12/12 e2e tests passing (no regressions)
+- ✅ Build: 0 TypeScript errors
+- ✅ Lint: clean on Story 2.1 code
+
+**Lessons applied from Epic 1**:
+- Code review caught 1 latent production bug (F3 — HMR lockout) that mocks don't catch.
+- E1/T5 identified a missing test that was hiding a real (though currently correct) code path.
+- F5 (@PublicEndpoint) is a Redocly lint compliance issue — exactly the kind of cross-cutting concern code review is designed to catch.
+
 ### File List
 
 **New files** (10):

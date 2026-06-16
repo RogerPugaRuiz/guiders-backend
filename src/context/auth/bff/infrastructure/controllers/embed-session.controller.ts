@@ -33,6 +33,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { PublicEndpoint } from 'src/context/shared/infrastructure/swagger/public-endpoint.decorator';
 import {
   EmbedTokenGuard,
   EmbedTokenRequest,
@@ -67,6 +68,11 @@ export class EmbedSessionController {
   @Post('authenticate-session')
   @HttpCode(HttpStatus.OK)
   @UseGuards(EmbedTokenGuard)
+  // F5 (code review Story 2.1): @PublicEndpoint() para que la operación
+  // OpenAPI tenga `security: [{}]` (la auth es via EmbedTokenGuard, no JWT,
+  // y Swagger no conoce el guard custom). Sin este decorador falla la
+  // regla Redocly `security-defined` en CI.
+  @PublicEndpoint()
   @ApiOperation({
     summary: 'Establecer sesión BFF a partir de un embed token',
     description:

@@ -54,11 +54,16 @@ describe('AuthenticateEmbedSessionCommandHandler - Story 2.1', () => {
 
   describe('camino feliz', () => {
     it('debe establecer sesión BFF con token válido y sin body', async () => {
+      // T13 (code review Story 2.1): usamos createdAt fijo y distinguible
+      // para verificar que el handler PROPAGA el del token (no lo sobrescribe
+      // con new Date().toISOString() en la creación de la session). Invariante
+      // crítico para audit trail y cascading revocation en Story 2.3.
+      const FIXED_CREATED_AT = '2020-01-01T00:00:00.000Z';
       const tokenData = {
         userId: USER_ID,
         companyId: COMPANY_ID,
         roles: ROLES,
-        createdAt: new Date().toISOString(),
+        createdAt: FIXED_CREATED_AT,
       };
       const sessionIssued = {
         sessionId: 'B'.repeat(43),
@@ -81,7 +86,7 @@ describe('AuthenticateEmbedSessionCommandHandler - Story 2.1', () => {
           userId: USER_ID,
           companyId: COMPANY_ID,
           roles: ROLES,
-          createdAt: tokenData.createdAt,
+          createdAt: FIXED_CREATED_AT,
         },
         VALID_TOKEN,
       );

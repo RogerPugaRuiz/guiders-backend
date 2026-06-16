@@ -97,6 +97,10 @@ export class RedisBffSessionService
           `Error al cerrar cliente Redis bff sessions: ${message}`,
         );
       }
+      // F3 (code review Story 2.1): reset client so onModuleInit reconnects
+      // on hot reload. Without this, `if (this.client) return;` short-circuits
+      // and the service keeps a closed client → 503 lockout until full restart.
+      this.client = undefined as unknown as RedisClientType;
     }
   }
 
@@ -194,12 +198,17 @@ export class RedisBffSessionService
       return err(new BffSessionInvalidFormatError());
     }
 
+    // E9 (code review Story 2.1): revokeSession es idempotente por contrato.
+    // Si Redis está down, el session expira por TTL (8h) igualmente, así que
+    // no retornamos 503 — loggeamos WARN y retornamos ok. Coincide con el
+    // patrón de `RedisEmbedTokenService.revokeToken` (Story 1.2).
     try {
       await this.client.del(`${BFF_SESSION_KEY_PREFIX}${sessionId}`);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Error desconocido';
-      this.logger.error(`Error al revocar BFF session en Redis: ${message}`);
-      return err(new BffSessionServiceUnavailableError(message));
+      this.logger.warn(
+        `No se pudo revocar BFF session en Redis (idempotente, TTL hará efecto): ${message}`,
+      );
     }
 
     return okVoid();

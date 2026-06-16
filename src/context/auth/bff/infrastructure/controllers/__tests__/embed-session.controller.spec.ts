@@ -13,6 +13,7 @@ import {
   EmbedTokenNotFoundError,
   EmbedTokenInvalidFormatError,
   EmbedTokenError,
+  EmbedTokenCorruptedError,
 } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
 import {
   EmbedBodyTokenMismatchError,
@@ -130,6 +131,27 @@ describe('EmbedSessionController - Story 2.1', () => {
     it('debe retornar 401 EMBED_TOKEN_INVALID si handler retorna EmbedTokenInvalidFormatError', async () => {
       mockHandler.execute.mockResolvedValue(
         err(new EmbedTokenInvalidFormatError()),
+      );
+
+      await controller.authenticate(
+        {} as never,
+        buildReq(VALID_TOKEN),
+        mockRes,
+      );
+
+      expect(cookieCalls).toHaveLength(0);
+      expect(statusCalls).toEqual([401]);
+      const body = jsonCalls[0] as { code: string };
+      expect(body.code).toBe('EMBED_TOKEN_INVALID');
+    });
+
+    // T5 (code review Story 2.1): cubre la rama EmbedTokenCorruptedError
+    // (paralela a EmbedTokenInvalidFormatError). Sin este test, un refactor
+    // que rompa el `||` entre las dos instanceof checks pasaría
+    // silenciosamente.
+    it('debe retornar 401 EMBED_TOKEN_INVALID si handler retorna EmbedTokenCorruptedError', async () => {
+      mockHandler.execute.mockResolvedValue(
+        err(new EmbedTokenCorruptedError()),
       );
 
       await controller.authenticate(

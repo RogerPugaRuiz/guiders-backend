@@ -15,7 +15,6 @@ import {
   BffSessionInvalidFormatError,
   BffSessionCorruptedError,
   BffSessionServiceUnavailableError,
-  BffSessionError,
 } from '../../../domain/errors/bff-session.errors';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
@@ -159,7 +158,10 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionError);
+        // T1 (code review Story 2.1): assertion específica por branch —
+        // antes era `instanceof BffSessionError` (genérico) que pasaría
+        // aunque la validación se desactive.
+        expect(result.error.message).toContain('userId no puede estar vacío');
       }
     });
 
@@ -176,7 +178,7 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionError);
+        expect(result.error.message).toContain('userId excede el máximo');
       }
     });
 
@@ -193,7 +195,26 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionError);
+        expect(result.error.message).toContain(
+          'companyId no puede estar vacío',
+        );
+      }
+    });
+
+    it('debe rechazar companyId > 256 chars', async () => {
+      const data = {
+        userId: Uuid.random().value,
+        companyId: 'a'.repeat(257),
+        roles: ['admin'],
+        createdAt: new Date().toISOString(),
+        embedTokenRef: 'X'.repeat(43),
+      };
+
+      const result = await service.createSession(data, 'X'.repeat(43));
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('companyId excede el máximo');
       }
     });
 
@@ -210,7 +231,7 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionError);
+        expect(result.error.message).toContain('roles no puede estar vacío');
       }
     });
 
@@ -227,7 +248,7 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionError);
+        expect(result.error.message).toContain('roles excede el máximo');
       }
     });
 
@@ -244,7 +265,43 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionError);
+        expect(result.error.message).toContain('rol excede el máximo');
+      }
+    });
+
+    it('debe rechazar embedTokenRef vacío', async () => {
+      const data = {
+        userId: Uuid.random().value,
+        companyId: Uuid.random().value,
+        roles: ['admin'],
+        createdAt: new Date().toISOString(),
+        embedTokenRef: 'X'.repeat(43),
+      };
+
+      const result = await service.createSession(data, '');
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain(
+          'embedTokenRef no puede estar vacío',
+        );
+      }
+    });
+
+    it('debe rechazar createdAt faltante', async () => {
+      const data = {
+        userId: Uuid.random().value,
+        companyId: Uuid.random().value,
+        roles: ['admin'],
+        // createdAt omitido
+        embedTokenRef: 'X'.repeat(43),
+      } as unknown as Parameters<typeof service.createSession>[0];
+
+      const result = await service.createSession(data, 'X'.repeat(43));
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error.message).toContain('createdAt');
       }
     });
 
@@ -413,6 +470,123 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
         expect(result.error).toBeInstanceOf(BffSessionInvalidFormatError);
       }
     });
+
+    // T4 (code review Story 2.1): cubre la rama "Redis down" de
+    // revokeSession. Ahora es idempotente (retorna okVoid con log
+    // WARN) — este test valida el contrato de Story 2.3 logout flow.
+    it('debe ser idempotente y retornar ok si Redis tira excepción (TTL hará efecto)', async () => {
+      const sessionId = 'D'.repeat(43);
+      const failingClient = {
+        get: jest.fn().mockResolvedValue(null),
+        set: jest.fn().mockResolvedValue('OK'),
+        del: jest.fn().mockRejectedValue(new Error('Connection lost')),
+        quit: jest.fn().mockResolvedValue('OK'),
+        connect: jest.fn().mockResolvedValue(undefined),
+        on: jest.fn(),
+      };
+      const failingService = new RedisBffSessionService(
+        failingClient as unknown as ConstructorParameters<
+          typeof RedisBffSessionService
+        >[0],
+      );
+      await failingService.onModuleInit();
+
+      const result = await failingService.revokeSession(sessionId);
+
+      // Contrato idempotente: Redis down ≠ error de cliente
+      expect(result.isOk()).toBe(true);
+      await failingService.onModuleDestroy();
+    });
+  });
+
+  describe('getSession ramas adicionales (T3 + T9)', () => {
+    // T3 (code review Story 2.1): cubre la rama "Redis down" de
+    // getSession (era el único método público sin test de este branch).
+    // Story 2.6 usará getSession desde JwtCookieStrategy.
+    it('debe retornar BffSessionServiceUnavailableError si Redis tira excepción en get', async () => {
+      const sessionId = 'E'.repeat(43);
+      const failingClient = {
+        get: jest.fn().mockRejectedValue(new Error('Connection lost')),
+        set: jest.fn().mockResolvedValue('OK'),
+        del: jest.fn().mockResolvedValue(1),
+        quit: jest.fn().mockResolvedValue('OK'),
+        connect: jest.fn().mockResolvedValue(undefined),
+        on: jest.fn(),
+      };
+      const failingService = new RedisBffSessionService(
+        failingClient as unknown as ConstructorParameters<
+          typeof RedisBffSessionService
+        >[0],
+      );
+      await failingService.onModuleInit();
+
+      const result = await failingService.getSession(sessionId);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(BffSessionServiceUnavailableError);
+      }
+      await failingService.onModuleDestroy();
+    });
+
+    // T9 (code review Story 2.1): cubre la rama `JSON.parse throws`
+    // (separada de `validateStoredData returns error`).
+    it('debe retornar BffSessionCorruptedError si el JSON almacenado es inválido (parse error)', async () => {
+      const sessionId = 'F'.repeat(43);
+      client.store.set(`bff:session:${sessionId}`, 'not-valid-json{');
+
+      const result = await service.getSession(sessionId);
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(BffSessionCorruptedError);
+      }
+    });
+
+    // T2 (code review Story 2.1): cubre los 6 branches de
+    // validateStoredData (el test original solo cubría el primero).
+    it.each([
+      ['null literal', null],
+      [
+        'missing userId',
+        { companyId: 'x', roles: ['a'], createdAt: 't', embedTokenRef: 'z' },
+      ],
+      [
+        'missing companyId',
+        { userId: 'x', roles: ['a'], createdAt: 't', embedTokenRef: 'z' },
+      ],
+      [
+        'missing roles',
+        { userId: 'x', companyId: 'y', createdAt: 't', embedTokenRef: 'z' },
+      ],
+      [
+        'createdAt not string',
+        {
+          userId: 'x',
+          companyId: 'y',
+          roles: ['a'],
+          createdAt: 123,
+          embedTokenRef: 'z',
+        },
+      ],
+      [
+        'missing embedTokenRef',
+        { userId: 'x', companyId: 'y', roles: ['a'], createdAt: 't' },
+      ],
+    ])(
+      'debe retornar BffSessionCorruptedError para data corrupta: %s',
+      async (_desc, badData) => {
+        const sessionId = 'G'.repeat(43);
+        client.store.set(`bff:session:${sessionId}`, JSON.stringify(badData));
+
+        const result = await service.getSession(sessionId);
+
+        expect(result.isErr()).toBe(true);
+        if (result.isErr()) {
+          expect(result.error).toBeInstanceOf(BffSessionCorruptedError);
+        }
+      },
+    );
   });
 
   describe('onModuleDestroy', () => {
@@ -422,6 +596,37 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
       await service.onModuleDestroy();
 
       expect(quitSpy).toHaveBeenCalled();
+    });
+
+    // F3 (code review Story 2.1): verifica que onModuleDestroy
+    // resetea `this.client = undefined` para que onModuleInit
+    // pueda reconectar en hot reload. Sin este reset, el
+    // servicio queda con un client cerrado y todos los métodos
+    // retornan 503 hasta reinicio completo.
+    it('debe resetear el client para que onModuleInit pueda reconectar (HMR-safe)', async () => {
+      await service.onModuleDestroy();
+
+      // Verifica que un nuevo init puede crear un nuevo client
+      // (lo cual solo es posible si `this.client` fue reseteado)
+      const newClient = new InMemoryRedisClient();
+      const newService = new RedisBffSessionService(
+        newClient as unknown as ConstructorParameters<
+          typeof RedisBffSessionService
+        >[0],
+      );
+      await newService.onModuleInit();
+      // El nuevo service funciona → el reset funcionó
+      const result = await newService.createSession(
+        {
+          userId: Uuid.random().value,
+          companyId: Uuid.random().value,
+          roles: ['admin'],
+          createdAt: new Date().toISOString(),
+        },
+        'X'.repeat(43),
+      );
+      expect(result.isOk()).toBe(true);
+      await newService.onModuleDestroy();
     });
   });
 });
