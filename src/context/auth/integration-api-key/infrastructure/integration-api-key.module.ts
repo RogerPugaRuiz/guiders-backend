@@ -1,8 +1,10 @@
-import { Module, Provider } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { CqrsModule } from '@nestjs/cqrs';
 import { IntegrationApiKeyEntity } from './integration-api-key.entity';
 import { IntegrationApiKeyController } from './integration-api-key.controller';
 import { IntegrationApiKeyOrmAdapter } from './integration-api-key-orm-adapter';
@@ -27,6 +29,16 @@ import { WHITE_LABEL_CONFIG_REPOSITORY } from '../../../white-label/domain/white
 import { MongoWhiteLabelConfigRepositoryImpl } from '../../../white-label/infrastructure/persistence/mongo-white-label-config.repository.impl';
 import { USER_ACCOUNT_REPOSITORY } from '../../../auth/auth-user/domain/user-account.repository';
 import { UserAccountService } from '../../../auth/auth-user/infrastructure/services/user-account.service';
+// Story 2.2: audit log
+import {
+  EmbedTokenAuditLogSchema,
+  EmbedTokenAuditLogSchemaDefinition,
+} from './schemas/embed-token-audit-log.schema';
+import { EMBED_TOKEN_AUDIT_LOG_REPOSITORY } from '../domain/repositories/embed-token-audit-log.repository';
+import { MongoEmbedTokenAuditLogRepositoryImpl } from './persistence/mongo-embed-token-audit-log.repository.impl';
+import { PersistEmbedTokenAuthenticatedEventHandler } from '../application/events/persist-embed-token-authenticated.event-handler';
+import { PersistEmbedTokenAuthenticationFailedEventHandler } from '../application/events/persist-embed-token-authentication-failed.event-handler';
+import { FindEmbedTokenAuditLogQueryHandler } from '../application/queries/find-embed-token-audit-log.query-handler';
 
 @Module({
   imports: [
@@ -34,6 +46,15 @@ import { UserAccountService } from '../../../auth/auth-user/infrastructure/servi
     JwtModule.register({}),
     HttpModule,
     ConfigModule,
+    // Story 2.2: Mongoose schema for embed_token_audit_log
+    MongooseModule.forFeature([
+      {
+        name: EmbedTokenAuditLogSchema.name,
+        schema: EmbedTokenAuditLogSchemaDefinition,
+      },
+    ]),
+    // Story 2.2: CqrsModule for event publishing
+    CqrsModule,
   ],
   providers: [
     {
@@ -56,12 +77,20 @@ import { UserAccountService } from '../../../auth/auth-user/infrastructure/servi
       provide: USER_ACCOUNT_REPOSITORY,
       useClass: UserAccountService,
     },
+    {
+      provide: EMBED_TOKEN_AUDIT_LOG_REPOSITORY,
+      useClass: MongoEmbedTokenAuditLogRepositoryImpl,
+    },
     IntegrationApiKeyMapper,
     CreateIntegrationApiKeyCommandHandler,
     RevokeIntegrationApiKeyCommandHandler,
     ListIntegrationApiKeysQueryHandler,
     CreateEmbedTokenCommandHandler,
     RefreshEmbedTokenCommandHandler,
+    // Story 2.2: audit log handlers
+    PersistEmbedTokenAuthenticatedEventHandler,
+    PersistEmbedTokenAuthenticationFailedEventHandler,
+    FindEmbedTokenAuditLogQueryHandler,
     EmbedTokenGuard,
     IntegrationApiKeyGuard,
     TokenVerifyService,
@@ -74,6 +103,7 @@ import { UserAccountService } from '../../../auth/auth-user/infrastructure/servi
     INTEGRATION_API_KEY_REPOSITORY,
     EMBED_TOKEN_SERVICE,
     EmbedTokenGuard,
+    EMBED_TOKEN_AUDIT_LOG_REPOSITORY,
   ],
 })
 export class IntegrationApiKeyModule {}

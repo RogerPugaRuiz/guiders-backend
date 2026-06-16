@@ -83,12 +83,14 @@ export class EmbedController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Embed deshabilitado para la empresa, usuario no pertenece, o tenant mismatch',
+    description:
+      'Embed deshabilitado para la empresa, usuario no pertenece, o tenant mismatch',
     type: EmbedTokenForbiddenResponseDto,
   })
   @ApiResponse({
     status: 503,
-    description: 'Servicio de tokens o white-label config no disponible (Mongo/Redis caído)',
+    description:
+      'Servicio de tokens o white-label config no disponible (Mongo/Redis caído)',
   })
   async start(
     @Body() dto: CreateEmbedTokenDto,
@@ -98,14 +100,31 @@ export class EmbedController {
     if (req.integrationApiKey.companyId !== dto.companyId) {
       throw new ForbiddenException({
         code: 'EMBED_TENANT_MISMATCH',
-        message:
-          'El companyId del body no coincide con el de la API Key',
+        message: 'El companyId del body no coincide con el de la API Key',
         statusCode: 403,
       });
     }
 
+    // Story 2.2: extract audit context from request
+    const origin =
+      (req.headers['origin'] as string) ??
+      (req.headers['referer'] as string) ??
+      '';
+    const ipAddress =
+      (req.ip as string) ??
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      '';
+    const userAgent = (req.headers['user-agent'] as string) ?? '';
+
     const result = await this.createEmbedTokenHandler.execute(
-      new CreateEmbedTokenCommand(dto.userId, dto.companyId),
+      new CreateEmbedTokenCommand(
+        dto.userId,
+        dto.companyId,
+        origin,
+        ipAddress,
+        userAgent,
+        '/v2/integration/embed/start',
+      ),
     );
 
     if (result.isErr()) {
@@ -158,23 +177,40 @@ export class EmbedController {
   })
   @ApiResponse({
     status: 403,
-    description: 'UserId del body no coincide con el del token (código EMBED_TOKEN_USER_MISMATCH)',
+    description:
+      'UserId del body no coincide con el del token (código EMBED_TOKEN_USER_MISMATCH)',
   })
   @ApiResponse({
     status: 503,
-    description: 'Servicio de tokens o white-label config no disponible (Mongo/Redis caído)',
+    description:
+      'Servicio de tokens o white-label config no disponible (Mongo/Redis caído)',
   })
   async refresh(
     @Body() dto: RefreshEmbedTokenDto,
     @Req() req: EmbedTokenRequest,
   ): Promise<RefreshEmbedTokenResponseDto> {
+    // Story 2.2: extract audit context from request
+    const origin =
+      (req.headers['origin'] as string) ??
+      (req.headers['referer'] as string) ??
+      '';
+    const ipAddress =
+      (req.ip as string) ??
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      '';
+    const userAgent = (req.headers['user-agent'] as string) ?? '';
+
     const result = await this.refreshEmbedTokenHandler.execute(
       new RefreshEmbedTokenCommand(
         req.embedToken as string,
         dto.userId,
         // apiKeyCompanyId solo presente si el IntegrationApiKeyGuard corrió antes
-        (req as unknown as { integrationApiKey?: { companyId: string } })
-          .integrationApiKey?.companyId,
+        (
+          req as unknown as { integrationApiKey?: { companyId: string } }
+        ).integrationApiKey?.companyId,
+        origin,
+        ipAddress,
+        userAgent,
       ),
     );
 

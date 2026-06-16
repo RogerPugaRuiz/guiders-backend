@@ -7,9 +7,7 @@ import {
   WHITE_LABEL_CONFIG_REPOSITORY,
 } from '../src/context/white-label/domain/white-label-config.repository';
 import { WhiteLabelConfig } from '../src/context/white-label/domain/entities/white-label-config';
-import {
-  WhiteLabelConfigNotFoundError,
-} from '../src/context/white-label/domain/errors/white-label.error';
+import { WhiteLabelConfigNotFoundError } from '../src/context/white-label/domain/errors/white-label.error';
 import { ok, err } from '../src/context/shared/domain/result';
 import { DomainError } from '../src/context/shared/domain/domain.error';
 import { DualAuthGuard } from '../src/context/shared/infrastructure/guards/dual-auth.guard';
@@ -290,7 +288,9 @@ describe('WhiteLabelConfigController - Story 1.1 embed (e2e)', () => {
 
       expect(response.body.message).toEqual(
         expect.arrayContaining([
-          expect.stringContaining('embedAllowedOrigins debe contener al menos un origen'),
+          expect.stringContaining(
+            'embedAllowedOrigins debe contener al menos un origen',
+          ),
         ]),
       );
     });

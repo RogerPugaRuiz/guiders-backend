@@ -64,6 +64,8 @@ describe('EmbedSessionController - Story 2.1', () => {
   const buildReq = (token: string) =>
     ({
       embedToken: token,
+      headers: {},
+      ip: '127.0.0.1',
     }) as unknown as Parameters<typeof controller.authenticate>[1];
 
   describe('camino feliz', () => {

@@ -49,6 +49,7 @@ describe('AuthenticateEmbedSessionCommandHandler - Story 2.1', () => {
     handler = new AuthenticateEmbedSessionCommandHandler(
       mockEmbedTokens,
       mockBffSessions,
+      { publish: jest.fn() } as any, // Story 2.2: EventBus mock
     );
   });
 

@@ -8,9 +8,14 @@
  *
  * Cualquier fallo de seguridad retorna `EmbedTokenForbiddenError` con
  * un código específico que el controller traduce a HTTP 403.
+ *
+ * Story 2.2: emite `EmbedTokenAuthenticatedEvent` (success) o
+ * `EmbedTokenAuthenticationFailedEvent` (failure) al bus de eventos
+ * para que el audit log handler persista a MongoDB.
  */
 
 import { Inject, Injectable } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
@@ -30,6 +35,9 @@ import {
   EmbedTokenError,
 } from '../../domain/errors/embed-token.errors';
 import { CreateEmbedTokenCommand } from './create-embed-token.command';
+import { EmbedTokenAuthenticatedEvent } from '../../domain/events/embed-token-authenticated.event';
+import { EmbedTokenAuthenticationFailedEvent } from '../../domain/events/embed-token-authentication-failed.event';
+import { EmbedAuthFailureReason } from '../../domain/events/embed-auth-failure-reason.enum';
 
 export interface CreateEmbedTokenResult {
   token: string;
@@ -45,22 +53,51 @@ export class CreateEmbedTokenCommandHandler {
     private readonly userRepository: UserAccountRepository,
     @Inject(EMBED_TOKEN_SERVICE)
     private readonly embedTokens: IEmbedTokenService,
+    private readonly eventBus: EventBus,
   ) {}
 
   async execute(
     command: CreateEmbedTokenCommand,
   ): Promise<Result<CreateEmbedTokenResult, DomainError>> {
+    const now = () => new Date().toISOString();
+
     // 1. Check embed enabled (order matters: no leak de existencia)
     const configResult = await this.whiteLabelRepository.findByCompanyId(
       command.companyId,
     );
     if (configResult.isErr() || !configResult.unwrap().embedEnabled) {
+      this.eventBus.publish(
+        new EmbedTokenAuthenticationFailedEvent({
+          companyId: command.companyId,
+          userId: command.userId,
+          origin: command.origin,
+          timestamp: now(),
+          ipAddress: command.ipAddress,
+          userAgent: command.userAgent,
+          endpoint: command.endpoint,
+          failureReason: EmbedAuthFailureReason.EMBED_DISABLED_FOR_TENANT,
+          failureDetail: 'Embed no habilitado para esta empresa',
+        }),
+      );
       return err(new EmbedTokenForbiddenError('EMBED_DISABLED_FOR_TENANT'));
     }
 
     // 2. Verify user exists and belongs to the company
     const user = await this.userRepository.findById(command.userId);
     if (!user || user.companyId.value !== command.companyId) {
+      this.eventBus.publish(
+        new EmbedTokenAuthenticationFailedEvent({
+          companyId: command.companyId,
+          userId: command.userId,
+          origin: command.origin,
+          timestamp: now(),
+          ipAddress: command.ipAddress,
+          userAgent: command.userAgent,
+          endpoint: command.endpoint,
+          failureReason: EmbedAuthFailureReason.EMBED_USER_NOT_IN_TENANT,
+          failureDetail: 'El usuario no pertenece a esta empresa',
+        }),
+      );
       return err(new EmbedTokenForbiddenError('EMBED_USER_NOT_IN_TENANT'));
     }
 
@@ -75,13 +112,41 @@ export class CreateEmbedTokenCommandHandler {
       const errValue = tokenResult.error;
       // Propagate as-is; if it's an EmbedTokenError we keep it; otherwise
       // wrap so the caller can still treat it as a domain error.
-      return err(
+      const wrapped =
         errValue instanceof EmbedTokenError ||
-          errValue instanceof EmbedTokenForbiddenError
+        errValue instanceof EmbedTokenForbiddenError
           ? errValue
-          : new EmbedTokenError(errValue.message),
+          : new EmbedTokenError(errValue.message);
+
+      this.eventBus.publish(
+        new EmbedTokenAuthenticationFailedEvent({
+          companyId: command.companyId,
+          userId: command.userId,
+          origin: command.origin,
+          timestamp: now(),
+          ipAddress: command.ipAddress,
+          userAgent: command.userAgent,
+          endpoint: command.endpoint,
+          failureReason: EmbedAuthFailureReason.EMBED_SERVICE_UNAVAILABLE,
+          failureDetail: wrapped.message,
+        }),
       );
+
+      return err(wrapped);
     }
+
+    // 4. Success: emit success event for audit log
+    this.eventBus.publish(
+      new EmbedTokenAuthenticatedEvent({
+        companyId: command.companyId,
+        userId: command.userId,
+        origin: command.origin,
+        timestamp: now(),
+        ipAddress: command.ipAddress,
+        userAgent: command.userAgent,
+        endpoint: command.endpoint,
+      }),
+    );
 
     const issued = tokenResult.unwrap();
     return ok({

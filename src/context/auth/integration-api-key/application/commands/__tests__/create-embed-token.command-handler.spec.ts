@@ -16,7 +16,8 @@ import { UserAccountIsActive } from 'src/context/auth/auth-user/domain/value-obj
 import { UserAccountName } from 'src/context/auth/auth-user/domain/value-objects/user-account-name';
 import { Role } from 'src/context/auth/auth-user/domain/value-objects/role';
 import { ok, err } from 'src/context/shared/domain/result';
-import { DomainError } from 'src/context/shared/domain/domain.error';
+import { WhiteLabelConfigNotFoundError } from 'src/context/white-label/domain/errors/white-label.error';
+import { EmbedTokenForbiddenError } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 import { EmbedTokenError } from '../../../domain/errors/embed-token.errors';
 
@@ -110,6 +111,7 @@ describe('CreateEmbedTokenCommandHandler', () => {
       mockWhiteLabelRepo,
       mockUserRepo,
       mockEmbedTokens,
+      { publish: jest.fn() } as any, // Story 2.2: EventBus mock
     );
   });
 

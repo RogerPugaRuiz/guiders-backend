@@ -113,11 +113,25 @@ export class EmbedSessionController {
     @Req() req: EmbedTokenRequest,
     @Res() res: Response,
   ): Promise<void> {
+    // Story 2.2: extract audit context from request
+    const origin =
+      (req.headers['origin'] as string) ??
+      (req.headers['referer'] as string) ??
+      '';
+    const ipAddress =
+      (req.ip as string) ??
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      '';
+    const userAgent = (req.headers['user-agent'] as string) ?? '';
+
     const result = await this.authenticateHandler.execute(
       new AuthenticateEmbedSessionCommand(
         req.embedToken as string,
         dto.userId,
         dto.companyId,
+        origin,
+        ipAddress,
+        userAgent,
       ),
     );
 

@@ -1,6 +1,6 @@
 # Story 2.2: Implement EmbedTokenAuthenticated event and audit log persistence
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 

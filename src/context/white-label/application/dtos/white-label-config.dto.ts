@@ -398,7 +398,10 @@ export class UpdateWhiteLabelConfigDto {
     message: 'embedAllowedOrigins no puede tener más de 50 elementos',
   })
   @IsString({ each: true })
-  @IsNotEmpty({ each: true, message: 'cada origen debe ser un string no vacío' })
+  @IsNotEmpty({
+    each: true,
+    message: 'cada origen debe ser un string no vacío',
+  })
   @MaxLength(2048, {
     each: true,
     message: 'cada origen no puede exceder 2048 caracteres',

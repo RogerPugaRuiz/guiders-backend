@@ -90,6 +90,7 @@ describe('RefreshEmbedTokenCommandHandler', () => {
     handler = new RefreshEmbedTokenCommandHandler(
       mockEmbedTokens,
       mockWhiteLabelRepo,
+      { publish: jest.fn() } as any, // Story 2.2: EventBus mock
     );
   });
 

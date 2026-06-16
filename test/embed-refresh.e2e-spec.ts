@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, UnauthorizedException, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  UnauthorizedException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
 import * as request from 'supertest';
 import { EmbedController } from '../src/context/auth/integration-api-key/infrastructure/controllers/embed.controller';
