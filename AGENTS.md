@@ -197,6 +197,13 @@ El proyecto tiene un subagente especializado `@tdd-generator` definido en `.open
 - Es un fix de typo / format / lint
 - Es actualización de docs
 
+**AI-1.5 — Wrapper con fallback automático**: El subagente `@tdd-generator` ha retornado output vacío (`<output></output>`) en 2/2 invocaciones consecutivas (Story 2.1 + Story 2.2). **NO** se debe confiar ciegamente en su output. Usar `.opencode/skills/try-tdd-generator.md` que documenta:
+- **Step 1**: Invocar el subagente
+- **Step 2**: Detectar fallo usando `detectSubagentFailure()` (en `src/context/shared/dev-tools/try-tdd-generator/__tests__/try-tdd-generator.sop.spec.ts` — 18 tests cubren los 6 failure signals)
+- **Step 3**: Si falló, **fallback manual** al patrón validado de Story 1.3/2.1/2.2 (mocks `const`, `app = await buildApp(...)` ANTES de `mockResolvedValue`, AI-3 assertions específicas — nunca `instanceof BaseError`)
+
+Esta decisión del retro de Story 2.2 previene el ciclo "subagent falla → dev agent escribe tests → inconsistencias" en las 3 stories restantes de Epic 2.
+
 ### Test Patterns
 
 - Use `@nestjs/testing` for module creation
