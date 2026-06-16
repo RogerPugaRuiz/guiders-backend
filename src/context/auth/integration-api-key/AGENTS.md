@@ -137,7 +137,10 @@ The `companyId` lives in the Redis value (NOT in the token). This means:
   `createToken` after validating API key + tenant isolation
 - **Story 1.4:** `POST /v2/integration/embed/refresh` — uses `refreshToken`
 - **Story 2.1:** `POST /embed/authenticate-session` — converts token to
-  BFF session cookie via `validateToken`
+  BFF session cookie via `validateToken`. **DONE** — see
+  `../bff/AGENTS.md#bff-session-from-embed-token-story-21` for the
+  full flow (BFF session is stored in Redis under `bff:session:*` with
+  `embedTokenRef` for traceability)
 - **Story 2.2:** `EmbedTokenAuthenticatedEvent` emission (audit log) —
   wraps `createToken` calls
 - **Story 2.3:** Logout flow calls `revokeToken`
