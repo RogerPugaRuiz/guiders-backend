@@ -132,7 +132,10 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
  */
 export class MongoEmbedAuditLogPersistenceError extends DomainError {
   public readonly code = 'EMBED_AUDIT_LOG_PERSISTENCE_ERROR';
-  public readonly statusCode = 500;
+  // 503 (not 500): Mongo down is a transient infrastructure issue
+  // (recoverable, retry-friendly), not a server bug. 500 would imply
+  // a code defect and trigger wrong alerts.
+  public readonly statusCode = 503;
 
   constructor(message: string) {
     super(message);

@@ -251,7 +251,7 @@ describe('RefreshEmbedTokenCommandHandler', () => {
       expect(mockEmbedTokens.refreshToken).not.toHaveBeenCalled();
     });
 
-    it('debería retornar err(EmbedTokenInvalidError) cuando validateToken retorna EmbedTokenError genérico', async () => {
+    it('debería retornar err(EmbedTokenError) genérico cuando validateToken retorna EmbedTokenError (no envolver)', async () => {
       // Arrange
       mockEmbedTokens.validateToken.mockResolvedValue(
         err(new EmbedTokenError('Redis down')),
@@ -265,9 +265,9 @@ describe('RefreshEmbedTokenCommandHandler', () => {
       // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(EmbedTokenInvalidError);
-        expect((result.error as EmbedTokenInvalidError).code).toBe(
-          'EMBED_TOKEN_INVALID',
+        expect(result.error).toBeInstanceOf(EmbedTokenError);
+        expect((result.error as EmbedTokenError).message).toContain(
+          'Redis down',
         );
       }
       expect(mockEmbedTokens.refreshToken).not.toHaveBeenCalled();

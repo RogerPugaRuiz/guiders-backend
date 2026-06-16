@@ -2,15 +2,18 @@ import {
   Body,
   Controller,
   ForbiddenException,
+  Get,
   HttpCode,
   HttpStatus,
   Logger,
   Post,
+  Query,
   Req,
   ServiceUnavailableException,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 import {
   ApiBearerAuth,
   ApiCookieAuth,
@@ -30,6 +33,7 @@ import { CreateEmbedTokenCommandHandler } from '../../application/commands/creat
 import { CreateEmbedTokenCommand } from '../../application/commands/create-embed-token.command';
 import { RefreshEmbedTokenCommandHandler } from '../../application/commands/refresh-embed-token.command-handler';
 import { RefreshEmbedTokenCommand } from '../../application/commands/refresh-embed-token.command';
+import { FindEmbedTokenAuditLogQuery } from '../../application/queries/find-embed-token-audit-log.query';
 import {
   CreateEmbedTokenDto,
   CreateEmbedTokenResponseDto,
@@ -39,13 +43,15 @@ import {
   RefreshEmbedTokenDto,
   RefreshEmbedTokenResponseDto,
 } from '../../application/dtos/refresh-embed-token.dto';
+import { QueryEmbedTokenAuditLogDto } from '../../application/dtos/query-embed-token-audit-log.dto';
+import { EmbedTokenAuditLogListResponseDto } from '../../application/dtos/embed-token-audit-log-response.dto';
 import {
   EmbedTokenForbiddenError,
   EmbedTokenExpiredError,
   EmbedTokenInvalidError,
   EmbedTokenUserMismatchError,
-  EmbedTokenError,
 } from '../../domain/errors/embed-token.errors';
+import { MongoEmbedAuditLogPersistenceError } from '../persistence/mongo-embed-token-audit-log.repository.impl';
 
 @ApiTags('Integration Embed')
 @Controller('v2/integration/embed')
@@ -57,6 +63,7 @@ export class EmbedController {
   constructor(
     private readonly createEmbedTokenHandler: CreateEmbedTokenCommandHandler,
     private readonly refreshEmbedTokenHandler: RefreshEmbedTokenCommandHandler,
+    private readonly queryBus: QueryBus,
   ) {}
 
   @Post('start')
@@ -250,5 +257,76 @@ export class EmbedController {
       token: issued.token,
       expiresAt: issued.expiresAt,
     };
+  }
+
+  @Get('audit-log')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(IntegrationApiKeyGuard)
+  @ApiOperation({
+    summary: 'Consultar audit log de eventos de autenticación de embed',
+    description:
+      'Lista los eventos de éxito/fallo de autenticación de embed ' +
+      '(POST /start, /refresh, /embed/authenticate-session) para un tenant. ' +
+      'Soporta paginación y filtros. Server-to-server only (no iframe).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Eventos de audit log',
+    type: EmbedTokenAuditLogListResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Query params inválidos (limit fuera de rango, etc.)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'API key de integración inválida o revocada',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'companyId del query no coincide con el de la API Key',
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Mongo no disponible (código EMBED_SERVICE_UNAVAILABLE)',
+  })
+  async getAuditLog(
+    @Query() query: QueryEmbedTokenAuditLogDto,
+    @Req() req: IntegrationApiKeyRequest,
+  ): Promise<EmbedTokenAuditLogListResponseDto> {
+    // Story 2.2 AC6: defense-in-depth multi-tenant — el companyId
+    // del query DEBE coincidir con el de la API Key. Si no, 403
+    // (prevención de cross-tenant queries, incluso dentro del mismo tenant).
+    if (req.integrationApiKey.companyId !== query.companyId) {
+      throw new ForbiddenException({
+        code: 'EMBED_TENANT_MISMATCH',
+        message: 'El companyId del query no coincide con el de la API Key',
+        statusCode: 403,
+      });
+    }
+
+    const result = await this.queryBus.execute(
+      FindEmbedTokenAuditLogQuery.fromDto(query),
+    );
+
+    if (result.isErr()) {
+      const errValue = result.error;
+      if (errValue instanceof MongoEmbedAuditLogPersistenceError) {
+        // Mongo down → 503 (recoverable, no es bug del cliente)
+        throw new ServiceUnavailableException({
+          code: 'EMBED_SERVICE_UNAVAILABLE',
+          message: 'Servicio de audit log no disponible, reintentar',
+          statusCode: 503,
+        });
+      }
+      // Unknown error
+      throw new ServiceUnavailableException({
+        code: 'EMBED_SERVICE_UNAVAILABLE',
+        message: 'Error inesperado en audit log',
+        statusCode: 503,
+      });
+    }
+
+    return result.unwrap();
   }
 }

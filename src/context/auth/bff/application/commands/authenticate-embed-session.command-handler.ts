@@ -17,7 +17,7 @@
  * `EmbedTokenAuthenticationFailedEvent` (failure) al bus de eventos.
  */
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
@@ -41,9 +41,14 @@ import { AuthenticateEmbedSessionCommand } from './authenticate-embed-session.co
 import { EmbedTokenAuthenticatedEvent } from 'src/context/auth/integration-api-key/domain/events/embed-token-authenticated.event';
 import { EmbedTokenAuthenticationFailedEvent } from 'src/context/auth/integration-api-key/domain/events/embed-token-authentication-failed.event';
 import { EmbedAuthFailureReason } from 'src/context/auth/integration-api-key/domain/events/embed-auth-failure-reason.enum';
+import { tryPublish } from 'src/context/shared/events/try-publish';
 
 @Injectable()
 export class AuthenticateEmbedSessionCommandHandler {
+  private readonly logger = new Logger(
+    AuthenticateEmbedSessionCommandHandler.name,
+  );
+
   constructor(
     @Inject(EMBED_TOKEN_SERVICE)
     private readonly embedTokens: IEmbedTokenService,
@@ -62,7 +67,8 @@ export class AuthenticateEmbedSessionCommandHandler {
       userId: string | null = null,
       companyId: string | null = null,
     ) => {
-      this.eventBus.publish(
+      tryPublish(
+        this.eventBus,
         new EmbedTokenAuthenticationFailedEvent({
           companyId: companyId ?? 'unknown',
           userId,
@@ -74,6 +80,8 @@ export class AuthenticateEmbedSessionCommandHandler {
           failureReason: reason,
           failureDetail: detail,
         }),
+        this.logger,
+        'authenticate-embed-session',
       );
     };
 
@@ -154,7 +162,8 @@ export class AuthenticateEmbedSessionCommandHandler {
     }
 
     // 4. Success: emit success event
-    this.eventBus.publish(
+    tryPublish(
+      this.eventBus,
       new EmbedTokenAuthenticatedEvent({
         companyId: data.companyId,
         userId: data.userId,
@@ -164,6 +173,8 @@ export class AuthenticateEmbedSessionCommandHandler {
         userAgent: command.userAgent,
         endpoint: '/embed/authenticate-session',
       }),
+      this.logger,
+      'authenticate-embed-session',
     );
 
     return ok(sessionResult.unwrap());

@@ -14,7 +14,7 @@
  * para que el audit log handler persista a MongoDB.
  */
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
@@ -38,6 +38,7 @@ import { CreateEmbedTokenCommand } from './create-embed-token.command';
 import { EmbedTokenAuthenticatedEvent } from '../../domain/events/embed-token-authenticated.event';
 import { EmbedTokenAuthenticationFailedEvent } from '../../domain/events/embed-token-authentication-failed.event';
 import { EmbedAuthFailureReason } from '../../domain/events/embed-auth-failure-reason.enum';
+import { tryPublish } from 'src/context/shared/events/try-publish';
 
 export interface CreateEmbedTokenResult {
   token: string;
@@ -46,6 +47,8 @@ export interface CreateEmbedTokenResult {
 
 @Injectable()
 export class CreateEmbedTokenCommandHandler {
+  private readonly logger = new Logger(CreateEmbedTokenCommandHandler.name);
+
   constructor(
     @Inject(WHITE_LABEL_CONFIG_REPOSITORY)
     private readonly whiteLabelRepository: IWhiteLabelConfigRepository,
@@ -66,7 +69,8 @@ export class CreateEmbedTokenCommandHandler {
       command.companyId,
     );
     if (configResult.isErr() || !configResult.unwrap().embedEnabled) {
-      this.eventBus.publish(
+      tryPublish(
+        this.eventBus,
         new EmbedTokenAuthenticationFailedEvent({
           companyId: command.companyId,
           userId: command.userId,
@@ -78,6 +82,8 @@ export class CreateEmbedTokenCommandHandler {
           failureReason: EmbedAuthFailureReason.EMBED_DISABLED_FOR_TENANT,
           failureDetail: 'Embed no habilitado para esta empresa',
         }),
+        this.logger,
+        'create-embed-token',
       );
       return err(new EmbedTokenForbiddenError('EMBED_DISABLED_FOR_TENANT'));
     }
@@ -85,7 +91,8 @@ export class CreateEmbedTokenCommandHandler {
     // 2. Verify user exists and belongs to the company
     const user = await this.userRepository.findById(command.userId);
     if (!user || user.companyId.value !== command.companyId) {
-      this.eventBus.publish(
+      tryPublish(
+        this.eventBus,
         new EmbedTokenAuthenticationFailedEvent({
           companyId: command.companyId,
           userId: command.userId,
@@ -97,6 +104,8 @@ export class CreateEmbedTokenCommandHandler {
           failureReason: EmbedAuthFailureReason.EMBED_USER_NOT_IN_TENANT,
           failureDetail: 'El usuario no pertenece a esta empresa',
         }),
+        this.logger,
+        'create-embed-token',
       );
       return err(new EmbedTokenForbiddenError('EMBED_USER_NOT_IN_TENANT'));
     }
@@ -118,7 +127,8 @@ export class CreateEmbedTokenCommandHandler {
           ? errValue
           : new EmbedTokenError(errValue.message);
 
-      this.eventBus.publish(
+      tryPublish(
+        this.eventBus,
         new EmbedTokenAuthenticationFailedEvent({
           companyId: command.companyId,
           userId: command.userId,
@@ -130,13 +140,16 @@ export class CreateEmbedTokenCommandHandler {
           failureReason: EmbedAuthFailureReason.EMBED_SERVICE_UNAVAILABLE,
           failureDetail: wrapped.message,
         }),
+        this.logger,
+        'create-embed-token',
       );
 
       return err(wrapped);
     }
 
     // 4. Success: emit success event for audit log
-    this.eventBus.publish(
+    tryPublish(
+      this.eventBus,
       new EmbedTokenAuthenticatedEvent({
         companyId: command.companyId,
         userId: command.userId,
@@ -146,6 +159,8 @@ export class CreateEmbedTokenCommandHandler {
         userAgent: command.userAgent,
         endpoint: command.endpoint,
       }),
+      this.logger,
+      'create-embed-token',
     );
 
     const issued = tokenResult.unwrap();
