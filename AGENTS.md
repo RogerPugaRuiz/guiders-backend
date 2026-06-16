@@ -204,6 +204,22 @@ El proyecto tiene un subagente especializado `@tdd-generator` definido en `.open
 
 Esta decisión del retro de Story 2.2 previene el ciclo "subagent falla → dev agent escribe tests → inconsistencias" en las 3 stories restantes de Epic 2.
 
+**AI-2 — Acceptance Auditors deben citar el spec text exacto** (PR #111 review, 2026-06-16): El subagente PASS 3 (Acceptance Auditor) del review de PR #111 inventó 3 ACs que NO existían en el spec real:
+
+- "Story 1.3 AC5: Validates origin is in `embedAllowedOrigins`" — NO existe
+- "Story 1.3 AC3 / 1.4 AC3: response includes `refreshAfter` / `refreshedAt`" — NO existe
+- "Story 1.4 AC2/AC8: cross-check header-vs-body" — NO existe (spec dice "no body DTO needed")
+
+Esto generó 3 issues falsas (#112, #113, #114) que casi bloquean un merge innecesariamente. Re-verificación contra el spec real tomó 10 min y reveló que la implementación era correcta.
+
+**Regla para futuros acceptance auditors** (subagentes o humanos):
+- Cada AC debe ir con una **cita literal del spec entre comillas** (`> "..."`).
+- Si el AC a auditar NO está en el spec, es un **enhancement** (no un bug).
+- Si la implementación difiere del spec, es un **bug real** (cita la línea exacta del spec que se viola).
+- NUNCA inferir ACs basándose en "mejores prácticas" o "lo que debería ser".
+
+Mitigación: añadir a `try-tdd-generator` SOP (AI-1.5) un check de "spec citation" antes de aceptar el output de cualquier subagente de review.
+
 ### Test Patterns
 
 - Use `@nestjs/testing` for module creation
