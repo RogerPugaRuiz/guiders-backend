@@ -53,6 +53,45 @@ class InMemoryRedisClient {
     return Promise.resolve(had);
   }
 
+  /**
+   * N2 (PR #115 re-review): mock del EVAL de Redis para tests
+   * de `cascadeRevoke`. Implementa los 2 scripts Lua del servicio.
+   *
+   * Script 1 (CASCADE_REVOKE_LUA_TOKEN, 2 keys):
+   *   DEL KEYS[1] (sessionKey), DEL KEYS[2] (tokenKey)
+   *   → retorna [sessionDeleted, tokenDeleted]
+   *
+   * Script 2 (CASCADE_REVOKE_LUA_SESSION_ONLY, 1 key):
+   *   DEL KEYS[1] (sessionKey)
+   *   → retorna [sessionDeleted, 0]
+   *
+   * El test debe pasar las keys correctas según embedTokenRef definido.
+   */
+  eval(_script: string, options: { keys: string[] }): Promise<unknown> {
+    const keys = options.keys;
+    this.execLog.push(`EVAL ${keys.length} keys`);
+
+    if (keys.length === 2) {
+      // Cascade con token — DEL session + DEL token
+      const sessionKey = keys[0];
+      const tokenKey = keys[1];
+      const sessionDeleted = this.store.delete(sessionKey) ? 1 : 0;
+      const tokenDeleted = this.store.delete(tokenKey) ? 1 : 0;
+      return Promise.resolve([sessionDeleted, tokenDeleted]);
+    }
+
+    if (keys.length === 1) {
+      // Cascade sin token — DEL session solo
+      const sessionKey = keys[0];
+      const sessionDeleted = this.store.delete(sessionKey) ? 1 : 0;
+      return Promise.resolve([sessionDeleted, 0]);
+    }
+
+    // Edge case: empty keys (Redis Cluster rejects this in prod).
+    // For tests, return zeros — production code avoids this path.
+    return Promise.resolve([0, 0]);
+  }
+
   quit(): Promise<'OK'> {
     return Promise.resolve('OK');
   }
@@ -627,6 +666,110 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
       );
       expect(result.isOk()).toBe(true);
       await newService.onModuleDestroy();
+    });
+  });
+
+  /**
+   * N2 (PR #115 re-review): tests de servicio para cascadeRevoke.
+   * Valida el Lua script atómico sin mockear el handler.
+   */
+  describe('cascadeRevoke (N2 fix, PR #115 re-review)', () => {
+    const SESSION_ID = 'A'.repeat(43);
+    const TOKEN_REF = 'B'.repeat(43);
+    const SESSION_KEY = `bff:session:${SESSION_ID}`;
+    const TOKEN_KEY = `embed:token:${TOKEN_REF}`;
+
+    it('debe retornar sessionDeleted=1 y tokenDeleted=1 cuando ambos existen', async () => {
+      // Arrange: session + token presentes en Redis
+      client.store.set(SESSION_KEY, '{"userId":"u","companyId":"c","roles":["r"]}');
+      client.store.set(TOKEN_KEY, '{"userId":"u","companyId":"c","roles":["r"]}');
+
+      // Act
+      const result = await service.cascadeRevoke(SESSION_ID, TOKEN_REF);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.sessionDeleted).toBe(1);
+        expect(result.value.tokenDeleted).toBe(1);
+      }
+      expect(client.store.has(SESSION_KEY)).toBe(false);
+      expect(client.store.has(TOKEN_KEY)).toBe(false);
+    });
+
+    it('debe retornar sessionDeleted=1 y tokenDeleted=0 cuando token ya no existe (AC5 partial)', async () => {
+      // Arrange: solo session, token borrado por refresh/revoke previo
+      client.store.set(SESSION_KEY, '{}');
+      // token NO está
+
+      // Act
+      const result = await service.cascadeRevoke(SESSION_ID, TOKEN_REF);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.sessionDeleted).toBe(1);
+        expect(result.value.tokenDeleted).toBe(0);
+      }
+      expect(client.store.has(SESSION_KEY)).toBe(false);
+    });
+
+    it('debe retornar sessionDeleted=0 y tokenDeleted=0 cuando session no existe (AC2 not_found)', async () => {
+      // Arrange: ni session ni token
+
+      // Act
+      const result = await service.cascadeRevoke(SESSION_ID, TOKEN_REF);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.sessionDeleted).toBe(0);
+        expect(result.value.tokenDeleted).toBe(0);
+      }
+    });
+
+    it('debe usar 1-key EVAL cuando embedTokenRef es undefined (Redis Cluster compat)', async () => {
+      // Arrange: solo session, sin token ref
+      client.store.set(SESSION_KEY, '{}');
+
+      // Act
+      const result = await service.cascadeRevoke(SESSION_ID, undefined);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.sessionDeleted).toBe(1);
+        expect(result.value.tokenDeleted).toBe(0);
+      }
+      // Verifica que NO se pasó empty-string KEYS al EVAL (PR #115 BUG-1 fix)
+      const evalCalls = client.execLog.filter((e) => e.startsWith('EVAL '));
+      expect(evalCalls.some((c) => c === 'EVAL 2 keys')).toBe(false);
+      expect(evalCalls.some((c) => c === 'EVAL 1 keys')).toBe(true);
+    });
+
+    it('debe usar 2-key EVAL cuando embedTokenRef está presente', async () => {
+      // Arrange
+      client.store.set(SESSION_KEY, '{}');
+      client.store.set(TOKEN_KEY, '{}');
+
+      // Act
+      await service.cascadeRevoke(SESSION_ID, TOKEN_REF);
+
+      // Assert: 2-key EVAL ejecutado
+      const evalCalls = client.execLog.filter((e) => e.startsWith('EVAL '));
+      expect(evalCalls.some((c) => c === 'EVAL 2 keys')).toBe(true);
+    });
+
+    it('debe rechazar sessionId con formato inválido (BffSessionInvalidFormatError)', async () => {
+      // Act
+      const result = await service.cascadeRevoke('AAAA', TOKEN_REF);
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        // AI-3: instanceof específico (no `instanceof BaseError`)
+        expect(result.error).toBeInstanceOf(BffSessionInvalidFormatError);
+      }
     });
   });
 });
