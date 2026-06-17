@@ -35,7 +35,11 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-12 14:25
+<<<<<<< HEAD
 last_updated: 2026-06-17 07:50
+=======
+last_updated: 2026-06-14 23:00
+>>>>>>> origin/main
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
@@ -55,7 +59,11 @@ development_status:
   2-1-implement-post-embed-authenticate-session-to-create-bff-session-from-token: review
   2-2-implement-embedtokenauthenticated-event-and-audit-log-persistence: review
   story-2-2-retrospective-2026-06-16: done
+<<<<<<< HEAD
   2-3-implement-token-revocation-on-logout-from-parent: review
+=======
+  2-3-implement-token-revocation-on-logout-from-parent: backlog
+>>>>>>> origin/main
   2-4-implement-transparent-token-refresh-in-the-iframe: backlog
   2-5-implement-network-loss-detection-and-recovery-ui: backlog
   story-2-1-retrospective-2026-06-16: done

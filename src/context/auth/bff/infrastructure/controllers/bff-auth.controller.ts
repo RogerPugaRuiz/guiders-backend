@@ -22,12 +22,15 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
 import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 import { readCookieEnv } from '../cookie-helper';
+<<<<<<< HEAD
 import { LogoutCommand } from '../../application/commands/logout.command';
 import {
   BffSessionNotFoundError,
   BffSessionServiceUnavailableError,
 } from '../../domain/errors/bff-session.errors';
 import { EmbedTokenError } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
+=======
+>>>>>>> origin/main
 
 function readAuthEnv() {
   return {
