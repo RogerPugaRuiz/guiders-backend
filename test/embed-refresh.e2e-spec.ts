@@ -330,7 +330,9 @@ describe('POST /v2/integration/embed/refresh - Story 1.4 (e2e)', () => {
       expect(response.body.code).toBe('EMBED_TOKEN_INVALID');
     });
 
-    it('debería devolver 401 con code EMBED_TOKEN_INVALID cuando validateToken retorna EmbedTokenError genérico', async () => {
+    it('debería devolver 503 con code EMBED_SERVICE_UNAVAILABLE cuando validateToken retorna EmbedTokenError genérico (Redis down)', async () => {
+      // F10 fix (Story 2.2 retro): EmbedTokenError genérico = Redis down, NO token inválido.
+      // El handler propaga el error y el controller lo mapea a 503 EMBED_SERVICE_UNAVAILABLE.
       // Arrange
       app = await buildApp(MockEmbedTokenGuard, [OLD_TOKEN, true]);
       mockEmbedTokens.validateToken.mockResolvedValue(
@@ -342,10 +344,10 @@ describe('POST /v2/integration/embed/refresh - Story 1.4 (e2e)', () => {
         .post('/v2/integration/embed/refresh')
         .set('Authorization', `Bearer ${OLD_TOKEN}`)
         .send({})
-        .expect(401);
+        .expect(503);
 
       // Assert
-      expect(response.body.code).toBe('EMBED_TOKEN_INVALID');
+      expect(response.body.code).toBe('EMBED_SERVICE_UNAVAILABLE');
     });
 
     it('debería devolver 401 con code EMBED_TOKEN_INVALID cuando validateToken retorna EmbedTokenInvalidFormatError', async () => {
