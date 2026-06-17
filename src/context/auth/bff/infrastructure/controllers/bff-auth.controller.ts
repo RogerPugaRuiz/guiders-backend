@@ -15,13 +15,19 @@ import {
 import type { Request, Response } from 'express';
 import { OidcService } from '../services/oidc.service';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { FindUserByKeycloakIdQuery } from '../../../auth-user/application/queries/find-user-by-keycloak-id.query';
 import { UserResponseDto } from '../../../auth-user/application/dtos/user-list-response.dto';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
 import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 import { readCookieEnv } from '../cookie-helper';
+import { LogoutCommand } from '../../application/commands/logout.command';
+import {
+  BffSessionNotFoundError,
+  BffSessionServiceUnavailableError,
+} from '../../domain/errors/bff-session.errors';
+import { EmbedTokenError } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
 
 function readAuthEnv() {
   return {
@@ -62,6 +68,7 @@ export class BffController {
   constructor(
     private readonly oidc: OidcService,
     private readonly queryBus: QueryBus,
+    private readonly commandBus: CommandBus,
   ) {}
 
   // Inicializa/memoiza JWKS desde OIDC_JWKS_URI o derivado de OIDC_ISSUER
@@ -680,5 +687,135 @@ export class BffController {
       );
       return res.redirect(postLogoutRedirectUri);
     }
+  }
+
+  /**
+   * Logout del iframe Guiders cuando la sesión fue establecida vía
+   * Story 2.1 (POST /embed/authenticate-session).
+   *
+   * Story 2.3: revocation en cascada de:
+   *  - BFF session (`bff:session:<sessionId>`)
+   *  - Embed token padre (`embed:token:<embedTokenRef>`)
+   *
+   * Idempotente: si la session no existe, retorna 401 con audit log.
+   * Limpia la cookie `access_token` en éxito.
+   *
+   * NOTA: path distinto de GET /bff/auth/logout (que es para OIDC/Keycloak).
+   * Aquí usamos POST + /embed suffix porque el iframe hace logout programático,
+   * no redirect a Keycloak.
+   */
+  @ApiOperation({
+    summary: 'Cerrar sesión embed (POST)',
+    description:
+      'Revoca la BFF session del iframe + el embed token padre. Limpia cookie `access_token`. Idempotente. POST porque es logout programático del iframe (no redirect a Keycloak como GET /logout).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Logout exitoso (success, partial o not_found)',
+    schema: {
+      type: 'object',
+      properties: {
+        loggedOut: { type: 'boolean' },
+        sessionId: { type: 'string' },
+        embedTokenRevoked: { type: 'boolean' },
+        cascadingResult: {
+          type: 'string',
+          enum: ['success', 'partial', 'not_found'],
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'BFF session no encontrada' })
+  @ApiResponse({ status: 503, description: 'Servicio Redis no disponible' })
+  @Post('logout/embed')
+  @PublicEndpoint()
+  async logoutEmbed(
+    @Req() req: Request & { cookies: Record<string, string | undefined> },
+    @Res() res: Response,
+  ) {
+    // Story 2.3: extraer sessionId de la cookie `access_token` (mismo nombre
+    // que usa el embed-session controller en POST /embed/authenticate-session).
+    const sessionId = req.cookies?.['access_token'] as string | undefined;
+
+    if (!sessionId) {
+      // No hay cookie → 401. No se emite failure event porque ni siquiera
+      // hay un sessionId para correlacionar.
+      res.status(401).json({
+        code: 'EMBED_SESSION_NOT_FOUND',
+        message: 'No se encontró cookie access_token',
+      });
+      return;
+    }
+
+    // Audit context
+    const origin =
+      (req.headers['origin'] as string) ??
+      (req.headers['referer'] as string) ??
+      '';
+    const ipAddress =
+      (req.ip as string) ??
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
+      '';
+    const userAgent = (req.headers['user-agent'] as string) ?? '';
+
+    const result = await this.commandBus.execute(
+      new LogoutCommand(sessionId, ipAddress, userAgent, origin),
+    );
+
+    if (result.isErr()) {
+      const errValue = result.error;
+      if (errValue instanceof BffSessionNotFoundError) {
+        res.status(401).json({
+          code: errValue.code,
+          message: errValue.message,
+        });
+        return;
+      }
+      if (errValue instanceof BffSessionServiceUnavailableError) {
+        res.status(503).json({
+          code: errValue.code,
+          message: 'Servicio temporalmente no disponible',
+        });
+        return;
+      }
+      if (errValue instanceof EmbedTokenError) {
+        // Redis down en el revoke del embed token (BFF session ya borrada).
+        // 503 — el cliente puede reintentar el logout completo.
+        res.status(503).json({
+          code: 'EMBED_SERVICE_UNAVAILABLE',
+          message: errValue.message,
+        });
+        return;
+      }
+      // Default: 500
+      res.status(500).json({
+        code: 'INTERNAL_ERROR',
+        message: 'Error inesperado al procesar logout',
+      });
+      return;
+    }
+
+    const {
+      cascadingResult,
+      sessionId: returnedSessionId,
+      embedTokenRevoked,
+    } = result.unwrap();
+
+    // Limpiar la cookie `access_token` con los mismos atributos usados al setearla
+    const cenv = readCookieEnv('admin');
+    res.clearCookie('access_token', {
+      httpOnly: true,
+      secure: cenv.secure,
+      sameSite: cenv.sameSite,
+      domain: cenv.domain,
+      path: cenv.path,
+    });
+
+    res.status(200).json({
+      loggedOut: true,
+      sessionId: returnedSessionId,
+      embedTokenRevoked,
+      cascadingResult: cascadingResult.toJSON(),
+    });
   }
 }

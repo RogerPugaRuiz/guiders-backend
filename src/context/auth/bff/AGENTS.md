@@ -145,6 +145,56 @@ export class BFFModule {}
 The `BFF_SESSION_SERVICE` is exported so Story 2.3 (logout) and Story 2.6
 (JWT strategy extension) can inject it.
 
+## Logout Flow (Story 2.3)
+
+Story 2.3 added `POST /bff/auth/logout/embed` which performs **cascading revocation**:
+1. Lee la BFF session de Redis (`bff:session:<sessionId>`)
+2. Borra la BFF session
+3. Borra el embed token padre (`embed:token:<embedTokenRef>`)
+4. Emite evento de auditoría (success/failure) al `EmbedTokenAuthenticatedEvent` bus
+5. Limpia la cookie `access_token`
+
+### Endpoint
+
+```
+POST /bff/auth/logout/embed
+Headers:
+  Cookie: access_token=<43-char base64url sessionId>  # required
+
+Response 200:
+  {
+    "loggedOut": true,
+    "sessionId": "...",
+    "embedTokenRevoked": true | false,
+    "cascadingResult": "success" | "partial"
+  }
+
+Response 401 EMBED_SESSION_NOT_FOUND  # no cookie or invalid sessionId
+Response 503 EMBED_SERVICE_UNAVAILABLE  # Redis down
+```
+
+### Cascading Result
+
+| `cascadingResult` | Meaning |
+|-------------------|---------|
+| `success` | Ambos Redis DELs retornaron 1 (caso normal) |
+| `partial` | BFF session borrada, embed token ya no existía (race condition con refresh/revoke previo) — se considera OK pero se registra en audit |
+| `not_found` | La BFF session no existía al momento del logout (idempotencia — segunda llamada) — retorna 401 + audit |
+
+### Por qué path `/logout/embed` y no `/logout`
+
+El path `GET /bff/auth/logout` ya existe para OIDC/Keycloak redirect. Story 2.3 usa `POST /bff/auth/logout/embed` porque el iframe hace logout programático (no redirect a Keycloak).
+
+### Idempotencia
+
+Llamar logout N veces es seguro:
+- 1ª llamada: borra session + token, retorna 200 con `cascadingResult: 'success'`
+- 2ª-ésima llamada: session ya no existe, retorna 401 con audit log entry `EMBED_SESSION_NOT_FOUND`
+
+### Multi-tenant Isolation
+
+La revocación es por-`embedTokenRef`, no por-user. Si el mismo user tiene 2 sesiones embed activas (e.g., 2 navegadores), logout en uno NO afecta al otro.
+
 ### Known Limitation (Story 2.6 will fix)
 
 `JwtCookieStrategy` currently tries to verify the session ID (43 base64url
