@@ -2,40 +2,45 @@
  * Command handler que orquesta la revocación en cascada de una BFF
  * session y su embed token padre.
  *
- * Flujo (4 pasos):
- *  1. Lee la BFF session de Redis via `BffSessionService.getSession`.
- *     Si no existe → retorna err(BffSessionNotFoundError) + emite failure event.
- *  2. Extrae `embedTokenRef` de la session.
- *  3. Borra la BFF session via `BffSessionService.revokeSession`.
- *  4. Borra el embed token via `EmbedTokenService.revokeToken`.
- *     Si el token ya no existe (race con refresh) → se considera PARTIAL.
+ * Story 2.3 + PR #115 review fixes:
  *
- * Story 2.2: emite eventos al bus para el audit log.
- * TA-4: SIEMPRE usa `tryPublish` (no propaga excepciones del bus).
+ * Flujo (3 pasos):
+ *  1. Lee la BFF session de Redis via `BffSessionService.getSession`.
+ *     Si no existe → 401 + emite failure event.
+ *  2. Llama a `BffSessionService.cascadeRevoke(sessionId, embedTokenRef)`
+ *     que borra atómicamente session + token vía Lua EVAL (elimina la
+ *     ventana TOCTOU entre revokeSession + revokeToken separada).
+ *  3. Emite evento de auditoría al bus (tryPublish).
  *
  * Casos de resultado (LogoutCascadeResult):
- *   SUCCESS   - ambos DELs retornaron 1
- *   PARTIAL   - BFF session borrada, embed token ya no existía
- *   NOT_FOUND - BFF session no existía al momento del logout (idempotencia)
+ *   SUCCESS   - ambos DELs retornaron 1 (caso normal)
+ *   PARTIAL   - session borrada, embed token ya no existía (race)
+ *   NOT_FOUND - session no existía al momento del logout (idempotencia)
  *   FAILURE   - error de Redis irrecuperable
+ *
+ * Spec compliance:
+ *  - AC2 (idempotency): 2nd call retorna 200 (con cascadingResult='not_found')
+ *  - AC3 (validation): session no encontrada + cookie faltante → 401
+ *    (el no-cookie se valida en el controller, no llega aquí)
+ *  - AC4 (multi-tenant): cascade solo afecta sessionId + embedTokenRef específicos
+ *  - AC5 (partial): cascadingResult='partial' cuando token ya no existía
+ *  - AC6 (audit log): EmbedTokenAuthenticatedEvent con logoutTimestamp,
+ *    cascadingResult, embedTokenRevoked
  */
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventBus } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
-  EMBED_TOKEN_SERVICE,
-  IEmbedTokenService,
-} from 'src/context/auth/integration-api-key/domain/services/embed-token.service';
-import {
   BFF_SESSION_SERVICE,
   IBffSessionService,
+  CascadeRevokeResult,
 } from '../../domain/services/bff-session.service';
 import {
+  BffSessionInvalidFormatError,
   BffSessionNotFoundError,
   BffSessionServiceUnavailableError,
 } from '../../domain/errors/bff-session.errors';
-import { EmbedTokenNotFoundError } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
 import { EmbedTokenAuthenticatedEvent } from 'src/context/auth/integration-api-key/domain/events/embed-token-authenticated.event';
 import { EmbedTokenAuthenticationFailedEvent } from 'src/context/auth/integration-api-key/domain/events/embed-token-authentication-failed.event';
 import { EmbedAuthFailureReason } from 'src/context/auth/integration-api-key/domain/events/embed-auth-failure-reason.enum';
@@ -56,8 +61,6 @@ export class LogoutCommandHandler {
   constructor(
     @Inject(BFF_SESSION_SERVICE)
     private readonly bffSessions: IBffSessionService,
-    @Inject(EMBED_TOKEN_SERVICE)
-    private readonly embedTokens: IEmbedTokenService,
     private readonly eventBus: EventBus,
   ) {}
 
@@ -90,20 +93,30 @@ export class LogoutCommandHandler {
       );
     };
 
-    // 1. Leer la BFF session de Redis
+    // 1. Leer la BFF session de Redis (para conocer companyId/userId/embedTokenRef)
     const sessionResult = await this.bffSessions.getSession(command.sessionId);
 
     if (sessionResult.isErr()) {
       const errValue = sessionResult.error;
-      if (errValue instanceof BffSessionNotFoundError) {
-        // Idempotente: session no existe, no hay nada que borrar.
-        // Emitir failure event para audit (soporte puede alertar sobre
-        // logout attempts con sesiones inexistentes = posible ataque).
+      if (errValue instanceof BffSessionInvalidFormatError) {
+        // AC3: 400 (formato inválido) + emit failure event
         publishFailure(
           EmbedAuthFailureReason.EMBED_SESSION_NOT_FOUND,
-          `BFF session no encontrada: ${command.sessionId.slice(0, 8)}...`,
+          errValue.message,
         );
         return err(errValue);
+      }
+      if (errValue instanceof BffSessionNotFoundError) {
+        // AC2 (idempotency): session no existe en Redis. El cliente
+        // probablemente llamó logout antes o el TTL expiró. Retornamos
+        // OK con cascadingResult='not_found' para que el controller mapee
+        // a 200 OK. NO emitimos failure event (AC2.2: "No error is emitted
+        // to the audit log — avoids alert noise").
+        return ok({
+          cascadingResult: LogoutCascadeResultValue.notFound(),
+          sessionId: command.sessionId,
+          embedTokenRevoked: false,
+        });
       }
       if (errValue instanceof BffSessionServiceUnavailableError) {
         publishFailure(
@@ -118,54 +131,45 @@ export class LogoutCommandHandler {
     }
 
     const session = sessionResult.unwrap();
-    const embedTokenRef = session.embedTokenRef;
+    const embedTokenRef = session.embedTokenRef || undefined;
 
-    // 2. Borrar la BFF session
-    const revokeSessionResult = await this.bffSessions.revokeSession(
+    // 2. Cascade revoke atómico (Lua EVAL: DEL session + DEL token)
+    const cascadeResult = await this.bffSessions.cascadeRevoke(
       command.sessionId,
+      embedTokenRef,
     );
 
-    if (revokeSessionResult.isErr()) {
-      const errValue = revokeSessionResult.error;
+    if (cascadeResult.isErr()) {
+      // Redis down durante el cascade. La session NO fue tocada (atómico).
       publishFailure(
         EmbedAuthFailureReason.EMBED_SERVICE_UNAVAILABLE,
-        `Error al revocar BFF session: ${errValue.message}`,
+        cascadeResult.error.message,
         session.userId,
         session.companyId,
       );
-      return err(errValue);
+      return err(cascadeResult.error);
     }
 
-    // 3. Borrar el embed token padre (si existe)
-    let embedTokenRevoked = true;
-    let cascadingResult = LogoutCascadeResultValue.success();
+    const { sessionDeleted, tokenDeleted } = cascadeResult.unwrap();
+
+    // 3. Clasificar el resultado
+    let cascadingResult: LogoutCascadeResultValue;
+    let embedTokenRevoked: boolean;
     let failureDetail: string | undefined;
 
-    if (embedTokenRef) {
-      const revokeTokenResult =
-        await this.embedTokens.revokeToken(embedTokenRef);
-
-      if (revokeTokenResult.isErr()) {
-        const errValue = revokeTokenResult.error;
-        if (errValue instanceof EmbedTokenNotFoundError) {
-          // Race condition: token ya no existe (refresh o revoke previo).
-          // Se considera PARTIAL — la revocación del BFF session fue OK,
-          // pero el embed token ya no estaba. Audit registra para análisis.
-          embedTokenRevoked = false;
-          cascadingResult = LogoutCascadeResultValue.partial();
-          failureDetail =
-            'token already revoked (race condition with refresh or previous revoke)';
-        } else {
-          // Error irrecuperable del embed token (Redis down, etc.)
-          publishFailure(
-            EmbedAuthFailureReason.EMBED_SERVICE_UNAVAILABLE,
-            `Error al revocar embed token: ${errValue.message}`,
-            session.userId,
-            session.companyId,
-          );
-          return err(errValue);
-        }
-      }
+    if (sessionDeleted === 1 && tokenDeleted === 1) {
+      cascadingResult = LogoutCascadeResultValue.success();
+      embedTokenRevoked = true;
+    } else if (sessionDeleted === 1 && tokenDeleted === 0) {
+      // AC5: race condition — token ya no existía
+      cascadingResult = LogoutCascadeResultValue.partial();
+      embedTokenRevoked = false;
+      failureDetail = 'partial: token already revoked';
+    } else {
+      // sessionDeleted === 0 — race con otro logout que ya borró la session.
+      // El token SÍ fue borrado (o no — depende). Tratamos como NOT_FOUND.
+      cascadingResult = LogoutCascadeResultValue.notFound();
+      embedTokenRevoked = tokenDeleted === 1;
     }
 
     // 4. Emitir evento de éxito al audit log

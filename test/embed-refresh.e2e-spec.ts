@@ -175,6 +175,7 @@ describe('POST /v2/integration/embed/refresh - Story 1.4 (e2e)', () => {
       validateToken: jest.fn(),
       refreshToken: jest.fn(),
       revokeToken: jest.fn(),
+      revokeTokenWithCount: jest.fn(),
     };
 
     const moduleRef: TestingModule = await Test.createTestingModule({

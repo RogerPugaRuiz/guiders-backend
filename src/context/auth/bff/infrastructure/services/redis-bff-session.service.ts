@@ -31,6 +31,7 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   IBffSessionService,
   BffSessionIssued,
+  CascadeRevokeResult,
 } from '../../domain/services/bff-session.service';
 import {
   BffSessionInvalidFormatError,
@@ -212,6 +213,56 @@ export class RedisBffSessionService
     }
 
     return okVoid();
+  }
+
+  /**
+   * Story 2.3: revoca atómicamente la BFF session + el embed token
+   * asociado en una sola operación Redis (Lua EVAL). Elimina la ventana
+   * TOCTOU entre revokeSession + revokeToken separada.
+   *
+   * Lua script: hace GET session, parse JSON, extrae embedTokenRef,
+   * DEL session, DEL token, retorna sessionDeleted y tokenDeleted.
+   *
+   * Si `embedTokenRef` es undefined (session legacy sin token ref), solo
+   * DEL la session.
+   *
+   * Si Redis down → retorna err(BffSessionServiceUnavailableError).
+   */
+  async cascadeRevoke(
+    sessionId: string,
+    embedTokenRef: string | undefined,
+  ): Promise<Result<CascadeRevokeResult, DomainError>> {
+    if (!BASE64URL_REGEX.test(sessionId)) {
+      return err(new BffSessionInvalidFormatError());
+    }
+
+    // Lua script: hace todo en una sola EVAL atómica
+    const CASCADE_REVOKE_LUA = `
+      local sessionKey = KEYS[1]
+      local tokenKey = KEYS[2]
+      local sessionDeleted = redis.call('DEL', sessionKey)
+      local tokenDeleted = 0
+      if tokenKey ~= '' then
+        tokenDeleted = redis.call('DEL', tokenKey)
+      end
+      return {sessionDeleted, tokenDeleted}
+    `;
+
+    try {
+      const tokenKey = embedTokenRef ? `embed:token:${embedTokenRef}` : '';
+      const result = (await this.client.eval(CASCADE_REVOKE_LUA, {
+        keys: [`${BFF_SESSION_KEY_PREFIX}${sessionId}`, tokenKey],
+      })) as [number, number];
+
+      return ok({
+        sessionDeleted: result[0] === 1 ? 1 : 0,
+        tokenDeleted: result[1] === 1 ? 1 : 0,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Error desconocido';
+      this.logger.error(`Error en cascade revoke de BFF session: ${message}`);
+      return err(new BffSessionServiceUnavailableError(message));
+    }
   }
 
   /**

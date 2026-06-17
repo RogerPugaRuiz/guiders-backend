@@ -24,7 +24,7 @@ import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 import { readCookieEnv } from '../cookie-helper';
 import { LogoutCommand } from '../../application/commands/logout.command';
 import {
-  BffSessionNotFoundError,
+  BffSessionInvalidFormatError,
   BffSessionServiceUnavailableError,
 } from '../../domain/errors/bff-session.errors';
 import { EmbedTokenError } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
@@ -693,21 +693,18 @@ export class BffController {
    * Logout del iframe Guiders cuando la sesión fue establecida vía
    * Story 2.1 (POST /embed/authenticate-session).
    *
-   * Story 2.3: revocation en cascada de:
-   *  - BFF session (`bff:session:<sessionId>`)
-   *  - Embed token padre (`embed:token:<embedTokenRef>`)
+   * Story 2.3 + PR #115 review fixes:
+   *  - Atomic cascade revoke (Lua EVAL, no TOCTOU)
+   *  - Idempotente: 2nd call retorna 200 con cascadingResult='not_found'
+   *  - AC3 compliance: cookie faltante → 401 + audit log failure event
+   *  - Cookie limpiada con los mismos atributos del set (no path mismatch)
    *
-   * Idempotente: si la session no existe, retorna 401 con audit log.
-   * Limpia la cookie `access_token` en éxito.
-   *
-   * NOTA: path distinto de GET /bff/auth/logout (que es para OIDC/Keycloak).
-   * Aquí usamos POST + /embed suffix porque el iframe hace logout programático,
-   * no redirect a Keycloak.
+   * Path distinto de GET /bff/auth/logout (que es para OIDC/Keycloak).
    */
   @ApiOperation({
     summary: 'Cerrar sesión embed (POST)',
     description:
-      'Revoca la BFF session del iframe + el embed token padre. Limpia cookie `access_token`. Idempotente. POST porque es logout programático del iframe (no redirect a Keycloak como GET /logout).',
+      'Revoca atómicamente la BFF session + embed token padre. Idempotente: llamadas subsecuentes retornan 200 con cascadingResult=not_found. Cookie `access_token` limpiada en éxito.',
   })
   @ApiResponse({
     status: 200,
@@ -716,7 +713,7 @@ export class BffController {
       type: 'object',
       properties: {
         loggedOut: { type: 'boolean' },
-        sessionId: { type: 'string' },
+        sessionId: { type: 'string', nullable: true },
         embedTokenRevoked: { type: 'boolean' },
         cascadingResult: {
           type: 'string',
@@ -725,6 +722,7 @@ export class BffController {
       },
     },
   })
+  @ApiResponse({ status: 400, description: 'Session ID con formato inválido' })
   @ApiResponse({ status: 401, description: 'BFF session no encontrada' })
   @ApiResponse({ status: 503, description: 'Servicio Redis no disponible' })
   @Post('logout/embed')
@@ -733,21 +731,10 @@ export class BffController {
     @Req() req: Request & { cookies: Record<string, string | undefined> },
     @Res() res: Response,
   ) {
-    // Story 2.3: extraer sessionId de la cookie `access_token` (mismo nombre
-    // que usa el embed-session controller en POST /embed/authenticate-session).
+    // Story 2.3 + AC3: extraer sessionId de la cookie `access_token`.
     const sessionId = req.cookies?.['access_token'] as string | undefined;
 
-    if (!sessionId) {
-      // No hay cookie → 401. No se emite failure event porque ni siquiera
-      // hay un sessionId para correlacionar.
-      res.status(401).json({
-        code: 'EMBED_SESSION_NOT_FOUND',
-        message: 'No se encontró cookie access_token',
-      });
-      return;
-    }
-
-    // Audit context
+    // Audit context (extraído en TODAS las branches para emisión consistente)
     const origin =
       (req.headers['origin'] as string) ??
       (req.headers['referer'] as string) ??
@@ -758,14 +745,27 @@ export class BffController {
       '';
     const userAgent = (req.headers['user-agent'] as string) ?? '';
 
+    if (!sessionId) {
+      // AC3: no cookie → 401 EMBED_SESSION_NOT_FOUND + emit failure event
+      await this.commandBus.execute(
+        new LogoutCommand('', ipAddress, userAgent, origin),
+      );
+      res.status(401).json({
+        code: 'EMBED_SESSION_NOT_FOUND',
+        message: 'No se encontró cookie access_token',
+      });
+      return;
+    }
+
     const result = await this.commandBus.execute(
       new LogoutCommand(sessionId, ipAddress, userAgent, origin),
     );
 
     if (result.isErr()) {
       const errValue = result.error;
-      if (errValue instanceof BffSessionNotFoundError) {
-        res.status(401).json({
+      if (errValue instanceof BffSessionInvalidFormatError) {
+        // AC3: 400 (formato inválido)
+        res.status(400).json({
           code: errValue.code,
           message: errValue.message,
         });
@@ -778,15 +778,8 @@ export class BffController {
         });
         return;
       }
-      if (errValue instanceof EmbedTokenError) {
-        // Redis down en el revoke del embed token (BFF session ya borrada).
-        // 503 — el cliente puede reintentar el logout completo.
-        res.status(503).json({
-          code: 'EMBED_SERVICE_UNAVAILABLE',
-          message: errValue.message,
-        });
-        return;
-      }
+      // BffSessionNotFoundError ya NO se retorna desde el handler
+      // (PR #115 review fix: ahora retorna ok({cascadingResult: 'not_found'})).
       // Default: 500
       res.status(500).json({
         code: 'INTERNAL_ERROR',
@@ -801,7 +794,8 @@ export class BffController {
       embedTokenRevoked,
     } = result.unwrap();
 
-    // Limpiar la cookie `access_token` con los mismos atributos usados al setearla
+    // Limpiar la cookie `access_token` con los mismos atributos del set
+    // (PR #115 review NO_TEST_COVERAGE-32: validate path/domain match).
     const cenv = readCookieEnv('admin');
     res.clearCookie('access_token', {
       httpOnly: true,
@@ -811,6 +805,8 @@ export class BffController {
       path: cenv.path,
     });
 
+    // AC2 idempotency: cascadingResult='not_found' también retorna 200
+    // (la session no existía pero el logout se procesó idempotentemente).
     res.status(200).json({
       loggedOut: true,
       sessionId: returnedSessionId,

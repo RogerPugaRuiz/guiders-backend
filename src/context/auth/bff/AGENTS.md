@@ -145,7 +145,6 @@ export class BFFModule {}
 The `BFF_SESSION_SERVICE` is exported so Story 2.3 (logout) and Story 2.6
 (JWT strategy extension) can inject it.
 
-<<<<<<< HEAD
 ## Logout Flow (Story 2.3)
 
 Story 2.3 added `POST /bff/auth/logout/embed` which performs **cascading revocation**:
@@ -196,8 +195,6 @@ Llamar logout N veces es seguro:
 
 La revocación es por-`embedTokenRef`, no por-user. Si el mismo user tiene 2 sesiones embed activas (e.g., 2 navegadores), logout en uno NO afecta al otro.
 
-=======
->>>>>>> origin/main
 ### Known Limitation (Story 2.6 will fix)
 
 `JwtCookieStrategy` currently tries to verify the session ID (43 base64url

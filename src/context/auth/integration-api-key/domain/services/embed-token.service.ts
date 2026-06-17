@@ -40,8 +40,27 @@ export interface IEmbedTokenService {
 
   /**
    * Elimina el token de Redis. Idempotente.
+   *
+   * **Nota**: no distingue entre "el token existía y fue borrado" y "el
+   * token no existía". Para distinguir (necesario para Story 2.3 logout
+   * con cascading), usar `revokeTokenWithCount()` que retorna el número
+   * de keys eliminadas.
    */
   revokeToken(token: string): Promise<Result<void, DomainError>>;
+
+  /**
+   * Como `revokeToken()` pero retorna el número de keys eliminadas:
+   *   - 0 = token no existía (idempotente, ya fue revocado o nunca existió)
+   *   - 1 = token existía y fue eliminado OK
+   *   - err = Redis down o formato inválido
+   *
+   * Story 2.3 usa este método para detectar cascading parcial:
+   *   - deleted=1 → cascadingResult='success'
+   *   - deleted=0 → cascadingResult='partial' (race con refresh/revoke previo)
+   */
+  revokeTokenWithCount(
+    token: string,
+  ): Promise<Result<{ deleted: 0 | 1 }, DomainError>>;
 }
 
 export const EMBED_TOKEN_SERVICE = Symbol('EmbedTokenService');

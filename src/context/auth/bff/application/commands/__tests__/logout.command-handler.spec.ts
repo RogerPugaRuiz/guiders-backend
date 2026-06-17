@@ -1,40 +1,32 @@
 import { Test } from '@nestjs/testing';
 import { EventBus } from '@nestjs/cqrs';
-import { ok, err, okVoid } from 'src/context/shared/domain/result';
+import { ok, err } from 'src/context/shared/domain/result';
 import { Uuid } from 'src/context/shared/domain/value-objects/uuid';
 
 import {
-  EMBED_TOKEN_SERVICE,
-  IEmbedTokenService,
-} from 'src/context/auth/integration-api-key/domain/services/embed-token.service';
-import {
   BFF_SESSION_SERVICE,
   IBffSessionService,
+  CascadeRevokeResult,
 } from '../../../domain/services/bff-session.service';
 import { BffSessionData } from '../../../domain/value-objects/bff-session-data';
 import {
+  BffSessionInvalidFormatError,
   BffSessionNotFoundError,
   BffSessionServiceUnavailableError,
 } from '../../../domain/errors/bff-session.errors';
-import { EmbedTokenNotFoundError } from 'src/context/auth/integration-api-key/domain/errors/embed-token.errors';
 
 import { LogoutCommand } from '../logout.command';
 import { LogoutCommandHandler } from '../logout.command-handler';
 
 describe('LogoutCommandHandler (unit) - Story 2.3', () => {
   let handler: LogoutCommandHandler;
+
   const mockBffSessions: jest.Mocked<IBffSessionService> = {
     createSession: jest.fn(),
     getSession: jest.fn(),
     revokeSession: jest.fn(),
+    cascadeRevoke: jest.fn(),
   } as unknown as jest.Mocked<IBffSessionService>;
-
-  const mockEmbedTokens: jest.Mocked<IEmbedTokenService> = {
-    createToken: jest.fn(),
-    validateToken: jest.fn(),
-    refreshToken: jest.fn(),
-    revokeToken: jest.fn(),
-  } as unknown as jest.Mocked<IEmbedTokenService>;
 
   const mockEventBus: jest.Mocked<EventBus> = {
     publish: jest.fn(),
@@ -64,12 +56,16 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
       overrides.origin ?? 'https://app.leadcars.com',
     );
 
+  const cascadeResult = (
+    sessionDeleted: 0 | 1,
+    tokenDeleted: 0 | 1,
+  ): CascadeRevokeResult => ({ sessionDeleted, tokenDeleted });
+
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         LogoutCommandHandler,
         { provide: BFF_SESSION_SERVICE, useValue: mockBffSessions },
-        { provide: EMBED_TOKEN_SERVICE, useValue: mockEmbedTokens },
         { provide: EventBus, useValue: mockEventBus },
       ],
     }).compile();
@@ -78,17 +74,13 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
     jest.clearAllMocks();
   });
 
-  describe('happy path — both DELs succeed', () => {
-    it('debe retornar ok con cascadingResult=SUCCESS cuando ambos Redis DELs retornan 1', async () => {
-      // Arrange
+  describe('AC1 — happy path (success)', () => {
+    it('debe retornar ok con cascadingResult=success cuando cascade retorna {1, 1}', async () => {
       mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
-      mockBffSessions.revokeSession.mockResolvedValue(okVoid());
-      mockEmbedTokens.revokeToken.mockResolvedValue(okVoid());
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(1, 1)));
 
-      // Act
       const result = await handler.execute(makeCommand());
 
-      // Assert
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         expect(result.value.cascadingResult.toJSON()).toBe('success');
@@ -97,41 +89,30 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
       }
     });
 
-    it('debe emitir EmbedTokenAuthenticatedEvent con logoutTimestamp y cascadingResult', async () => {
-      // Arrange
+    it('debe emitir EmbedTokenAuthenticatedEvent con cascadingResult=success y embedTokenRevoked=true', async () => {
       mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
-      mockBffSessions.revokeSession.mockResolvedValue(okVoid());
-      mockEmbedTokens.revokeToken.mockResolvedValue(okVoid());
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(1, 1)));
 
-      // Act
       await handler.execute(makeCommand());
 
-      // Assert
       expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-      const publishedEvent = mockEventBus.publish.mock.calls[0][0] as any;
-      expect(publishedEvent).toBeDefined();
-      expect(publishedEvent.attributes).toBeDefined();
-      expect(publishedEvent.attributes.logoutTimestamp).toMatch(
+      const ev = mockEventBus.publish.mock.calls[0][0] as any;
+      expect(ev.attributes.cascadingResult).toBe('success');
+      expect(ev.attributes.embedTokenRevoked).toBe(true);
+      expect(ev.attributes.failureDetail).toBeUndefined();
+      expect(ev.attributes.logoutTimestamp).toMatch(
         /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/,
       );
-      expect(publishedEvent.attributes.cascadingResult).toBe('success');
-      expect(publishedEvent.attributes.embedTokenRevoked).toBe(true);
     });
   });
 
-  describe('partial path — embed token already revoked (race condition)', () => {
-    it('debe retornar ok con cascadingResult=PARTIAL cuando token revoke retorna NotFound', async () => {
-      // Arrange
+  describe('AC5 — partial revocation (token already gone)', () => {
+    it('debe retornar ok con cascadingResult=partial cuando cascade retorna {1, 0}', async () => {
       mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
-      mockBffSessions.revokeSession.mockResolvedValue(okVoid());
-      mockEmbedTokens.revokeToken.mockResolvedValue(
-        err(new EmbedTokenNotFoundError('embed-tok')),
-      );
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(1, 0)));
 
-      // Act
       const result = await handler.execute(makeCommand());
 
-      // Assert
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         expect(result.value.cascadingResult.toJSON()).toBe('partial');
@@ -139,79 +120,98 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
       }
     });
 
-    it('debe emitir EmbedTokenAuthenticatedEvent con cascadingResult=partial y detail="token already revoked"', async () => {
-      // Arrange
+    it('debe emitir failureDetail="partial: token already revoked" en el event (AC5.4 spec literal)', async () => {
       mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
-      mockBffSessions.revokeSession.mockResolvedValue(okVoid());
-      mockEmbedTokens.revokeToken.mockResolvedValue(
-        err(new EmbedTokenNotFoundError('embed-tok')),
-      );
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(1, 0)));
 
-      // Act
       await handler.execute(makeCommand());
 
-      // Assert
-      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-      const publishedEvent = mockEventBus.publish.mock.calls[0][0] as any;
-      expect(publishedEvent.attributes.cascadingResult).toBe('partial');
-      expect(publishedEvent.attributes.failureDetail).toContain(
-        'token already revoked',
+      const ev = mockEventBus.publish.mock.calls[0][0] as any;
+      expect(ev.attributes.cascadingResult).toBe('partial');
+      expect(ev.attributes.failureDetail).toBe(
+        'partial: token already revoked',
       );
     });
   });
 
-  describe('session not found — 401 EMBED_SESSION_NOT_FOUND', () => {
-    it('debe retornar err con BffSessionNotFoundError cuando getSession retorna NotFound', async () => {
-      // Arrange
+  describe('AC2 — idempotency (2nd call = 200 OK)', () => {
+    it('debe retornar ok con cascadingResult=not_found cuando session no existe (2da llamada)', async () => {
       mockBffSessions.getSession.mockResolvedValue(
         err(new BffSessionNotFoundError(sessionId.slice(0, 8))),
       );
 
-      // Act
       const result = await handler.execute(makeCommand());
 
-      // Assert
-      expect(result.isErr()).toBe(true);
-      if (result.isErr()) {
-        expect(result.error).toBeInstanceOf(BffSessionNotFoundError);
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.cascadingResult.toJSON()).toBe('not_found');
+        expect(result.value.embedTokenRevoked).toBe(false);
       }
     });
 
-    it('debe emitir EmbedTokenAuthenticationFailedEvent con reason=EMBED_SESSION_NOT_FOUND', async () => {
-      // Arrange
+    it('NO debe emitir failure event cuando session no existe (AC2.2: avoid alert noise)', async () => {
       mockBffSessions.getSession.mockResolvedValue(
         err(new BffSessionNotFoundError()),
       );
 
-      // Act
       await handler.execute(makeCommand());
 
-      // Assert
-      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
-      const publishedEvent = mockEventBus.publish.mock.calls[0][0] as any;
-      expect(publishedEvent.attributes.failureReason).toBe(
-        'EMBED_SESSION_NOT_FOUND',
-      );
+      expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
-    it('NO debe llamar a revokeToken ni revokeSession cuando la session no existe', async () => {
-      // Arrange
+    it('NO debe llamar a cascadeRevoke cuando session no existe', async () => {
       mockBffSessions.getSession.mockResolvedValue(
         err(new BffSessionNotFoundError()),
       );
 
-      // Act
       await handler.execute(makeCommand());
 
-      // Assert
-      expect(mockBffSessions.revokeSession).not.toHaveBeenCalled();
-      expect(mockEmbedTokens.revokeToken).not.toHaveBeenCalled();
+      expect(mockBffSessions.cascadeRevoke).not.toHaveBeenCalled();
     });
   });
 
-  describe('Redis down — 503 EMBED_SERVICE_UNAVAILABLE', () => {
-    it('debe retornar err con BffSessionServiceUnavailableError cuando Redis falla', async () => {
-      // Arrange
+  describe('AC3 — invalid sessionId format', () => {
+    it('debe retornar err con BffSessionInvalidFormatError cuando sessionId no es base64url 43 chars', async () => {
+      mockBffSessions.getSession.mockResolvedValue(
+        err(new BffSessionInvalidFormatError()),
+      );
+
+      const result = await handler.execute(makeCommand({ sessionId: 'AAAA' }));
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(BffSessionInvalidFormatError);
+      }
+    });
+
+    it('debe emitir failure event con reason=EMBED_SESSION_NOT_FOUND', async () => {
+      mockBffSessions.getSession.mockResolvedValue(
+        err(new BffSessionInvalidFormatError()),
+      );
+
+      await handler.execute(makeCommand({ sessionId: 'AAAA' }));
+
+      expect(mockEventBus.publish).toHaveBeenCalledTimes(1);
+      const ev = mockEventBus.publish.mock.calls[0][0] as any;
+      expect(ev.attributes.failureReason).toBe('EMBED_SESSION_NOT_FOUND');
+    });
+  });
+
+  describe('Redis down on getSession', () => {
+    it('debe retornar err con BffSessionServiceUnavailableError', async () => {
+      mockBffSessions.getSession.mockResolvedValue(
+        err(new BffSessionServiceUnavailableError('Connection refused')),
+      );
+
+      const result = await handler.execute(makeCommand());
+
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        expect(result.error).toBeInstanceOf(BffSessionServiceUnavailableError);
+      }
+    });
+
+    it('debe emitir failure event con EMBED_SERVICE_UNAVAILABLE + message específico (AI-3)', async () => {
       mockBffSessions.getSession.mockResolvedValue(
         err(
           new BffSessionServiceUnavailableError(
@@ -220,50 +220,53 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
         ),
       );
 
-      // Act
+      await handler.execute(makeCommand());
+
+      const ev = mockEventBus.publish.mock.calls[0][0] as any;
+      expect(ev.attributes.failureReason).toBe('EMBED_SERVICE_UNAVAILABLE');
+      expect(ev.attributes.failureDetail).toContain('Connection refused');
+    });
+  });
+
+  describe('Redis down on cascadeRevoke (mid-operation)', () => {
+    it('debe retornar err cuando cascadeRevoke falla (session NO tocada, atómico)', async () => {
+      mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
+      mockBffSessions.cascadeRevoke.mockResolvedValue(
+        err(new BffSessionServiceUnavailableError('OOM during EVAL')),
+      );
+
       const result = await handler.execute(makeCommand());
 
-      // Assert
       expect(result.isErr()).toBe(true);
       if (result.isErr()) {
         expect(result.error).toBeInstanceOf(BffSessionServiceUnavailableError);
       }
     });
 
-    it('debe emitir failureDetail con mensaje específico de Redis (AI-3: NO instanceof BaseError)', async () => {
-      // Arrange
-      mockBffSessions.getSession.mockResolvedValue(
-        err(new BffSessionServiceUnavailableError('Connection refused')),
+    it('debe emitir failure event con EMBED_SERVICE_UNAVAILABLE', async () => {
+      mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
+      mockBffSessions.cascadeRevoke.mockResolvedValue(
+        err(new BffSessionServiceUnavailableError('OOM')),
       );
 
-      // Act
       await handler.execute(makeCommand());
 
-      // Assert
-      const publishedEvent = mockEventBus.publish.mock.calls[0][0] as any;
-      expect(publishedEvent.attributes.failureReason).toBe(
-        'EMBED_SERVICE_UNAVAILABLE',
-      );
-      expect(publishedEvent.attributes.failureDetail).toContain(
-        'Connection refused',
-      );
+      const ev = mockEventBus.publish.mock.calls[0][0] as any;
+      expect(ev.attributes.failureReason).toBe('EMBED_SERVICE_UNAVAILABLE');
+      expect(ev.attributes.failureDetail).toContain('OOM');
     });
   });
 
-  describe('tryPublish wrapper — failure in eventBus.publish does NOT break handler', () => {
+  describe('TA-4 — tryPublish wrapper (eventBus.publish throw)', () => {
     it('debe retornar ok incluso si eventBus.publish throws', async () => {
-      // Arrange
       mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
-      mockBffSessions.revokeSession.mockResolvedValue(okVoid());
-      mockEmbedTokens.revokeToken.mockResolvedValue(okVoid());
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(1, 1)));
       mockEventBus.publish.mockImplementation(() => {
         throw new Error('EventBus down');
       });
 
-      // Act
       const result = await handler.execute(makeCommand());
 
-      // Assert: tryPublish should swallow the error
       expect(result.isOk()).toBe(true);
       if (result.isOk()) {
         expect(result.value.cascadingResult.toJSON()).toBe('success');
@@ -271,29 +274,31 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
     });
   });
 
-  describe('idempotency', () => {
-    it('debe ser idempotente — 2 calls con misma sessionId ambos retornan ok (SESSION_NOT_FOUND en el 2do)', async () => {
-      // First call: success
-      mockBffSessions.getSession.mockResolvedValueOnce(ok(makeSession()));
-      mockBffSessions.revokeSession.mockResolvedValueOnce(okVoid());
-      mockEmbedTokens.revokeToken.mockResolvedValueOnce(okVoid());
-
-      // Act 1
-      const result1 = await handler.execute(makeCommand());
-      expect(result1.isOk()).toBe(true);
-
-      // Second call: session was deleted by the first call
-      mockBffSessions.getSession.mockResolvedValueOnce(
-        err(new BffSessionNotFoundError()),
+  describe('edge cases', () => {
+    it('debe manejar session legacy sin embedTokenRef (cascadeRevoke con undefined)', async () => {
+      mockBffSessions.getSession.mockResolvedValue(
+        ok(makeSession({ embedTokenRef: '' })),
       );
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(1, 0)));
 
-      // Act 2
-      const result2 = await handler.execute(makeCommand());
+      const result = await handler.execute(makeCommand());
 
-      // Assert: 2nd call returns err (NOT_FOUND) but does NOT throw
-      expect(result2.isErr()).toBe(true);
-      if (result2.isErr()) {
-        expect(result2.error).toBeInstanceOf(BffSessionNotFoundError);
+      expect(result.isOk()).toBe(true);
+      expect(mockBffSessions.cascadeRevoke).toHaveBeenCalledWith(
+        sessionId,
+        undefined,
+      );
+    });
+
+    it('debe clasificar como not_found cuando cascade retorna {0, 0}', async () => {
+      mockBffSessions.getSession.mockResolvedValue(ok(makeSession()));
+      mockBffSessions.cascadeRevoke.mockResolvedValue(ok(cascadeResult(0, 0)));
+
+      const result = await handler.execute(makeCommand());
+
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.cascadingResult.toJSON()).toBe('not_found');
       }
     });
   });
