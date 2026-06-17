@@ -78,18 +78,45 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
       const limit = Math.min(query.limit ?? 100, 1000);
       const skip = query.skip ?? 0;
 
-      // Count total antes de skip/limit para metadata
-      const total = await this.model.countDocuments(filter).exec();
-
-      const docs = await this.model
-        .find(filter)
-        .sort({ timestamp: -1 })
-        .skip(skip)
-        .limit(limit)
+      // TD-2 fix: usar $facet para ejecutar countDocuments + find en
+      // una sola operación atómica del lado del servidor Mongo.
+      // Antes: 2 round-trips separados donde el total y los eventos
+      // podían ser inconsistentes si había escrituras concurrentes
+      // entre las dos queries (paginación drifted).
+      //
+      // $facet ejecuta múltiples pipelines sobre el mismo dataset
+      // sincrónicamente, retornando { total: [N], events: [docs] }.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const aggregateResult: Array<any> = await this.model
+        .aggregate([
+          { $match: filter },
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              events: [
+                { $sort: { timestamp: -1 } },
+                { $skip: skip },
+                { $limit: limit },
+              ],
+            },
+          },
+        ])
         .exec();
 
-      const events: EmbedTokenAuditLogPrimitives[] = docs.map((doc) =>
-        this.toPrimitives(doc),
+      const facetResult = aggregateResult[0] as
+        | {
+            total: Array<{ count: number }>;
+            events: EmbedTokenAuditLogDocument[];
+          }
+        | undefined;
+
+      if (!facetResult) {
+        return ok({ events: [], total: 0 });
+      }
+
+      const total = facetResult.total[0]?.count ?? 0;
+      const events: EmbedTokenAuditLogPrimitives[] = facetResult.events.map(
+        (doc) => this.toPrimitives(doc),
       );
 
       return ok({ events, total });
