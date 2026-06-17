@@ -272,3 +272,152 @@ The expected solution is a **better subagent prompt**, not a permanent fallback.
 - Story 2.2 mini-retro: confirms AI-1 priority
 - `.opencode/agents/tdd-generator.md`: the subagent definition
 - AGENTS.md section "TDD Strategy" + "Subagents Disponibles" (must be updated to reference this skill)
+
+---
+
+## Step 6: Spec citation check (AI-2) — for acceptance auditors
+
+**When this applies**: NOT just for `@tdd-generator` — **also for any subagent that audits acceptance criteria** (e.g., a `code-review` PASS 3 layer, a custom `acceptance-auditor` agent, or a human reviewer following a review skill). The PR #111 review (2026-06-16) revealed that an acceptance auditor subagent **invented 3 ACs that did not exist** in the real spec, generating 3 false-positive issues (#112, #113, #114) that nearly blocked a merge unnecessarily.
+
+### The rule
+
+**Every AC in an audit report MUST include a literal spec citation** between quotes (`> "..."` or `**Spec quote**: "..."`).
+
+| Situation | Correct action |
+|-----------|----------------|
+| AC matches spec + implementation matches spec | ✅ AUDIT PASS |
+| AC matches spec + implementation DIFFERS from spec | 🐛 **REAL BUG** — quote the exact spec line that is violated |
+| AC NOT in spec | ✨ **ENHANCEMENT**, not a bug — report in a separate "Enhancements (not bugs)" section, do NOT file as blocking issue |
+| Auditor inverts AC without citation | ❌ **Anti-pattern** — reject the report, ask for reformulation |
+
+**Prohibited**: inferring ACs from "best practices", "what should be", or "standard security". If the AC is not in the spec, it is an enhancement, period.
+
+### Heuristic: `detectSpecCitationGap()`
+
+To automate this check, the SOP defines a function (documented here, tested in `src/context/shared/dev-tools/try-tdd-generator/__tests__/try-tdd-generator.sop.spec.ts`):
+
+```typescript
+interface AuditReport {
+  report: string;     // The auditor's output
+  specAC: string[];   // The list of AC identifiers from the real spec (e.g. ["AC1", "AC2", "AC3"])
+}
+
+interface CitationGap {
+  isGap: boolean;
+  reasons: string[];
+  uncitedACs: string[];     // ACs mentioned but without spec quote
+  inventedACs: string[];    // ACs in report but NOT in spec
+}
+
+function detectSpecCitationGap(input: AuditReport): CitationGap {
+  const reasons: string[] = [];
+  const uncitedACs: string[] = [];
+  const inventedACs: string[] = [];
+
+  // 1. Find all AC identifiers in the report (e.g. "AC1", "AC3", "Story 1.3 AC5")
+  const acPattern = /\b(?:Story\s+\d+\.\d+\s+)?AC\s*#?\s*(\d+)\b/gi;
+  const mentionedACs = new Set<string>();
+  let match: RegExpExecArray | null;
+  while ((match = acPattern.exec(input.report)) !== null) {
+    mentionedACs.add(`AC${match[1]}`);
+  }
+
+  // 2. For each mentioned AC, verify it has a spec citation nearby
+  //    Citation patterns: > "..." (blockquote) OR **Spec**: "..." OR **Quote**: "..."
+  for (const ac of mentionedACs) {
+    const acRegex = new RegExp(`${ac.replace('AC', 'AC\\s*#?\\s*')}[^\\n]{0,500}`, 'i');
+    const acSection = input.report.match(acRegex)?.[0] ?? '';
+    const hasCitation = />\s*["']/.test(acSection) || /\*\*Spec[^:]*:\s*["']/.test(acSection) || /\*\*Quote\*\*:/.test(acSection);
+    if (!hasCitation) {
+      uncitedACs.push(ac);
+      reasons.push(`${ac} mentioned without spec quote`);
+    }
+  }
+
+  // 3. Check for ACs mentioned but NOT in the real spec
+  for (const ac of mentionedACs) {
+    if (!input.specAC.map(s => s.toUpperCase()).includes(ac.toUpperCase())) {
+      inventedACs.push(ac);
+      reasons.push(`${ac} is mentioned but NOT in the real spec — likely an enhancement, not a bug`);
+    }
+  }
+
+  // 4. Detect "best practice" markers (heuristic for inferred ACs)
+  const bestPracticeMarkers = [
+    /should (also )?(validate|check|ensure)/i,
+    /must (also )?(validate|check|ensure)/i,
+    /security best practice/i,
+    /standard (security|validation)/i,
+  ];
+  for (const marker of bestPracticeMarkers) {
+    if (marker.test(input.report)) {
+      reasons.push(`Report contains "best practice" marker (${marker.source}) — likely an inferred AC`);
+    }
+  }
+
+  return {
+    isGap: reasons.length > 0,
+    reasons,
+    uncitedACs,
+    inventedACs,
+  };
+}
+```
+
+**Usage in the dev agent (main)**:
+
+```typescript
+import type { detectSpecCitationGap } from 'src/context/shared/dev-tools/try-tdd-generator/heuristics';
+
+const auditorReport = `<subagent task_result>`;
+const specACs = ['AC1', 'AC2', 'AC3', 'AC4', 'AC5']; // From the real spec
+
+const gap = detectSpecCitationGap({ report: auditorReport, specAC: specACs });
+
+if (gap.isGap) {
+  console.warn('[AI-2] Audit report has citation gaps:');
+  console.warn('  Uncited ACs:', gap.uncitedACs);
+  console.warn('  Invented ACs:', gap.inventedACs);
+  console.warn('  Reasons:', gap.reasons);
+  // DO NOT trust the report — verify each AC against the spec manually
+  // Or, for PASS 3 layer: re-validate each AC against _bmad-output/planning-artifacts/epics.md
+}
+```
+
+### Example: false positive from PR #111 PASS 3
+
+**Subagent reported** (FALSE):
+> Story 1.3 AC5: Validates origin is in `embedAllowedOrigins`
+> Story 1.3 AC3 / 1.4 AC3: response includes `refreshAfter` / `refreshedAt`
+> Story 1.4 AC2/AC8: cross-check header-vs-body
+
+**Real spec** (`_bmad-output/planning-artifacts/epics.md`):
+- Story 1.3: AC1 (200 response shape), AC2 (embedEnabled=false), AC3 (userId not in company), AC4 (invalid API key), AC5 (companyId mismatch)
+- Story 1.4: AC1 (200 response shape), AC2 (expired token), AC3 (different user)
+
+`detectSpecCitationGap()` would flag:
+- `Story 1.3 AC5` — EXISTS in spec, but the meaning is "companyId mismatch", not "validates origin" → invented meaning
+- `Story 1.3 AC3 / 1.4 AC3: refreshAfter / refreshedAt` — AC3 EXISTS but its spec text is `{ token, expiresAt }`, not `refreshAfter` → invented field
+- `Story 1.4 AC2/AC8` — AC2 EXISTS but it's about expired tokens, not body token mismatch; AC8 does NOT EXIST → invented entirely
+
+### How to add to a code-review skill (if used in the future)
+
+```yaml
+# .opencode/skills/code-review/SKILL.md (hypothetical)
+
+After PASS 3 (Acceptance Auditor) layer:
+  1. Get the auditor's task_result
+  2. Get the list of real ACs from the story spec
+  3. Run `detectSpecCitationGap({ report, specAC: <real ACs> })`
+  4. If `gap.isGap === true`:
+     a. Reject the report and ask the auditor to cite the spec literally
+     b. If auditor refuses, re-audit manually
+  5. Only accept the report if all ACs have spec quotes AND match the real spec
+```
+
+### Reference
+
+- AGENTS.md section AI-2: "Acceptance Auditors deben citar el spec text exacto"
+- PR #111 review (2026-06-16): 3 false-positive issues (#112, #113, #114) closed
+- 18 tests for `detectSubagentFailure()` + new tests for `detectSpecCitationGap()` in
+  `src/context/shared/dev-tools/try-tdd-generator/__tests__/try-tdd-generator.sop.spec.ts`

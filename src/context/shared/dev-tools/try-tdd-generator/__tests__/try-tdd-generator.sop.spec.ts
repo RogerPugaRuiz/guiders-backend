@@ -250,3 +250,283 @@ describe('try-tdd-generator SOP — detectSubagentFailure()', () => {
     });
   });
 });
+
+/**
+ * Tests de la heurística AI-2 (spec citation check).
+ *
+ * El subagente PASS 3 del review de PR #111 inventó 3 ACs que NO existían
+ * en el spec real. Esta función detecta:
+ *   - ACs mencionados sin cita literal del spec
+ *   - ACs que el auditor dice existir pero NO están en el spec (invented)
+ *   - Markers de "best practice" (indicio de AC inferido)
+ *
+ * Si retorna isGap=true, el dev agent (o el orquestador de review) DEBE
+ * rechazar el reporte y pedir reformulación con citas literales.
+ *
+ * Refs:
+ *  - .opencode/skills/try-tdd-generator.md Step 6
+ *  - AGENTS.md sección AI-2
+ *  - PR #111 review (2026-06-16)
+ */
+
+interface AuditReport {
+  report: string;
+  specACs: string[];
+}
+
+interface CitationGap {
+  isGap: boolean;
+  reasons: string[];
+  uncitedACs: string[];
+  inventedACs: string[];
+}
+
+function detectSpecCitationGap(input: AuditReport): CitationGap {
+  const reasons: string[] = [];
+  const uncitedACs: string[] = [];
+  const inventedACs: string[] = [];
+
+  // 1. Find all AC identifiers in the report
+  const acPattern = /\b(?:Story\s+\d+\.\d+\s+)?AC\s*#?\s*(\d+)\b/gi;
+  const mentionedACs = new Set<string>();
+  let match: RegExpExecArray | null;
+  while ((match = acPattern.exec(input.report)) !== null) {
+    mentionedACs.add(`AC${match[1]}`);
+  }
+
+  // 2. For each mentioned AC, verify it has a spec citation nearby
+  for (const ac of mentionedACs) {
+    const acNumber = ac.replace('AC', '');
+    // Capture from the AC line until the next AC line OR 800 chars, whichever comes first
+    const acRegex = new RegExp(
+      `AC\\s*#?\\s*${acNumber}[\\s\\S]{0,800}?(?=\\n\\s*(?:AC|Story)|$)`,
+      'i',
+    );
+    const acSection = input.report.match(acRegex)?.[0] ?? '';
+    const hasCitation =
+      />\s*["']/.test(acSection) ||
+      /\*\*Spec[^:]*:\s*["']/i.test(acSection) ||
+      /\*\*Quote\*\*:/i.test(acSection);
+    if (!hasCitation) {
+      uncitedACs.push(ac);
+      reasons.push(`${ac} mentioned without spec quote`);
+    }
+  }
+
+  // 3. Check for ACs mentioned but NOT in the real spec
+  const normalizedSpecACs = input.specACs.map((s) =>
+    s.toUpperCase().replace(/\s+/g, ''),
+  );
+  for (const ac of mentionedACs) {
+    const normalized = ac.toUpperCase().replace(/\s+/g, '');
+    if (!normalizedSpecACs.includes(normalized)) {
+      inventedACs.push(ac);
+      reasons.push(
+        `${ac} is mentioned but NOT in the real spec — likely an enhancement, not a bug`,
+      );
+    }
+  }
+
+  // 4. Detect "best practice" markers (heuristic for inferred ACs)
+  const bestPracticeMarkers = [
+    /should (also )?(validate|check|ensure)/i,
+    /must (also )?(validate|check|ensure)/i,
+    /security best practice/i,
+    /standard (security|validation)/i,
+  ];
+  for (const marker of bestPracticeMarkers) {
+    if (marker.test(input.report)) {
+      reasons.push(
+        `Report contains "best practice" marker (${marker.source}) — likely an inferred AC`,
+      );
+    }
+  }
+
+  return {
+    isGap: reasons.length > 0,
+    reasons,
+    uncitedACs,
+    inventedACs,
+  };
+}
+
+describe('try-tdd-generator SOP — detectSpecCitationGap() (AI-2)', () => {
+  const STORY_1_3_SPEC_ACS = ['AC1', 'AC2', 'AC3', 'AC4', 'AC5'];
+
+  describe('AC with spec citation (PASS)', () => {
+    it('debe aceptar AC con blockquote citation', () => {
+      const report = `
+        # Audit report
+        Story 1.3 AC1: response shape
+        > "the response is 200 OK with { token, expiresAt }"
+        Implementation matches.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(false);
+    });
+
+    it('debe aceptar AC con **Spec** citation', () => {
+      const report = `
+        # Audit report
+        Story 1.3 AC2: embedEnabled=false → 403
+        **Spec quote**: "embedEnabled=false for the tenant, response is 403"
+        PASS.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(false);
+    });
+  });
+
+  describe('AC WITHOUT spec citation (FAIL)', () => {
+    it('debe detectar AC mencionado sin quote', () => {
+      const report = `
+        # Audit report
+        Story 1.3 AC5: Validates origin is in embedAllowedOrigins
+        Implementation does not validate origin.
+        BUG: false positive AC.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(true);
+      expect(gap.uncitedACs).toContain('AC5');
+    });
+  });
+
+  describe('Invented ACs (not in real spec)', () => {
+    it('debe detectar AC8 inventado (no existe en spec real)', () => {
+      const report = `
+        # Audit report
+        Story 1.4 AC2/AC8: cross-check header-vs-body
+        > "Token in header must match token in request body"
+        Implementation missing cross-check.
+        BUG: missing cross-check.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: ['AC1', 'AC2', 'AC3'], // Story 1.4 spec has only 3 ACs
+      });
+      expect(gap.isGap).toBe(true);
+      expect(gap.inventedACs).toContain('AC8');
+    });
+
+    it('debe detectar AC con number mismatch (AC3 mentioned but spec has AC2, AC4)', () => {
+      // Spec has AC1, AC2, AC4, AC5 (no AC3 in this hypothetical)
+      const report = `
+        Story 1.3 AC3: refreshAfter field missing
+        > "response includes refreshAfter"
+        BUG: missing field.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: ['AC1', 'AC2', 'AC4', 'AC5'],
+      });
+      // AC3 is in mentioned but NOT in spec → invented
+      // BUT AC3 has citation, so uncited is empty
+      expect(gap.inventedACs).toContain('AC3');
+    });
+  });
+
+  describe('"Best practice" markers', () => {
+    it('debe detectar "should also validate" como AC inferido', () => {
+      const report = `
+        # Audit
+        The endpoint should also validate the origin against embedAllowedOrigins.
+        This is a security best practice.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(true);
+      expect(gap.reasons.some((r) => r.includes('best practice'))).toBe(true);
+    });
+
+    it('debe detectar "must also ensure" como AC inferido', () => {
+      const report = `
+        # Audit
+        The handler must also ensure cross-tenant isolation.
+        This follows standard security practices.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(true);
+    });
+  });
+
+  describe('PR #111 false positives (regression test)', () => {
+    // Replicates the EXACT false positives from PR #111 PASS 3 review
+    it('debe detectar los 3 ACs inventados del review de PR #111', () => {
+      const pr111FalsePositives = `
+        # PR #111 Acceptance Audit
+
+        ### Story 1.3 AC5/AC9 — Origin validation NOT implemented (security)
+        CreateEmbedTokenCommandHandler does not validate origin.
+
+        ### Story 1.3 AC3 + Story 1.4 AC3 — Response missing fields
+        embed.controller.ts does not return refreshAfter / refreshedAt.
+
+        ### Story 1.4 AC2/AC8 — Cross-check header-vs-body NOT implemented
+        RefreshEmbedTokenDto does not have bodyToken for cross-check.
+      `;
+      // Real Story 1.3 has 5 ACs (AC1-AC5), Story 1.4 has 3 (AC1-AC3)
+      const gap = detectSpecCitationGap({
+        report: pr111FalsePositives,
+        specACs: ['AC1', 'AC2', 'AC3', 'AC4', 'AC5'],
+      });
+      expect(gap.isGap).toBe(true);
+      // AC9 is invented (not in Story 1.3)
+      expect(gap.inventedACs).toContain('AC9');
+      // AC8 is invented (not in Story 1.4)
+      expect(gap.inventedACs).toContain('AC8');
+      // All 3 ACs lack spec citations
+      expect(gap.uncitedACs.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('Sanity checks (valid reports)', () => {
+    it('debe aceptar report sin ACs (no relevant audit)', () => {
+      const report = `
+        # Code style review
+        Variable naming is clear. Lint passes. Build succeeds.
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(false);
+    });
+
+    it('debe aceptar report con todos los ACs citados correctamente', () => {
+      const report = `
+        # Audit
+        Story 1.3 AC1: PASS
+        > "the response is 200 OK with { token, expiresAt }"
+        Story 1.3 AC2: PASS
+        > "embedEnabled=false for the tenant, response is 403"
+        Story 1.3 AC3: PASS
+        > "userId does not belong to companyId, response is 403"
+        Story 1.3 AC4: PASS
+        > "invalid or missing X-Api-Key, response is 401"
+        Story 1.3 AC5: PASS
+        > "API key companyId does not match request companyId, response is 403"
+      `;
+      const gap = detectSpecCitationGap({
+        report,
+        specACs: STORY_1_3_SPEC_ACS,
+      });
+      expect(gap.isGap).toBe(false);
+      expect(gap.uncitedACs).toEqual([]);
+      expect(gap.inventedACs).toEqual([]);
+    });
+  });
+});

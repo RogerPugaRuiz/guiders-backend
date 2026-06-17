@@ -220,6 +220,8 @@ Esto generó 3 issues falsas (#112, #113, #114) que casi bloquean un merge innec
 
 Mitigación: añadir a `try-tdd-generator` SOP (AI-1.5) un check de "spec citation" antes de aceptar el output de cualquier subagente de review.
 
+**Implementación AI-2**: el SOP `try-tdd-generator.md` incluye ahora un **Step 6: Spec citation check (AI-2)** con la función pura `detectSpecCitationGap()` que automatiza la detección. Tests en `src/context/shared/dev-tools/try-tdd-generator/__tests__/try-tdd-generator.sop.spec.ts` (10 nuevos casos, 28 totales: AC con/sin cita, ACs inventados, "best practice" markers, regression PR #111 con los 3 ACs falsos).
+
 ### Test Patterns
 
 - Use `@nestjs/testing` for module creation
