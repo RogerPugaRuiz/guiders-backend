@@ -22,6 +22,7 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import { Result } from 'src/context/shared/domain/result';
 import { BFFMeResponseDto } from '../dtos/bff-auth.dto';
 import { readCookieEnv } from '../cookie-helper';
+import { extractAuditContext } from 'src/context/shared/utils/audit-context';
 import { LogoutCommand } from '../../application/commands/logout.command';
 import {
   BffSessionInvalidFormatError,
@@ -734,16 +735,9 @@ export class BffController {
     // Story 2.3 + AC3: extraer sessionId de la cookie `access_token`.
     const sessionId = req.cookies?.['access_token'] as string | undefined;
 
-    // Audit context (extraído en TODAS las branches para emisión consistente)
-    const origin =
-      (req.headers['origin'] as string) ??
-      (req.headers['referer'] as string) ??
-      '';
-    const ipAddress =
-      (req.ip as string) ??
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-      '';
-    const userAgent = (req.headers['user-agent'] as string) ?? '';
+    // Audit context (extraído en TODAS las branches para emisión consistente).
+    // AI-4: usa el helper compartido (DRY) en vez de duplicar el bloque.
+    const { origin, ipAddress, userAgent } = extractAuditContext(req);
 
     if (!sessionId) {
       // AC3: no cookie → 401 EMBED_SESSION_NOT_FOUND + emit failure event

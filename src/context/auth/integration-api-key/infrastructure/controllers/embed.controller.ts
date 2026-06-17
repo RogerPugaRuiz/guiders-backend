@@ -34,6 +34,7 @@ import { CreateEmbedTokenCommand } from '../../application/commands/create-embed
 import { RefreshEmbedTokenCommandHandler } from '../../application/commands/refresh-embed-token.command-handler';
 import { RefreshEmbedTokenCommand } from '../../application/commands/refresh-embed-token.command';
 import { FindEmbedTokenAuditLogQuery } from '../../application/queries/find-embed-token-audit-log.query';
+import { extractAuditContext } from 'src/context/shared/utils/audit-context';
 import {
   CreateEmbedTokenDto,
   CreateEmbedTokenResponseDto,
@@ -112,16 +113,8 @@ export class EmbedController {
       });
     }
 
-    // Story 2.2: extract audit context from request
-    const origin =
-      (req.headers['origin'] as string) ??
-      (req.headers['referer'] as string) ??
-      '';
-    const ipAddress =
-      (req.ip as string) ??
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-      '';
-    const userAgent = (req.headers['user-agent'] as string) ?? '';
+    // Story 2.2 + AI-4: extract audit context via shared helper (DRY)
+    const { origin, ipAddress, userAgent } = extractAuditContext(req);
 
     const result = await this.createEmbedTokenHandler.execute(
       new CreateEmbedTokenCommand(
@@ -196,16 +189,8 @@ export class EmbedController {
     @Body() dto: RefreshEmbedTokenDto,
     @Req() req: EmbedTokenRequest,
   ): Promise<RefreshEmbedTokenResponseDto> {
-    // Story 2.2: extract audit context from request
-    const origin =
-      (req.headers['origin'] as string) ??
-      (req.headers['referer'] as string) ??
-      '';
-    const ipAddress =
-      (req.ip as string) ??
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-      '';
-    const userAgent = (req.headers['user-agent'] as string) ?? '';
+    // Story 2.2 + AI-4: extract audit context via shared helper (DRY)
+    const { origin, ipAddress, userAgent } = extractAuditContext(req);
 
     const result = await this.refreshEmbedTokenHandler.execute(
       new RefreshEmbedTokenCommand(

@@ -45,6 +45,7 @@ import {
   EmbedAuthenticateSessionResponseDto,
 } from '../../application/dtos/authenticate-embed-session.dto';
 import { readCookieEnv } from '../cookie-helper';
+import { extractAuditContext } from 'src/context/shared/utils/audit-context';
 import {
   EmbedTokenNotFoundError,
   EmbedTokenInvalidFormatError,
@@ -113,16 +114,8 @@ export class EmbedSessionController {
     @Req() req: EmbedTokenRequest,
     @Res() res: Response,
   ): Promise<void> {
-    // Story 2.2: extract audit context from request
-    const origin =
-      (req.headers['origin'] as string) ??
-      (req.headers['referer'] as string) ??
-      '';
-    const ipAddress =
-      (req.ip as string) ??
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-      '';
-    const userAgent = (req.headers['user-agent'] as string) ?? '';
+    // Story 2.2 + AI-4: extract audit context via shared helper (DRY)
+    const { origin, ipAddress, userAgent } = extractAuditContext(req);
 
     const result = await this.authenticateHandler.execute(
       new AuthenticateEmbedSessionCommand(
