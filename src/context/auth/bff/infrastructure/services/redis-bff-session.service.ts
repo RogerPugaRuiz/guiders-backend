@@ -236,23 +236,35 @@ export class RedisBffSessionService
       return err(new BffSessionInvalidFormatError());
     }
 
-    // Lua script: hace todo en una sola EVAL atómica
-    const CASCADE_REVOKE_LUA = `
+    // PR #115 review hotfix (BUG-1): use conditional Lua script based on
+    // whether embedTokenRef is provided. Avoids empty-string KEYS which
+    // breaks Redis Cluster (empty keys have no hash slot).
+    //
+    // Case A: tokenRef provided → 2 keys, both DEL'd atomically
+    // Case B: tokenRef undefined → 1 key, only session DEL'd
+    const tokenKey = embedTokenRef ? `embed:token:${embedTokenRef}` : null;
+
+    const CASCADE_REVOKE_LUA_TOKEN = `
       local sessionKey = KEYS[1]
       local tokenKey = KEYS[2]
       local sessionDeleted = redis.call('DEL', sessionKey)
-      local tokenDeleted = 0
-      if tokenKey ~= '' then
-        tokenDeleted = redis.call('DEL', tokenKey)
-      end
+      local tokenDeleted = redis.call('DEL', tokenKey)
       return {sessionDeleted, tokenDeleted}
+    `;
+    const CASCADE_REVOKE_LUA_SESSION_ONLY = `
+      local sessionKey = KEYS[1]
+      local sessionDeleted = redis.call('DEL', sessionKey)
+      return {sessionDeleted, 0}
     `;
 
     try {
-      const tokenKey = embedTokenRef ? `embed:token:${embedTokenRef}` : '';
-      const result = (await this.client.eval(CASCADE_REVOKE_LUA, {
-        keys: [`${BFF_SESSION_KEY_PREFIX}${sessionId}`, tokenKey],
-      })) as [number, number];
+      const result = tokenKey
+        ? ((await this.client.eval(CASCADE_REVOKE_LUA_TOKEN, {
+            keys: [`${BFF_SESSION_KEY_PREFIX}${sessionId}`, tokenKey],
+          })) as [number, number])
+        : ((await this.client.eval(CASCADE_REVOKE_LUA_SESSION_ONLY, {
+            keys: [`${BFF_SESSION_KEY_PREFIX}${sessionId}`],
+          })) as [number, number]);
 
       return ok({
         sessionDeleted: result[0] === 1 ? 1 : 0,
