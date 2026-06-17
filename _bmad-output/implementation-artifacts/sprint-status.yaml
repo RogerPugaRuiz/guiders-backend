@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-12 14:25
-last_updated: 2026-06-17 09:30
+last_updated: 2026-06-17 10:00
 project: guiders-backend
 project_key: NOKEY
 tracking_system: file-system
@@ -59,7 +59,7 @@ development_status:
   2-4-implement-transparent-token-refresh-in-the-iframe: backlog
   2-5-implement-network-loss-detection-and-recovery-ui: backlog
   story-2-1-retrospective-2026-06-16: done
-  epic-2-retrospective: optional
+  epic-2-retrospective: done
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
   epic-3: backlog
