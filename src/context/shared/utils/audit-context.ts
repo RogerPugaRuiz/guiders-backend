@@ -66,11 +66,42 @@ export function extractAuditContext(req: Request): AuditContext {
   const reqIp =
     typeof req.ip === 'string' && req.ip.length > 0 ? req.ip : undefined;
   const xff = readHeader(req, 'x-forwarded-for');
-  const ipAddress = reqIp || (xff ? xff.split(',')[0]?.trim() : '') || '';
+  const rawIp = reqIp || (xff ? xff.split(',')[0]?.trim() : '') || '';
+
+  // TD-3 fix: normalizar IPv6-mapped IPv4 (`::ffff:192.168.1.1`)
+  // a IPv4 plano (`192.168.1.1`). Sin esto, el hash IP produce valores
+  // distintos para el mismo cliente (rompe correlación de eventos en
+  // incidentes). Solo aplica si la IP comienza con el prefijo IPv6-mapped.
+  const ipAddress = normalizeIpv6Mapped(rawIp);
 
   const userAgent = readHeader(req, 'user-agent') ?? '';
 
   return { origin, ipAddress, userAgent };
+}
+
+/**
+ * Normaliza una IP en formato IPv6-mapped IPv4 a IPv4 plano.
+ *
+ * El prefijo `::ffff:` indica una dirección IPv4 mapeada en IPv6
+ * (RFC 4291). Express retorna este formato cuando el cliente se conecta
+ * via IPv4 a un servidor con dual-stack IPv6. Si no se normaliza,
+ * `hashIp('::ffff:192.168.1.1') !== hashIp('192.168.1.1')` aunque
+ * representan el mismo cliente.
+ *
+ * @example
+ * normalizeIpv6Mapped('::ffff:192.168.1.1') → '192.168.1.1'
+ * normalizeIpv6Mapped('192.168.1.1') → '192.168.1.1' (no-op)
+ * normalizeIpv6Mapped('2001:db8::1') → '2001:db8::1' (IPv6 pura, no-op)
+ */
+function normalizeIpv6Mapped(ip: string): string {
+  // ::ffff:192.168.1.1 → 192.168.1.1
+  // (case-insensitive para robustez)
+  const match = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (match) {
+    return match[1];
+  }
+  // Para otras variantes (con zone, prefix diferente), retornar tal cual
+  return ip;
 }
 
 /**

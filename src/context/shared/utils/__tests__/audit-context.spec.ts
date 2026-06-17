@@ -185,4 +185,56 @@ describe('extractAuditContext (unit) - AI-4 DRY helper', () => {
       expect(typeof ctx.userAgent).toBe('string');
     });
   });
+
+  describe('TD-3 — IPv6-mapped IPv4 normalization', () => {
+    it('debe normalizar ::ffff:192.168.1.1 a 192.168.1.1 (IPv6-mapped → IPv4)', () => {
+      // Express retorna este formato cuando el cliente IPv4 se conecta
+      // a un servidor dual-stack IPv6. Sin normalización, el hash IP
+      // produce valores distintos para el mismo cliente.
+      const req = buildReq({}, '::ffff:192.168.1.1');
+
+      const ctx = extractAuditContext(req);
+
+      expect(ctx.ipAddress).toBe('192.168.1.1');
+    });
+
+    it('debe normalizar ::FFFF:10.0.0.1 (mayúsculas) a 10.0.0.1', () => {
+      const req = buildReq({}, '::FFFF:10.0.0.1');
+
+      const ctx = extractAuditContext(req);
+
+      expect(ctx.ipAddress).toBe('10.0.0.1');
+    });
+
+    it('NO debe normalizar IPv4 plano (192.168.1.1)', () => {
+      const req = buildReq({}, '192.168.1.1');
+
+      const ctx = extractAuditContext(req);
+
+      expect(ctx.ipAddress).toBe('192.168.1.1');
+    });
+
+    it('NO debe normalizar IPv6 puro (2001:db8::1)', () => {
+      const req = buildReq({}, '2001:db8::1');
+
+      const ctx = extractAuditContext(req);
+
+      expect(ctx.ipAddress).toBe('2001:db8::1');
+    });
+
+    it('debe normalizar IPv6-mapped desde x-forwarded-for (no solo req.ip)', () => {
+      // PR #115 VALIDATION_GAP-21 fix: x-forwarded-for fallback cuando
+      // req.ip está vacío. Ahora también normaliza IPv6-mapped.
+      const req = buildReq(
+        {
+          'x-forwarded-for': '::ffff:203.0.113.42',
+        },
+        null,
+      );
+
+      const ctx = extractAuditContext(req);
+
+      expect(ctx.ipAddress).toBe('203.0.113.42');
+    });
+  });
 });
