@@ -120,8 +120,8 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
       result: obj['result'] as 'success' | 'failure',
       failureReason: obj['failureReason'] as string | undefined,
       failureDetail: obj['failureDetail'] as string | undefined,
-      createdAt: obj['createdAt'] as Date,
-      updatedAt: obj['updatedAt'] as Date,
+      // TD-1: createdAt/updatedAt NO se incluyen en primitives
+      // (Mongoose los maneja vía timestamps: true).
     };
   }
 }

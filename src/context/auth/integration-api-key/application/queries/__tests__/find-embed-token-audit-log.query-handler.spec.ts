@@ -41,8 +41,8 @@ describe('FindEmbedTokenAuditLogQueryHandler - Story 2.2 (unit)', () => {
     userAgent: 'Mozilla/5.0',
     endpoint: '/embed/authenticate-session',
     result: 'success',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    // TD-1: createdAt/updatedAt son Mongoose-managed, no se incluyen
+    // en primitives.
   };
 
   beforeEach(() => {
