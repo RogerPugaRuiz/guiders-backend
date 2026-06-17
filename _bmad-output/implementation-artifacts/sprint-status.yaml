@@ -56,10 +56,19 @@ development_status:
   2-2-implement-embedtokenauthenticated-event-and-audit-log-persistence: review
   story-2-2-retrospective-2026-06-16: done
   2-3-implement-token-revocation-on-logout-from-parent: review
-  2-4-implement-transparent-token-refresh-in-the-iframe: backlog
-  2-5-implement-network-loss-detection-and-recovery-ui: backlog
+  # Stories 2.4 + 2.5 deferred to post-MVP "LeadCars polish" release per
+  # Sprint Change Proposal 2026-06-17 (Epic 2 retrospective findings).
+  # UX completeness, NOT security/correctness blockers.
+  2-4-implement-transparent-token-refresh-in-the-iframe: deferred-post-mvp
+  2-5-implement-network-loss-detection-and-recovery-ui: deferred-post-mvp
   story-2-1-retrospective-2026-06-16: done
   epic-2-retrospective: done
+
+  # Sprint Change Proposal 2026-06-17: 2 new stories created pre-Epic 3
+  # CRITICAL: Story 6.0 blocks Epic 6 RBAC (cookie unusable against Keycloak endpoints)
+  # HIGH: Story AI-X addresses recurring tdd-generator failure (3/3 invocations)
+  6-0-extend-jwtcookie-strategy-to-accept-opaque-session-ids: backlog
+  ai-x-replace-or-fix-tdd-generator-subagent: backlog
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
   epic-3: backlog

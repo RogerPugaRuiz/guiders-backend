@@ -152,6 +152,73 @@ Never expose ORM entities outside infrastructure. Use mappers:
 - `toPersistence(aggregate)` - domain to ORM entity
 - `fromPersistence(entity)` - ORM entity to domain
 
+## AI Safeguards (MANDATORY desde Epic 2 retro, 2026-06-17)
+
+Toda story DESDE Epic 3 en adelante DEBE aplicar estos patrones desde el inicio. No son opcionales — son parte del contrato del proyecto.
+
+### AI-1.5: try-tdd-generator wrapper (subagente unreliable)
+
+**Origen**: Epic 2 retro — subagente `@tdd-generator` retornó `<output></output>` 3/3 invocaciones consecutivas (Stories 2.1, 2.2, 2.3).
+
+**Cómo aplicar**:
+- Usar `.opencode/skills/try-tdd-generator.md` Pattern A/B/C fallback
+- Si el subagente falla → fallback manual al patrón validado de Story 2.1
+- `detectSubagentFailure()` heuristic con 6 failure signals (null, empty, missing "Files created", etc.)
+
+### AI-2: Spec citation check (acceptance auditors inventan ACs)
+
+**Origen**: PR #111 review — PASS 3 inventó 3 ACs que NO existían en el spec → 3 issues falsas cerradas.
+
+**Cómo aplicar**:
+- Cada AC en un audit report DEBE incluir cita literal del spec entre comillas: `> "..."`
+- Si el AC NO está en el spec → es **enhancement**, no bug
+- Usar `detectSpecCitationGap()` heuristic antes de aceptar reportes de review
+
+### AI-3: Specific assertions (nunca `instanceof BaseError`)
+
+**Origen**: Story 2.1 retro — tests con `instanceof BaseError` pasan incluso si la validación está deshabilitada.
+
+**Cómo aplicar**:
+- Tests usan `message.toContain(...)` o `instanceof SpecificSubclass`
+- NUNCA `instanceof BaseError`
+- Cada test verifica el resultado específico (mensaje, code, statusCode)
+
+### AI-4: extractAuditContext helper (DRY compliance)
+
+**Origen**: Epic 2 retro — bloque `req.headers['origin']/['x-forwarded-for']/['user-agent']` se copiaba en 4 controllers. Resuelto en commit `c3cdc9c`.
+
+**Cómo aplicar**:
+- TODO nuevo controller DEBE usar `extractAuditContext(req)` de `src/context/shared/utils/audit-context.ts`
+- NO duplicar el bloque inline
+- Helper ya normaliza IPv6-mapped IPv4 (TD-3) y corrige bug empty-string `req.ip`
+
+### tryPublish helper (eventBus failure safety)
+
+**Origen**: Story 2.2 F4/E15 — `eventBus.publish` puede tirar excepciones sincrónicas que rompen el main flow.
+
+**Cómo aplicar**:
+- TODO `eventBus.publish()` DEBE estar envuelto en `tryPublish(eventBus, event, logger, context)`
+- Helper: `src/context/shared/events/try-publish.ts`
+- Best-effort audit: fallo del bus NO propaga al cliente (ya respondió 200)
+
+### cascadeRevoke pattern (Lua atomic revocation)
+
+**Origen**: Story 2.3 PR #115 — TOCTOU race entre `revokeSession` + `revokeToken` separados.
+
+**Cómo aplicar**:
+- Cualquier revocación múltiple (BFF session + embed token) DEBE usar Lua EVAL atómico
+- Ver `redis-bff-session.service.ts:cascadeRevoke()` como referencia
+- Redis Cluster compat: NO pasar empty-string KEYS al EVAL
+
+### Tech debt discipline (close before new epic)
+
+**Origen**: Epic 2 retro — tech debt creció de 0 → 7 items durante 3 stories.
+
+**Cómo aplicar**:
+- Antes de empezar Epic N+1 → cerrar todos los tech debt items acumulados en Epic N
+- Sprint status DEBE marcar `deferred-post-mvp` explícitamente para items no bloqueantes
+- Si tech debt > 5 items acumulados → STOP, retrospective required antes de continuar
+
 ## Testing Guidelines
 
 ### TDD Strategy (MANDATORY DEFAULT)
