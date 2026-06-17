@@ -37,6 +37,7 @@ import {
   CascadeRevokeResult,
 } from '../../domain/services/bff-session.service';
 import {
+  BffSessionCorruptedError,
   BffSessionInvalidFormatError,
   BffSessionNotFoundError,
   BffSessionServiceUnavailableError,
@@ -125,7 +126,22 @@ export class LogoutCommandHandler {
         );
         return err(errValue);
       }
-      // Error no clasificado
+      if (errValue instanceof BffSessionCorruptedError) {
+        // N6 (PR #115 re-review): BffSessionCorruptedError indica data
+        // corruption (JSON inválido en Redis, schema migration bug, etc.)
+        // Es un INCIDENTE de seguridad que requiere alerta inmediata
+        // (no es un error de cliente). Emitimos UNKNOWN_ERROR sigue siendo
+        // engañoso — usamos EMBED_SERVICE_UNAVAILABLE para que las
+        // alertas se disparen correctamente.
+        // TODO: añadir un nuevo valor al enum EmbedAuthFailureReason
+        // (ej. EMBED_DATA_CORRUPTION) en Story 2.4.
+        publishFailure(
+          EmbedAuthFailureReason.EMBED_SERVICE_UNAVAILABLE,
+          `Data corruption: ${errValue.message}`,
+        );
+        return err(errValue);
+      }
+      // Error no clasificado (futuros errores no anticipados)
       publishFailure(EmbedAuthFailureReason.UNKNOWN_ERROR, errValue.message);
       return err(errValue);
     }

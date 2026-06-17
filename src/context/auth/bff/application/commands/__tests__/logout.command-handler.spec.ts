@@ -10,6 +10,7 @@ import {
 } from '../../../domain/services/bff-session.service';
 import { BffSessionData } from '../../../domain/value-objects/bff-session-data';
 import {
+  BffSessionCorruptedError,
   BffSessionInvalidFormatError,
   BffSessionNotFoundError,
   BffSessionServiceUnavailableError,
@@ -271,6 +272,31 @@ describe('LogoutCommandHandler (unit) - Story 2.3', () => {
       if (result.isOk()) {
         expect(result.value.cascadingResult.toJSON()).toBe('success');
       }
+    });
+  });
+
+  describe('N6 — BffSessionCorruptedError (data corruption incident)', () => {
+    it('debe clasificar BffSessionCorruptedError como EMBED_SERVICE_UNAVAILABLE (no UNKNOWN_ERROR)', async () => {
+      // Arrange: getSession retorna BffSessionCorruptedError (JSON inválido en Redis)
+      mockBffSessions.getSession.mockResolvedValue(
+        err(new BffSessionCorruptedError()),
+      );
+
+      // Act
+      const result = await handler.execute(makeCommand());
+
+      // Assert
+      expect(result.isErr()).toBe(true);
+      if (result.isErr()) {
+        // AI-3: instanceof específico (no instanceof BaseError)
+        expect(result.error).toBeInstanceOf(BffSessionCorruptedError);
+      }
+
+      // N6 fix: el failure event debe usar EMBED_SERVICE_UNAVAILABLE
+      // (incidente de seguridad, no error genérico)
+      const ev = mockEventBus.publish.mock.calls[0][0] as any;
+      expect(ev.attributes.failureReason).toBe('EMBED_SERVICE_UNAVAILABLE');
+      expect(ev.attributes.failureDetail).toContain('Data corruption');
     });
   });
 
