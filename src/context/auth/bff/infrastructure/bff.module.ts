@@ -9,10 +9,7 @@ import { BffController } from './controllers/bff-auth.controller';
 import { IntegrationApiKeyModule } from '../../integration-api-key/infrastructure/integration-api-key.module';
 import { EmbedSessionController } from './controllers/embed-session.controller';
 import { AuthenticateEmbedSessionCommandHandler } from '../application/commands/authenticate-embed-session.command-handler';
-<<<<<<< HEAD
 import { LogoutCommandHandler } from '../application/commands/logout.command-handler';
-=======
->>>>>>> origin/main
 import { BFF_SESSION_SERVICE } from '../domain/services/bff-session.service';
 import { RedisBffSessionService } from './services/redis-bff-session.service';
 
@@ -20,7 +17,6 @@ import { RedisBffSessionService } from './services/redis-bff-session.service';
   imports: [
     HttpModule,
     PassportModule.register({ defaultStrategy: 'jwt-cookie' }),
-<<<<<<< HEAD
     // Story 2.3: CqrsModule needed for CommandBus injection in
     // BffController.logoutEmbed (uses this.commandBus.execute(new LogoutCommand(...))).
     CqrsModule,
@@ -28,11 +24,6 @@ import { RedisBffSessionService } from './services/redis-bff-session.service';
     // (integration-api-key.module.ts:75-76). Story 2.1 reusa ambos en
     // EmbedSessionController y AuthenticateEmbedSessionCommandHandler.
     // Story 2.3 reusa EMBED_TOKEN_SERVICE.revokeToken() en LogoutCommandHandler.
-=======
-    // IntegrationApiKeyModule exporta EMBED_TOKEN_SERVICE y EmbedTokenGuard
-    // (integration-api-key.module.ts:75-76). Story 2.1 reusa ambos en
-    // EmbedSessionController y AuthenticateEmbedSessionCommandHandler.
->>>>>>> origin/main
     IntegrationApiKeyModule,
   ],
   controllers: [BffController, EmbedSessionController],
@@ -41,10 +32,7 @@ import { RedisBffSessionService } from './services/redis-bff-session.service';
     JwtCookieAuthGuard,
     OidcService,
     AuthenticateEmbedSessionCommandHandler,
-<<<<<<< HEAD
     LogoutCommandHandler,
-=======
->>>>>>> origin/main
     {
       provide: BFF_SESSION_SERVICE,
       useClass: RedisBffSessionService,
@@ -55,10 +43,7 @@ import { RedisBffSessionService } from './services/redis-bff-session.service';
     OidcService,
     BFF_SESSION_SERVICE,
     AuthenticateEmbedSessionCommandHandler,
-<<<<<<< HEAD
     LogoutCommandHandler,
-=======
->>>>>>> origin/main
   ],
 })
 export class BFFModule {}
