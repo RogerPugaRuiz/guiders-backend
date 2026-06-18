@@ -137,7 +137,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
     client = new InMemoryRedisClient();
     service = new RedisEmbedTokenService();
     service.internalSetClient(
-      client as unknown as Parameters<InstanceType<typeof RedisEmbedTokenService>["internalSetClient"]>[0],
+      client as unknown as Parameters<
+        InstanceType<typeof RedisEmbedTokenService>['internalSetClient']
+      >[0],
     );
     await service.onModuleInit();
   });
@@ -559,7 +561,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       }) as typeof originalSet;
       const brokenService = new RedisEmbedTokenService();
       brokenService.internalSetClient(
-        brokenClient as unknown as Parameters<InstanceType<typeof RedisEmbedTokenService>["internalSetClient"]>[0],
+        brokenClient as unknown as Parameters<
+          InstanceType<typeof RedisEmbedTokenService>['internalSetClient']
+        >[0],
       );
       await brokenService.onModuleInit();
 
@@ -585,7 +589,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       }) as typeof originalGet;
       const brokenService = new RedisEmbedTokenService();
       brokenService.internalSetClient(
-        brokenClient as unknown as Parameters<InstanceType<typeof RedisEmbedTokenService>["internalSetClient"]>[0],
+        brokenClient as unknown as Parameters<
+          InstanceType<typeof RedisEmbedTokenService>['internalSetClient']
+        >[0],
       );
       await brokenService.onModuleInit();
 

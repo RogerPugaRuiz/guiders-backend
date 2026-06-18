@@ -71,7 +71,10 @@ development_status:
   ai-x-replace-or-fix-tdd-generator-subagent: review
   # Tech debt: discovered during feat/embed-white-label smoke test (2026-06-18)
   # Blocks server startup in dev mode. HIGH priority.
-  td-4-fix-redis-bff-session-service-di: ready-for-dev
+  td-4-fix-redis-bff-session-service-di: done
+  td-5-fix-mongowhitelabelconfigrepositoryimpl-di: done
+  td-6-7-cqrs-decorators-and-integration-api-key-entity: ready-for-dev
+  3-1-implement-embedbootstrapservice-with-versioned-postmessage-protocol: ready-for-dev
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
   epic-3: backlog

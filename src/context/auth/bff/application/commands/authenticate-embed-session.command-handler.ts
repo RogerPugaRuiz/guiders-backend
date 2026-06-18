@@ -18,7 +18,7 @@
  */
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EventBus } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
@@ -44,7 +44,8 @@ import { EmbedAuthFailureReason } from 'src/context/auth/integration-api-key/dom
 import { tryPublish } from 'src/context/shared/events/try-publish';
 
 @Injectable()
-export class AuthenticateEmbedSessionCommandHandler {
+@CommandHandler(AuthenticateEmbedSessionCommand)
+export class AuthenticateEmbedSessionCommandHandler implements ICommandHandler<AuthenticateEmbedSessionCommand> {
   private readonly logger = new Logger(
     AuthenticateEmbedSessionCommandHandler.name,
   );
