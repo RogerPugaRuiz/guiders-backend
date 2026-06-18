@@ -7,11 +7,7 @@
  * - Logger para observabilidad
  */
 
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
@@ -114,7 +110,7 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
       //
       // $facet ejecuta múltiples pipelines sobre el mismo dataset
       // sincrónicamente, retornando { total: [N], events: [docs] }.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const aggregateResult: Array<any> = await this.model
         .aggregate([
           { $match: filter },

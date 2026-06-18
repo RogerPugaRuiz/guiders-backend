@@ -156,14 +156,16 @@ Never expose ORM entities outside infrastructure. Use mappers:
 
 Toda story DESDE Epic 3 en adelante DEBE aplicar estos patrones desde el inicio. No son opcionales — son parte del contrato del proyecto.
 
-### AI-1.5: try-tdd-generator wrapper (subagente unreliable)
+### AI-1.5: try-tdd-generator wrapper (script determinístico + subagente fallback)
 
-**Origen**: Epic 2 retro — subagente `@tdd-generator` retornó `<output></output>` 3/3 invocaciones consecutivas (Stories 2.1, 2.2, 2.3).
+**Origen**: Epic 2 retro — subagente `@tdd-generator` retornó `<output></output>` 3/3 invocaciones consecutivas (Stories 2.1, 2.2, 2.3). **Root cause confirmado 95%** (Story AI-X, 2026-06-17): `bash.*: ask` permissions bloquean al subagente.
 
 **Cómo aplicar**:
-- Usar `.opencode/skills/try-tdd-generator.md` Pattern A/B/C fallback
-- Si el subagente falla → fallback manual al patrón validado de Story 2.1
-- `detectSubagentFailure()` heuristic con 6 failure signals (null, empty, missing "Files created", etc.)
+- **Pattern 0 (DEFAULT, post-Story AI-X)**: `npm run generate:red-tests` — script determinístico sin LLM. 100% reliable, 0 API cost.
+- **Pattern A (fallback)**: subagente `@tdd-generator` — solo para patrones no soportados. UNRELIABLE.
+- **Pattern B/C/D (last resort)**: Manual test writing.
+- Ver `.opencode/skills/try-tdd-generator.md` para el flujo completo.
+- `detectSubagentFailure()` heuristic con 6 failure signals preservada para Pattern A.
 
 ### AI-2: Spec citation check (acceptance auditors inventan ACs)
 
@@ -225,10 +227,13 @@ Toda story DESDE Epic 3 en adelante DEBE aplicar estos patrones desde el inicio.
 
 **Por defecto, todo desarrollo sigue la estrategia TDD (Test-Driven Development)**. Cuando el usuario pida "desarrollar", "implementar", "crear" o similar:
 
-1. **RED phase** (delegada al subagente `tdd-generator`):
-   - Invocar `@tdd-generator` con la story/spec a implementar
-   - El subagente genera los tests PRIMERO y los ejecuta
-   - Confirma que los tests fallan (RED) — son la especificación ejecutable
+1. **RED phase** — usar el **flujo de 3 patrones** (post-Story AI-X, 2026-06-17):
+
+   - **Pattern 0 (DEFAULT)**: `npm run generate:red-tests -- <story-file>` — script determinístico que genera el test file desde el spec. **Usar este primero** para CommandHandler, QueryHandler, EventHandler, Controller.
+   - **Pattern A (fallback)**: `@tdd-generator` subagent — solo si la story usa un patrón NO soportado por Pattern 0. **El subagent es UNRELIABLE** (3/3 invocaciones vacías en Stories 2.1/2.2/2.3) — siempre ejecutar el SOP AI-1.5 (`detectSubagentFailure()`).
+   - **Pattern B/C/D (last resort)**: Manual test writing siguiendo el patrón validado de Story 2.1.
+
+   Ver `.opencode/skills/try-tdd-generator.md` para el flujo completo.
 
 2. **GREEN phase** (implementación por el agente principal):
    - Implementar el código MÍNIMO para que los tests pasen

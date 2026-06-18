@@ -5,6 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { JwtCookieStrategy } from '../../auth-user/infrastructure/strategies/jwt-cookie.strategy';
 import { OidcService } from './services/oidc.service';
 import { JwtCookieAuthGuard } from 'src/context/shared/infrastructure/guards/jwt-cookie-auth.guard';
+import { BffSessionCookieAuthGuard } from './guards/bff-session-cookie-auth.guard';
 import { BffController } from './controllers/bff-auth.controller';
 import { IntegrationApiKeyModule } from '../../integration-api-key/infrastructure/integration-api-key.module';
 import { EmbedSessionController } from './controllers/embed-session.controller';
@@ -30,6 +31,7 @@ import { RedisBffSessionService } from './services/redis-bff-session.service';
   providers: [
     JwtCookieStrategy,
     JwtCookieAuthGuard,
+    BffSessionCookieAuthGuard,
     OidcService,
     AuthenticateEmbedSessionCommandHandler,
     LogoutCommandHandler,
@@ -40,6 +42,7 @@ import { RedisBffSessionService } from './services/redis-bff-session.service';
   ],
   exports: [
     JwtCookieAuthGuard,
+    BffSessionCookieAuthGuard,
     OidcService,
     BFF_SESSION_SERVICE,
     AuthenticateEmbedSessionCommandHandler,

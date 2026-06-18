@@ -681,8 +681,14 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
     it('debe retornar sessionDeleted=1 y tokenDeleted=1 cuando ambos existen', async () => {
       // Arrange: session + token presentes en Redis
-      client.store.set(SESSION_KEY, '{"userId":"u","companyId":"c","roles":["r"]}');
-      client.store.set(TOKEN_KEY, '{"userId":"u","companyId":"c","roles":["r"]}');
+      client.store.set(
+        SESSION_KEY,
+        '{"userId":"u","companyId":"c","roles":["r"]}',
+      );
+      client.store.set(
+        TOKEN_KEY,
+        '{"userId":"u","companyId":"c","roles":["r"]}',
+      );
 
       // Act
       const result = await service.cascadeRevoke(SESSION_ID, TOKEN_REF);

@@ -67,8 +67,8 @@ development_status:
   # Sprint Change Proposal 2026-06-17: 2 new stories created pre-Epic 3
   # CRITICAL: Story 6.0 blocks Epic 6 RBAC (cookie unusable against Keycloak endpoints)
   # HIGH: Story AI-X addresses recurring tdd-generator failure (3/3 invocations)
-  6-0-extend-jwtcookie-strategy-to-accept-opaque-session-ids: backlog
-  ai-x-replace-or-fix-tdd-generator-subagent: backlog
+  6-0-extend-jwtcookie-strategy-to-accept-opaque-session-ids: review
+  ai-x-replace-or-fix-tdd-generator-subagent: review
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
   epic-3: backlog

@@ -3,6 +3,18 @@ description: Generates failing test suites (RED phase) following TDD methodology
 mode: subagent
 model: anthropic/claude-sonnet-4-20250514
 temperature: 0.2
+# DEPRECATED (2026-06-17, Story AI-X): use `npm run generate:red-tests` for known patterns.
+# This subagent is kept as **fallback Pattern A** for novel patterns not supported by the
+# deterministic script. See `.opencode/skills/try-tdd-generator.md` for the new flow.
+#
+# KNOWN ISSUE (95% confidence, see notes/tdd-generator-failure-analysis.md):
+# The `bash.*: ask` permission below blocks ALL bash commands not whitelisted, including
+# `mkdir -p` and `npx prettier --write` which the subagent workflow requires. The subagent
+# hangs waiting for human approval, times out, and returns empty output.
+#
+# If you MUST use this subagent as fallback, consider changing `bash.*: ask` to `bash.*: allow`
+# temporarily, or run the subagent with explicit per-command approval.
+
 permission:
   edit:
     allow: true
@@ -10,8 +22,13 @@ permission:
     "*": ask
     "npm test *": allow
     "npm run test *": allow
+    "npm run generate*": allow
+    "mkdir *": allow
+    "npx prettier *": allow
     "ls *": allow
     "cat *": allow
+    "find *": allow
+    "grep *": allow
   read: allow
   glob: allow
   grep: allow
