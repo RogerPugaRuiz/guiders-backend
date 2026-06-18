@@ -135,10 +135,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
 
   beforeEach(async () => {
     client = new InMemoryRedisClient();
-    service = new RedisEmbedTokenService(
-      client as unknown as ConstructorParameters<
-        typeof RedisEmbedTokenService
-      >[0],
+    service = new RedisEmbedTokenService();
+    service.internalSetClient(
+      client as unknown as Parameters<InstanceType<typeof RedisEmbedTokenService>["internalSetClient"]>[0],
     );
     await service.onModuleInit();
   });
@@ -558,10 +557,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       brokenClient.set = (async () => {
         throw new Error('Redis ECONNREFUSED');
       }) as typeof originalSet;
-      const brokenService = new RedisEmbedTokenService(
-        brokenClient as unknown as ConstructorParameters<
-          typeof RedisEmbedTokenService
-        >[0],
+      const brokenService = new RedisEmbedTokenService();
+      brokenService.internalSetClient(
+        brokenClient as unknown as Parameters<InstanceType<typeof RedisEmbedTokenService>["internalSetClient"]>[0],
       );
       await brokenService.onModuleInit();
 
@@ -585,10 +583,9 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       brokenClient.get = (async () => {
         throw new Error('Redis timeout');
       }) as typeof originalGet;
-      const brokenService = new RedisEmbedTokenService(
-        brokenClient as unknown as ConstructorParameters<
-          typeof RedisEmbedTokenService
-        >[0],
+      const brokenService = new RedisEmbedTokenService();
+      brokenService.internalSetClient(
+        brokenClient as unknown as Parameters<InstanceType<typeof RedisEmbedTokenService>["internalSetClient"]>[0],
       );
       await brokenService.onModuleInit();
 

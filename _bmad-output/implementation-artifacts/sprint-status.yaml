@@ -69,6 +69,9 @@ development_status:
   # HIGH: Story AI-X addresses recurring tdd-generator failure (3/3 invocations)
   6-0-extend-jwtcookie-strategy-to-accept-opaque-session-ids: review
   ai-x-replace-or-fix-tdd-generator-subagent: review
+  # Tech debt: discovered during feat/embed-white-label smoke test (2026-06-18)
+  # Blocks server startup in dev mode. HIGH priority.
+  td-4-fix-redis-bff-session-service-di: ready-for-dev
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
   epic-3: backlog

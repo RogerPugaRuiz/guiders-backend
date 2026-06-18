@@ -111,10 +111,9 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
 
   beforeEach(async () => {
     client = new InMemoryRedisClient();
-    service = new RedisBffSessionService(
-      client as unknown as ConstructorParameters<
-        typeof RedisBffSessionService
-      >[0],
+    service = new RedisBffSessionService();
+    service.internalSetClient(
+      client as unknown as Parameters<InstanceType<typeof RedisBffSessionService>["internalSetClient"]>[0],
     );
     await service.onModuleInit();
   });
@@ -375,10 +374,9 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         on: jest.fn(),
       };
-      const failingService = new RedisBffSessionService(
-        failingClient as unknown as ConstructorParameters<
-          typeof RedisBffSessionService
-        >[0],
+      const failingService = new RedisBffSessionService();
+      failingService.internalSetClient(
+        failingClient as unknown as Parameters<InstanceType<typeof RedisBffSessionService>["internalSetClient"]>[0],
       );
       await failingService.onModuleInit();
 
@@ -523,10 +521,9 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         on: jest.fn(),
       };
-      const failingService = new RedisBffSessionService(
-        failingClient as unknown as ConstructorParameters<
-          typeof RedisBffSessionService
-        >[0],
+      const failingService = new RedisBffSessionService();
+      failingService.internalSetClient(
+        failingClient as unknown as Parameters<InstanceType<typeof RedisBffSessionService>["internalSetClient"]>[0],
       );
       await failingService.onModuleInit();
 
@@ -552,10 +549,9 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
         connect: jest.fn().mockResolvedValue(undefined),
         on: jest.fn(),
       };
-      const failingService = new RedisBffSessionService(
-        failingClient as unknown as ConstructorParameters<
-          typeof RedisBffSessionService
-        >[0],
+      const failingService = new RedisBffSessionService();
+      failingService.internalSetClient(
+        failingClient as unknown as Parameters<InstanceType<typeof RedisBffSessionService>["internalSetClient"]>[0],
       );
       await failingService.onModuleInit();
 
@@ -648,10 +644,9 @@ describe('RedisBffSessionService - Story 2.1 (unit)', () => {
       // Verifica que un nuevo init puede crear un nuevo client
       // (lo cual solo es posible si `this.client` fue reseteado)
       const newClient = new InMemoryRedisClient();
-      const newService = new RedisBffSessionService(
-        newClient as unknown as ConstructorParameters<
-          typeof RedisBffSessionService
-        >[0],
+      const newService = new RedisBffSessionService();
+      newService.internalSetClient(
+        newClient as unknown as Parameters<InstanceType<typeof RedisBffSessionService>["internalSetClient"]>[0],
       );
       await newService.onModuleInit();
       // El nuevo service funciona → el reset funcionó

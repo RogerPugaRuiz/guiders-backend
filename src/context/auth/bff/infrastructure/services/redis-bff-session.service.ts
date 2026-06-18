@@ -56,17 +56,20 @@ export class RedisBffSessionService
   implements IBffSessionService, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(RedisBffSessionService.name);
-  private client: RedisClientType;
+  // Non-null after onModuleInit(). The `!` is safe because:
+  // - NestJS calls onModuleInit() before any other lifecycle hook
+  // - internalSetClient() is the only path that sets it pre-init (tests only)
+  private client!: RedisClientType;
 
   /**
-   * @param clientOverride Redis client to use instead of creating one. **@internal**
-   *   Solo para tests. En producción NestJS no inyecta este parámetro —
-   *   `this.client` se crea en `onModuleInit`.
+   * @internal Only for unit tests. Production code MUST NOT call this.
+   * In production, the Redis client is created in `onModuleInit()` from
+   * `REDIS_URL`. The optional setter exists because unit tests need to
+   * inject an `InMemoryRedisClient` mock — passing it through the
+   * constructor would break NestJS DI (parameter has no `@Inject()` token).
    */
-  constructor(clientOverride?: RedisClientType) {
-    if (clientOverride) {
-      this.client = clientOverride;
-    }
+  internalSetClient(client: RedisClientType): void {
+    this.client = client;
   }
 
   async onModuleInit(): Promise<void> {
