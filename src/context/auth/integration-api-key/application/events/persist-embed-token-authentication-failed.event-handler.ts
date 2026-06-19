@@ -35,7 +35,8 @@ export class PersistEmbedTokenAuthenticationFailedEventHandler
   ) {}
 
   async handle(event: EmbedTokenAuthenticationFailedEvent): Promise<void> {
-    const now = new Date();
+    // TD-1 fix: NO seteamos createdAt/updatedAt manualmente.
+    // Mongoose los maneja vía `timestamps: true` en el schema.
     const primitives: EmbedTokenAuditLogPrimitives = {
       id: event.id.value,
       companyId: event.attributes.companyId,
@@ -48,8 +49,6 @@ export class PersistEmbedTokenAuthenticationFailedEventHandler
       result: 'failure',
       failureReason: event.attributes.failureReason,
       failureDetail: sanitizeFailureDetail(event.attributes.failureDetail),
-      createdAt: now,
-      updatedAt: now,
     };
 
     const result = await this.repository.save(primitives);

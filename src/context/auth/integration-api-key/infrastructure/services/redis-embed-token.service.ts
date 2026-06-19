@@ -72,7 +72,10 @@ export class RedisEmbedTokenService
   implements IEmbedTokenService, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(RedisEmbedTokenService.name);
-  private client: RedisClientType;
+  // Non-null after onModuleInit(). The `!` is safe because:
+  // - NestJS calls onModuleInit() before any other lifecycle hook
+  // - internalSetClient() is the only path that sets it pre-init (tests only)
+  private client!: RedisClientType;
 
   private readonly PREFIX = 'embed:token:';
   private readonly TTL_SECONDS = 8 * 60 * 60; // 8 horas
@@ -83,10 +86,15 @@ export class RedisEmbedTokenService
    *   Solo para tests. En producción NestJS no inyecta este parámetro —
    *   `this.client` se crea en `onModuleInit`.
    */
-  constructor(clientOverride?: RedisClientType) {
-    if (clientOverride) {
-      this.client = clientOverride;
-    }
+  /**
+   * @internal Only for unit tests. Production code MUST NOT call this.
+   * In production, the Redis client is created in `onModuleInit()` from
+   * `REDIS_URL`. The optional setter exists because unit tests need to
+   * inject an `InMemoryRedisClient` mock — passing it through the
+   * constructor would break NestJS DI (parameter has no `@Inject()` token).
+   */
+  internalSetClient(client: RedisClientType): void {
+    this.client = client;
   }
 
   async onModuleInit(): Promise<void> {
@@ -318,20 +326,32 @@ export class RedisEmbedTokenService
   }
 
   async revokeToken(token: string): Promise<Result<void, DomainError>> {
+    const result = await this.revokeTokenWithCount(token);
+    if (result.isErr()) {
+      return err(result.error);
+    }
+    return ok(undefined);
+  }
+
+  async revokeTokenWithCount(
+    token: string,
+  ): Promise<Result<{ deleted: 0 | 1 }, DomainError>> {
     if (typeof token !== 'string' || !BASE64URL_REGEX.test(token)) {
-      return ok(undefined); // Idempotente: token inválido = "ya no existe"
+      // Formato inválido: tratado como "ya no existe" (idempotente).
+      // Retorna deleted=0 para que el caller pueda distinguir.
+      return ok({ deleted: 0 });
     }
 
     try {
       const deleted = await this.client.del(this.key(token));
       if (deleted > 0) {
         this.logger.debug(`Embed token revocado: ${token.substring(0, 8)}...`);
-      } else {
-        this.logger.debug(
-          `Embed token revoke idempotente (no estaba en Redis): ${token.substring(0, 8)}...`,
-        );
+        return ok({ deleted: 1 });
       }
-      return ok(undefined);
+      this.logger.debug(
+        `Embed token revoke idempotente (no estaba en Redis): ${token.substring(0, 8)}...`,
+      );
+      return ok({ deleted: 0 });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Error desconocido';

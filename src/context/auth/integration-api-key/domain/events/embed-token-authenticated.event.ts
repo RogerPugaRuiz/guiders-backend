@@ -11,6 +11,12 @@
  * - endpoint: qué endpoint de embed fue autenticado
  * - timestamp: cuándo ocurrió
  *
+ * Story 2.3: campos opcionales para eventos de logout:
+ * - logoutTimestamp: timestamp específico del logout
+ * - cascadingResult: 'success' | 'partial' | 'not_found' | 'failure'
+ * - embedTokenRevoked: si el embed token padre fue revocado OK
+ * - failureDetail: solo presente en cascadingResult='partial'
+ *
  * NOTA: ipAddress es la IP raw — el handler la hashea con SHA-256 antes
  * de persistir (GDPR Art. 4(1) compliance).
  */
@@ -25,6 +31,11 @@ export interface EmbedTokenAuthenticatedEventAttributes {
   ipAddress: string; // raw (se hashea en el handler)
   userAgent: string;
   endpoint: string;
+  // Story 2.3 — logout-specific (opcional, presente en eventos de logout)
+  logoutTimestamp?: string;
+  cascadingResult?: 'success' | 'partial' | 'not_found' | 'failure';
+  embedTokenRevoked?: boolean;
+  failureDetail?: string;
 }
 
 export class EmbedTokenAuthenticatedEvent extends DomainEvent<EmbedTokenAuthenticatedEventAttributes> {

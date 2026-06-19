@@ -21,8 +21,10 @@ export interface EmbedTokenAuditLogPrimitives {
   result: 'success' | 'failure';
   failureReason?: string;
   failureDetail?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  // TD-1 fix: createdAt y updatedAt NO se incluyen en primitives —
+  // Mongoose los maneja automáticamente vía `timestamps: true` en el schema.
+  // El handler NO setea estos campos manualmente (antes sobreescribía
+  // el valor de Mongoose con su propio tiempo, causando timestamps drifted).
 }
 
 export interface EmbedTokenAuditLogQuery {

@@ -103,6 +103,7 @@ describe('CreateEmbedTokenCommandHandler', () => {
       validateToken: jest.fn(),
       refreshToken: jest.fn(),
       revokeToken: jest.fn(),
+      revokeTokenWithCount: jest.fn(),
     };
 
     handler = new CreateEmbedTokenCommandHandler(

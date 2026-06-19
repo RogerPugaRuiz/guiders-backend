@@ -27,6 +27,20 @@ export interface BffSessionIssued {
   expiresAt: string;
 }
 
+/**
+ * Resultado de un cascade revoke atómico (Story 2.3).
+ *
+ * `sessionDeleted`: si la BFF session existía y fue borrada (0|1).
+ * `tokenDeleted`: si el embed token existía y fue borrado (0|1).
+ *
+ * Permite distinguir entre success (ambos 1), partial (sessionDeleted=1,
+ * tokenDeleted=0), not_found (sessionDeleted=0) y failure (err).
+ */
+export interface CascadeRevokeResult {
+  sessionDeleted: 0 | 1;
+  tokenDeleted: 0 | 1;
+}
+
 export interface IBffSessionService {
   /**
    * Genera un nuevo session ID opaco y lo almacena en Redis con TTL 8h.
@@ -46,8 +60,27 @@ export interface IBffSessionService {
 
   /**
    * Elimina la session de Redis. Idempotente.
+   *
+   * **Deprecated**: usar `cascadeRevoke(sessionId)` que también elimina
+   * el embed token asociado en una sola operación atómica (Story 2.3).
    */
   revokeSession(sessionId: string): Promise<Result<void, DomainError>>;
+
+  /**
+   * Story 2.3: revoca atómicamente (vía Lua EVAL) la BFF session y su
+   * embed token asociado en una sola operación Redis. Elimina la ventana
+   * TOCTOU entre `revokeSession` y `revokeToken` separada.
+   *
+   * Casos:
+   *  - session + token existed → `{ sessionDeleted: 1, tokenDeleted: 1 }`
+   *  - session existed, token already revoked (race) → `{ sessionDeleted: 1, tokenDeleted: 0 }` (PARTIAL)
+   *  - session not found → `{ sessionDeleted: 0, tokenDeleted: 0 }` (NOT_FOUND)
+   *  - Redis down → err
+   */
+  cascadeRevoke(
+    sessionId: string,
+    embedTokenRef: string | undefined,
+  ): Promise<Result<CascadeRevokeResult, DomainError>>;
 }
 
 export const BFF_SESSION_SERVICE = Symbol('BffSessionService');

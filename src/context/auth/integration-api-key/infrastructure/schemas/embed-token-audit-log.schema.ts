@@ -75,11 +75,11 @@ export class EmbedTokenAuditLogSchema {
   @Prop({ type: String, required: false, default: '' })
   failureDetail?: string;
 
-  @Prop({ type: Date, required: true })
-  createdAt: Date;
-
-  @Prop({ type: Date, required: true })
-  updatedAt: Date;
+  // TD-1 fix: `createdAt` y `updatedAt` NO se declaran manualmente.
+  // Mongoose los crea automáticamente vía `timestamps: true` arriba.
+  // El handler NO los setea (antes sobreescribía el tiempo de Mongoose
+  // con su propio `new Date()`, causando drift entre timestamps y
+  // otros eventos cercanos).
 }
 
 export type EmbedTokenAuditLogDocument =

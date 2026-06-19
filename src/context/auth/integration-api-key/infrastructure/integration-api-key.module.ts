@@ -26,9 +26,10 @@ import { RefreshEmbedTokenCommandHandler } from '../application/commands/refresh
 import { EmbedController } from './controllers/embed.controller';
 import { EmbedTokenGuard } from './guards/embed-token.guard';
 import { WHITE_LABEL_CONFIG_REPOSITORY } from '../../../white-label/domain/white-label-config.repository';
-import { MongoWhiteLabelConfigRepositoryImpl } from '../../../white-label/infrastructure/persistence/mongo-white-label-config.repository.impl';
+import { WhiteLabelModule } from '../../../white-label/white-label.module';
 import { USER_ACCOUNT_REPOSITORY } from '../../../auth/auth-user/domain/user-account.repository';
 import { UserAccountService } from '../../../auth/auth-user/infrastructure/services/user-account.service';
+import { UserAccountMapper } from '../../../auth/auth-user/infrastructure/user-account-mapper';
 // Story 2.2: audit log
 import {
   EmbedTokenAuditLogSchema,
@@ -46,6 +47,11 @@ import { FindEmbedTokenAuditLogQueryHandler } from '../application/queries/find-
     JwtModule.register({}),
     HttpModule,
     ConfigModule,
+    // TD-5: Import WhiteLabelModule instead of duplicating the WHITE_LABEL_CONFIG_REPOSITORY
+    // provider. WhiteLabelModule already registers the Mongoose schema (WhiteLabelConfigSchema)
+    // and exports the repository symbol. Previously the repository was registered here WITHOUT
+    // its Mongoose schema, causing UnknownDependenciesException at server startup.
+    WhiteLabelModule,
     // Story 2.2: Mongoose schema for embed_token_audit_log
     MongooseModule.forFeature([
       {
@@ -69,14 +75,15 @@ import { FindEmbedTokenAuditLogQueryHandler } from '../application/queries/find-
       provide: EMBED_TOKEN_SERVICE,
       useClass: RedisEmbedTokenService,
     },
-    {
-      provide: WHITE_LABEL_CONFIG_REPOSITORY,
-      useClass: MongoWhiteLabelConfigRepositoryImpl,
-    },
+    // TD-5: Removed local WHITE_LABEL_CONFIG_REPOSITORY provider — now provided by WhiteLabelModule
     {
       provide: USER_ACCOUNT_REPOSITORY,
       useClass: UserAccountService,
     },
+    // TD-5: UserAccountService constructor requires UserAccountMapper.
+    // We add it here as a local provider because IntegrationApiKeyModule
+    // does not import AuthUserModule (which provides the mapper).
+    UserAccountMapper,
     {
       provide: EMBED_TOKEN_AUDIT_LOG_REPOSITORY,
       useClass: MongoEmbedTokenAuditLogRepositoryImpl,

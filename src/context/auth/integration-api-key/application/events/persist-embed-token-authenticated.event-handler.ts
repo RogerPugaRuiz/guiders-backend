@@ -37,7 +37,8 @@ export class PersistEmbedTokenAuthenticatedEventHandler
   ) {}
 
   async handle(event: EmbedTokenAuthenticatedEvent): Promise<void> {
-    const now = new Date();
+    // TD-1 fix: NO seteamos createdAt/updatedAt manualmente.
+    // Mongoose los maneja vía `timestamps: true` en el schema.
     const primitives: EmbedTokenAuditLogPrimitives = {
       id: event.id.value,
       companyId: event.attributes.companyId,
@@ -48,8 +49,6 @@ export class PersistEmbedTokenAuthenticatedEventHandler
       userAgent: truncateUserAgent(event.attributes.userAgent),
       endpoint: event.attributes.endpoint,
       result: 'success',
-      createdAt: now,
-      updatedAt: now,
     };
 
     const result = await this.repository.save(primitives);

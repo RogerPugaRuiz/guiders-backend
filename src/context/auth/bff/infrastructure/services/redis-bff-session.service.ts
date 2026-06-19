@@ -31,6 +31,7 @@ import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
   IBffSessionService,
   BffSessionIssued,
+  CascadeRevokeResult,
 } from '../../domain/services/bff-session.service';
 import {
   BffSessionInvalidFormatError,
@@ -55,17 +56,20 @@ export class RedisBffSessionService
   implements IBffSessionService, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(RedisBffSessionService.name);
-  private client: RedisClientType;
+  // Non-null after onModuleInit(). The `!` is safe because:
+  // - NestJS calls onModuleInit() before any other lifecycle hook
+  // - internalSetClient() is the only path that sets it pre-init (tests only)
+  private client!: RedisClientType;
 
   /**
-   * @param clientOverride Redis client to use instead of creating one. **@internal**
-   *   Solo para tests. En producción NestJS no inyecta este parámetro —
-   *   `this.client` se crea en `onModuleInit`.
+   * @internal Only for unit tests. Production code MUST NOT call this.
+   * In production, the Redis client is created in `onModuleInit()` from
+   * `REDIS_URL`. The optional setter exists because unit tests need to
+   * inject an `InMemoryRedisClient` mock — passing it through the
+   * constructor would break NestJS DI (parameter has no `@Inject()` token).
    */
-  constructor(clientOverride?: RedisClientType) {
-    if (clientOverride) {
-      this.client = clientOverride;
-    }
+  internalSetClient(client: RedisClientType): void {
+    this.client = client;
   }
 
   async onModuleInit(): Promise<void> {
@@ -212,6 +216,68 @@ export class RedisBffSessionService
     }
 
     return okVoid();
+  }
+
+  /**
+   * Story 2.3: revoca atómicamente la BFF session + el embed token
+   * asociado en una sola operación Redis (Lua EVAL). Elimina la ventana
+   * TOCTOU entre revokeSession + revokeToken separada.
+   *
+   * Lua script: hace GET session, parse JSON, extrae embedTokenRef,
+   * DEL session, DEL token, retorna sessionDeleted y tokenDeleted.
+   *
+   * Si `embedTokenRef` es undefined (session legacy sin token ref), solo
+   * DEL la session.
+   *
+   * Si Redis down → retorna err(BffSessionServiceUnavailableError).
+   */
+  async cascadeRevoke(
+    sessionId: string,
+    embedTokenRef: string | undefined,
+  ): Promise<Result<CascadeRevokeResult, DomainError>> {
+    if (!BASE64URL_REGEX.test(sessionId)) {
+      return err(new BffSessionInvalidFormatError());
+    }
+
+    // PR #115 review hotfix (BUG-1): use conditional Lua script based on
+    // whether embedTokenRef is provided. Avoids empty-string KEYS which
+    // breaks Redis Cluster (empty keys have no hash slot).
+    //
+    // Case A: tokenRef provided → 2 keys, both DEL'd atomically
+    // Case B: tokenRef undefined → 1 key, only session DEL'd
+    const tokenKey = embedTokenRef ? `embed:token:${embedTokenRef}` : null;
+
+    const CASCADE_REVOKE_LUA_TOKEN = `
+      local sessionKey = KEYS[1]
+      local tokenKey = KEYS[2]
+      local sessionDeleted = redis.call('DEL', sessionKey)
+      local tokenDeleted = redis.call('DEL', tokenKey)
+      return {sessionDeleted, tokenDeleted}
+    `;
+    const CASCADE_REVOKE_LUA_SESSION_ONLY = `
+      local sessionKey = KEYS[1]
+      local sessionDeleted = redis.call('DEL', sessionKey)
+      return {sessionDeleted, 0}
+    `;
+
+    try {
+      const result = tokenKey
+        ? ((await this.client.eval(CASCADE_REVOKE_LUA_TOKEN, {
+            keys: [`${BFF_SESSION_KEY_PREFIX}${sessionId}`, tokenKey],
+          })) as [number, number])
+        : ((await this.client.eval(CASCADE_REVOKE_LUA_SESSION_ONLY, {
+            keys: [`${BFF_SESSION_KEY_PREFIX}${sessionId}`],
+          })) as [number, number]);
+
+      return ok({
+        sessionDeleted: result[0] === 1 ? 1 : 0,
+        tokenDeleted: result[1] === 1 ? 1 : 0,
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Error desconocido';
+      this.logger.error(`Error en cascade revoke de BFF session: ${message}`);
+      return err(new BffSessionServiceUnavailableError(message));
+    }
   }
 
   /**

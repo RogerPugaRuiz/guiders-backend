@@ -7,7 +7,7 @@
  * - Logger para observabilidad
  */
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Result, ok, err, okVoid } from 'src/context/shared/domain/result';
@@ -25,7 +25,7 @@ import {
 
 @Injectable()
 export class MongoEmbedTokenAuditLogRepositoryImpl
-  implements IEmbedTokenAuditLogRepository
+  implements IEmbedTokenAuditLogRepository, OnModuleDestroy
 {
   private readonly logger = new Logger(
     MongoEmbedTokenAuditLogRepositoryImpl.name,
@@ -35,6 +35,30 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
     @InjectModel(EmbedTokenAuditLogSchema.name)
     private readonly model: Model<EmbedTokenAuditLogDocument>,
   ) {}
+
+  /**
+   * F6 (Story 2.2 retro F3): cleanup del modelo Mongoose en shutdown
+   * para evitar memory leaks durante hot reload en desarrollo y
+   * conexiones colgadas en producción.
+   *
+   * El modelo Mongoose retiene internamente una referencia al cliente
+   * de MongoDB (cache de conexiones). Sin este hook, las conexiones
+   * no se cierran explícitamente al destruir el módulo.
+   */
+  async onModuleDestroy(): Promise<void> {
+    try {
+      // disconnect() cierra TODAS las conexiones del pool Mongoose
+      // y limpia los event listeners internos.
+      await this.model.db.close();
+      this.logger.debug('MongoEmbedTokenAuditLogRepository connections closed');
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Error desconocido';
+      this.logger.warn(
+        `Error cerrando conexiones Mongo en onModuleDestroy: ${message}`,
+      );
+    }
+  }
 
   async save(
     event: EmbedTokenAuditLogPrimitives,
@@ -78,18 +102,45 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
       const limit = Math.min(query.limit ?? 100, 1000);
       const skip = query.skip ?? 0;
 
-      // Count total antes de skip/limit para metadata
-      const total = await this.model.countDocuments(filter).exec();
+      // TD-2 fix: usar $facet para ejecutar countDocuments + find en
+      // una sola operación atómica del lado del servidor Mongo.
+      // Antes: 2 round-trips separados donde el total y los eventos
+      // podían ser inconsistentes si había escrituras concurrentes
+      // entre las dos queries (paginación drifted).
+      //
+      // $facet ejecuta múltiples pipelines sobre el mismo dataset
+      // sincrónicamente, retornando { total: [N], events: [docs] }.
 
-      const docs = await this.model
-        .find(filter)
-        .sort({ timestamp: -1 })
-        .skip(skip)
-        .limit(limit)
+      const aggregateResult: Array<any> = await this.model
+        .aggregate([
+          { $match: filter },
+          {
+            $facet: {
+              total: [{ $count: 'count' }],
+              events: [
+                { $sort: { timestamp: -1 } },
+                { $skip: skip },
+                { $limit: limit },
+              ],
+            },
+          },
+        ])
         .exec();
 
-      const events: EmbedTokenAuditLogPrimitives[] = docs.map((doc) =>
-        this.toPrimitives(doc),
+      const facetResult = aggregateResult[0] as
+        | {
+            total: Array<{ count: number }>;
+            events: EmbedTokenAuditLogDocument[];
+          }
+        | undefined;
+
+      if (!facetResult) {
+        return ok({ events: [], total: 0 });
+      }
+
+      const total = facetResult.total[0]?.count ?? 0;
+      const events: EmbedTokenAuditLogPrimitives[] = facetResult.events.map(
+        (doc) => this.toPrimitives(doc),
       );
 
       return ok({ events, total });
@@ -120,8 +171,8 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
       result: obj['result'] as 'success' | 'failure',
       failureReason: obj['failureReason'] as string | undefined,
       failureDetail: obj['failureDetail'] as string | undefined,
-      createdAt: obj['createdAt'] as Date,
-      updatedAt: obj['updatedAt'] as Date,
+      // TD-1: createdAt/updatedAt NO se incluyen en primitives
+      // (Mongoose los maneja vía timestamps: true).
     };
   }
 }

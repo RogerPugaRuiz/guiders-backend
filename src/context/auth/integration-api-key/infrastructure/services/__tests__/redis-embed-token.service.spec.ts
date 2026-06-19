@@ -135,9 +135,10 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
 
   beforeEach(async () => {
     client = new InMemoryRedisClient();
-    service = new RedisEmbedTokenService(
-      client as unknown as ConstructorParameters<
-        typeof RedisEmbedTokenService
+    service = new RedisEmbedTokenService();
+    service.internalSetClient(
+      client as unknown as Parameters<
+        InstanceType<typeof RedisEmbedTokenService>['internalSetClient']
       >[0],
     );
     await service.onModuleInit();
@@ -440,6 +441,73 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
     });
   });
 
+  /**
+   * N2 (PR #115 re-review): tests de servicio para revokeTokenWithCount.
+   * Valida el contrato `{deleted: 0|1}` que el handler usa para
+   * distinguir success vs partial.
+   */
+  describe('revokeTokenWithCount (N2 fix, PR #115 re-review)', () => {
+    const VALID_TOKEN = 'C'.repeat(43);
+
+    it('debe retornar {deleted: 1} cuando el token existía y fue eliminado', async () => {
+      // Arrange
+      const key = `embed:token:${VALID_TOKEN}`;
+      client.store.set(key, '{"userId":"u","companyId":"c","roles":["r"]}');
+
+      // Act
+      const result = await service.revokeTokenWithCount(VALID_TOKEN);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.deleted).toBe(1);
+      }
+      expect(client.store.has(key)).toBe(false);
+    });
+
+    it('debe retornar {deleted: 0} cuando el token NO existía (idempotente, AC5 partial)', async () => {
+      // Arrange: token NO en store
+
+      // Act
+      const result = await service.revokeTokenWithCount(VALID_TOKEN);
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.deleted).toBe(0);
+      }
+    });
+
+    it('debe retornar {deleted: 0} cuando el token tiene formato inválido (PR #115 N2 concern)', async () => {
+      // N2 concern: malformed input could be silently treated as "didn't exist".
+      // Current implementation: returns {deleted: 0} (idempotente).
+      // This test DOCUMENTS the current behavior — change is a separate task.
+
+      // Act
+      const result = await service.revokeTokenWithCount('!@#$%');
+
+      // Assert
+      expect(result.isOk()).toBe(true);
+      if (result.isOk()) {
+        expect(result.value.deleted).toBe(0);
+      }
+    });
+
+    it('debe delegar a revokeTokenWithCount cuando se llama revokeToken (compatibilidad)', async () => {
+      // Arrange
+      const key = `embed:token:${VALID_TOKEN}`;
+      client.store.set(key, '{}');
+
+      // Act
+      const result = await service.revokeToken(VALID_TOKEN);
+
+      // Assert: revokeToken es un wrapper que NO retorna deleted count
+      expect(result.isOk()).toBe(true);
+      // Pero internamente SÍ eliminó el key
+      expect(client.store.has(key)).toBe(false);
+    });
+  });
+
   describe('input validation', () => {
     it('debería rechazar companyId vacío', async () => {
       const result = await service.createToken('', Uuid.random().value, [
@@ -491,9 +559,10 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       brokenClient.set = (async () => {
         throw new Error('Redis ECONNREFUSED');
       }) as typeof originalSet;
-      const brokenService = new RedisEmbedTokenService(
-        brokenClient as unknown as ConstructorParameters<
-          typeof RedisEmbedTokenService
+      const brokenService = new RedisEmbedTokenService();
+      brokenService.internalSetClient(
+        brokenClient as unknown as Parameters<
+          InstanceType<typeof RedisEmbedTokenService>['internalSetClient']
         >[0],
       );
       await brokenService.onModuleInit();
@@ -518,9 +587,10 @@ describe('RedisEmbedTokenService - Story 1.2 (unit)', () => {
       brokenClient.get = (async () => {
         throw new Error('Redis timeout');
       }) as typeof originalGet;
-      const brokenService = new RedisEmbedTokenService(
-        brokenClient as unknown as ConstructorParameters<
-          typeof RedisEmbedTokenService
+      const brokenService = new RedisEmbedTokenService();
+      brokenService.internalSetClient(
+        brokenClient as unknown as Parameters<
+          InstanceType<typeof RedisEmbedTokenService>['internalSetClient']
         >[0],
       );
       await brokenService.onModuleInit();

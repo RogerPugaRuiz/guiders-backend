@@ -35,7 +35,7 @@
  */
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EventBus } from '@nestjs/cqrs';
+import { CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
 import { Result, ok, err } from 'src/context/shared/domain/result';
 import { DomainError } from 'src/context/shared/domain/domain.error';
 import {
@@ -67,7 +67,10 @@ export interface RefreshEmbedTokenResult {
 }
 
 @Injectable()
-export class RefreshEmbedTokenCommandHandler {
+@CommandHandler(RefreshEmbedTokenCommand)
+export class RefreshEmbedTokenCommandHandler
+  implements ICommandHandler<RefreshEmbedTokenCommand>
+{
   private readonly logger = new Logger(RefreshEmbedTokenCommandHandler.name);
 
   constructor(
