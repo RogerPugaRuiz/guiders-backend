@@ -45,7 +45,9 @@ import { tryPublish } from 'src/context/shared/events/try-publish';
 
 @Injectable()
 @CommandHandler(AuthenticateEmbedSessionCommand)
-export class AuthenticateEmbedSessionCommandHandler implements ICommandHandler<AuthenticateEmbedSessionCommand> {
+export class AuthenticateEmbedSessionCommandHandler
+  implements ICommandHandler<AuthenticateEmbedSessionCommand>
+{
   private readonly logger = new Logger(
     AuthenticateEmbedSessionCommandHandler.name,
   );

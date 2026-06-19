@@ -47,7 +47,9 @@ export interface CreateEmbedTokenResult {
 
 @Injectable()
 @CommandHandler(CreateEmbedTokenCommand)
-export class CreateEmbedTokenCommandHandler implements ICommandHandler<CreateEmbedTokenCommand> {
+export class CreateEmbedTokenCommandHandler
+  implements ICommandHandler<CreateEmbedTokenCommand>
+{
   private readonly logger = new Logger(CreateEmbedTokenCommandHandler.name);
 
   constructor(

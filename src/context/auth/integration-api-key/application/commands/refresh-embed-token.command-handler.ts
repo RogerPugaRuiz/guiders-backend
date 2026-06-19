@@ -68,7 +68,9 @@ export interface RefreshEmbedTokenResult {
 
 @Injectable()
 @CommandHandler(RefreshEmbedTokenCommand)
-export class RefreshEmbedTokenCommandHandler implements ICommandHandler<RefreshEmbedTokenCommand> {
+export class RefreshEmbedTokenCommandHandler
+  implements ICommandHandler<RefreshEmbedTokenCommand>
+{
   private readonly logger = new Logger(RefreshEmbedTokenCommandHandler.name);
 
   constructor(

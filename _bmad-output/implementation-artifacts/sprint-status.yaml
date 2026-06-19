@@ -74,13 +74,12 @@ development_status:
   td-4-fix-redis-bff-session-service-di: done
   td-5-fix-mongowhitelabelconfigrepositoryimpl-di: done
   td-6-7-cqrs-decorators-and-integration-api-key-entity: ready-for-dev
-  3-1-implement-embedbootstrapservice-with-versioned-postmessage-protocol: ready-for-dev
+  3-1-implement-embedbootstrapservice-with-versioned-postmessage-protocol: in-progress
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
   epic-3: backlog
-  3-1-implement-embedbootstrapservice-with-versioned-postmessage-protocol: backlog
-  3-2-implement-embed-mode-detection-and-chrome-hiding: backlog
-  3-3-add-cors-origins-for-embed-clients-in-main-ts: backlog
+  3-2-implement-embed-mode-detection-and-chrome-hiding: in-progress
+  3-3-add-cors-origins-for-embed-clients-in-main-ts: in-progress
   epic-3-retrospective: optional
 
   # Epic 4: White-Label Branding Application (3 stories, 3 FRs)
