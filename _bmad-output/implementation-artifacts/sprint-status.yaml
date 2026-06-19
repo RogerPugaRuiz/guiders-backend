@@ -84,7 +84,7 @@ development_status:
 
   # Epic 4: White-Label Branding Application (3 stories, 3 FRs)
   epic-4: backlog
-  4-1-implement-get-embed-start-html-wrapper-with-inline-branding-css: backlog
+  4-1-implement-get-embed-start-html-wrapper-with-inline-branding-css: in-progress
   4-2-implement-brandingservice-in-angular-to-enhance-branding-after-boot: backlog
   4-3-implement-in-process-cache-for-white-label-configs: backlog
   epic-4-retrospective: optional
