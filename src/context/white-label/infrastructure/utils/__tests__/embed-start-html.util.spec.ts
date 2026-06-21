@@ -58,7 +58,9 @@ describe('embedStartHtml', () => {
 
     it('debe incluir CSS variables inline en <style>', () => {
       const html = embedStartHtml(sampleCss, 'LeadCars', sampleScripts);
-      expect(html).toContain('<style>:root { --gds-color-primary: #ff0000; }</style>');
+      expect(html).toContain(
+        '<style>:root { --gds-color-primary: #ff0000; }</style>',
+      );
     });
 
     it('debe incluir <admin-root></admin-root> en <body>', () => {
@@ -88,7 +90,11 @@ describe('embedStartHtml', () => {
 
   describe('XSS prevention in HTML', () => {
     it('debe escapar brandName con <script>', () => {
-      const html = embedStartHtml(sampleCss, '<script>alert(1)</script>', sampleScripts);
+      const html = embedStartHtml(
+        sampleCss,
+        '<script>alert(1)</script>',
+        sampleScripts,
+      );
       expect(html).not.toContain('<script>alert(1)</script>');
       expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     });

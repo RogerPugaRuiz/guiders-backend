@@ -3,6 +3,7 @@
  * AI-3 compliance: assertions específicas (no `toBeTruthy()` alone).
  */
 import { Test, TestingModule } from '@nestjs/testing';
+import { TestBed } from '@angular/core/testing';
 import { Response } from 'express';
 import { ok, err } from 'src/context/shared/domain/result';
 import { WhiteLabelConfig } from '../../../domain/entities/white-label-config';
@@ -12,6 +13,7 @@ import {
   IWhiteLabelConfigRepository,
 } from '../../../domain/white-label-config.repository';
 import { InMemoryTtlCache } from 'src/context/shared/infrastructure/cache/in-memory-ttl-cache';
+import { CacheMetricsService } from 'src/context/shared/infrastructure/cache/cache-metrics.service';
 import { EmbedStartController } from '../embed-start.controller';
 
 function makeMockResponse(): Response {
@@ -27,11 +29,13 @@ function makeMockResponse(): Response {
   } as unknown as Response;
 }
 
-function makeMockConfig(overrides: Partial<{
-  embedEnabled: boolean;
-  embedAllowedOrigins: string[];
-  brandName: string;
-}> = {}): WhiteLabelConfig {
+function makeMockConfig(
+  overrides: Partial<{
+    embedEnabled: boolean;
+    embedAllowedOrigins: string[];
+    brandName: string;
+  }> = {},
+): WhiteLabelConfig {
   return WhiteLabelConfig.create({
     id: 'test-id',
     companyId: 'test-company-id',
@@ -80,6 +84,7 @@ describe('EmbedStartController (unit)', () => {
       providers: [
         { provide: WHITE_LABEL_CONFIG_REPOSITORY, useValue: mockRepo },
         { provide: InMemoryTtlCache, useValue: cache },
+        CacheMetricsService,
       ],
     }).compile();
 
@@ -88,7 +93,9 @@ describe('EmbedStartController (unit)', () => {
 
   describe('AC1 — HTML response', () => {
     it('debe retornar HTML con <title>Guiders Admin - {brandName}</title>', async () => {
-      mockRepo.findByCompanyId.mockResolvedValue(ok(makeMockConfig({ brandName: 'AcmeCo' })));
+      mockRepo.findByCompanyId.mockResolvedValue(
+        ok(makeMockConfig({ brandName: 'AcmeCo' })),
+      );
       const res = makeMockResponse();
 
       await controller.start('test-company-id', res);
@@ -149,7 +156,10 @@ describe('EmbedStartController (unit)', () => {
 
       await controller.start('test-company-id', res);
 
-      expect(res.setHeader).toHaveBeenCalledWith('X-Content-Type-Options', 'nosniff');
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'X-Content-Type-Options',
+        'nosniff',
+      );
     });
 
     it('debe setear X-Frame-Options: SAMEORIGIN', async () => {
@@ -158,7 +168,10 @@ describe('EmbedStartController (unit)', () => {
 
       await controller.start('test-company-id', res);
 
-      expect(res.setHeader).toHaveBeenCalledWith('X-Frame-Options', 'SAMEORIGIN');
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'X-Frame-Options',
+        'SAMEORIGIN',
+      );
     });
 
     it('debe setear Referrer-Policy: strict-origin-when-cross-origin', async () => {
@@ -187,7 +200,9 @@ describe('EmbedStartController (unit)', () => {
 
       expect(res.setHeader).toHaveBeenCalledWith(
         'Content-Security-Policy',
-        expect.stringContaining('frame-ancestors https://app.a.com https://app.b.com'),
+        expect.stringContaining(
+          'frame-ancestors https://app.a.com https://app.b.com',
+        ),
       );
     });
 
@@ -251,6 +266,52 @@ describe('EmbedStartController (unit)', () => {
       const html = (res.send as jest.Mock).mock.calls[0][0] as string;
       expect(html).toContain('<title>Guiders Admin - CachedBrand</title>');
       expect(mockRepo.findByCompanyId).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Story 4.3 — Cache metrics', () => {
+    it('debe incrementar hits cuando hay cache hit', async () => {
+      const metrics = TestBed.inject(CacheMetricsService);
+      cache.set('test-company-id', makeMockConfig());
+
+      const res = makeMockResponse();
+      await controller.start('test-company-id', res);
+
+      expect(metrics.snapshot().hits).toBe(1);
+    });
+
+    it('debe incrementar misses cuando NO hay cache', async () => {
+      const metrics = TestBed.inject(CacheMetricsService);
+      mockRepo.findByCompanyId.mockResolvedValue(ok(makeMockConfig()));
+
+      const res = makeMockResponse();
+      await controller.start('test-company-id', res);
+
+      expect(metrics.snapshot().misses).toBe(1);
+    });
+
+    it('debe incrementar sets después de un cache miss + load exitoso', async () => {
+      const metrics = TestBed.inject(CacheMetricsService);
+      mockRepo.findByCompanyId.mockResolvedValue(ok(makeMockConfig()));
+
+      const res = makeMockResponse();
+      await controller.start('test-company-id', res);
+
+      expect(metrics.snapshot().sets).toBe(1);
+    });
+
+    it('debe calcular hitRatio = 0.5 con 1 hit + 1 miss', async () => {
+      const metrics = TestBed.inject(CacheMetricsService);
+      // First call: miss + set
+      mockRepo.findByCompanyId.mockResolvedValue(ok(makeMockConfig()));
+      await controller.start('test-company-id', makeMockResponse());
+      // Second call: hit
+      await controller.start('test-company-id', makeMockResponse());
+
+      const snap = metrics.snapshot();
+      expect(snap.hits).toBe(1);
+      expect(snap.misses).toBe(1);
+      expect(snap.hitRatio).toBe(0.5);
     });
   });
 

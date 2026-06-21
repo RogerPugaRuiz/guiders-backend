@@ -40,9 +40,15 @@ export function brandingToCssVariables(
 
   lines.push(`  --gds-font-family: ${primitives.typography.fontFamily};`);
 
-  lines.push(`  --gds-brand-name: '${escapeCssString(primitives.branding.brandName)}';`);
-  lines.push(`  --gds-logo-url: url('${escapeCssString(primitives.branding.logoUrl ?? '')}');`);
-  lines.push(`  --gds-favicon-url: url('${escapeCssString(primitives.branding.faviconUrl ?? '')}');`);
+  lines.push(
+    `  --gds-brand-name: '${escapeCssString(primitives.branding.brandName)}';`,
+  );
+  lines.push(
+    `  --gds-logo-url: url('${escapeCssString(primitives.branding.logoUrl ?? '')}');`,
+  );
+  lines.push(
+    `  --gds-favicon-url: url('${escapeCssString(primitives.branding.faviconUrl ?? '')}');`,
+  );
 
   lines.push('}');
   return lines.join('\n');

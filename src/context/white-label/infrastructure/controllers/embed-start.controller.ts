@@ -31,6 +31,9 @@ import { WhiteLabelConfig } from '../../domain/entities/white-label-config';
 import { InMemoryTtlCache } from 'src/context/shared/infrastructure/cache/in-memory-ttl-cache';
 import { brandingToCssVariables } from '../utils/branding-to-css.util';
 import { embedStartHtml } from '../utils/embed-start-html.util';
+import { CacheMetricsService } from 'src/context/shared/infrastructure/cache/cache-metrics.service';
+
+const CACHE_NAME = 'white-label-config';
 
 /**
  * Default Guiders branding palette used as fallback when:
@@ -75,6 +78,7 @@ export class EmbedStartController {
     @Inject(WHITE_LABEL_CONFIG_REPOSITORY)
     private readonly repository: IWhiteLabelConfigRepository,
     private readonly cache: InMemoryTtlCache<string, WhiteLabelConfig>,
+    private readonly metrics: CacheMetricsService,
   ) {}
 
   /**
@@ -103,14 +107,15 @@ export class EmbedStartController {
       // AC4: 403 when company not found or embedEnabled=false
       res.status(HttpStatus.FORBIDDEN).json({
         code: 'EMBED_DISABLED_FOR_TENANT',
-        message:
-          'Embed is not enabled for this tenant or company not found',
+        message: 'Embed is not enabled for this tenant or company not found',
       });
       return;
     }
 
     // Generate HTML with inline branding
-    const cssVariables = brandingToCssVariables(configResult.value.toPrimitives());
+    const cssVariables = brandingToCssVariables(
+      configResult.value.toPrimitives(),
+    );
     const html = embedStartHtml(
       cssVariables,
       configResult.value.branding.brandName,
@@ -135,11 +140,13 @@ export class EmbedStartController {
   private async loadConfigWithFallback(
     companyId: string,
   ): Promise<{ ok: true; value: WhiteLabelConfig } | { ok: false }> {
-    // Try cache first (Story 4.3 dependency, implemented as minimum here)
+    // Try cache first (Story 4.3 AC2)
     const cached = this.cache.get(companyId);
     if (cached && cached.embedEnabled) {
+      this.metrics.recordHit(CACHE_NAME);
       return { ok: true, value: cached };
     }
+    this.metrics.recordMiss(CACHE_NAME);
 
     // AC3: MongoDB with 1s timeout
     try {
@@ -153,6 +160,7 @@ export class EmbedStartController {
         if (config.embedEnabled) {
           // Cache for next request
           this.cache.set(companyId, config);
+          this.metrics.recordSet(CACHE_NAME);
           return { ok: true, value: config };
         }
         // embedEnabled=false → 403
@@ -172,10 +180,7 @@ export class EmbedStartController {
     }
   }
 
-  private async withTimeout<T>(
-    promise: Promise<T>,
-    ms: number,
-  ): Promise<T> {
+  private async withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     let timer: NodeJS.Timeout | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timer = setTimeout(() => reject(new Error('TIMEOUT')), ms);
@@ -209,9 +214,7 @@ export class EmbedStartController {
     // CSP frame-ancestors: spec uses allowed origins from config
     // If no origins, use 'none' (most restrictive)
     const ancestors =
-      embedAllowedOrigins.length > 0
-        ? embedAllowedOrigins.join(' ')
-        : "'none'";
+      embedAllowedOrigins.length > 0 ? embedAllowedOrigins.join(' ') : "'none'";
     res.setHeader(
       'Content-Security-Policy',
       `default-src 'self'; frame-ancestors ${ancestors}`,
