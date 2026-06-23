@@ -64,7 +64,24 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
     event: EmbedTokenAuditLogPrimitives,
   ): Promise<Result<void, DomainError>> {
     try {
-      await this.model.create(event);
+      // TD-8 fix: normalizar `origin` vacío a sentinel string.
+      //
+      // El schema declara `origin: { type: String, required: true }`. Mongoose
+      // acepta empty string `''` como "presente" (string válido), pero algunos
+      // validators (custom, JSON schema, future schema hardening con
+      // `match: /^https?:\/\//`) rechazarían empty strings.
+      //
+      // Además: el valor semánticamente correcto para "no había header Origin
+      // ni Referer en la request" es un sentinel explícito (`(none)`) en
+      // lugar de empty string. Esto permite:
+      // 1. Queries limpios: `db.embed_token_audit_log.find({ origin: '(none)' })`
+      //    filtra los server-to-server calls (curl, integradores sin browser).
+      // 2. Logs humanos: ver `(none)` en el dashboard es más legible que `''`.
+      // 3. Forward-compatible: si el schema se endurece en el futuro, no rompe.
+      //
+      // Aplicamos solo si está vacío (defensivo). NO modificamos valores reales.
+      const normalizedEvent = this.normalizeOrigin(event);
+      await this.model.create(normalizedEvent);
       return okVoid();
     } catch (error) {
       const message =
@@ -153,6 +170,32 @@ export class MongoEmbedTokenAuditLogRepositoryImpl
       );
       return err(new MongoEmbedAuditLogPersistenceError(message));
     }
+  }
+
+  /**
+   * TD-8: normaliza `origin` vacío a sentinel `'(none)'`.
+   *
+   * Casos:
+   * - `origin === ''` (sin headers Origin/Referer) → `'(none)'`
+   * - `origin === '(none)'` (idempotente) → `'(none)'`
+   * - `origin === 'https://...' o 'http://...'` (URL válida) → unchanged
+   * - `origin === undefined` (bug en caller) → `'(none)'` (no propagamos el bug)
+   *
+   * Caso especial: `'(none)'` también se normaliza a `'(none)'` (idempotente).
+   *
+   * La función es `private` (encapsulación) y pura (sin side effects).
+   */
+  private normalizeOrigin(
+    event: EmbedTokenAuditLogPrimitives,
+  ): EmbedTokenAuditLogPrimitives {
+    const ORIGIN_NONE_SENTINEL = '(none)';
+
+    let origin = event.origin;
+    if (origin === undefined || origin === null || origin.trim() === '') {
+      origin = ORIGIN_NONE_SENTINEL;
+    }
+
+    return { ...event, origin };
   }
 
   private toPrimitives(
