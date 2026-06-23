@@ -74,6 +74,9 @@ development_status:
   td-4-fix-redis-bff-session-service-di: done
   td-5-fix-mongowhitelabelconfigrepositoryimpl-di: done
   td-6-7-cqrs-decorators-and-integration-api-key-entity: ready-for-dev
+  # TD-8: audit log origin validation — normalize empty string to '(none)' sentinel
+  # Fixed 2026-06-23 — commit dc9d4a7 — forward-compatible with schema hardening
+  td-8-audit-log-origin-validation: done
   3-1-implement-embedbootstrapservice-with-versioned-postmessage-protocol: in-progress
 
   # Epic 3: Cross-Frame Auth Handshake (postMessage) (3 stories, 5 FRs)
